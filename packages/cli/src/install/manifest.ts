@@ -15,7 +15,8 @@ export interface Manifest {
 const MANIFEST_REL = join('.jig', 'manifest.json');
 
 export function checksum(content: string): string {
-  return `sha256:${createHash('sha256').update(content, 'utf8').digest('hex')}`;
+  const normalized = content.replace(/\r\n/g, '\n');
+  return `sha256:${createHash('sha256').update(normalized, 'utf8').digest('hex')}`;
 }
 
 export function readManifest(projectRoot: string): Manifest | null {
