@@ -1,0 +1,146 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { install } from '../src/commands/install.js';
+import { update } from '../src/commands/update.js';
+import { readManifest } from '../src/install/manifest.js';
+
+let project: string;
+let pkg: string;
+let home: string;
+
+function seedPackage(ruleBody: string) {
+  writeFileSync(join(pkg, 'rules', '00-anti-patterns.md'), ruleBody);
+}
+
+beforeEach(() => {
+  project = mkdtempSync(join(tmpdir(), 'jig-proj-'));
+  pkg = mkdtempSync(join(tmpdir(), 'jig-pkg-'));
+  home = mkdtempSync(join(tmpdir(), 'jig-home-'));
+  mkdirSync(join(pkg, 'rules'), { recursive: true });
+  mkdirSync(join(pkg, 'templates'), { recursive: true });
+  seedPackage('### A-01 Rule\n❌ bad\n✅ good\n');
+  writeFileSync(join(pkg, 'rules.index.json'),
+    JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' }]));
+  writeFileSync(join(pkg, 'templates', 'SKILL.md.tmpl'),
+    '{{command_prefix}}{{config_file}}{{available_commands}}{{ask_instruction}}{{scripts_path}}');
+  writeFileSync(join(pkg, 'templates', 'command-metadata.json'), JSON.stringify({}));
+  writeFileSync(join(pkg, 'LICENSE'), 'Apache License 2.0 text');
+  writeFileSync(join(pkg, 'NOTICE'), 'Jig');
+});
+
+afterEach(() => {
+  rmSync(project, { recursive: true, force: true });
+  rmSync(pkg, { recursive: true, force: true });
+  rmSync(home, { recursive: true, force: true });
+});
+
+const opts = (version: string) => ({
+  agent: 'claude', scope: 'project' as const,
+  projectRoot: project, packageRoot: pkg, version, homeDir: home,
+});
+
+describe('update', () => {
+  it('replaces an untouched rule file', () => {
+    install(opts('0.1.0'));
+    seedPackage('### A-01 Rule revised\n❌ bad\n✅ better\n');
+    const result = update(opts('0.2.0'));
+    const body = readFileSync(join(project, '.jig', '00-anti-patterns.md'), 'utf8');
+    expect(body).toContain('Rule revised');
+    expect(result.updated).toContain(join('.jig', '00-anti-patterns.md'));
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  it('skips a rule file the user has edited', () => {
+    install(opts('0.1.0'));
+    const target = join(project, '.jig', '00-anti-patterns.md');
+    writeFileSync(target, `${readFileSync(target, 'utf8')}\n### A-99 My own rule\n`);
+    seedPackage('### A-01 Rule revised\n❌ bad\n✅ better\n');
+    const result = update(opts('0.2.0'));
+    expect(readFileSync(target, 'utf8')).toContain('A-99 My own rule');
+    expect(readFileSync(target, 'utf8')).not.toContain('Rule revised');
+    expect(result.skipped).toContain(join('.jig', '00-anti-patterns.md'));
+  });
+
+  it('always replaces LICENSE and NOTICE even if edited', () => {
+    install(opts('0.1.0'));
+    writeFileSync(join(project, '.jig', 'NOTICE'), 'tampered');
+    writeFileSync(join(pkg, 'NOTICE'), 'Jig v2');
+    update(opts('0.2.0'));
+    expect(readFileSync(join(project, '.jig', 'NOTICE'), 'utf8')).toBe('Jig v2');
+  });
+
+  it('reports the version transition', () => {
+    install(opts('0.1.0'));
+    const result = update(opts('0.2.0'));
+    expect(result.fromVersion).toBe('0.1.0');
+    expect(result.toVersion).toBe('0.2.0');
+  });
+
+  it('records the new version in the manifest', () => {
+    install(opts('0.1.0'));
+    update(opts('0.2.0'));
+    const m = JSON.parse(readFileSync(join(project, '.jig', 'manifest.json'), 'utf8'));
+    expect(m.version).toBe('0.2.0');
+  });
+
+  it('throws when Jig is not installed', () => {
+    expect(() => update(opts('0.2.0'))).toThrow(/not installed/i);
+  });
+});
+
+// --- Correction 2: manifest discovery must check both possible install
+// roots. A project-scope install's manifest lives under `projectRoot`; a
+// global-scope install's manifest lives under `homeDir`. `update` must find
+// either one without being told which scope was used — the scope flag on
+// `opts` is not the source of truth, the manifest is. ---
+describe('update — manifest discovery (Correction 2)', () => {
+  it('discovers a project-scope install via projectRoot', () => {
+    install({ ...opts('0.1.0'), scope: 'project' });
+    expect(readManifest(project)?.scope).toBe('project');
+    seedPackage('### A-01 Rule revised\n❌ bad\n✅ better\n');
+    const result = update({ ...opts('0.2.0'), scope: 'project' });
+    expect(result.fromVersion).toBe('0.1.0');
+    expect(result.toVersion).toBe('0.2.0');
+    expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(true);
+    const body = readFileSync(join(project, '.jig', '00-anti-patterns.md'), 'utf8');
+    expect(body).toContain('Rule revised');
+    // Nothing was ever written under homeDir for a project-scope install.
+    expect(existsSync(join(home, '.jig'))).toBe(false);
+  });
+
+  it('discovers a global-scope install via homeDir even when opts.scope says project', () => {
+    install({ ...opts('0.1.0'), scope: 'global' });
+    expect(readManifest(home)?.scope).toBe('global');
+    expect(existsSync(join(project, '.jig'))).toBe(false);
+    seedPackage('### A-01 Rule revised\n❌ bad\n✅ better\n');
+    // Deliberately pass scope: 'project' here — discovery must ignore it and
+    // still find + update the global install, per Correction 1: scope comes
+    // from the manifest, never from the flag.
+    const result = update({ ...opts('0.2.0'), scope: 'project' });
+    expect(result.fromVersion).toBe('0.1.0');
+    expect(result.toVersion).toBe('0.2.0');
+    const body = readFileSync(join(home, '.jig', '00-anti-patterns.md'), 'utf8');
+    expect(body).toContain('Rule revised');
+    // Still nothing under projectRoot.
+    expect(existsSync(join(project, '.jig'))).toBe(false);
+    const m = readManifest(home)!;
+    expect(m.scope).toBe('global');
+    expect(m.version).toBe('0.2.0');
+  });
+
+  it('skips an edited rule file in a global-scope install and always replaces its LICENSE/NOTICE', () => {
+    install({ ...opts('0.1.0'), scope: 'global' });
+    const target = join(home, '.jig', '00-anti-patterns.md');
+    writeFileSync(target, `${readFileSync(target, 'utf8')}\n### A-99 My own rule\n`);
+    writeFileSync(join(home, '.jig', 'NOTICE'), 'tampered');
+    writeFileSync(join(pkg, 'NOTICE'), 'Jig v2');
+    seedPackage('### A-01 Rule revised\n❌ bad\n✅ better\n');
+    const result = update({ ...opts('0.2.0'), scope: 'project' });
+    expect(readFileSync(target, 'utf8')).toContain('A-99 My own rule');
+    expect(readFileSync(target, 'utf8')).not.toContain('Rule revised');
+    expect(result.skipped).toContain(join('.jig', '00-anti-patterns.md'));
+    expect(readFileSync(join(home, '.jig', 'NOTICE'), 'utf8')).toBe('Jig v2');
+  });
+});
