@@ -1,0 +1,72 @@
+/* mode.editorial.css — marketing, blog, docs, landing.
+   Optimises for FIRST use. Legibility over density.
+   Spacing uses the shared 8pt option set; modes SELECT options, they do not invent values.
+   Load with exactly one brand file. */
+
+:root {
+  --mode: "editorial";
+
+  /* ---- Shared spacing options (8pt base). Identical in every mode. ---- */
+  /* 2xs is a deliberate half-step off the 8pt grid. It exists ONLY for gaps
+     inside a single component — label→input, icon→label — where 8px reads as
+     a separation rather than a pairing. Never for layout. */
+  --spacing-2xs: 4px;
+  --spacing-xs:  8px;
+  --spacing-s:   16px;
+  --spacing-m:   24px;
+  --spacing-l:   32px;
+  --spacing-xl:  48px;
+  --spacing-xxl: 80px;
+
+
+  /* ---- This mode's selections ---- */
+  /* ---- Type scale — 1.250 Major Third. ----
+     Large scale: bigger steps, suited to less complex, content-led interfaces.
+     Line heights UNITLESS (they must scale with user text size, WCAG 1.4.12).
+     FLOOR: 1.5 for anything used as body or long-form text. */
+  --text-caption: 14px;  --leading-caption: 1.5;
+  --text-body:    16px;  --leading-body:    1.5;    /* UI text: labels, controls */
+  --text-prose:   18px;  --leading-prose:   1.6;    /* LONG-FORM text. Never below 18. */
+  --text-lead:    20px;  --leading-lead:    1.5;
+  --text-h3:      24px;  --leading-h3:      1.333;
+  --text-h2:      32px;  --leading-h2:      1.25;
+  --text-h1:      48px;  --leading-h1:      1.1;
+
+  /* Two weights only. More adds noise and is hard to apply consistently. */
+  --font-weight-regular: 400;
+  --font-weight-bold:    600;
+
+  /* Letter spacing tightens as size grows; text typefaces are spaced for small sizes. */
+  --tracking-body: 0;  --tracking-h2: -0.015em;  --tracking-h1: -0.025em;
+  --tracking-caps: 0.06em;
+
+  --measure-prose: 68ch;   /* 40–80 characters */
+
+  --spacing-section:        var(--spacing-xxl);   /* 80 */
+  --spacing-section-sm:     var(--spacing-xl);    /* 48 */
+  --spacing-card:           var(--spacing-m);     /* 24 — card padding is M (D-69) */
+  --spacing-stack:          var(--spacing-m);     /* 24 */
+  --spacing-group:          var(--spacing-xs);    /*  8 */
+  --spacing-label:          var(--spacing-2xs);  /*  4 — label to its input */
+  --spacing-inline:         var(--spacing-xs);    /*  8 */
+  --spacing-heading-before: var(--spacing-xl);    /* 48 */
+  --spacing-heading-after:  var(--spacing-s);     /* 16 */
+
+  --grid-columns: 12;      --grid-columns-sm: 4;
+  --grid-gutter:  var(--spacing-l);   --grid-gutter-sm: var(--spacing-s);   /* 32 → 16 */
+  --grid-margin:  var(--spacing-xxl); --grid-margin-sm: var(--spacing-s);   /* 80 → 16 */
+
+  --size-control: 48px;  --size-control-sm: 40px;
+  --size-touch-target: 48px;  --size-icon: 20px;
+
+  --radius-control: var(--radius-sm);  --radius-surface: var(--radius-md);
+  --shadow-surface: var(--shadow-none);
+
+  --duration-fast: 150ms;  --duration-base: 250ms;  --duration-slow: 300ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 1ms; --duration-base: 1ms; --duration-slow: 1ms; }
+}
