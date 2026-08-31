@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { checksum, readManifest, writeManifest, isModified, type Manifest } from '../src/install/manifest.js';
+import { Buffer } from 'node:buffer';
 
 let dir: string;
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'jig-')); mkdirSync(join(dir, '.jig'), { recursive: true }); });
@@ -22,6 +23,9 @@ describe('checksum', () => {
   });
   it('is prefixed with the algorithm', () => {
     expect(checksum('hello')).toMatch(/^sha256:[0-9a-f]{64}$/);
+  });
+  it('normalizes CRLF to LF', () => {
+    expect(checksum('a\r\nb')).toBe(checksum('a\nb'));
   });
 });
 
@@ -54,5 +58,14 @@ describe('isModified', () => {
   it('is false when the file is missing from disk', () => {
     const m = { ...base, files: { '.jig/gone.md': checksum('x') } };
     expect(isModified(dir, '.jig/gone.md', m)).toBe(false);
+  });
+  it('normalizes line endings when comparing checksums', () => {
+    // Write file with CRLF bytes to disk
+    const crlfContent = Buffer.from('line1\r\nline2\r\n');
+    writeFileSync(join(dir, '.jig', 'crlf.txt'), crlfContent);
+    // Manifest recorded the LF version
+    const m = { ...base, files: { '.jig/crlf.txt': checksum('line1\nline2\n') } };
+    // Should not be considered modified even though bytes differ
+    expect(isModified(dir, '.jig/crlf.txt', m)).toBe(false);
   });
 });
