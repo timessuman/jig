@@ -6,10 +6,8 @@ whole-branch review triaged them; nothing here blocks merge.
 
 ## Fix before the next release
 
-- **Rule `C-49` has a ❌ but no ✅ correction.** The only rule of 104 lacking one (87 headings,
-  87 ❌ lines, 86 ✅ lines). `00-anti-patterns.md` states every rule carries a correction, so the
-  file contradicts itself in an artifact agents read as authoritative. Writing it is a design
-  decision, not a code fix. It also blocks that rule from ever carrying a `fix` codemod.
+_Resolved: rule `C-49` now carries its `✅`, and `I-80` (found while verifying C-49) now carries its `❌`. All 104 rules have both markers._
+
 - **Installing a second agent orphans the first agent's skill file.** `install --agent claude`
   then `install --agent cursor` leaves `.claude/skills/jig/SKILL.md` on disk, absent from the
   manifest, frozen forever. The live trigger is a shared repo where teammates use different
