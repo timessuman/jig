@@ -3,18 +3,18 @@ cite the number when you follow or deliberately break one.
 
 ## Before generating or reviewing any UI
 
-1. Load `.jig/00-anti-patterns.md` and `.jig/01-modes.md`.
+1. Load `{{rules_path}}/00-anti-patterns.md` and `{{rules_path}}/01-modes.md`.
 2. Determine the mode from `{{config_file}}`, or infer it using the procedure in
-   `.jig/01-modes.md` and state the inference in one line before building.
-3. Load the relevant section of `.jig/03-patterns.md` for the component you are building.
-4. Load `.jig/05-copy.md` whenever you write a label, button, heading, error or empty state.
+   `{{rules_path}}/01-modes.md` and state the inference in one line before building.
+3. Load the relevant section of `{{rules_path}}/03-patterns.md` for the component you are building.
+4. Load `{{rules_path}}/05-copy.md` whenever you write a label, button, heading, error or empty state.
 5. Consume tokens by semantic name only. Never write a raw colour or pixel value
    at a call site.
-6. Run the self-check at the end of `.jig/00-anti-patterns.md` before finishing
+6. Run the self-check at the end of `{{rules_path}}/00-anti-patterns.md` before finishing
    (a future `check` command will automate this).
 7. Cite any rule you deliberately break, with the reason, in one line.
 
-Load `.jig/04-principles.md` only when two rules conflict.
+Load `{{rules_path}}/04-principles.md` only when two rules conflict.
 
 ## Commands
 

@@ -45,7 +45,7 @@ describe('packaging', () => {
 });
 
 describe('installed skill file', () => {
-  const body = buildSkillBody(repoRoot);
+  const body = buildSkillBody(repoRoot, 'project');
   const commandMetadata = JSON.parse(
     readFileSync(join(repoRoot, 'templates', 'command-metadata.json'), 'utf8'),
   ) as Record<string, { status?: string }>;
@@ -81,5 +81,30 @@ describe('installed skill file', () => {
     const attestationLine = body.split('\n').find((line) => line.startsWith('JIG_CHECK:'));
     expect(attestationLine).toBeDefined();
     expect(attestationLine).not.toMatch(/mechanical=/);
+  });
+});
+
+// --- C2: a global install's skill file must point at ~/.jig, not a bare
+// .jig that only resolves relative to whatever project the agent happens to
+// be sitting in when it later reads the skill file. ---
+describe('buildSkillBody scope (C2)', () => {
+  it('renders project-scope rule paths anchored at .jig', () => {
+    const body = buildSkillBody(repoRoot, 'project');
+    expect(body).toContain('`.jig/00-anti-patterns.md`');
+    expect(body).toContain('`.jig/01-modes.md`');
+    expect(body).toContain('`.jig/03-patterns.md`');
+    expect(body).toContain('`.jig/04-principles.md`');
+    expect(body).toContain('`.jig/05-copy.md`');
+  });
+
+  it('renders global-scope rule paths anchored at ~/.jig', () => {
+    const body = buildSkillBody(repoRoot, 'global');
+    expect(body).toContain('`~/.jig/00-anti-patterns.md`');
+    expect(body).toContain('`~/.jig/01-modes.md`');
+    expect(body).toContain('`~/.jig/03-patterns.md`');
+    expect(body).toContain('`~/.jig/04-principles.md`');
+    expect(body).toContain('`~/.jig/05-copy.md`');
+    // Must not also contain the bare project-scope form.
+    expect(body).not.toContain('`.jig/00-anti-patterns.md`');
   });
 });

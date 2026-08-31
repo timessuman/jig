@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { install, upsertBlock, vendorHeader } from '../src/commands/install.js';
 import { readManifest } from '../src/install/manifest.js';
+import { BLOCK_START, BLOCK_END } from '../src/adapters/types.js';
 
 let project: string;
 let pkg: string;
@@ -19,7 +20,7 @@ beforeEach(() => {
   writeFileSync(join(pkg, 'rules.index.json'),
     JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' }]));
   writeFileSync(join(pkg, 'templates', 'SKILL.md.tmpl'),
-    'Use {{command_prefix}}check. Config {{config_file}}.\n{{available_commands}}\n{{ask_instruction}}\n{{scripts_path}}');
+    'Use {{command_prefix}}check. Config {{config_file}}. Rules at {{rules_path}}/00-anti-patterns.md.\n{{available_commands}}\n{{ask_instruction}}\n{{scripts_path}}');
   writeFileSync(join(pkg, 'templates', 'command-metadata.json'),
     JSON.stringify({ check: { description: 'Check.', argumentHint: '[target]' } }));
   writeFileSync(join(pkg, 'LICENSE'), 'Apache License 2.0 text');
@@ -164,12 +165,48 @@ describe('install', () => {
       .toThrow(/does not support global/);
   });
 
-  it('preserves existing AGENTS.md content', () => {
+  // --- I1: re-running install must not silently destroy a user's edit to a
+  // vendored file. The vendor header on every rule file promises exactly
+  // this ("`jig update` will not overwrite a file you have changed") and
+  // the README's headline instruction is the install line itself, so a
+  // second `install` run is a real, common path — not just `update`. ---
+  it('does not clobber a locally edited rule file on a second install, and reports it skipped (I1)', () => {
+    install(opts());
+    const target = join(project, '.jig', '00-anti-patterns.md');
+    const edited = `${readFileSync(target, 'utf8')}\n### A-99 My own addition\n`;
+    writeFileSync(target, edited);
+
+    const result = install(opts());
+
+    expect(readFileSync(target, 'utf8')).toBe(edited);
+    expect(result.skipped).toContain('.jig/00-anti-patterns.md');
+    expect(result.written).not.toContain('.jig/00-anti-patterns.md');
+  });
+
+  it('still replaces LICENSE and NOTICE on a second install even if they were edited (I1)', () => {
+    install(opts());
+    writeFileSync(join(project, '.jig', 'NOTICE'), 'tampered');
+    writeFileSync(join(pkg, 'NOTICE'), 'Jig v2 NOTICE');
+
+    const result = install(opts());
+
+    expect(readFileSync(join(project, '.jig', 'NOTICE'), 'utf8')).toBe('Jig v2 NOTICE');
+    expect(result.skipped).not.toContain('.jig/NOTICE');
+  });
+
+  it('preserves existing AGENTS.md content (I3: install must recognize the block via BLOCK_START, not a hardcoded literal)', () => {
     writeFileSync(join(project, 'AGENTS.md'), '# House rules\n\nDo the thing.\n');
     install({ ...opts(), agent: 'codex' });
     const out = readFileSync(join(project, 'AGENTS.md'), 'utf8');
+    // If install.ts ever falls back to matching a hardcoded marker literal
+    // instead of the BLOCK_START constant that adapters/vendor.ts actually
+    // emits, this upsert is skipped and install() overwrites the whole file
+    // — losing "# House rules" — instead of merging the block in. Asserting
+    // against the constant itself (not a copy-pasted literal) is what makes
+    // this test catch that drift.
     expect(out).toContain('# House rules');
-    expect(out).toContain('jig:start');
+    expect(out).toContain(BLOCK_START);
+    expect(out).toContain(BLOCK_END);
   });
 
   it('records manifest keys using forward slashes only (Correction 2)', () => {
@@ -219,6 +256,18 @@ describe('install — scope resolution (Fix 1)', () => {
   it('cursor still rejects global scope', () => {
     expect(() => install({ ...opts(), agent: 'cursor', scope: 'global' }))
       .toThrow(/does not support global/);
+  });
+
+  it('a global install writes a skill file whose rule paths are home-anchored (C2)', () => {
+    install({ ...opts(), scope: 'global' });
+    const skill = readFileSync(join(home, '.claude', 'skills', 'jig', 'SKILL.md'), 'utf8');
+    expect(skill).toContain('Rules at ~/.jig/00-anti-patterns.md.');
+  });
+
+  it('a project install writes a skill file whose rule paths are project-anchored (C2)', () => {
+    install(opts());
+    const skill = readFileSync(join(project, '.claude', 'skills', 'jig', 'SKILL.md'), 'utf8');
+    expect(skill).toContain('Rules at .jig/00-anti-patterns.md.');
   });
 
   it('writes the global-scope manifest under homeDir/.jig/manifest.json', () => {

@@ -225,3 +225,71 @@ describe('update — skill file refresh', () => {
     expect(result.skipped).not.toContain('AGENTS.md');
   });
 });
+
+// --- C3: manifest.json can live inside a shared, version-controlled repo —
+// it must never be trusted to redirect writes outside the location it was
+// actually found at, and a malformed or adapter/scope-mismatched manifest
+// must fail loudly rather than silently writing somewhere unexpected. ---
+describe('update — manifest cannot redirect writes outside where it was found (C3)', () => {
+  it('a manifest claiming global scope while sitting at the project root updates the PROJECT, not $HOME', () => {
+    mkdirSync(join(project, '.jig'), { recursive: true });
+    writeFileSync(
+      join(project, '.jig', 'manifest.json'),
+      JSON.stringify({
+        version: '0.0.1',
+        agent: 'generic',
+        scope: 'global',
+        installedAt: new Date().toISOString(),
+        files: {},
+      }),
+    );
+
+    const result = update({ ...opts('0.1.0'), agent: 'generic' });
+
+    expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(project, 'AGENTS.md'))).toBe(true);
+    // Nothing escaped to $HOME.
+    expect(existsSync(join(home, '.jig'))).toBe(false);
+    expect(existsSync(join(home, 'AGENTS.md'))).toBe(false);
+
+    const m = readManifest(project)!;
+    expect(m.scope).toBe('project');
+    expect(result.fromVersion).toBe('0.0.1');
+  });
+
+  it('gives a clear, actionable error when the manifest is malformed JSON', () => {
+    mkdirSync(join(project, '.jig'), { recursive: true });
+    writeFileSync(join(project, '.jig', 'manifest.json'), 'not json');
+    expect(() => update(opts('0.2.0'))).toThrow(/jig install/i);
+  });
+
+  it('gives a clear, actionable error when the manifest has a `..` file key', () => {
+    mkdirSync(join(project, '.jig'), { recursive: true });
+    writeFileSync(
+      join(project, '.jig', 'manifest.json'),
+      JSON.stringify({
+        version: '0.1.0',
+        agent: 'claude',
+        scope: 'project',
+        installedAt: new Date().toISOString(),
+        files: { '../../etc/passwd': 'sha256:' + '0'.repeat(64) },
+      }),
+    );
+    expect(() => update(opts('0.2.0'))).toThrow(/jig install/i);
+  });
+
+  it('rejects an adapter/scope mismatch instead of silently updating', () => {
+    mkdirSync(join(home, '.jig'), { recursive: true });
+    writeFileSync(
+      join(home, '.jig', 'manifest.json'),
+      JSON.stringify({
+        version: '0.1.0',
+        agent: 'cursor',
+        scope: 'global',
+        installedAt: new Date().toISOString(),
+        files: {},
+      }),
+    );
+    expect(() => update({ ...opts('0.2.0'), agent: 'cursor' })).toThrow(/does not support/i);
+  });
+});

@@ -4,6 +4,17 @@ export interface TemplateVars {
   ask_instruction: string;
   available_commands: string;
   config_file: string;
+  /**
+   * Directory the vendored rule files live under, relative to wherever the
+   * agent should resolve it from: `.jig` for a project-scope install (the
+   * agent's own cwd), `~/.jig` for a global install (the user's home
+   * directory) — see `buildSkillBody`'s `scope` parameter. Every rule-file
+   * reference in the template must be built from this variable rather than
+   * a hardcoded `.jig/...` literal, or a global install's skill file will
+   * point an agent working in an unrelated project at a `.jig/` directory
+   * that does not exist there (finding C2).
+   */
+  rules_path: string;
 }
 
 export type CommandStatus = 'available' | 'planned';

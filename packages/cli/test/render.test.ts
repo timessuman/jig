@@ -7,6 +7,7 @@ const vars = {
   ask_instruction: 'Ask directly in chat.',
   available_commands: 'TABLE',
   config_file: 'jig.config.json',
+  rules_path: '.jig',
 };
 
 describe('render', () => {

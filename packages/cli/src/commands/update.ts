@@ -1,6 +1,6 @@
 import { basename, dirname, join } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { checksum, isModified, readManifest, writeManifest, type Manifest } from '../install/manifest.js';
+import { checksum, isModified, readManifest, writeManifest, type Manifest, type Scope } from '../install/manifest.js';
 import { upsertBlock, vendorHeader } from '../install/vendor.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
@@ -31,6 +31,16 @@ const ALWAYS_REPLACE = [relKey('.jig', 'LICENSE'), relKey('.jig', 'NOTICE')];
  * Manifest discovery checks `opts.projectRoot` first, then `opts.homeDir`
  * (Correction 2) — a manifest only ever lives at one of those two roots, and
  * whichever one has it is the install root for the rest of the operation.
+ *
+ * Neither the install root nor the effective scope is ever taken from the
+ * manifest's own `scope` field (finding C3): `manifest.json` can live inside
+ * a shared, version-controlled repository, so a manifest claiming
+ * `scope: "global"` while physically sitting at the project root must not be
+ * able to redirect writes out to `$HOME`. `installRoot` — and the scope used
+ * for every scope-dependent decision below (which adapter paths to render,
+ * which rules_path the skill body gets) — is instead derived purely from
+ * *where the manifest was found*. The manifest is rewritten at the end with
+ * `scope` corrected to match, self-healing a manifest that lied about it.
  */
 export function update(opts: InstallOptions): UpdateResult {
   const projectManifest = readManifest(opts.projectRoot);
@@ -41,7 +51,19 @@ export function update(opts: InstallOptions): UpdateResult {
     );
   }
 
-  const installRoot = existing.scope === 'global' ? opts.homeDir : opts.projectRoot;
+  // The location the manifest was actually found at — not its own `scope`
+  // field — is the sole source of truth for both the install root and the
+  // effective scope. See the C3 note above.
+  const discoveredScope: Scope = projectManifest ? 'project' : 'global';
+  const installRoot = discoveredScope === 'global' ? opts.homeDir : opts.projectRoot;
+
+  const adapter = getAdapter(existing.agent);
+  if (!adapter.supportsScope(discoveredScope)) {
+    throw new Error(
+      `Jig's manifest at ${installRoot} records agent '${existing.agent}', which does not support ` +
+        `${discoveredScope} scope. Re-run 'jig install --agent <name>' to fix it.`,
+    );
+  }
 
   const updated: string[] = [];
   const skipped: string[] = [];
@@ -76,13 +98,13 @@ export function update(opts: InstallOptions): UpdateResult {
   // `AGENTS.md`, `.cursor/rules/jig.mdc`, ...) is manifest-tracked too, and
   // must be refreshed just like the rules — otherwise a user ends up with
   // new rules and a skill file frozen at install time, with no signal.
-  // Agent and scope come from the existing manifest (Correction 1), not
-  // `opts`, so the render context matches what was actually installed.
-  const adapter = getAdapter(existing.agent);
-  const skillBody = buildSkillBody(opts.packageRoot);
+  // Agent comes from the existing manifest (Correction 1); scope comes from
+  // `discoveredScope`, not `existing.scope` (C3), so the render context
+  // matches where this update is actually writing.
+  const skillBody = buildSkillBody(opts.packageRoot, discoveredScope);
   const skillFiles = skillFilesFor(adapter, {
     version: opts.version,
-    scope: existing.scope,
+    scope: discoveredScope,
     skillBody,
     commandPrefix: '/jig ',
   });
@@ -127,6 +149,7 @@ export function update(opts: InstallOptions): UpdateResult {
 
   const manifest: Manifest = {
     ...existing,
+    scope: discoveredScope,
     version: opts.version,
     installedAt: new Date().toISOString(),
     files,

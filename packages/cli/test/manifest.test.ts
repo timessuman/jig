@@ -69,3 +69,59 @@ describe('isModified', () => {
     expect(isModified(dir, '.jig/crlf.txt', m)).toBe(false);
   });
 });
+
+// --- C3, part 2: manifest.json can live inside a shared, version-controlled
+// repository, so it must be validated on read rather than trusted at face
+// value — a syntax error or a structurally wrong file must fail loudly and
+// actionably, not surface a raw JSON.parse error or a downstream "Cannot
+// read properties of undefined". ---
+describe('readManifest validation (C3)', () => {
+  const manifestPath = () => join(dir, '.jig', 'manifest.json');
+
+  it('accepts a well-formed manifest', () => {
+    writeManifest(dir, base);
+    expect(readManifest(dir)?.agent).toBe('claude');
+  });
+
+  it('throws a clear, actionable error on malformed JSON', () => {
+    writeFileSync(manifestPath(), 'not json');
+    expect(() => readManifest(dir)).toThrow(/not valid JSON/i);
+    expect(() => readManifest(dir)).toThrow(/jig install/i);
+  });
+
+  it('throws a clear, actionable error on an empty object', () => {
+    writeFileSync(manifestPath(), '{}');
+    expect(() => readManifest(dir)).toThrow(/invalid|corrupted/i);
+    expect(() => readManifest(dir)).toThrow(/jig install/i);
+  });
+
+  it('rejects a scope that is neither project nor global', () => {
+    writeFileSync(manifestPath(), JSON.stringify({ ...base, scope: 'bogus' }));
+    expect(() => readManifest(dir)).toThrow(/jig install/i);
+  });
+
+  it('rejects a non-string version/agent/installedAt field', () => {
+    writeFileSync(manifestPath(), JSON.stringify({ ...base, version: 1 }));
+    expect(() => readManifest(dir)).toThrow(/jig install/i);
+  });
+
+  it('rejects a manifest whose files value is not a string', () => {
+    writeFileSync(manifestPath(), JSON.stringify({ ...base, files: { 'a.md': 123 } }));
+    expect(() => readManifest(dir)).toThrow(/jig install/i);
+  });
+
+  it('rejects a manifest with a `..` segment in a file key', () => {
+    writeFileSync(manifestPath(), JSON.stringify({ ...base, files: { '../../etc/passwd': checksum('x') } }));
+    expect(() => readManifest(dir)).toThrow(/jig install/i);
+  });
+
+  it('rejects a manifest with an absolute (POSIX) file key', () => {
+    writeFileSync(manifestPath(), JSON.stringify({ ...base, files: { '/etc/passwd': checksum('x') } }));
+    expect(() => readManifest(dir)).toThrow(/jig install/i);
+  });
+
+  it('rejects a manifest with a drive-prefixed file key', () => {
+    writeFileSync(manifestPath(), JSON.stringify({ ...base, files: { 'C:\\evil.md': checksum('x') } }));
+    expect(() => readManifest(dir)).toThrow(/jig install/i);
+  });
+});
