@@ -1,5 +1,5 @@
 {
-  "$comment": "Copy to ui.config.json in your project root and edit. Removes the need for an agent to infer mode on every task.",
+  "$comment": "Copy to jig.config.json in your project root and edit. Removes the need for an agent to infer mode on every task.",
   "brand": "tokens/brand.default.css",
   "surfaces": [
     { "match": "/",         "mode": "editorial" },
