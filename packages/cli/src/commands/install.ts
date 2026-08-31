@@ -38,7 +38,7 @@ const ASK_INSTRUCTION =
  * writes still go through `path.join`, which is platform-correct for disk
  * access.
  */
-function relKey(...parts: string[]): string {
+export function relKey(...parts: string[]): string {
   return parts.join('/');
 }
 
