@@ -35,6 +35,7 @@ program
       });
       console.log(`Installed Jig v${version} for ${opts.agent} (${opts.scope} scope)`);
       for (const f of result.written) console.log(`  + ${f}`);
+      for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);
