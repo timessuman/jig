@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { install } from '../src/commands/install.js';
 import { update } from '../src/commands/update.js';
-import { readManifest } from '../src/install/manifest.js';
+import { checksum, readManifest } from '../src/install/manifest.js';
 
 let project: string;
 let pkg: string;
@@ -142,5 +142,86 @@ describe('update — manifest discovery (Correction 2)', () => {
     expect(readFileSync(target, 'utf8')).not.toContain('Rule revised');
     expect(result.skipped).toContain(join('.jig', '00-anti-patterns.md'));
     expect(readFileSync(join(home, '.jig', 'NOTICE'), 'utf8')).toBe('Jig v2');
+  });
+});
+
+// --- Fix: `update` must also refresh the adapter's skill/instruction file
+// (`.claude/skills/jig/SKILL.md`, `AGENTS.md`, ...). It is manifest-tracked
+// just like a rule file, so a stale one after `update` would silently
+// misinstruct the agent with an outdated command table / attestation
+// format. Whole-file targets (claude, cursor, opencode) follow the same
+// skip-if-edited rule as a rule file; marker-based targets (codex, generic
+// AGENTS.md) are co-owned with user content outside the markers, so they
+// always get their block upserted instead. ---
+describe('update — skill file refresh', () => {
+  it('refreshes an untouched SKILL.md when the template changes, and reports it in updated', () => {
+    install(opts('0.1.0'));
+    const skillPath = join(project, '.claude', 'skills', 'jig', 'SKILL.md');
+    const before = readFileSync(skillPath, 'utf8');
+
+    writeFileSync(join(pkg, 'templates', 'SKILL.md.tmpl'),
+      '{{command_prefix}}{{config_file}}{{available_commands}}{{ask_instruction}}{{scripts_path}} REVISED-SKILL-BODY');
+
+    const result = update(opts('0.2.0'));
+
+    const after = readFileSync(skillPath, 'utf8');
+    expect(after).not.toBe(before);
+    expect(after).toContain('REVISED-SKILL-BODY');
+    expect(result.updated).toContain('.claude/skills/jig/SKILL.md');
+    expect(result.skipped).not.toContain('.claude/skills/jig/SKILL.md');
+  });
+
+  it('leaves a user-edited SKILL.md byte-identical and reports it in skipped', () => {
+    install(opts('0.1.0'));
+    const skillPath = join(project, '.claude', 'skills', 'jig', 'SKILL.md');
+    const edited = `${readFileSync(skillPath, 'utf8')}\n<!-- my own notes -->\n`;
+    writeFileSync(skillPath, edited);
+
+    writeFileSync(join(pkg, 'templates', 'SKILL.md.tmpl'),
+      '{{command_prefix}}{{config_file}}{{available_commands}}{{ask_instruction}}{{scripts_path}} REVISED-SKILL-BODY');
+
+    const result = update(opts('0.2.0'));
+
+    expect(readFileSync(skillPath, 'utf8')).toBe(edited);
+    expect(result.skipped).toContain('.claude/skills/jig/SKILL.md');
+    expect(result.updated).not.toContain('.claude/skills/jig/SKILL.md');
+  });
+
+  it('updates the manifest checksum for the skill file when it is rewritten', () => {
+    install(opts('0.1.0'));
+    writeFileSync(join(pkg, 'templates', 'SKILL.md.tmpl'),
+      '{{command_prefix}}{{config_file}}{{available_commands}}{{ask_instruction}}{{scripts_path}} REVISED-SKILL-BODY');
+    update(opts('0.2.0'));
+    const skillPath = join(project, '.claude', 'skills', 'jig', 'SKILL.md');
+    const m = readManifest(project)!;
+    expect(m.files['.claude/skills/jig/SKILL.md']).toBe(checksum(readFileSync(skillPath, 'utf8')));
+  });
+
+  it('always upserts the block in a codex AGENTS.md, preserving edited user content above it', () => {
+    const codexOpts = (version: string) => ({ ...opts(version), agent: 'codex' });
+    install(codexOpts('0.1.0'));
+    const agentsPath = join(project, 'AGENTS.md');
+
+    // The user adds their own house rules above Jig's block, then edits
+    // that content again — any edit here makes the whole-file checksum
+    // stop matching, which must NOT cause the block to be skipped.
+    const original = readFileSync(agentsPath, 'utf8');
+    const withUserContent = `# My house rules\n\nAlways use tabs.\n\n${original}`;
+    writeFileSync(agentsPath, withUserContent);
+    writeFileSync(agentsPath, withUserContent.replace('Always use tabs.', 'Always use tabs. Edited again.'));
+
+    writeFileSync(join(pkg, 'templates', 'SKILL.md.tmpl'),
+      '{{command_prefix}}{{config_file}}{{available_commands}}{{ask_instruction}}{{scripts_path}} REVISED-SKILL-BODY');
+
+    const result = update(codexOpts('0.2.0'));
+
+    const after = readFileSync(agentsPath, 'utf8');
+    expect(after).toContain('# My house rules');
+    expect(after).toContain('Always use tabs. Edited again.');
+    expect(after).toContain('REVISED-SKILL-BODY');
+    expect(after.match(/<!-- jig:start -->/g)).toHaveLength(1);
+    expect(after.match(/<!-- jig:end -->/g)).toHaveLength(1);
+    expect(result.updated).toContain('AGENTS.md');
+    expect(result.skipped).not.toContain('AGENTS.md');
   });
 });
