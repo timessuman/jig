@@ -1,4 +1,4 @@
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { checksum, isModified, readManifest, writeManifest, type Manifest, type Scope } from '../install/manifest.js';
 import { upsertBlock, vendorHeader } from '../install/vendor.js';
@@ -54,7 +54,18 @@ export function update(opts: InstallOptions): UpdateResult {
   // The location the manifest was actually found at — not its own `scope`
   // field — is the sole source of truth for both the install root and the
   // effective scope. See the C3 note above.
-  const discoveredScope: Scope = projectManifest ? 'project' : 'global';
+  //
+  // Exception: when `projectRoot` and `homeDir` resolve to the same path
+  // (e.g. `cd ~ && jig update`, or a dotfiles repo rooted at `~/.git`),
+  // `readManifest(opts.projectRoot)` and `readManifest(opts.homeDir)` read
+  // the identical file, and `projectManifest` wins by construction — which
+  // would silently reclassify a real global install as `project` and, via
+  // `buildSkillBody`, start writing `.jig/...`-relative (not `~/.jig/...`)
+  // rule paths into the skill file. There is only one possible destination
+  // when the two roots coincide, so the manifest's own `scope` cannot
+  // redirect anything there and is safe to trust as-is.
+  const sameRoot = resolve(opts.projectRoot) === resolve(opts.homeDir);
+  const discoveredScope: Scope = !projectManifest ? 'global' : sameRoot ? existing.scope : 'project';
   const installRoot = discoveredScope === 'global' ? opts.homeDir : opts.projectRoot;
 
   const adapter = getAdapter(existing.agent);
