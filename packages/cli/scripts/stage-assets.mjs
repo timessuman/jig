@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const cliRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = join(cliRoot, '..', '..');
 
-const ASSETS = ['rules', 'tokens', 'templates', 'rules.index.json', 'LICENSE', 'NOTICE'];
+const ASSETS = ['rules', 'tokens', 'templates', 'rules.index.json', 'LICENSE', 'NOTICE', 'README.md'];
 
 for (const name of ASSETS) {
   const src = join(repoRoot, name);
