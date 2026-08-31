@@ -6,6 +6,9 @@ export const codex: Adapter = {
   displayName: 'Codex',
   supportsScope: () => true,
   skillFiles(ctx: AdapterContext): RenderedFile[] {
-    return [{ relPath: 'AGENTS.md', content: agentsBlock(ctx.skillBody) }];
+    // A bare AGENTS.md at $HOME is not how codex discovers global instructions;
+    // global scope needs the agent-specific config directory instead.
+    const relPath = ctx.scope === 'global' ? '.codex/AGENTS.md' : 'AGENTS.md';
+    return [{ relPath, content: agentsBlock(ctx.skillBody) }];
   },
 };

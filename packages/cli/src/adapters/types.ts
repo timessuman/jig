@@ -2,11 +2,20 @@ import type { Scope } from '../install/manifest.js';
 
 export interface RenderedFile {
   /**
-   * Path relative to the target scope's root — e.g. `.claude/skills/jig/SKILL.md`.
-   * Always relative: never an absolute path, never containing a `..` segment (see
-   * `assertSafeRelPath`). It is scope-invariant — an adapter returns the same relPath
-   * regardless of `ctx.scope`. Resolving `global` scope to a real filesystem location
-   * (e.g. a home directory) is the install command's job, not the adapter's.
+   * Path relative to the install root for `ctx.scope` — e.g.
+   * `.claude/skills/jig/SKILL.md` relative to the project root when
+   * `ctx.scope === 'project'`. Always relative: never an absolute path, never
+   * containing a `..` segment (see `assertSafeRelPath`).
+   *
+   * relPath is NOT guaranteed scope-invariant: an adapter may (and several
+   * do) return a different relative path depending on `ctx.scope`, because
+   * the project-scope location for that agent is not where it looks for a
+   * machine-wide install — e.g. codex writes `AGENTS.md` for project scope
+   * but `.codex/AGENTS.md` for global scope. Resolving which absolute
+   * directory a scope's install root points at (the project root vs. the
+   * user's home directory) is the install command's job, not the adapter's
+   * — the adapter only picks the correct *relative* shape for the given
+   * scope.
    */
   relPath: string;
   content: string;

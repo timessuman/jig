@@ -15,6 +15,9 @@ export const opencode: Adapter = {
       ctx.skillBody,
       '',
     ].join('\n');
-    return [{ relPath: '.opencode/skills/jig/SKILL.md', content }];
+    const relPath = ctx.scope === 'global'
+      ? '.config/opencode/skills/jig/SKILL.md'
+      : '.opencode/skills/jig/SKILL.md';
+    return [{ relPath, content }];
   },
 };
