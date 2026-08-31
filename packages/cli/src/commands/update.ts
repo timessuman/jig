@@ -1,8 +1,10 @@
 import { basename, dirname, join } from 'node:path';
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { checksum, isModified, readManifest, writeManifest, type Manifest } from '../install/manifest.js';
-import { vendorHeader } from '../install/vendor.js';
-import { relKey, type InstallOptions } from './install.js';
+import { upsertBlock, vendorHeader } from '../install/vendor.js';
+import { getAdapter, skillFilesFor } from '../adapters/registry.js';
+import { BLOCK_START } from '../adapters/types.js';
+import { buildSkillBody, relKey, type InstallOptions } from './install.js';
 
 export interface UpdateResult {
   updated: string[];
@@ -68,6 +70,53 @@ export function update(opts: InstallOptions): UpdateResult {
     skipped.push(indexKey);
   } else {
     write(indexKey, readFileSync(join(opts.packageRoot, 'rules.index.json'), 'utf8'));
+  }
+
+  // The adapter's skill/instruction file (`.claude/skills/jig/SKILL.md`,
+  // `AGENTS.md`, `.cursor/rules/jig.mdc`, ...) is manifest-tracked too, and
+  // must be refreshed just like the rules — otherwise a user ends up with
+  // new rules and a skill file frozen at install time, with no signal.
+  // Agent and scope come from the existing manifest (Correction 1), not
+  // `opts`, so the render context matches what was actually installed.
+  const adapter = getAdapter(existing.agent);
+  const skillBody = buildSkillBody(opts.packageRoot);
+  const skillFiles = skillFilesFor(adapter, {
+    version: opts.version,
+    scope: existing.scope,
+    skillBody,
+    commandPrefix: '/jig ',
+  });
+
+  for (const file of skillFiles) {
+    const key = file.relPath;
+    // Whether a target is "whole-file" (claude, cursor, opencode — entirely
+    // Jig's) or "marker-based" (codex, generic AGENTS.md — co-owned with the
+    // user's own content outside the markers) is read off the rendered
+    // content itself, the same way `install` decides it, rather than
+    // hardcoded by adapter name, so a future adapter falls into the right
+    // bucket automatically.
+    const isBlockFile = file.content.includes(BLOCK_START);
+
+    if (isBlockFile) {
+      // Marker-based targets: ANY edit anywhere in the file makes
+      // `isModified` true, since the user's own content lives outside the
+      // markers. Applying the whole-file skip rule here would mean a codex
+      // or generic user never receives another skill update after their
+      // first edit — the common case, since they were told to keep their
+      // own house rules in that file. So always upsert the block in place
+      // (preserving surrounding content) and re-checksum the whole file.
+      const abs = join(installRoot, ...key.split('/'));
+      const current = existsSync(abs) ? readFileSync(abs, 'utf8') : '';
+      write(key, upsertBlock(current, file.content));
+      continue;
+    }
+
+    // Whole-file targets: treat exactly like a rule file.
+    if (isModified(installRoot, key, existing)) {
+      skipped.push(key);
+      continue;
+    }
+    write(key, file.content);
   }
 
   // Attribution files are always replaced, regardless of checksum — a stale
