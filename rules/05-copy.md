@@ -38,6 +38,7 @@ The test: remove a word. If nothing is lost, it was not doing anything.
 People scan the first two or three words of a line and skip the rest. Applies hardest to headings, links and buttons, which are also read out of context by screen readers.
 
 ### I-80 Long text without a structure
+❌ A run of text with no ordering — context first, the conclusion buried in the middle, and the thing the reader has to do somewhere near the end.
 ✅ For anything longer than a sentence, use the **inverted pyramid**: most important information first, supporting detail next, background last.
 
 | Layer | Goes in |

@@ -182,6 +182,7 @@ Two legitimate departures, and they are not the same:
 | Secondary link that colour + underline would over-weight | **Underline, no colour** | Keeps the affordance while restoring hierarchy — a supporting link should not compete with the primary action beside it. |
 
 ❌ Dropping the underline but keeping the colour, in body text. That is the one combination that fails colour-blind users while looking fine to everyone else.
+✅ Keep the underline. Colour is the part you may drop — an underlined link without colour still reads as a link to everyone; a coloured link without an underline reads as a link only to people who can see the colour.
 
 ### C-50 Coloured heading text
 ❌ A heading tinted with the accent colour for emphasis
