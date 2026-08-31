@@ -6,8 +6,20 @@ export interface TemplateVars {
   config_file: string;
 }
 
+export type CommandStatus = 'available' | 'planned';
+
 export interface CommandMetadata {
-  [command: string]: { description: string; argumentHint: string };
+  [command: string]: {
+    description: string;
+    argumentHint: string;
+    /**
+     * Whether the command is registered in `src/index.ts` today. Missing
+     * (as in older fixtures) is treated as `'available'` for backward
+     * compatibility, but real `command-metadata.json` content should set
+     * this explicitly for every entry.
+     */
+    status?: CommandStatus;
+  };
 }
 
 const VAR = /\{\{([a-z_]+)\}\}/g;
@@ -26,7 +38,8 @@ export function render(template: string, vars: TemplateVars): string {
 export function renderCommandTable(metadata: CommandMetadata): string {
   const rows = Object.entries(metadata).map(([name, meta]) => {
     const signature = meta.argumentHint ? `${name} ${meta.argumentHint}` : name;
-    return `| \`${signature}\` | ${meta.description} |`;
+    const status = meta.status === 'planned' ? 'planned — not yet implemented' : 'available';
+    return `| \`${signature}\` | ${meta.description} | ${status} |`;
   });
-  return ['| Command | Description |', '| --- | --- |', ...rows].join('\n');
+  return ['| Command | Description | Status |', '| --- | --- | --- |', ...rows].join('\n');
 }

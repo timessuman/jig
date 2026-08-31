@@ -30,12 +30,12 @@ describe('render', () => {
 
 describe('renderCommandTable', () => {
   const md = renderCommandTable({
-    check: { description: 'Check things.', argumentHint: '[target]' },
-    init: { description: 'Set up.', argumentHint: '' },
+    check: { description: 'Check things.', argumentHint: '[target]', status: 'planned' },
+    init: { description: 'Set up.', argumentHint: '', status: 'available' },
   });
 
-  it('renders a markdown table header', () => {
-    expect(md.split('\n')[0]).toBe('| Command | Description |');
+  it('renders a markdown table header with a status column', () => {
+    expect(md.split('\n')[0]).toBe('| Command | Description | Status |');
   });
 
   it('includes the argument hint in the command cell', () => {
@@ -45,5 +45,21 @@ describe('renderCommandTable', () => {
   it('omits an empty argument hint', () => {
     expect(md).toContain('`init`');
     expect(md).not.toContain('`init `');
+  });
+
+  it('marks a planned command as not yet implemented', () => {
+    const row = md.split('\n').find((line) => line.includes('`check [target]`'));
+    expect(row).toContain('planned — not yet implemented');
+  });
+
+  it('marks an available command as available', () => {
+    const row = md.split('\n').find((line) => line.includes('`init`'));
+    expect(row).toContain('| available |');
+  });
+
+  it('defaults a command with no status field to available', () => {
+    const legacy = renderCommandTable({ update: { description: 'Update.', argumentHint: '' } });
+    expect(legacy).toContain('| available |');
+    expect(legacy).not.toContain('planned');
   });
 });
