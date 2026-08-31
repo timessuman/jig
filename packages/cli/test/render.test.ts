@@ -62,4 +62,31 @@ describe('renderCommandTable', () => {
     expect(legacy).toContain('| available |');
     expect(legacy).not.toContain('planned');
   });
+
+  it('escapes a pipe in the argument hint so it does not split the table row', () => {
+    const withPipe = renderCommandTable({
+      install: {
+        description: 'Install stuff.',
+        argumentHint: '--agent <name> [--scope project|global]',
+        status: 'available',
+      },
+    });
+    const row = withPipe.split('\n').find((line) => line.includes('install'))!;
+    expect(row).toContain('project\\|global');
+    // Exactly 4 real cell separators: leading, between command/description,
+    // between description/status, trailing. Any unescaped `|` from cell
+    // content would inflate this count.
+    const unescapedPipes = row.match(/(?<!\\)\|/g);
+    expect(unescapedPipes).toHaveLength(4);
+  });
+
+  it('escapes a pipe in the description as well', () => {
+    const withPipe = renderCommandTable({
+      foo: { description: 'Pick a|b.', argumentHint: '', status: 'available' },
+    });
+    const row = withPipe.split('\n').find((line) => line.includes('foo'))!;
+    expect(row).toContain('a\\|b');
+    const unescapedPipes = row.match(/(?<!\\)\|/g);
+    expect(unescapedPipes).toHaveLength(4);
+  });
 });
