@@ -1,0 +1,18 @@
+{
+  "init": {
+    "description": "Set up Jig in this project: detect the CSS system, derive or interview for brand values, validate them against the token contract, and write tokens plus jig.config.json.",
+    "argumentHint": ""
+  },
+  "check": {
+    "description": "Check changed files or a named target against the rule set. Reports violations by rule id.",
+    "argumentHint": "[target]"
+  },
+  "explain": {
+    "description": "Print a rule's full text, its correction, and the version it was introduced in.",
+    "argumentHint": "<rule-id>"
+  },
+  "update": {
+    "description": "Update the vendored rules to a newer version, showing a diff and skipping files you have edited.",
+    "argumentHint": ""
+  }
+}

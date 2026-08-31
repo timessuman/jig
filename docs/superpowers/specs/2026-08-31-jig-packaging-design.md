@@ -8,9 +8,9 @@
 
 ## 1. Problem
 
-The rule content exists and is good: 87 numbered anti-patterns with written
-corrections, three mode profiles, a token architecture, a pattern library, and a
-copy standard. It is not installable, not versioned, not enforceable, and not
+The rule content exists and is good: 104 numbered rules with written corrections
+(87 anti-patterns in `00`, 17 copy rules in `05`), three mode profiles, a token
+architecture, a pattern library, and a copy standard. It is not installable, not versioned, not enforceable, and not
 usable by anyone who is not sitting in this directory.
 
 Three gaps stand between the content and an open-source project:
@@ -176,15 +176,20 @@ are expected behaviour, not misuse.
 
 ## 6. Rule model
 
+The rule set totals **104** rules across two files: 87 in `00-anti-patterns.md`
+(sections A–H) and 17 in `05-copy.md` (section I, ids `I-53`–`I-90`). They share
+one numbering space — `tokens/brand.default.css` cites `I-56` — so the index
+covers both.
+
 Every rule is classified into one of three buckets. The classification pass over
-all 87 rules is a one-time task and is itself valuable: a rule that fits no
+all 104 rules is a one-time task and is itself valuable: a rule that fits no
 bucket cannot be enforced, which is the deletion test the README already argues
 for.
 
 | Bucket | Count (est.) | Enforced by | Examples |
 | --- | --- | --- | --- |
 | Mechanical | ~35 | CLI, deterministic | `E-29` focus removed · `H-47` hard-coded value past the token layer · `C-19` contrast below floor · `B-77` more than two weights · `G-43` no reduced-motion path · `F-36` placeholder as label |
-| Judgment | ~40 | Agent, via skill | `A-06` three-column grid reflex · `A-59` repeated information · `D-69` spacing that does not grow outward · `F-37` unhelpful error text · `H-45` new component instead of existing |
+| Judgment | ~57 | Agent, via skill | `A-06` three-column grid reflex · `A-59` repeated information · `D-69` spacing that does not grow outward · `F-37` unhelpful error text · `H-45` new component instead of existing |
 | Hybrid | ~12 | CLI narrows, agent decides | `A-01` CLI flags a violet-band hue, agent judges whether it was chosen · `E-28`/`E-30` CLI finds a fetch with no loading or error branch, agent judges adequacy |
 
 ### 6.1 `rules.index.json`
@@ -269,7 +274,7 @@ $ /jig check src/components/Dialog.tsx
   ⚠ A-01  Violet brand hue — intentional?            tokens:brand    [hybrid]
   ✗ E-30  No empty state for the results list        Dialog.tsx:88   [judgment]
 
-  2 errors, 1 warning, 1 review note · 87 rules, 4 fired
+  2 errors, 1 warning, 1 review note · 104 rules, 4 fired
   JIG_CHECK: version=1.0.0 mode=product mechanical=pass:33/35 judgment=ran
 ```
 
@@ -307,7 +312,7 @@ written as prohibitions.
 
 ### 8.1 Why
 
-87 rules is significant always-on context. Without measurement there is no
+104 rules is significant always-on context. Without measurement there is no
 principled way to prune, and the README's own standard — *a rule that does not
 change the output is either already the model's default or too vague to act on* —
 cannot be applied.
@@ -323,7 +328,7 @@ $ jig bench "a signup form with validation"
   Rules that changed the output    F-36  F-38  F-39  E-29  D-24  C-19
   Already the model's default      A-02  A-04  B-16  G-44        → delete candidates
   Fired in neither run             A-59  D-69  E-73              → too vague, or untested
-  Net                              12 of 87 rules did work on this task
+  Net                              12 of 104 rules did work on this task
 ```
 
 Output feeds the `fires` counter in `rules.index.json`. This converts
@@ -390,7 +395,7 @@ new code — it is the vendored rules plus the `SKILL.md` instructions, both of
 which already exist; the agent performs it and reports in the shared format. The
 CLI detectors are the build work, and the hybrid bucket is the seam between them.
 Shippable as a real open-source release: a deterministic linter with ~35 rules, a
-model-driven review for the other ~52, a validating setup command, and
+model-driven review for the other ~69, a validating setup command, and
 multi-agent install.
 
 **v1.1** — `check --fix` codemods, `token`, `audit`.
