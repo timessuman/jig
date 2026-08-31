@@ -1,0 +1,152 @@
+/* brand.default.css — unbranded default.
+   TRANSPARENT foreground palette over SOLID elevation backgrounds.
+
+   Foregrounds are opacities of black (light) / white (dark). They mix with whatever
+   surface they sit on, so a tag keeps the same prominence on base, raised or overlay.
+   Solid foregrounds cannot do this: they look right on one background and wrong on
+   the next, and dark mode has three.
+
+   Copy to brand.<client>.css and override. Never edit this file per project. */
+
+:root {
+  color-scheme: light dark;
+
+  /* ================= BRAND =================
+     One brand colour. It marks interactive elements (I-56).
+     Intentionally near-black here: A-01, no invented colour.
+     Requirements when you set it:
+       - ≥ 4.5:1 against --color-bg-raised AND against --color-fill
+       - If the brand colour is red, amber or green, DO NOT use it for interactive
+         elements (E-64) — it will collide with the system colours below. */
+  --brand-h: 264;
+  --brand-s: 0%;
+  --brand-l: 15%;
+  --brand-base: hsl(var(--brand-h) var(--brand-s) var(--brand-l));
+
+  /* ================= ELEVATION BACKGROUNDS (solid) =================
+     Light comes from above: higher elevation is lighter.
+     Keep the three levels visually consistent across light and dark. */
+  --color-bg-base:    oklch(0.980 0.004 95);   /* page. Off-white, not #fff (C-18). */
+  --color-bg-raised:  oklch(1     0     0);    /* cards, panels, sticky bars        */
+  --color-bg-overlay: oklch(1     0     0);    /* dialogs, popovers, dropdowns      */
+
+  /* ================= NEUTRAL FOREGROUNDS (transparent) =================
+     Light mode: opacities of black. Never pure black at 100% (C-18). */
+  --color-text-strong:   rgb(0 0 0 / 90%);   /* headings, body, labels   — ≥ 4.5:1 */
+  --color-text-weak:     rgb(0 0 0 / 60%);   /* supporting text          — ≥ 4.5:1 */
+  --color-stroke-strong: rgb(0 0 0 / 45%);   /* input/checkbox borders, icons — ≥ 3:1 */
+  --color-stroke-weak:   rgb(0 0 0 / 10%);   /* dividers. Decorative, no floor.    */
+  --color-fill:          rgb(0 0 0 / 4%);    /* tags, badges, secondary surfaces   */
+
+  --color-icon:      var(--color-stroke-strong);
+  --color-icon-weak: var(--color-stroke-weak);
+
+  /* ================= BRAND FOREGROUNDS (4 variations) ================= */
+  --color-text-brand:          hsl(var(--brand-h) var(--brand-s) var(--brand-l) / 100%);
+  --color-stroke-brand-strong: hsl(var(--brand-h) var(--brand-s) var(--brand-l) / 80%);
+  --color-stroke-brand-weak:   hsl(var(--brand-h) var(--brand-s) var(--brand-l) / 20%);
+  --color-fill-brand:          hsl(var(--brand-h) var(--brand-s) var(--brand-l) / 5%);
+  --color-on-brand:            oklch(1 0 0);   /* text on a solid brand fill */
+
+  /* ================= SYSTEM COLOURS =================
+     Three, with familiar traffic-light meanings. Four variations each.
+     Never the only signal — pair with an icon and text (C-20). */
+  --error-base:   hsl(0   71% 44%);
+  --warning-base: hsl(42  82% 36%);
+  --success-base: hsl(162 95% 26%);
+  /* info is NOT in the book's set of three. Kept as an optional fourth. */
+  --info-base:    hsl(220 70% 42%);
+
+  --color-text-error:          hsl(0 71% 44% / 100%);
+  --color-stroke-error-strong: hsl(0 71% 44% / 80%);
+  --color-stroke-error-weak:   hsl(0 71% 44% / 20%);
+  --color-fill-error:          hsl(0 71% 44% / 5%);
+
+  --color-text-warning:          hsl(42 82% 36% / 100%);
+  --color-stroke-warning-strong: hsl(42 82% 36% / 80%);
+  --color-stroke-warning-weak:   hsl(42 82% 36% / 20%);
+  --color-fill-warning:          hsl(42 82% 36% / 5%);
+
+  --color-text-success:          hsl(162 95% 26% / 100%);
+  --color-stroke-success-strong: hsl(162 95% 26% / 80%);
+  --color-stroke-success-weak:   hsl(162 95% 26% / 20%);
+  --color-fill-success:          hsl(162 95% 26% / 5%);
+
+  --color-text-info:          hsl(220 70% 42% / 100%);
+  --color-stroke-info-strong: hsl(220 70% 42% / 80%);
+  --color-stroke-info-weak:   hsl(220 70% 42% / 20%);
+  --color-fill-info:          hsl(220 70% 42% / 5%);
+
+  /* ================= STATE LAYERS =================
+     Transparent overlays, so hover and press need no new colours and work on
+     every surface and in both modes. Layer these OVER the element. */
+  --color-state-hover: var(--color-fill);         /* 4%  light / 6%  dark */
+  --color-state-press: var(--color-stroke-weak);  /* 10% light / 12% dark */
+  --opacity-disabled: 0.38;
+
+  --color-focus: var(--color-text-strong);
+
+  /* ================= TYPE ================= */
+  --font-text:    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-text);
+  --font-mono:    ui-monospace, "SF Mono", "Cascadia Code", monospace;
+  --font-numeric-features: "tnum" 1, "lnum" 1;
+
+  /* ================= RADIUS — three, by element size ================= */
+  --radius-sm:   8px;    /* buttons, inputs, badges, checkboxes */
+  --radius-md:   16px;   /* cards, panels                       */
+  --radius-lg:   32px;   /* large surfaces, hero media          */
+  --radius-full: 9999px;
+
+  /* ================= ELEVATION — two shadows =================
+     Shadow colour is derived from the text colour, not pure black, so it sits in
+     the palette. Light from above: y-offset positive, blur grows with elevation. */
+  --shadow-none:    none;
+  --shadow-raised:  0 1px 2px rgb(0 0 0 / 6%), 0 2px 4px -2px rgb(0 0 0 / 8%);
+  --shadow-overlay: 0 4px 16px -4px rgb(0 0 0 / 14%), 0 1px 3px rgb(0 0 0 / 8%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Three solid levels. In dark, DEPTH COMES FROM BACKGROUND, NOT SHADOW —
+       shadows are nearly invisible on a dark surface. Never pure black. */
+    --color-bg-base:    hsl(var(--brand-h) 6% 10%);
+    --color-bg-raised:  hsl(var(--brand-h) 6% 15%);
+    --color-bg-overlay: hsl(var(--brand-h) 6% 20%);
+
+    /* Foregrounds become opacities of white. Higher than the light-mode values,
+       because dark interfaces lose detail faster. */
+    --color-text-strong:   rgb(255 255 255 / 100%);
+    --color-text-weak:     rgb(255 255 255 / 78%);
+    --color-stroke-strong: rgb(255 255 255 / 60%);
+    --color-stroke-weak:   rgb(255 255 255 / 12%);
+    --color-fill:          rgb(255 255 255 / 6%);
+
+    --brand-l: 88%;      /* lighten and desaturate the brand for dark surfaces */
+    --color-on-brand: hsl(var(--brand-h) 6% 10%);
+
+    /* System colours lighten and desaturate in dark mode. */
+    --color-text-error:          hsl(0 60% 72% / 100%);
+    --color-stroke-error-strong: hsl(0 60% 72% / 80%);
+    --color-stroke-error-weak:   hsl(0 60% 72% / 20%);
+    --color-fill-error:          hsl(0 60% 72% / 8%);
+
+    --color-text-warning:          hsl(42 70% 70% / 100%);
+    --color-stroke-warning-strong: hsl(42 70% 70% / 80%);
+    --color-stroke-warning-weak:   hsl(42 70% 70% / 20%);
+    --color-fill-warning:          hsl(42 70% 70% / 8%);
+
+    --color-text-success:          hsl(162 45% 66% / 100%);
+    --color-stroke-success-strong: hsl(162 45% 66% / 80%);
+    --color-stroke-success-weak:   hsl(162 45% 66% / 20%);
+    --color-fill-success:          hsl(162 45% 66% / 8%);
+
+    --color-text-info:          hsl(220 55% 74% / 100%);
+    --color-stroke-info-strong: hsl(220 55% 74% / 80%);
+    --color-stroke-info-weak:   hsl(220 55% 74% / 20%);
+    --color-fill-info:          hsl(220 55% 74% / 8%);
+
+    --shadow-raised:  none;
+    --shadow-overlay: 0 8px 24px -8px rgb(0 0 0 / 60%);
+  }
+}
