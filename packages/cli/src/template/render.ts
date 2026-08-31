@@ -14,13 +14,12 @@ const VAR = /\{\{([a-z_]+)\}\}/g;
 
 export function render(template: string, vars: TemplateVars): string {
   return template.replace(VAR, (_match, name: string) => {
-    const value = (vars as Record<string, string>)[name];
-    if (value === undefined) {
+    if (!(name in vars)) {
       throw new Error(
         `Template variable '{{${name}}}' has no value. Known variables: ${Object.keys(vars).join(', ')}`,
       );
     }
-    return value;
+    return vars[name as keyof TemplateVars];
   });
 }
 
