@@ -1,21 +1,57 @@
-# Squint
-
-## UI System
+# Jig
 
 A design system written to be consumed by coding agents, not read by designers.
 
-Framework-agnostic. Tokens are CSS custom properties; rules are stated in CSS properties and behaviour, never in one framework's class names.
+Installed as `npx jig-ui` — the bare name was taken on npm.
+
+Framework-agnostic. Tokens are CSS custom properties; rules are stated in CSS
+properties and behaviour, never in one framework's class names.
+
+## Install
+
+Paste the line for your agent and let it run the command.
+
+| Agent | Command |
+| --- | --- |
+| Claude Code | `npx jig-ui@latest install --agent claude` |
+| Codex | `npx jig-ui@latest install --agent codex` |
+| Cursor | `npx jig-ui@latest install --agent cursor` |
+| opencode | `npx jig-ui@latest install --agent opencode` |
+| Any other agent | `npx jig-ui@latest install --agent generic` |
+
+Add `--scope global` to install once for every project instead of just this
+one. Where a global install lands depends on the agent:
+
+| Agent | Project scope | Global scope |
+| --- | --- | --- |
+| Claude Code | `.claude/skills/jig/SKILL.md` | `~/.claude/skills/jig/SKILL.md` |
+| Codex | `AGENTS.md` | `~/.codex/AGENTS.md` |
+| Cursor | `.cursor/rules/jig.mdc` | not supported |
+| opencode | `.opencode/skills/jig/SKILL.md` | `~/.config/opencode/skills/jig/SKILL.md` |
+| Generic | `AGENTS.md` | not supported |
+
+In both scopes, the rules themselves are vendored to `<root>/.jig/` — the
+project root for a project-scoped install, or your home directory for a
+global one.
+
+Update later with `npx jig-ui@latest update` — files you have edited are left
+alone.
+
+Token setup is currently manual: copy `jig.config.example.json` to
+`jig.config.json` and import the token files described in
+`rules/02-tokens.md`. A scaffolding command for this is planned but not yet
+implemented.
 
 ## Files
 
 | File | Contents | Load |
 | --- | --- | --- |
-| `00-anti-patterns.md` | 48 universal rules with corrections | **Always** |
-| `01-modes.md` | `editorial` / `product` / `operator` profiles | **Always** |
-| `02-tokens.md` | Token contract, naming, consumption | On setup, or when adding a token |
-| `03-patterns.md` | Component anatomy and behaviour | When building a covered pattern |
-| `04-principles.md` | Five frames + seven tiebreakers | Novel decisions, or rule conflicts |
-| `05-copy.md` | Interface text rules | Writing any user-facing string |
+| `rules/00-anti-patterns.md` | 48 universal rules with corrections | **Always** |
+| `rules/01-modes.md` | `editorial` / `product` / `operator` profiles | **Always** |
+| `rules/02-tokens.md` | Token contract, naming, consumption | On setup, or when adding a token |
+| `rules/03-patterns.md` | Component anatomy and behaviour | When building a covered pattern |
+| `rules/04-principles.md` | Five frames + seven tiebreakers | Novel decisions, or rule conflicts |
+| `rules/05-copy.md` | Interface text rules | Writing any user-facing string |
 | `tokens/brand.*.css` | Identity. One per project. | Imported by the app |
 | `tokens/mode.*.css` | Density, scale, rhythm, motion | One per surface |
 
@@ -26,7 +62,7 @@ Framework-agnostic. Tokens are CSS custom properties; rules are stated in CSS pr
 Drop this in the project root so mode selection does not require asking on every task.
 
 ```jsonc
-// ui.config.json
+// jig.config.json
 {
   "brand": "tokens/brand.acme.css",
   "surfaces": [
@@ -37,19 +73,7 @@ Drop this in the project root so mode selection does not require asking on every
 }
 ```
 
-Without this file, follow the selection procedure in `01-modes.md`: infer, state the inference in one line, and ask when signals conflict.
-
-## Wiring into an agent
-
-The mechanism differs by tool; the instruction does not.
-
-- **Claude Code / Claude Cowork** — a skill directory, or referenced from `CLAUDE.md`
-- **Cursor** — `.cursor/rules/`
-- **Generic** — `AGENTS.md` at the repo root
-
-The instruction to give it:
-
-> Before generating or reviewing UI, load `00-anti-patterns.md` and `01-modes.md`. Load `05-copy.md` whenever you write user-facing text. Determine the mode from `ui.config.json` or by inference, and state it. Load the relevant section of `03-patterns.md` for the component you are building. Consume tokens by semantic name only. Run the self-check in `00` before finishing, and cite any rule you deliberately break.
+Without this file, follow the selection procedure in `rules/01-modes.md`: infer, state the inference in one line, and ask when signals conflict.
 
 ## Consuming tokens
 
@@ -58,7 +82,7 @@ The instruction to give it:
 @import "tokens/mode.product.css"; /* one per surface  */
 ```
 
-Then `var(--color-text-strong)`, `var(--spacing-card)`, `var(--text-body)` in any framework. For Tailwind v4, wrap both imports in `@theme` to generate utilities. See `02-tokens.md`.
+Then `var(--color-text-strong)`, `var(--spacing-card)`, `var(--text-body)` in any framework. For Tailwind v4, wrap both imports in `@theme` to generate utilities. See `rules/02-tokens.md`.
 
 ## Testing that the rules work
 
@@ -86,6 +110,6 @@ Written from general UI and accessibility practice, plus the constraints specifi
 
 **Not yet reconciled against *Practical UI*.** The numeric defaults throughout are placeholders chosen for internal consistency, not values derived from any source. Adham Dannaway's book (2nd ed. 2024) is the intended source for most of them. See `RECONCILE.md` for the open list; where the book states a position, overwrite the default here.
 
-principles.design informed the rules-versus-principles split, and the standard `04-principles.md` is held to.
+principles.design informed the rules-versus-principles split, and the standard `rules/04-principles.md` is held to.
 
 Nothing here reproduces either source. Read the book — it teaches the reasoning that this system only records the output of.
