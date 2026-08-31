@@ -24,7 +24,7 @@ beforeEach(() => {
   writeFileSync(join(pkg, 'rules.index.json'),
     JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' }]));
   writeFileSync(join(pkg, 'templates', 'SKILL.md.tmpl'),
-    '{{command_prefix}}{{config_file}}{{available_commands}}{{ask_instruction}}{{scripts_path}}');
+    '{{command_prefix}}{{config_file}}{{available_commands}}{{ask_instruction}}{{scripts_path}} Rules at {{rules_path}}/00-anti-patterns.md.');
   writeFileSync(join(pkg, 'templates', 'command-metadata.json'), JSON.stringify({}));
   writeFileSync(join(pkg, 'LICENSE'), 'Apache License 2.0 text');
   writeFileSync(join(pkg, 'NOTICE'), 'Jig');
@@ -291,5 +291,69 @@ describe('update — manifest cannot redirect writes outside where it was found 
       }),
     );
     expect(() => update({ ...opts('0.2.0'), agent: 'cursor' })).toThrow(/does not support/i);
+  });
+});
+
+// --- Regression found in re-review: when projectRoot and homeDir resolve to
+// the same path (`cd ~ && jig update`, or a dotfiles repo rooted at
+// `~/.git`), `readManifest(opts.projectRoot)` and `readManifest(opts.homeDir)`
+// read the identical file and `projectManifest` wins by construction — which
+// would silently reclassify a real global install as `project`, reopening
+// C2 (the skill file goes back to writing cwd-relative `.jig/...` paths
+// instead of `~/.jig/...`). Since there is only one possible destination
+// when the two roots coincide, the manifest's own `scope` is safe to trust
+// there, and only there. ---
+describe('update — same root as $HOME does not downgrade a global install (C2 regression)', () => {
+  it('keeps scope global when projectRoot and homeDir are the same path', () => {
+    install({ ...opts('0.1.0'), scope: 'global' });
+    expect(readManifest(home)?.scope).toBe('global');
+
+    seedPackage('### A-01 Rule revised\n❌ bad\n✅ better\n');
+    const result = update({ ...opts('0.2.0'), projectRoot: home, homeDir: home });
+
+    expect(result.fromVersion).toBe('0.1.0');
+    const m = readManifest(home)!;
+    expect(m.scope).toBe('global');
+
+    const skillPath = join(home, '.claude', 'skills', 'jig', 'SKILL.md');
+    const skill = readFileSync(skillPath, 'utf8');
+    expect(skill).toContain('Rules at ~/.jig/00-anti-patterns.md.');
+    expect(skill).not.toContain('Rules at .jig/00-anti-patterns.md.');
+  });
+
+  it('still updates the PROJECT when the manifest claims global but the roots differ (C3 escape stays closed)', () => {
+    mkdirSync(join(project, '.jig'), { recursive: true });
+    writeFileSync(
+      join(project, '.jig', 'manifest.json'),
+      JSON.stringify({
+        version: '0.1.0',
+        agent: 'claude',
+        scope: 'global',
+        installedAt: new Date().toISOString(),
+        files: {},
+      }),
+    );
+
+    const result = update(opts('0.2.0'));
+
+    expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(home, '.jig'))).toBe(false);
+    const m = readManifest(project)!;
+    expect(m.scope).toBe('project');
+    expect(result.fromVersion).toBe('0.1.0');
+  });
+
+  it('a normal global update from a real (different-path) project directory still works', () => {
+    install({ ...opts('0.1.0'), scope: 'global' });
+    expect(existsSync(join(project, '.jig'))).toBe(false);
+
+    seedPackage('### A-01 Rule revised\n❌ bad\n✅ better\n');
+    const result = update(opts('0.2.0'));
+
+    expect(result.fromVersion).toBe('0.1.0');
+    const body = readFileSync(join(home, '.jig', '00-anti-patterns.md'), 'utf8');
+    expect(body).toContain('Rule revised');
+    expect(existsSync(join(project, '.jig'))).toBe(false);
+    expect(readManifest(home)?.scope).toBe('global');
   });
 });
