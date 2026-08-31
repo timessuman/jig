@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { assetRoot, findProjectRoot, getPackageRoot } from './paths.js';
 import { install } from './commands/install.js';
@@ -29,6 +30,7 @@ program
         projectRoot,
         packageRoot: assetRoot(),
         version,
+        homeDir: homedir(),
       });
       console.log(`Installed Jig v${version} for ${opts.agent} (${opts.scope} scope)`);
       for (const f of result.written) console.log(`  + ${f}`);
