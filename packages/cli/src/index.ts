@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { assetRoot, findProjectRoot, getPackageRoot } from './paths.js';
 import { install } from './commands/install.js';
 import { update } from './commands/update.js';
+import { check } from './commands/check.js';
 import { adapterNames } from './adapters/registry.js';
 
 const packageRoot = getPackageRoot();
@@ -64,6 +65,30 @@ program
       console.log(`Updated Jig ${result.fromVersion} → ${result.toVersion}`);
       for (const f of result.updated) console.log(`  ~ ${f}`);
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('check')
+  .description("Check the repo against Jig's mechanical + hybrid rules.")
+  .option('--all', 'check the whole repo instead of just changed files', false)
+  .option('--ci', 'mechanical bucket only; exits non-zero on any error, deterministic', false)
+  .option('--json', 'emit findings as JSON', false)
+  .action((opts: { all: boolean; ci: boolean; json: boolean }) => {
+    const projectRoot = findProjectRoot(process.cwd());
+    try {
+      const result = check({
+        projectRoot,
+        homeDir: homedir(),
+        version,
+        all: opts.all,
+        ci: opts.ci,
+      });
+      console.log(opts.json ? JSON.stringify(result.findings, null, 2) : result.report);
+      if (opts.ci && result.hasError) process.exit(1);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);
