@@ -65,8 +65,8 @@
      light and dark) referenced by all four variations below, so changing the
      colour means changing it in one place instead of 4–5. */
   --error-h:   0;   --error-s:   71%; --error-l:   44%; --error-fill-a:   5%;
-  --warning-h: 42;  --warning-s: 82%; --warning-l:  31%; --warning-fill-a: 5%;
-  --success-h: 162; --success-s: 95%; --success-l: 26%; --success-fill-a: 5%;
+  --warning-h: 42;  --warning-s: 82%; --warning-l:  29%; --warning-fill-a: 5%;
+  --success-h: 162; --success-s: 95%; --success-l: 23%; --success-fill-a: 5%;
   /* info is NOT in the reference's set of three. Kept as an optional fourth. */
   --info-h:    220; --info-s:    70%; --info-l:    42%; --info-fill-a:    5%;
 

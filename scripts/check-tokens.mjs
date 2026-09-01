@@ -149,9 +149,17 @@ const hslToRgb = (h, s, l) => {
 const composite = (fg, bg, alpha) =>
   fg.map((c, i) => Math.round(c * alpha + bg[i] * (1 - alpha)));
 
-// Light-mode backgrounds a semantic colour can land on. bg-base is the
-// harder of the two, so passing it implies passing bg-raised.
-const LIGHT_BACKGROUNDS = { 'bg-base': [249, 248, 245], 'bg-raised': [255, 255, 255] };
+// Every light-mode surface a semantic colour can land on. `fill` matters and
+// is easy to forget: the source is explicit that a text link can sit on a fill
+// background, so the floor applies there too. It is the tightest of the three.
+const FILL_ALPHA = 0.04;
+const compositeFill = (bg) => bg.map((c) => Math.round(bg === bg ? c * (1 - FILL_ALPHA) : c));
+const LIGHT_BACKGROUNDS = {
+  'bg-base': [249, 248, 245],
+  'bg-raised': [255, 255, 255],
+  'fill-on-raised': compositeFill([255, 255, 255]),
+  'fill-on-base': compositeFill([249, 248, 245]),
+};
 
 {
   const css = read('tokens/brand.default.css');
