@@ -60,6 +60,8 @@ Modes **select** from these; they never define their own values. `--spacing-card
 | `product` | 1.200 Minor Third | | 14 | 16 | 18 | 20 | 24 | 32 |
 | `operator` | 1.125 Major Second | | 12 | 14 | 16 | 16 | 18 | 22 |
 
+`editorial` omits the rung the ratio would put between H2 and H1 (a step near 40); the ratio names the ladder, not every adjacent step — its H2→H1 jump (32→48) is 1.5, not 1.25.
+
 **`--text-body` and `--text-prose` are different roles, not two sizes of the same thing.** Body is UI text — labels, controls, table cells, short strings read in glances. Prose is sustained reading, and never drops below 18px on a page anyone is expected to actually read (`B-75`).
 
 Line heights are unitless and floor at **1.5** for body and prose, easing down as size rises. Raise it further when lines are long, when the typeface is heavy or dark, or when it simply looks large for its nominal size. Between 1.5 and 2 is the comfortable band for prose.
@@ -72,7 +74,9 @@ Line heights are unitless and floor at **1.5** for body and prose, easing down a
 
 **Typeface.** One sans serif by default: most legible small, neutral across brands, least likely to be the wrong choice. When picking one — prefer a popular face with many weights, a tall x-height and generous default spacing, with OpenType features and the language coverage the product needs. When in doubt, the platform system font is tried, tested and free to load. A second face is permitted for headings only (`B-76`).
 
-**Radius — three options**, by element size: 8px small (buttons, inputs, badges), 16px medium (cards, panels), 32px large (hero surfaces).
+**Radius — four options**, by element size: 8px small (buttons, inputs, badges), 16px medium (cards, panels), 32px large (hero media and full-bleed surfaces), and a full/pill radius for pills, badges, avatars and chips (`--radius-full`).
+
+`--radius-control` selects `sm` in all three modes. `--radius-surface` selects `md` in `editorial` and `product`, but `sm` in `operator` — the selection is per-mode, not a fixed derivation. `--radius-lg` and `--radius-full` are brand-scale options; no mode currently selects either.
 
 **Shadow — two options** with stated meanings: `raised` sits above the page, `overlay` floats over it. `A-08` still prefers a stroke; these exist for when depth is the point.
 

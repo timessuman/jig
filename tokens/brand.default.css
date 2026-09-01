@@ -21,7 +21,6 @@
   --brand-h: 264;
   --brand-s: 0%;
   --brand-l: 15%;
-  --brand-base: hsl(var(--brand-h) var(--brand-s) var(--brand-l));
 
   /* ================= ELEVATION BACKGROUNDS (solid) =================
      Light comes from above: higher elevation is lighter.
@@ -50,32 +49,35 @@
 
   /* ================= SYSTEM COLOURS =================
      Three, with familiar traffic-light meanings. Four variations each.
-     Never the only signal — pair with an icon and text (C-20). */
-  --error-base:   hsl(0   71% 44%);
-  --warning-base: hsl(42  82% 36%);
-  --success-base: hsl(162 95% 26%);
+     Never the only signal — pair with an icon and text (C-20).
+     Each colour is one h/s/l triple (plus a fill alpha, which differs between
+     light and dark) referenced by all four variations below, so changing the
+     colour means changing it in one place instead of 4–5. */
+  --error-h:   0;   --error-s:   71%; --error-l:   44%; --error-fill-a:   5%;
+  --warning-h: 42;  --warning-s: 82%; --warning-l:  36%; --warning-fill-a: 5%;
+  --success-h: 162; --success-s: 95%; --success-l: 26%; --success-fill-a: 5%;
   /* info is NOT in the book's set of three. Kept as an optional fourth. */
-  --info-base:    hsl(220 70% 42%);
+  --info-h:    220; --info-s:    70%; --info-l:    42%; --info-fill-a:    5%;
 
-  --color-text-error:          hsl(0 71% 44% / 100%);
-  --color-stroke-error-strong: hsl(0 71% 44% / 80%);
-  --color-stroke-error-weak:   hsl(0 71% 44% / 20%);
-  --color-fill-error:          hsl(0 71% 44% / 5%);
+  --color-text-error:          hsl(var(--error-h) var(--error-s) var(--error-l) / 100%);
+  --color-stroke-error-strong: hsl(var(--error-h) var(--error-s) var(--error-l) / 80%);
+  --color-stroke-error-weak:   hsl(var(--error-h) var(--error-s) var(--error-l) / 20%);
+  --color-fill-error:          hsl(var(--error-h) var(--error-s) var(--error-l) / var(--error-fill-a));
 
-  --color-text-warning:          hsl(42 82% 36% / 100%);
-  --color-stroke-warning-strong: hsl(42 82% 36% / 80%);
-  --color-stroke-warning-weak:   hsl(42 82% 36% / 20%);
-  --color-fill-warning:          hsl(42 82% 36% / 5%);
+  --color-text-warning:          hsl(var(--warning-h) var(--warning-s) var(--warning-l) / 100%);
+  --color-stroke-warning-strong: hsl(var(--warning-h) var(--warning-s) var(--warning-l) / 80%);
+  --color-stroke-warning-weak:   hsl(var(--warning-h) var(--warning-s) var(--warning-l) / 20%);
+  --color-fill-warning:          hsl(var(--warning-h) var(--warning-s) var(--warning-l) / var(--warning-fill-a));
 
-  --color-text-success:          hsl(162 95% 26% / 100%);
-  --color-stroke-success-strong: hsl(162 95% 26% / 80%);
-  --color-stroke-success-weak:   hsl(162 95% 26% / 20%);
-  --color-fill-success:          hsl(162 95% 26% / 5%);
+  --color-text-success:          hsl(var(--success-h) var(--success-s) var(--success-l) / 100%);
+  --color-stroke-success-strong: hsl(var(--success-h) var(--success-s) var(--success-l) / 80%);
+  --color-stroke-success-weak:   hsl(var(--success-h) var(--success-s) var(--success-l) / 20%);
+  --color-fill-success:          hsl(var(--success-h) var(--success-s) var(--success-l) / var(--success-fill-a));
 
-  --color-text-info:          hsl(220 70% 42% / 100%);
-  --color-stroke-info-strong: hsl(220 70% 42% / 80%);
-  --color-stroke-info-weak:   hsl(220 70% 42% / 20%);
-  --color-fill-info:          hsl(220 70% 42% / 5%);
+  --color-text-info:          hsl(var(--info-h) var(--info-s) var(--info-l) / 100%);
+  --color-stroke-info-strong: hsl(var(--info-h) var(--info-s) var(--info-l) / 80%);
+  --color-stroke-info-weak:   hsl(var(--info-h) var(--info-s) var(--info-l) / 20%);
+  --color-fill-info:          hsl(var(--info-h) var(--info-s) var(--info-l) / var(--info-fill-a));
 
   /* ================= STATE LAYERS =================
      Transparent overlays, so hover and press need no new colours and work on
@@ -125,26 +127,13 @@
     --brand-l: 88%;      /* lighten and desaturate the brand for dark surfaces */
     --color-on-brand: hsl(var(--brand-h) 6% 10%);
 
-    /* System colours lighten and desaturate in dark mode. */
-    --color-text-error:          hsl(0 60% 72% / 100%);
-    --color-stroke-error-strong: hsl(0 60% 72% / 80%);
-    --color-stroke-error-weak:   hsl(0 60% 72% / 20%);
-    --color-fill-error:          hsl(0 60% 72% / 8%);
-
-    --color-text-warning:          hsl(42 70% 70% / 100%);
-    --color-stroke-warning-strong: hsl(42 70% 70% / 80%);
-    --color-stroke-warning-weak:   hsl(42 70% 70% / 20%);
-    --color-fill-warning:          hsl(42 70% 70% / 8%);
-
-    --color-text-success:          hsl(162 45% 66% / 100%);
-    --color-stroke-success-strong: hsl(162 45% 66% / 80%);
-    --color-stroke-success-weak:   hsl(162 45% 66% / 20%);
-    --color-fill-success:          hsl(162 45% 66% / 8%);
-
-    --color-text-info:          hsl(220 55% 74% / 100%);
-    --color-stroke-info-strong: hsl(220 55% 74% / 80%);
-    --color-stroke-info-weak:   hsl(220 55% 74% / 20%);
-    --color-fill-info:          hsl(220 55% 74% / 8%);
+    /* System colours lighten and desaturate in dark mode. Only the h/s/l and
+       fill-alpha vars need overriding here — the four hsl() declarations
+       above pick the new values up automatically. */
+    --error-h:   0;   --error-s:   60%; --error-l:   72%; --error-fill-a:   8%;
+    --warning-h: 42;  --warning-s: 70%; --warning-l:  70%; --warning-fill-a: 8%;
+    --success-h: 162; --success-s: 45%; --success-l: 66%; --success-fill-a: 8%;
+    --info-h:    220; --info-s:    55%; --info-l:    74%; --info-fill-a:    8%;
 
     --shadow-raised:  none;
     --shadow-overlay: 0 8px 24px -8px rgb(0 0 0 / 60%);
