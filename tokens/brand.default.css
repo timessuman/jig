@@ -54,12 +54,19 @@
   /* ================= SYSTEM COLOURS =================
      Three, with familiar traffic-light meanings. Four variations each.
      Never the only signal — pair with an icon and text (C-20).
+
+     Requirements when you replace one:
+       - text (100%)          >= 4.5:1 against --color-bg-base AND --color-bg-raised
+       - stroke-strong (80%)  >= 3:1 against the same two, composited
+       - stroke-weak and fill are decorative and have no floor
+     These are not style preferences. A system colour that fails them is
+     unreadable to the people the colour exists to warn.
      Each colour is one h/s/l triple (plus a fill alpha, which differs between
      light and dark) referenced by all four variations below, so changing the
      colour means changing it in one place instead of 4–5. */
   --error-h:   0;   --error-s:   71%; --error-l:   44%; --error-fill-a:   5%;
-  --warning-h: 42;  --warning-s: 82%; --warning-l:  36%; --warning-fill-a: 5%;
-  --success-h: 162; --success-s: 95%; --success-l: 26%; --success-fill-a: 5%;
+  --warning-h: 42;  --warning-s: 82%; --warning-l:  29%; --warning-fill-a: 5%;
+  --success-h: 162; --success-s: 95%; --success-l: 23%; --success-fill-a: 5%;
   /* info is NOT in the reference's set of three. Kept as an optional fourth. */
   --info-h:    220; --info-s:    70%; --info-l:    42%; --info-fill-a:    5%;
 

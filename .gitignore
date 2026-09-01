@@ -1,3 +1,6 @@
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Reference copy of the upstream source files. Not part of the package.
+/ui-system/

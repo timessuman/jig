@@ -90,3 +90,21 @@ What it does NOT guard: values that live only in the mode CSS with no prose home
    consumer's repo, so a path correct in one context and wrong in the other is a
    dual truth that drifts. There is one location; `init` must wire to it rather
    than relocate.
+
+5. Semantic colours meet their contrast floors — text 4.5:1, stroke-strong 3:1,
+   against both light backgrounds. The source states this directly for system
+   colours. `--color-text-warning` shipped at 3.64:1 in 0.1.0 and 0.2.0.
+
+## Open questions raised by the source, not yet acted on
+
+- **Shadow colour.** The source suggests using the "text strong" palette variation
+  rather than black for shadows, so they sit with the rest of the interface. Ours
+  use `rgb(0 0 0 / N%)`. In practice `--color-text-strong` is `rgb(0 0 0 / 90%)`,
+  so the difference is small — but it is a stated divergence.
+- **Disabled opacity.** The source suggests 20% for disabled states; ours is 38%.
+  Note the source's own APCA table sets 30 as the absolute minimum for disabled
+  button text, which 20% opacity would not reach. The two positions in the source
+  are in tension; 38% is closer to satisfying its APCA guidance.
+- **APCA.** The source says to check both WCAG 2 and APCA, and gives the full
+  threshold table. `02-tokens.md` references APCA; `00-anti-patterns.md` does not.
+  A second check rule computing APCA alongside WCAG would close this.
