@@ -189,7 +189,7 @@ Attempting to vary these by mode is a category error:
 - **Accessibility floors.** Contrast, focus indication, target size, semantic markup. Identical in all three. `operator` being dense does not license a 24px tap target or a 3:1 body contrast.
 - **Brand identity.** Palette, typeface, logo, voice.
 - **State completeness.** Every mode renders loading, empty, error and disabled.
-- **The anti-pattern file.** All 48 rules apply everywhere.
+- **The anti-pattern file.** All 87 rules in it apply everywhere.
 
 ---
 

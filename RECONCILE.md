@@ -137,7 +137,7 @@ Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 
 ## Not up for reconciliation
 
-These are structural or safety decisions, not style, and the book has no bearing on them:
+These are structural or safety decisions, not style, and the reference has no bearing on them:
 
 - Everything in `00-anti-patterns.md` sections **E** (states), **F** (forms) and **H** (code-level)
 - The contrast **floors** themselves — the ramp steps are negotiable, the 4.5:1 and 3:1 targets are not
@@ -146,11 +146,11 @@ These are structural or safety decisions, not style, and the book has no bearing
 
 ## Resolved — T8, line height
 
-The conflict was in the framing, not the values. The book gives line height in pixels, which is right for a design tool and wrong for CSS: a fixed px line height does not scale when a user increases their text size, so text overlaps (WCAG 1.4.12). Unitless ratios inherit and scale.
+The conflict was in the framing, not the values. The reference gives line height in pixels, which is right for a design tool and wrong for CSS: a fixed px line height does not scale when a user increases their text size, so text overlaps (WCAG 1.4.12). Unitless ratios inherit and scale.
 
-Expressed as ratios, the book's table is already a clean ramp — 16/24 = 1.5, 20/28 = 1.4, 24/32 = 1.333, 32/40 = 1.25, 40/48 = 1.2. Only the 14px caption step breaks it at 1.43, and that step is raised to 1.5 because `operator` uses 14px as body text.
+Expressed as ratios, the reference's table is already a clean ramp — 16/24 = 1.5, 20/28 = 1.4, 24/32 = 1.333, 32/40 = 1.25, 40/48 = 1.2. Only the 14px caption step breaks it at 1.43, and that step is raised to 1.5 because `operator` uses 14px as body text.
 
-So: his values, expressed unitless, floor held. The 4pt-grid objection disappears, because line height is no longer a fixed number. A departure from the book's *format* for a reason a design book would not have had to consider.
+So: those values, expressed unitless, floor held. The 4pt-grid objection disappears, because line height is no longer a fixed number. A departure from the reference's *format* for a reason a design reference would not have had to consider.
 
 ## Copy
 
@@ -214,4 +214,4 @@ So: his values, expressed unitless, floor held. The 4pt-grid objection disappear
 
 ## Also worth capturing
 
-The book will contain reasoning this system has no place for — why a rule holds, what it trades against, when it breaks. That belongs in your head, not in these files. If a piece of reasoning changes a *decision*, change the value. If it only explains one, leave the files alone.
+The reference will contain reasoning this system has no place for — why a rule holds, what it trades against, when it breaks. That belongs in your head, not in these files. If a piece of reasoning changes a *decision*, change the value. If it only explains one, leave the files alone.

@@ -46,7 +46,7 @@ implemented.
 
 | File | Contents | Load |
 | --- | --- | --- |
-| `rules/00-anti-patterns.md` | 48 universal rules with corrections | **Always** |
+| `rules/00-anti-patterns.md` | 87 universal rules with corrections | **Always** |
 | `rules/01-modes.md` | `editorial` / `product` / `operator` profiles | **Always** |
 | `rules/02-tokens.md` | Token contract, naming, consumption | On setup, or when adding a token |
 | `rules/03-patterns.md` | Component anatomy and behaviour | When building a covered pattern |
