@@ -16,6 +16,10 @@ beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), 'jig-home-'));
   mkdirSync(join(pkg, 'rules'), { recursive: true });
   mkdirSync(join(pkg, 'templates'), { recursive: true });
+  mkdirSync(join(pkg, 'tokens'), { recursive: true });
+  for (const t of ['brand.default.css', 'mode.editorial.css', 'mode.product.css', 'mode.operator.css']) {
+    writeFileSync(join(pkg, 'tokens', t), `:root { --from: ${t}; }\n`);
+  }
   writeFileSync(join(pkg, 'rules', '00-anti-patterns.md'), '### A-01 Rule\n❌ bad\n✅ good\n');
   writeFileSync(join(pkg, 'rules.index.json'),
     JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' }]));
@@ -299,5 +303,40 @@ describe('install — prepare-then-commit (Fix 2)', () => {
     rmSync(join(pkg, 'LICENSE'));
     expect(() => install(opts())).toThrow();
     expect(readFileSync(join(project, '.jig', '00-anti-patterns.md'), 'utf8')).toBe(before);
+  });
+});
+
+describe('token vendoring', () => {
+  it('writes every token file into .jig/tokens/', () => {
+    install(opts());
+    for (const f of ['brand.default.css', 'mode.editorial.css', 'mode.product.css', 'mode.operator.css']) {
+      expect(existsSync(join(project, '.jig', 'tokens', f))).toBe(true);
+    }
+  });
+
+  it('gives vendored CSS a CSS comment header, never an HTML one', () => {
+    install(opts());
+    const css = readFileSync(join(project, '.jig', 'tokens', 'brand.default.css'), 'utf8');
+    expect(css.startsWith('/*')).toBe(true);
+    expect(css).not.toContain('<!--');
+    expect(css).toContain('Apache-2.0');
+  });
+
+  it('keys token files with forward slashes', () => {
+    install(opts());
+    const m = readManifest(project)!;
+    const keys = Object.keys(m.files).filter((k) => k.includes('tokens'));
+    expect(keys.length).toBeGreaterThan(0);
+    for (const k of keys) expect(k).not.toContain('\\');
+  });
+
+  it('preserves a user-edited token file on reinstall and reports it skipped', () => {
+    install(opts());
+    const target = join(project, '.jig', 'tokens', 'brand.default.css');
+    const mine = `${readFileSync(target, 'utf8')}\n:root { --brand-h: 200; }\n`;
+    writeFileSync(target, mine);
+    const result = install(opts());
+    expect(readFileSync(target, 'utf8')).toBe(mine);
+    expect(result.skipped).toContain('.jig/tokens/brand.default.css');
   });
 });

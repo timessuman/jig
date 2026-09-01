@@ -124,7 +124,7 @@ Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 | F4 | Help text **before** the control | `P-03` |  | ⬜ |
 | F5 | Validate on blur, revalidate on change | `F-38` |  | ⬜ |
 | F6 | Table row 36px operator / 48px product | `mode.*.css` |  | ⬜ |
-| F10 | Unbranded radius default (8 / 16 / 32) asserts more brand character than the accent rule does — consider 4 / 8 / 16. `--radius-lg` and `--radius-full` are currently never selected by any mode. Taste decision, to be made deliberately and separately; not changed here. | `brand.default.css` | `01-modes.md`, `00-anti-patterns.md` | ⬜ |
+| F10 | **Unbranded radius default stays 8 / 16 / 32.** Considered 4 / 8 / 16 on the grounds that radius is the loudest carrier of brand character and the default should be as visibly provisional as the near-black accent. Rejected: radius has no null value, so a lower default is a different opinion rather than an absence — 0px reads brutalist, 4px reads technical, none reads as "undecided" the way near-black does. The value that actually asserted character was `--radius-lg` (32px), and no mode selects it. | `brand.default.css` | `01-modes.md`, `00-anti-patterns.md` | ✅ |
 
 ## Motion
 

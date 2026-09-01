@@ -20,6 +20,10 @@ beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), 'jig-home-'));
   mkdirSync(join(pkg, 'rules'), { recursive: true });
   mkdirSync(join(pkg, 'templates'), { recursive: true });
+  mkdirSync(join(pkg, 'tokens'), { recursive: true });
+  for (const t of ['brand.default.css', 'mode.editorial.css', 'mode.product.css', 'mode.operator.css']) {
+    writeFileSync(join(pkg, 'tokens', t), `:root { --from: ${t}; }\n`);
+  }
   seedPackage('### A-01 Rule\n❌ bad\n✅ good\n');
   writeFileSync(join(pkg, 'rules.index.json'),
     JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' }]));
@@ -355,5 +359,27 @@ describe('update — same root as $HOME does not downgrade a global install (C2 
     expect(body).toContain('Rule revised');
     expect(existsSync(join(project, '.jig'))).toBe(false);
     expect(readManifest(home)?.scope).toBe('global');
+  });
+});
+
+describe('update and vendored tokens', () => {
+  it('refreshes an untouched token file', () => {
+    install(opts('0.1.0'));
+    writeFileSync(join(pkg, 'tokens', 'mode.product.css'), ':root { --from: revised; }\n');
+    const result = update(opts('0.2.0'));
+    const body = readFileSync(join(project, '.jig', 'tokens', 'mode.product.css'), 'utf8');
+    expect(body).toContain('--from: revised');
+    expect(result.updated).toContain('.jig/tokens/mode.product.css');
+  });
+
+  it('leaves a user-edited token file byte-identical and reports it skipped', () => {
+    install(opts('0.1.0'));
+    const target = join(project, '.jig', 'tokens', 'brand.default.css');
+    const mine = `${readFileSync(target, 'utf8')}\n:root { --brand-h: 200; }\n`;
+    writeFileSync(target, mine);
+    writeFileSync(join(pkg, 'tokens', 'brand.default.css'), ':root { --from: revised; }\n');
+    const result = update(opts('0.2.0'));
+    expect(readFileSync(target, 'utf8')).toBe(mine);
+    expect(result.skipped).toContain('.jig/tokens/brand.default.css');
   });
 });

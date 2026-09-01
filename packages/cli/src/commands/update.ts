@@ -98,6 +98,16 @@ export function update(opts: InstallOptions): UpdateResult {
     write(key, vendorHeader(file, opts.version) + readFileSync(join(rulesDir, file), 'utf8'));
   }
 
+  const tokensDir = join(opts.packageRoot, 'tokens');
+  for (const file of readdirSync(tokensDir).filter((f) => f.endsWith('.css')).sort()) {
+    const key = relKey('.jig', 'tokens', file);
+    if (isModified(installRoot, key, existing)) {
+      skipped.push(key);
+      continue;
+    }
+    write(key, vendorHeader(file, opts.version, 'css') + readFileSync(join(tokensDir, file), 'utf8'));
+  }
+
   const indexKey = relKey('.jig', 'rules.index.json');
   if (isModified(installRoot, indexKey, existing)) {
     skipped.push(indexKey);
