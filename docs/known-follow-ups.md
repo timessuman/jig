@@ -62,3 +62,25 @@ what made the C2 fix need applying in two places.
 - `01-modes.md` cites `#fafaf7` but `--color-bg-base` is `oklch(0.980 0.004 95)` ≈ `#f9f8f5`.
 - `01-modes.md` says "Change them in this file, never at the call site" — the numbers now live in `tokens/mode.*.css`.
 - `02-tokens.md` says brand files supply a dark block under both `prefers-color-scheme` and `[data-theme="dark"]`; `brand.default.css` has only the media query.
+
+## Drift guard
+
+`scripts/check-tokens.mjs` runs as part of the root `npm test`. Three rules:
+
+1. Every size in `rules/02-tokens.md`'s type table matches the specific token in
+   `tokens/mode.*.css`. Checks the named token, not merely that the number appears
+   somewhere in the file — a substring check passes when `--text-h3` drifts 24→26,
+   because `--spacing-m` is also 24px.
+2. No unanchored literal in a prose table. A number beside a token name is fine;
+   a bare number in a table is a call site. Explanatory prose outside tables keeps
+   literals where the number is the point.
+3. No chosen colour literal repeated inside a token file. Achromatic anchors
+   (pure black and white at varying alphas) are exempt — those are constants,
+   not values that can desynchronise.
+
+All three are mutation-tested: each was verified to fail when the thing it guards
+is broken, then restored.
+
+What it does NOT guard: values that live only in the mode CSS with no prose home
+(control heights, motion durations, row heights, per-mode measure). See the
+"Resolved values" pointer item above.
