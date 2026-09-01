@@ -62,22 +62,24 @@ At a seam between modes:
 **Reader:** first-time, on mobile data, scanning before committing attention.
 **Tiebreaker:** legibility over density. When in doubt, larger and further apart.
 
-| Property | Value |
+| Property | This mode selects |
 | --- | --- |
-| Body size | 18px (16px minimum on dense secondary text) |
-| Type ratio | 1.250 (major third) |
-| Heading ramp | 24 / 32 / 48 / 64 |
-| Measure | 68ch |
-| Base unit | 4px |
-| Section rhythm | 96px desktop · 56px mobile |
-| Card padding | 32px |
-| Control height | 48px |
-| Radius | brand default (typically 8px) |
-| Elevation | none, except sticky navigation |
-| Motion | 200–300ms; entrance animation permitted **once**, in the first viewport only |
-| Colour usage | Neutral-dominant. Accent for links and primary CTA only. |
+| UI text | `--text-body` |
+| Long-form text | `--text-prose` · `--leading-prose` |
+| Heading ramp | `--text-h3` → `--text-h2` → `--text-h1` |
+| Type ratio | 1.250 Major Third — the largest of the three |
+| Measure | `--measure-prose` |
+| Section rhythm | `--spacing-section` |
+| Card padding | `--spacing-card` |
+| Control height | `--size-control` — the tallest of the three |
+| Radius | `--radius-control` (sm) · `--radius-surface` (md) |
+| Elevation | `--shadow-none`; `--shadow-raised` for sticky nav only |
+| Motion | `--duration-base`; entrance animation **once**, first viewport only |
+| Colour usage | Neutral-dominant. `--color-brand` for links and primary CTA only. |
 | Imagery | Central. Real photography or commissioned illustration. |
 | Keyboard | Standard tab order; no shortcuts expected |
+
+Resolved values: `02-tokens.md`.
 
 **Mode-specific rules**
 - One hero maximum, at the top. A second full-viewport section is a second hero.
@@ -94,23 +96,25 @@ At a seam between modes:
 **Reader:** returning, task-focused, moderate familiarity, mixed device.
 **Tiebreaker:** predictability over novelty. A boring pattern the user already knows beats a better one they must learn.
 
-| Property | Value |
+| Property | This mode selects |
 | --- | --- |
-| Body size | 16px |
-| Type ratio | 1.200 (minor third) |
-| Heading ramp | 20 / 24 / 32 |
-| Measure | 60ch |
-| Base unit | 4px |
-| Section rhythm | 48px desktop · 32px mobile |
-| Card padding | 24px |
-| Control height | 40px |
-| Table row height | 48px |
-| Radius | brand default, one step tighter than `editorial` |
-| Elevation | overlays only (modal, popover, dropdown) |
-| Motion | 150ms; state change only, no entrance animation |
-| Colour usage | Accent for primary action. Full semantic set. Status as subtle fill plus text. |
+| UI text | `--text-body` |
+| Long-form text | `--text-prose` · `--leading-prose` |
+| Heading ramp | `--text-h3` → `--text-h2` → `--text-h1` |
+| Type ratio | 1.200 Minor Third — the mid value of the three |
+| Measure | `--measure-prose` |
+| Section rhythm | `--spacing-section` |
+| Card padding | `--spacing-card` |
+| Control height | `--size-control` — the mid value of the three |
+| Table row height | `--size-row` |
+| Radius | `--radius-control` (sm) · `--radius-surface` (md) |
+| Elevation | `--shadow-none`; `--shadow-raised`/`--shadow-overlay` for overlays only (modal, popover, dropdown) |
+| Motion | `--duration-base`; state change only, no entrance animation |
+| Colour usage | `--color-brand` for primary action. Full semantic set. Status as subtle fill plus text. |
 | Imagery | Sparse. Illustration permitted in empty states only. |
 | Keyboard | Shortcuts for frequent actions; documented in-app |
+
+Resolved values: `02-tokens.md`.
 
 **Mode-specific rules**
 - One primary action per view. Everything else is secondary or tertiary.
@@ -127,24 +131,26 @@ At a seam between modes:
 **Reader:** expert, in the tool for hours, keyboard-driven, high repetition.
 **Tiebreaker:** speed of repeated use over clarity of first use. Discoverability is worth sacrificing for throughput here, and nowhere else.
 
-| Property | Value |
+| Property | This mode selects |
 | --- | --- |
-| Body size | 14px |
-| Type ratio | 1.150 |
-| Heading ramp | 16 / 18 / 22 |
-| Measure | 72ch (prose only; data columns are not prose) |
-| Base unit | 4px |
-| Section rhythm | 24px |
-| Card padding | 12px |
-| Control height | 32px (28px in compact rows) |
-| Table row height | 36px |
-| Radius | 4px maximum |
-| Elevation | overlays only, minimal |
-| Motion | 100ms; **no entrance animation of any kind** |
+| UI text | `--text-body` |
+| Long-form text | `--text-prose` · `--leading-prose` |
+| Heading ramp | `--text-h3` → `--text-h2` → `--text-h1` |
+| Type ratio | 1.125 Major Second — the smallest of the three |
+| Measure | `--measure-prose` (prose only; data columns are not prose) |
+| Section rhythm | `--spacing-section` |
+| Card padding | `--spacing-card` |
+| Control height | `--size-control` — the shortest of the three (`--size-control-sm` in compact rows) |
+| Table row height | `--size-row` (`--size-row-compact` in compact rows) |
+| Radius | `--radius-control` (sm) · `--radius-surface` (sm) — both sm in this mode |
+| Elevation | `--shadow-none`; overlays only, minimal |
+| Motion | `--duration-base`; **no entrance animation of any kind** |
 | Colour usage | Neutral-dominant. Colour is *exclusively* semantic. No decorative accent. |
 | Imagery | None. Icons only. |
 | Keyboard | Full keyboard operation mandatory. Shortcut reference required. |
 | Numerals | Tabular figures mandatory on all numeric columns |
+
+Resolved values: `02-tokens.md`.
 
 **Mode-specific rules**
 - Density is the feature. More rows visible beats more comfortable rows.
@@ -163,11 +169,12 @@ Useful when a decision straddles two modes.
 
 | | `editorial` | `product` | `operator` |
 | --- | --- | --- | --- |
-| Body | 18px | 16px | 14px |
-| Control height | 48px | 40px | 32px |
-| Section rhythm | 96px | 48px | 24px |
-| Card padding | 32px | 24px | 12px |
-| Motion | 200–300ms | 150ms | 100ms |
+| Type ratio | 1.250 | 1.200 | 1.125 |
+| Body | `--text-body` | same as editorial | smaller |
+| Control height | tallest | mid | shortest |
+| Section rhythm | `--spacing-xxl` | `--spacing-xl` | `--spacing-m` |
+| Card padding | `--spacing-m` | `--spacing-m` | `--spacing-s` |
+| Motion | slowest | mid | fastest |
 | Entrance animation | once, first viewport | none | none |
 | Decorative colour | accent only | primary action | none |
 | Imagery | central | empty states | none |
@@ -182,7 +189,7 @@ Attempting to vary these by mode is a category error:
 - **Accessibility floors.** Contrast, focus indication, target size, semantic markup. Identical in all three. `operator` being dense does not license a 24px tap target or a 3:1 body contrast.
 - **Brand identity.** Palette, typeface, logo, voice.
 - **State completeness.** Every mode renders loading, empty, error and disabled.
-- **The anti-pattern file.** All 48 rules apply everywhere.
+- **The anti-pattern file.** All 87 rules in it apply everywhere.
 
 ---
 
@@ -192,17 +199,17 @@ Per project, one file supplying:
 
 - **Palette** — neutral ramp (12 steps, warm/cool/true declared), one accent ramp, semantic set (danger, warning, success, info) tuned to the accent's temperature.
 - **Typeface** — display and text families, and whether they differ. Numeric font-feature settings.
-- **Radius personality** — the base radius that mode scales from. This carries more brand character than colour does.
+- **Radius personality** — the brand-scale radius options (`sm`, `md`, `lg`, `full`) that each mode selects from, not a fixed derivation. This carries more brand character than colour does.
 - **Elevation personality** — border-led or shadow-led. Pick one; do not mix within a project.
 - **Voice** — sentence case or title case, contraction policy, error-message tone.
 
-Default when no brand is supplied: warm neutral ramp anchored on `#fafaf7`, no accent, 6px base radius, border-led elevation. Greyscale output plus a stated question beats an invented purple (`A-01`).
+Default when no brand is supplied: warm neutral ramp anchored on `#fafaf7`, no accent, 8px base radius (`--radius-sm`), border-led elevation. Greyscale output plus a stated question beats an invented purple (`A-01`).
 
 ---
 
 ## Notes for the author (not for the agent)
 
-**Decided, not derived.** These numbers are internally consistent and defensible, but several are judgement calls that should be tuned once you have run real work through them: the 18px editorial body, the 36px operator row, the three section-rhythm values, and the motion durations. Change them in this file, never at the call site.
+**Decided, not derived.** These numbers are internally consistent and defensible, but several are judgement calls that should be tuned once you have run real work through them: the operator row height, the three section-rhythm values, and the motion durations. Change them in this file, never at the call site.
 
 **Where your taste is recorded here:**
 - The zero-JS default in `editorial` — a stronger position than most systems take, and consistent with your writing on JS-dependent forms.

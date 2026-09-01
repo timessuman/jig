@@ -67,12 +67,13 @@ Where several already apply — a table's rows are aligned, alike, and close —
 ✅ Let the content pick the layout. Three items of unequal weight are a list, not a grid.
 
 ### A-07 Oversized radius everywhere
-❌ A single large radius (16px+) applied to cards, buttons, inputs and badges alike
-✅ `--radius-control` for controls, `--radius-surface` for containers. Both derive from `--radius-sm`, which is a brand decision. Small elements take small radii.
+❌ One radius applied to cards, buttons, inputs and badges alike, regardless of element size
+✅ `--radius-control` for controls, `--radius-surface` for containers. `--radius-control` selects `sm` in every mode; `--radius-surface` selects `md` in `editorial` and `product`, `sm` in `operator` — the selection is per-mode, not a fixed derivation. Small elements take small radii.
+In `operator`, `--radius-surface` also selects `sm`, so cards, buttons and inputs converge on one 8px radius. That is not this rule recurring: it is a per-mode selection made deliberately for density. The distinction is whether the value was chosen or defaulted to.
 
 ### A-08 Shadow as the only depth cue
 ❌ A drop shadow on every card, or several shadow sizes with no rule governing which means what
-✅ `--shadow-surface` is `none` in all three modes. Depth comes from `--color-stroke-weak` or a surface-colour step. `--shadow-raised` exists for overlays only — dialogs, popovers, dropdowns.
+✅ `--shadow-surface` is `none` in all three modes. Depth comes from `--color-stroke-weak` or a surface-colour step. `--shadow-raised` exists for exactly two cases: overlays — dialogs, popovers, dropdowns — and sticky navigation in `editorial`, which must read as above the content scrolling beneath it.
 
 ### A-09 Marketing voice in an application
 ❌ "Supercharge your workflow" on an internal dashboard
@@ -191,7 +192,7 @@ Two legitimate departures, and they are not the same:
 ### C-68 Non-interactive elements styled like interactive ones
 ❌ A "Verified" badge with the brand fill and the shape of the primary button; decorative icons carrying the same border and colour as a secondary button
 ✅ Things that look alike are expected to behave alike. If an element does nothing when clicked, it must not carry the visual signature of something that does — brand fill, button shape, or control border.
-Differentiate deliberately: change the shape (a badge is more rounded than a button), the tone (`success` for a verified state rather than `brand`), and the emphasis (a `fill` background rather than a solid one, so the real primary action stays the most prominent thing on screen).
+Differentiate deliberately: change the shape (a badge, pill, chip or avatar takes `--radius-full`, more rounded than a button's `--radius-control`), the tone (`success` for a verified state rather than `brand`), and the emphasis (a `fill` background rather than a solid one, so the real primary action stays the most prominent thing on screen).
 The converse also holds: two elements that do the same job should look the same.
 
 ---

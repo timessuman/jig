@@ -38,7 +38,7 @@ Read this before building any pattern that reports something to the user. The mo
 
 | Weight | Treatment | Use |
 | --- | --- | --- |
-| **Primary** | Solid `--color-brand` fill, `--color-brand-on` text, `--radius-control` | The one action the view exists for |
+| **Primary** | Solid `--color-brand` fill, `--color-on-brand` text, `--radius-control` | The one action the view exists for |
 | **Secondary** | Transparent fill, `--color-brand` border **and** text, same radius and height | The alternative, or several actions of equal weight |
 | **Tertiary** | Transparent, no border, `--color-brand` **underlined** text | Least important actions, repeated actions, destructive actions |
 

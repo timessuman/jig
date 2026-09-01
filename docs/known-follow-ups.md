@@ -51,3 +51,14 @@ what made the C2 fix need applying in two places.
 - Task 9: minor (deferred): new test 3 ("updates the manifest checksum for the skill file") passes against the PRE-fix code too — non-discriminating. Re-reviewer verified this empirically in a disposable worktree. Substantive behaviour is covered by tests 1/2/4; test 3 is redundant rather than wrong.
 - Task 10: minor (deferred): no automated test locks the README's global-scope path table against the adapter sources; a future adapter path change could silently desync it.
 - Task 10: minor (deferred): the "skill body instructs no unimplemented command" test uses an explicit IMPLEMENTED_COMMANDS list rather than deriving from commander, because src/index.ts calls program.parse() at import time so importing it to introspect would execute the CLI. Needs hand-updating when Plan B's commands land; comment says so.
+
+## From the token/doc drift review
+
+- `01-modes.md`'s "Resolved values: `02-tokens.md`" pointer is only partly true: `02-tokens.md` holds the type scale and spacing ladder but NOT control heights, motion durations, row heights, per-mode measure, or which spacing option `--spacing-section` selects. Either add a "Sizes and motion, by mode" table to `02-tokens.md`, or point at `tokens/mode.*.css`.
+- Operator `--text-prose` is 16px, but B-75 forbids 16px for sustained reading and `02-tokens.md` says prose "never drops below 18px". Needs an operator carve-out in B-75 or a token change.
+- `RECONCILE.md` T2 ("one scale, ratio 1.200, all modes") and T3 ("line height 1.65 body → 1.05 display") are both marked ✅ but describe values that no longer exist — T2 is reversed by T9, and no mode has 1.65 or 1.05.
+- Other cited-but-undefined tokens, same class as `--color-brand`: `--spacing-unit`, `--color-surface`, `--font-weight-body`, `--leading-heading`, `--leading-display`, `--color-danger` and its variants (the system colour is `error`, not `danger`).
+- `--text-lead` / `--leading-lead` exist in all three mode files and are documented nowhere.
+- `01-modes.md` cites `#fafaf7` but `--color-bg-base` is `oklch(0.980 0.004 95)` ≈ `#f9f8f5`.
+- `01-modes.md` says "Change them in this file, never at the call site" — the numbers now live in `tokens/mode.*.css`.
+- `02-tokens.md` says brand files supply a dark block under both `prefers-color-scheme` and `[data-theme="dark"]`; `brand.default.css` has only the media query.
