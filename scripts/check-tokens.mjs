@@ -123,6 +123,62 @@ for (const file of ['02-tokens.md', ...PROSE]) {
   });
 }
 
+/* ------------------------------------------------------------------ *
+ * Rule 5 — semantic colours meet their contrast floors.
+ *
+ * The source states it directly: system colours used for text need 4.5:1;
+ * used for interface elements and icons, 3:1. A failing default propagates
+ * to every consumer who accepts it, which is most of them — that is what a
+ * default is. This shipped at 3.64:1 for warning and nobody noticed, because
+ * catching it required arithmetic no one was doing.
+ * ------------------------------------------------------------------ */
+const srgb = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const luminance = ([r, g, b]) =>
+  0.2126 * srgb(r / 255) + 0.7152 * srgb(g / 255) + 0.0722 * srgb(b / 255);
+const contrast = (a, b) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+const hslToRgb = (h, s, l) => {
+  s /= 100; l /= 100;
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [f(0), f(8), f(4)].map((v) => Math.round(v * 255));
+};
+const composite = (fg, bg, alpha) =>
+  fg.map((c, i) => Math.round(c * alpha + bg[i] * (1 - alpha)));
+
+// Light-mode backgrounds a semantic colour can land on. bg-base is the
+// harder of the two, so passing it implies passing bg-raised.
+const LIGHT_BACKGROUNDS = { 'bg-base': [249, 248, 245], 'bg-raised': [255, 255, 255] };
+
+{
+  const css = read('tokens/brand.default.css');
+  for (const name of ['error', 'warning', 'success', 'info']) {
+    const grab = (part) => {
+      const m = new RegExp(`--${name}-${part}:\\s*([0-9.]+)%?`).exec(css);
+      return m ? Number(m[1]) : null;
+    };
+    const [h, s, l] = [grab('h'), grab('s'), grab('l')];
+    if (h === null || s === null || l === null) {
+      fail(`brand.default.css: could not read --${name}-h/s/l`);
+      continue;
+    }
+    const rgb = hslToRgb(h, s, l);
+    for (const [bgName, bg] of Object.entries(LIGHT_BACKGROUNDS)) {
+      const text = contrast(rgb, bg);
+      const stroke = contrast(composite(rgb, bg, 0.8), bg);
+      if (text < 4.5) {
+        fail(`--color-text-${name} is ${text.toFixed(2)}:1 on ${bgName} — needs 4.5:1 for text`);
+      }
+      if (stroke < 3) {
+        fail(`--color-stroke-${name}-strong is ${stroke.toFixed(2)}:1 on ${bgName} — needs 3:1`);
+      }
+    }
+  }
+}
+
 if (failed) {
   console.error('\ntoken/doc check failed');
   process.exit(1);
