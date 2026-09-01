@@ -19,9 +19,9 @@ tokens/
 
 A surface loads **exactly one brand file and exactly one mode file**.
 
-`jig install` vendors these into `.jig/tokens/` in your project, which is the
-path the examples below use. Inside the Jig repository itself they live at
-`tokens/` — same files, one directory up from where a consumer finds them.
+**Tokens live at `.jig/tokens/`.** That is the only location, in every scope and
+every project — `jig install` puts them there, `jig update` refreshes them there,
+and nothing relocates them. Import from that path and it stays correct.
 
 ```css
 @import ".jig/tokens/brand.acme.css";
