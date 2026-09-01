@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.2.1
+
+### Fixed
+
+- **`--color-text-warning` and `--color-text-success` failed their contrast
+  floors.** Warning was 3.64:1 and success 4.48:1 against the surfaces they can
+  land on, where text requires 4.5:1 and strokes 3:1. The source is explicit:
+  system colours used for text need 4.5:1; used for interface elements and
+  icons, 3:1. `RECONCILE.md` also lists the contrast floors as the one category
+  not up for reconciliation, and `C-19` is a rule about this exact failure — so
+  the system was breaking its own hardest rule, in a shipped default that every
+  consumer inherits unless they override it.
+
+  Warning lightness 36% → 29%, success 26% → 23%. Hue and saturation unchanged,
+  so both are the same colour, darker. All four semantic colours now clear both
+  floors against `bg-base`, `bg-raised`, and `fill` on either.
+
+- The system colours now state what a replacement must satisfy. The brand colour
+  already carried that contract; these did not, so a user bringing their own
+  error or warning colour — the intended workflow — had no floor to hit.
+
+### Added
+
+- `scripts/check-tokens.mjs` gains two rules, both mutation-tested. Rule 5
+  computes contrast from the token values and fails the build; this is the only
+  defect class here that arithmetic can catch, and it shipped twice because
+  nobody was doing the arithmetic. Rule 6 fails the build when a token is
+  defined but never rendered by the preview.
+
+- `packages/preview` — a rendering harness. Every prior check verified the
+  system by arithmetic or grep; nothing had looked at it. Plain HTML and CSS,
+  no build, not published. It found two gaps on its first run: there is no
+  border-width token and no focus-ring geometry tokens.
+
 ## 0.2.0
 
 The first release that actually works end to end. `0.1.0` shipped rules that
