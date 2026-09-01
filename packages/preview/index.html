@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jig preview</title>
+<!-- Exactly one brand file and exactly one mode file, which is what the system
+     requires of any real surface (02-tokens.md). The mode switcher rewrites the
+     href on #mode rather than adding links.
+
+     Do NOT link all three mode files "so the switcher has them". Loading more
+     than one would break the contract this page exists to demonstrate, and the
+     last one would win the cascade, so the switcher would silently do nothing.
+
+     product is the default because it is the middle mode — it serves both first
+     and repeat use, so it is the least opinionated place to start looking. -->
+<link rel="stylesheet" href="../../tokens/brand.default.css">
+<link rel="stylesheet" href="../../tokens/mode.product.css" id="mode">
+<link rel="stylesheet" href="preview.css">
+</head>
+<body>
+
+<div class="bar">
+  <strong>Mode</strong>
+  <button data-mode="editorial">editorial</button>
+  <button data-mode="product" aria-pressed="true">product</button>
+  <button data-mode="operator">operator</button>
+  <strong style="margin-left:auto">Theme</strong>
+  <button data-theme="light" aria-pressed="true">light</button>
+  <button data-theme="dark">dark</button>
+</div>
+
+<div class="wrap">
+  <h1 style="font-size:var(--text-h1);line-height:var(--leading-h1);letter-spacing:var(--tracking-h1);margin-block:0 var(--spacing-heading-after)">Jig preview</h1>
+  <p class="note">Every specimen below is built from design tokens only. A raw colour or pixel value appearing in a specimen means the token set has a gap. Switch mode and theme above; one brand file and one mode file are loaded at a time, as the system requires.</p>
+
+  <section>
+    <h2>Semantic colours</h2>
+    <p class="note">Each is shown on the three surfaces it can land on. Text needs 4.5:1, strokes 3:1 — including against <code>fill</code>, which is the tightest.</p>
+    <div class="grid" id="semantics"></div>
+    <h3>On a fill background</h3>
+    <div class="onfill row" id="onfill"></div>
+  </section>
+
+  <section>
+    <h2>Foreground ramp</h2>
+    <p class="note">Transparent foregrounds, so they keep their prominence on any surface.</p>
+    <div class="row">
+      <div class="card" style="flex:1;min-width:16rem">
+        <p style="color:var(--color-text-strong);margin:0 0 var(--spacing-2xs)">Text strong — primary content</p>
+        <p style="color:var(--color-text-weak);margin:0;font-size:var(--text-caption)">Text weak — supporting detail</p>
+        <hr style="border:0;border-top:1px solid var(--color-stroke-weak);margin:var(--spacing-s) 0">
+        <div style="border:1px solid var(--color-stroke-strong);border-radius:var(--radius-control);padding:var(--spacing-xs)">Stroke strong — an input border</div>
+      </div>
+      <div class="onfill" style="flex:1;min-width:16rem">
+        <p style="color:var(--color-text-strong);margin:0 0 var(--spacing-2xs)">Same ramp, on fill</p>
+        <p style="color:var(--color-text-weak);margin:0;font-size:var(--text-caption)">Prominence should look unchanged</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Type scale</h2>
+    <div id="type"></div>
+  </section>
+
+  <section>
+    <h2>Spacing</h2>
+    <p class="note">One 8pt ladder, shared by all modes. Modes select from it; they never invent values.</p>
+    <div id="spacing"></div>
+  </section>
+
+  <section>
+    <h2>P-02 · Buttons</h2>
+    <p class="note">Three weights differing in structure, not only colour (E-91). One primary per view (P-02).</p>
+    <div class="row">
+      <button class="btn btn-primary">Primary</button>
+      <button class="btn btn-secondary">Secondary</button>
+      <button class="btn btn-tertiary">Tertiary</button>
+      <button class="btn btn-primary" disabled>Disabled</button>
+      <button class="btn btn-destructive">Delete</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>P-03 · Form field</h2>
+    <div class="card" style="max-width:26rem">
+      <div class="field">
+        <label for="email">Email address <span class="req">required</span></label>
+        <p class="hint" id="email-hint">We use this to send your receipt.</p>
+        <input id="email" type="email" inputmode="email" autocomplete="email" aria-describedby="email-hint" value="not-an-email">
+      </div>
+      <div class="field field-error">
+        <label for="pw">Password <span class="req">required</span></label>
+        <p class="hint" id="pw-hint">At least 12 characters.</p>
+        <input id="pw" type="password" autocomplete="new-password" aria-describedby="pw-hint pw-err" aria-invalid="true" value="short">
+        <p class="err" id="pw-err"><i data-lucide="alert-circle" aria-hidden="true"></i> Password is too short. Add at least 6 more characters.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>P-05 · Empty state</h2>
+    <div class="card" style="text-align:center;max-width:32rem">
+      <p style="font-size:var(--text-lead);margin:0 0 var(--spacing-2xs)">No invoices yet</p>
+      <p class="note" style="margin:0 auto var(--spacing-s)">Invoices appear here once you have billed a client.</p>
+      <button class="btn btn-primary">Create an invoice</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Elevation</h2>
+    <p class="note">Three surfaces and two shadows. In dark mode light comes from above — surfaces lighten rather than gaining shadow, so <code>--shadow-raised</code> resolves to none.</p>
+    <div class="row" id="elevation"></div>
+  </section>
+
+  <section>
+    <h2>Interaction states</h2>
+    <p class="note">State layers, and the focus colour <code>E-29</code> builds its indicator on.</p>
+    <div class="row" id="states"></div>
+    <div class="row" style="margin-top:var(--spacing-s)">
+      <button class="btn btn-primary demo-hover">Hover layer</button>
+      <button class="btn btn-primary demo-press">Press layer</button>
+      <button class="btn btn-secondary demo-focus">Focus ring</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Icons</h2>
+    <p class="note">Icon colours are distinct from text: an icon at text weight reads heavier than the text beside it.</p>
+    <div class="row" id="icons"></div>
+  </section>
+
+  <section>
+    <h2>Brand variations</h2>
+    <div class="row" id="brandvars"></div>
+  </section>
+
+  <section>
+    <h2>Radius</h2>
+    <p class="note">Four options by element size. <code>--radius-full</code> is what separates a badge from a button (<code>C-68</code>).</p>
+    <div class="row" id="radius"></div>
+  </section>
+
+  <section>
+    <h2>Typography</h2>
+    <p class="note">Two families, two weights. Numeric features are for tabular data.</p>
+    <div id="families"></div>
+  </section>
+
+  <section>
+    <h2>Measure and grid</h2>
+    <p class="note">Long-form text is measure-capped. The grid is 12 columns with a mode-selected gutter and margin.</p>
+    <p id="measure" style="max-width:var(--measure-prose);letter-spacing:var(--tracking-body)">Prose is capped at <code>--measure-prose</code> so the eye can find the next line. This paragraph is exactly that wide. Below 40 characters the eye returns too often; above 80 it loses the line, which is why the measure is a per-mode selection rather than one value.</p>
+    <div id="grid-demo"></div>
+  </section>
+
+  <section>
+    <h2>Motion</h2>
+    <p class="note">Hover a swatch. Durations and easings are mode-selected; all resolve to 1ms under <code>prefers-reduced-motion</code>.</p>
+    <div class="row" id="motion"></div>
+  </section>
+
+  <section>
+    <h2>Spacing roles</h2>
+    <p class="note">Named roles select from the shared ladder. These are what components reference, not the raw steps.</p>
+    <div id="roles"></div>
+  </section>
+
+  <section>
+    <h2>Touch target</h2>
+    <p class="note">The hit area is <code>--size-touch-target</code> in every mode, even where the drawn control is shorter.</p>
+    <div class="row" id="touch"></div>
+  </section>
+
+  <section>
+    <h2>Diagnostics</h2>
+    <p class="note">Raw channel inputs and the active mode marker. Not for use at a call site — shown so a wrong value is visible rather than inferred.</p>
+    <div id="diag"></div>
+  </section>
+
+  <section>
+    <h2>P-06 · Data table</h2>
+    <div class="card" style="padding:0;overflow:auto">
+      <table>
+        <thead><tr><th>Client</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Northwind</td><td class="num">1,240.00</td><td><span class="tag tag-success"><i data-lucide="check-circle" aria-hidden="true"></i> Paid</span></td></tr>
+          <tr><td>Contoso</td><td class="num">880.50</td><td><span class="tag tag-warning"><i data-lucide="alert-triangle" aria-hidden="true"></i> Pending</span></td></tr>
+          <tr><td>Fabrikam</td><td class="num">2,015.75</td><td><span class="tag tag-error"><i data-lucide="alert-octagon" aria-hidden="true"></i> Overdue</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Lucide icons (ISC). CDN only — the preview is a dev tool, not shipped, and
+     the page degrades to text labels if the CDN is unreachable. -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="preview.js"></script>
+</body>
+</html>

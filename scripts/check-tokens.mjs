@@ -187,6 +187,34 @@ const LIGHT_BACKGROUNDS = {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Rule 6 — every token is rendered by the preview harness.
+ *
+ * The preview is the only check that can catch a value which passes its
+ * arithmetic and still looks wrong, and a token it does not render is a
+ * value nobody has ever seen. Without this rule the harness would rot
+ * silently — it has no failure mode of its own, unlike everything else here.
+ *
+ * The search is a literal one, so preview sources must write token names out
+ * in full rather than interpolating them. A check clever enough to expand
+ * `--color-text-${name}` would be a check with its own bugs.
+ * ------------------------------------------------------------------ */
+{
+  const defined = new Set();
+  for (const file of ['brand.default.css', 'mode.editorial.css', 'mode.product.css', 'mode.operator.css']) {
+    for (const m of read(`tokens/${file}`).matchAll(/^\s*(--[a-z0-9-]+):/gm)) defined.add(m[1]);
+  }
+  const previewSource = ['index.html', 'preview.css', 'preview.js']
+    .map((f) => read(`packages/preview/${f}`)).join('\n');
+
+  const unrendered = [...defined].filter((t) => !previewSource.includes(t)).sort();
+  if (unrendered.length) {
+    fail(`${unrendered.length} token(s) defined but never rendered by packages/preview:`);
+    for (const t of unrendered) console.error(`      ${t}`);
+    console.error('      Add them to the preview — a token nobody has looked at is a value nobody has checked.');
+  }
+}
+
 if (failed) {
   console.error('\ntoken/doc check failed');
   process.exit(1);
