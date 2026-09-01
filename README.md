@@ -108,8 +108,11 @@ Re-run after any significant edit to `00` or `03`.
 
 Written from general UI and accessibility practice, plus the constraints specific to agent-generated output — which is where most of the structure comes from: the anti-patterns-first ordering, the mode split, the brand × mode token architecture, and the decidability test applied to every rule.
 
-**Not yet reconciled against *Practical UI*.** The numeric defaults throughout are placeholders chosen for internal consistency, not values derived from any source. Adham Dannaway's book (2nd ed. 2024) is the intended source for most of them. See `RECONCILE.md` for the open list; where the book states a position, overwrite the default here.
+**The numeric defaults are not yet validated.** Type scale, spacing steps, control sizes,
+motion durations and the rest were chosen for internal consistency, and several are
+judgement calls rather than measured values. The accessibility floors are the exception —
+contrast ratios and target sizes come from WCAG 2.1 AA and are not up for adjustment. See
+`RECONCILE.md` for the open list.
 
-principles.design informed the rules-versus-principles split, and the standard `rules/04-principles.md` is held to.
-
-Nothing here reproduces either source. Read the book — it teaches the reasoning that this system only records the output of.
+principles.design informed the rules-versus-principles split, and the standard
+`rules/04-principles.md` is held to.

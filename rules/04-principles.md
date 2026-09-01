@@ -5,7 +5,7 @@
 
 Two kinds of principle, doing opposite work.
 
-**Part 1 — Frames (five).** Generative. Use these to find the rule that does not exist yet. `00`–`03` cover known failures; these are the method for recognising a new one. Adapted from the foundations in *Practical UI* (Adham Dannaway).
+**Part 1 — Frames (five).** Generative. Use these to find the rule that does not exist yet. `00`–`03` cover known failures; these are the method for recognising a new one.
 
 **Part 2 — Tiebreakers.** Adjudicative. Use only when two existing rules point in different directions.
 
