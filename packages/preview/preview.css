@@ -1,0 +1,127 @@
+/* Preview harness chrome.
+   Everything below styles the harness itself — the swatch grids, the section
+   rules, the switcher. The specimens it wraps use nothing but design tokens.
+   Any raw value here is scaffolding; any raw value in a specimen is a bug in
+   the token set. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--color-bg-base);
+  color: var(--color-text-strong);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.wrap { max-width: 72rem; margin: 0 auto; padding: var(--spacing-xl) var(--spacing-m); }
+
+.bar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; gap: var(--spacing-s); align-items: baseline;
+  padding: var(--spacing-s) var(--spacing-m);
+  background: var(--color-bg-raised);
+  border-bottom: 1px solid var(--color-stroke-weak);
+}
+.bar strong { font-size: var(--text-caption); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--color-text-weak); }
+.bar button {
+  font: inherit; font-size: var(--text-caption);
+  padding: var(--spacing-2xs) var(--spacing-xs);
+  background: transparent; color: var(--color-text-strong);
+  border: 1px solid var(--color-stroke-strong); border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.bar button[aria-pressed="true"] { background: var(--color-brand); color: var(--color-on-brand); border-color: var(--color-brand); }
+
+section { margin-block: var(--spacing-xxl) 0; }
+section > h2 {
+  font-size: var(--text-h2); line-height: var(--leading-h2); letter-spacing: var(--tracking-h2);
+  margin-block: var(--spacing-heading-before) var(--spacing-heading-after);
+  padding-bottom: var(--spacing-2xs);
+  border-bottom: 1px solid var(--color-stroke-weak);
+}
+section > h3 {
+  font-size: var(--text-h3); line-height: var(--leading-h3);
+  margin-block: var(--spacing-heading-before) var(--spacing-heading-after);
+}
+.note { color: var(--color-text-weak); font-size: var(--text-caption); max-width: 60ch; }
+
+.grid { display: grid; gap: var(--spacing-s); grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+.row  { display: flex; flex-wrap: wrap; gap: var(--spacing-s); align-items: center; }
+
+.swatch { border: 1px solid var(--color-stroke-weak); border-radius: var(--radius-surface); overflow: hidden; }
+.swatch .chip { height: 4rem; }
+.swatch .meta { padding: var(--spacing-xs); font-size: var(--text-caption); }
+.swatch code { color: var(--color-text-weak); font-size: var(--text-caption); }
+
+.card {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-stroke-weak);
+  border-radius: var(--radius-surface);
+  padding: var(--spacing-card);
+  box-shadow: var(--shadow-surface);
+}
+.onfill { background: var(--color-fill); padding: var(--spacing-s); border-radius: var(--radius-surface); }
+
+/* ---- Specimens. Tokens only below this line. ---- */
+
+.btn {
+  font: inherit;
+  min-height: var(--size-control);
+  padding-inline: var(--spacing-s);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn-primary     { background: var(--color-brand); color: var(--color-on-brand); }
+.btn-secondary   { background: transparent; color: var(--color-text-brand); border-color: var(--color-stroke-brand-strong); }
+.btn-tertiary    { background: transparent; color: var(--color-text-brand); text-decoration: underline; border-color: transparent; padding-inline: var(--spacing-2xs); }
+.btn-destructive { background: transparent; color: var(--color-text-error); border-color: var(--color-stroke-error-strong); }
+.btn[disabled]   { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+
+.field { margin-bottom: var(--spacing-m); }
+.field label { display: block; font-size: var(--text-caption); margin-bottom: var(--spacing-label); }
+.field .req { color: var(--color-text-weak); font-weight: var(--font-weight-regular); }
+.field .hint { margin: 0 0 var(--spacing-label); font-size: var(--text-caption); color: var(--color-text-weak); }
+.field input {
+  font: inherit; width: 100%;
+  min-height: var(--size-control);
+  padding-inline: var(--spacing-xs);
+  background: var(--color-bg-raised);
+  color: var(--color-text-strong);
+  border: 1px solid var(--color-stroke-strong);
+  border-radius: var(--radius-control);
+}
+.field input:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 1px; }
+.field-error input { border-color: var(--color-stroke-error-strong); background: var(--color-fill-error); }
+.field .err { margin: var(--spacing-label) 0 0; font-size: var(--text-caption); color: var(--color-text-error); }
+
+table { width: 100%; border-collapse: collapse; font-size: var(--text-body); }
+th, td { text-align: start; padding: var(--spacing-xs) var(--spacing-s); border-bottom: 1px solid var(--color-stroke-weak); }
+th { font-size: var(--text-caption); color: var(--color-text-weak); text-transform: uppercase; letter-spacing: var(--tracking-caps); }
+tbody tr { height: var(--size-row); }
+.num { font-variant-numeric: tabular-nums; text-align: end; }
+
+.tag { display: inline-flex; align-items: center; gap: var(--spacing-2xs); font-size: var(--text-caption); padding: var(--spacing-2xs) var(--spacing-xs); border-radius: var(--radius-full); border: 1px solid; }
+.tag-success { color: var(--color-text-success); background: var(--color-fill-success); border-color: var(--color-stroke-success-weak); }
+.tag-warning { color: var(--color-text-warning); background: var(--color-fill-warning); border-color: var(--color-stroke-warning-weak); }
+.tag-error   { color: var(--color-text-error);   background: var(--color-fill-error);   border-color: var(--color-stroke-error-weak); }
+
+.demo-hover { background: var(--color-state-hover); color: var(--color-text-strong); }
+.demo-press { background: var(--color-state-press); color: var(--color-text-strong); }
+.demo-focus { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.motion-chip {
+  min-width: 8rem; padding: var(--spacing-s);
+  background: var(--color-fill); border: 1px solid var(--color-stroke-weak);
+  border-radius: var(--radius-surface); text-align: center;
+  transition-property: transform, background-color;
+}
+.motion-chip:hover { transform: translateY(calc(-1 * var(--spacing-2xs))); background: var(--color-fill-brand); }
+@media (prefers-reduced-motion: reduce) { .motion-chip { transition-duration: 1ms; } }
+
+/* Lucide renders inline SVG that inherits currentColor, so an icon takes the
+   colour of whatever it sits in — which is how --color-icon is meant to work. */
+[data-lucide] { width: var(--size-icon); height: var(--size-icon); flex: none; vertical-align: middle; }
+.err [data-lucide], .tag [data-lucide] { width: var(--text-caption); height: var(--text-caption); }
