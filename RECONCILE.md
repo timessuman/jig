@@ -1,12 +1,16 @@
 # Reconciliation checklist
 
-The numeric defaults in this system were chosen for internal consistency. Several are
-judgement calls that have not yet been validated against real work, measured evidence, or
-an accessibility standard.
+The numeric defaults in this system started as internally consistent guesses. They are
+being reconciled, row by row, against an external reference on interface design. This file
+tracks that work.
 
-Work through this list deliberately. For each row: decide whether the value is right, say
-why in one line, and change it **in the token or rule file** — never at a call site. A
-value that survives review because nobody questioned it is not reconciled; it is untested.
+For each row: record the reference's position in your own words, decide whether to adopt
+it, and change the value **in the token or rule file** — never at a call site. Where you
+keep a value that deliberately differs, mark it ➖ and say why in one line. A divergence
+that is not argued is not a decision, it is drift.
+
+The accessibility floors are not part of this process. Contrast ratios and target sizes
+come from WCAG 2.1 AA and are not adjustable — see "Not up for reconciliation" below.
 
 Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 
