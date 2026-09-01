@@ -85,7 +85,7 @@ Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 | C11 | **Control borders need 3:1** (WCAG 1.4.11) | `02-tokens.md` |  | ✅ |
 | C2 | Near-black on off-white, not pure | `C-18` |  | ⬜ |
 | C3 | Text floor at ramp step `-700`; `-500` never text | `02-tokens.md` contrast contract |  | ⬜ |
-| C4 | Semantic hues 25 / 75 / 150 / 240 | `brand.default.css` |  | ⬜ |
+| C4 | Semantic hues **0 / 42 / 162 / 220** (error / warning / success / info). This row previously read 25 / 75 / 150 / 240, which matched no token — the hues moved and the row did not. | `brand.default.css` | `02-tokens.md` | ⬜ |
 | C5 | Dark mode: surfaces lighten, no inversion | `C-21`, `brand.default.css` |  | ⬜ |
 
 ## Spacing and layout
