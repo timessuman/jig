@@ -22,6 +22,10 @@
   --brand-s: 0%;
   --brand-l: 15%;
 
+  /* The solid brand colour. Interactive elements reference this (I-56).
+     The variations below are alpha steps off the same hue. */
+  --color-brand: hsl(var(--brand-h) var(--brand-s) var(--brand-l));
+
   /* ================= ELEVATION BACKGROUNDS (solid) =================
      Light comes from above: higher elevation is lighter.
      Keep the three levels visually consistent across light and dark. */
@@ -94,8 +98,8 @@
   --font-mono:    ui-monospace, "SF Mono", "Cascadia Code", monospace;
   --font-numeric-features: "tnum" 1, "lnum" 1;
 
-  /* ================= RADIUS — three, by element size ================= */
-  --radius-sm:   8px;    /* buttons, inputs, badges, checkboxes */
+  /* ================= RADIUS — four, by element size ================= */
+  --radius-sm:   8px;    /* buttons, inputs, checkboxes */
   --radius-md:   16px;   /* cards, panels                       */
   --radius-lg:   32px;   /* large surfaces, hero media          */
   --radius-full: 9999px;

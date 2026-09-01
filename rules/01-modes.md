@@ -170,7 +170,7 @@ Useful when a decision straddles two modes.
 | | `editorial` | `product` | `operator` |
 | --- | --- | --- | --- |
 | Type ratio | 1.250 | 1.200 | 1.125 |
-| Body | `--text-body` (largest) | mid | smallest |
+| Body | `--text-body` | same as editorial | smaller |
 | Control height | tallest | mid | shortest |
 | Section rhythm | `--spacing-xxl` | `--spacing-xl` | `--spacing-m` |
 | Card padding | `--spacing-m` | `--spacing-m` | `--spacing-s` |
@@ -199,7 +199,7 @@ Per project, one file supplying:
 
 - **Palette** — neutral ramp (12 steps, warm/cool/true declared), one accent ramp, semantic set (danger, warning, success, info) tuned to the accent's temperature.
 - **Typeface** — display and text families, and whether they differ. Numeric font-feature settings.
-- **Radius personality** — the base radius that mode scales from. This carries more brand character than colour does.
+- **Radius personality** — the brand-scale radius options (`sm`, `md`, `lg`, `full`) that each mode selects from, not a fixed derivation. This carries more brand character than colour does.
 - **Elevation personality** — border-led or shadow-led. Pick one; do not mix within a project.
 - **Voice** — sentence case or title case, contraction policy, error-message tone.
 

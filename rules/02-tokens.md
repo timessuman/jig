@@ -50,7 +50,7 @@ Limited options, chosen once. The point is not the specific values — it is tha
 | --- | --- | --- | --- | --- | --- |
 | 8 | 16 | 24 | 32 | 48 | 80 |
 
-Modes **select** from these; they never define their own values. `--spacing-card` is `L` in `editorial`, `M` in `product`, `S` in `operator` — same option set, different selection. This is why there are no arbitrary numbers left in the mode files.
+Modes **select** from these; they never define their own values. `--spacing-card` is `M` in `editorial`, `M` in `product`, `S` in `operator` — same option set, different selection. This is why there are no arbitrary numbers left in the mode files.
 
 **Type — the scale ratio varies by mode**, because scale size should track interface complexity. A large ratio gives dramatic steps that suit content-led pages; a small ratio gives fine gradations that suit dense tools needing many levels in little space.
 
@@ -74,7 +74,7 @@ Line heights are unitless and floor at **1.5** for body and prose, easing down a
 
 **Typeface.** One sans serif by default: most legible small, neutral across brands, least likely to be the wrong choice. When picking one — prefer a popular face with many weights, a tall x-height and generous default spacing, with OpenType features and the language coverage the product needs. When in doubt, the platform system font is tried, tested and free to load. A second face is permitted for headings only (`B-76`).
 
-**Radius — four options**, by element size: 8px small (buttons, inputs, badges), 16px medium (cards, panels), 32px large (hero media and full-bleed surfaces), and a full/pill radius for pills, badges, avatars and chips (`--radius-full`).
+**Radius — four options**, by element size: 8px small (buttons, inputs), 16px medium (cards, panels), 32px large (hero media and full-bleed surfaces), and a full/pill radius for pills, badges, avatars and chips (`--radius-full`).
 
 `--radius-control` selects `sm` in all three modes. `--radius-surface` selects `md` in `editorial` and `product`, but `sm` in `operator` — the selection is per-mode, not a fixed derivation. `--radius-lg` and `--radius-full` are brand-scale options; no mode currently selects either.
 
