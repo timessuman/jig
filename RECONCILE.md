@@ -1,8 +1,12 @@
 # Reconciliation checklist
 
-The numeric defaults in this system were chosen for internal consistency, not derived from a source. *Practical UI* (Adham Dannaway, 2nd ed. 2024) is the intended source for most of them.
+The numeric defaults in this system were chosen for internal consistency. Several are
+judgement calls that have not yet been validated against real work, measured evidence, or
+an accessibility standard.
 
-Work through this as you read. For each row: record the book's position in your own words, decide whether to adopt it, and change the value **in the token or rule file** — never at a call site.
+Work through this list deliberately. For each row: decide whether the value is right, say
+why in one line, and change it **in the token or rule file** — never at a call site. A
+value that survives review because nobody questioned it is not reconciled; it is untested.
 
 Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 
