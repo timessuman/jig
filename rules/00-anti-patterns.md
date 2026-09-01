@@ -69,7 +69,7 @@ Where several already apply — a table's rows are aligned, alike, and close —
 ### A-07 Oversized radius everywhere
 ❌ One radius applied to cards, buttons, inputs and badges alike, regardless of element size
 ✅ `--radius-control` for controls, `--radius-surface` for containers. `--radius-control` selects `sm` in every mode; `--radius-surface` selects `md` in `editorial` and `product`, `sm` in `operator` — the selection is per-mode, not a fixed derivation. Small elements take small radii.
-In `operator`, `--radius-surface` also selects `sm`, so cards, buttons and inputs converge on one 8px radius. That is not this rule's failure case recurring: it is a deliberate per-mode selection made for density, not an unconsidered default applied everywhere without regard to element size. The distinction is whether the value was chosen (here, per this rule) or defaulted to (the ❌ case).
+In `operator`, `--radius-surface` also selects `sm`, so cards, buttons and inputs converge on one 8px radius. That is not this rule recurring: it is a per-mode selection made deliberately for density. The distinction is whether the value was chosen or defaulted to.
 
 ### A-08 Shadow as the only depth cue
 ❌ A drop shadow on every card, or several shadow sizes with no rule governing which means what
