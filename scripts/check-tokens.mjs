@@ -101,6 +101,28 @@ for (const file of ['brand.default.css']) {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Rule 4 — every token import path in the rules is the canonical one.
+ *
+ * The rule markdown is BOTH the source of truth and the artefact vendored
+ * into a consumer's repo, so a path that is correct in one context and wrong
+ * in the other is a dual truth that drifts. There is exactly one location:
+ * `.jig/tokens/`. `install` writes there, `update` refreshes there, and
+ * nothing — including a future `init` — relocates them.
+ * ------------------------------------------------------------------ */
+const CANONICAL_TOKEN_PATH = '.jig/tokens/';
+for (const file of ['02-tokens.md', ...PROSE]) {
+  read(`rules/${file}`).split('\n').forEach((line, i) => {
+    for (const m of line.matchAll(/@import\s+["']([^"']+)["']/g)) {
+      const spec = m[1];
+      if (!/tokens?\//.test(spec)) continue;          // not a token import
+      if (spec.startsWith(CANONICAL_TOKEN_PATH)) continue;
+      fail(`${file}:${i + 1} imports tokens from "${spec}" — the canonical path is ` +
+           `"${CANONICAL_TOKEN_PATH}", the only place install and update ever write them`);
+    }
+  });
+}
+
 if (failed) {
   console.error('\ntoken/doc check failed');
   process.exit(1);

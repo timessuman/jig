@@ -146,11 +146,19 @@ their-project/
 │  ├─ rules.index.json
 │  └─ manifest.json                        version, agent, scope, checksums
 ├─ .claude/skills/jig/SKILL.md             thin; points at ../../.jig/
-├─ src/styles/tokens/                      written by `init`, not `install`
-│  ├─ brand.<project>.css
-│  └─ mode.product.css
+├─ .jig/tokens/                            written by `install`
+│  ├─ brand.default.css                    copy to brand.<project>.css and edit
+│  └─ mode.{editorial,product,operator}.css
 └─ jig.config.json                         written by `init`
 ```
+
+**Tokens have exactly one location: `.jig/tokens/`.** `install` writes them
+there, `update` refreshes them there, and `init` does NOT relocate them — it
+wires the project's own CSS to import from that path. A second location would
+make every documented import path context-dependent, and the rule markdown is
+both the source of truth and the artefact vendored into a consumer's repo, so a
+path correct in one context and wrong in the other is a dual truth that drifts.
+`scripts/check-tokens.mjs` rule 4 enforces this.
 
 **`install` and `init` are separate commands.** Install is mechanical, safe to
 run anywhere, and touches no source files. Init asks questions and writes into

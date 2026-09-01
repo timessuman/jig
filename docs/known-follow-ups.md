@@ -84,3 +84,9 @@ is broken, then restored.
 What it does NOT guard: values that live only in the mode CSS with no prose home
 (control heights, motion durations, row heights, per-mode measure). See the
 "Resolved values" pointer item above.
+
+4. Every token `@import` in the rules uses the canonical `.jig/tokens/` path.
+   The rule markdown is both the source of truth and the artefact vendored into a
+   consumer's repo, so a path correct in one context and wrong in the other is a
+   dual truth that drifts. There is one location; `init` must wire to it rather
+   than relocate.
