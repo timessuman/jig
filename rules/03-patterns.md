@@ -53,7 +53,7 @@ Four numbers, and most button designs in the wild fail at least one:
 | Button **shape** — fill or border — against its background | **3:1** |
 | Button **text** against the button | **4.5:1** |
 | Two buttons sharing a style, distinguished only by contrast | **3:1 between them** |
-| Hit area | **48×48px** |
+| Hit area | `--size-touch-target` — **48×48px** floor |
 
 A secondary button's fill or border is **not decorative**. It is the only thing identifying the element as a button, so it carries the 3:1 non-text requirement (`02-tokens.md`). Strip it and you have coloured text.
 

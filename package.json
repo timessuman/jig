@@ -2,9 +2,12 @@
   "name": "jig-workspace",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "test": "npm run test --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
+    "test": "node scripts/check-tokens.mjs && npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "check-tokens": "node scripts/check-tokens.mjs"
   }
 }
