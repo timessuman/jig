@@ -37,6 +37,17 @@ global one.
 Update later with `npx jig-ui@latest update` — files you have edited are left
 alone.
 
+Install writes the rules and the design tokens into `.jig/`. Import the tokens
+your surface needs — one brand file, one mode file:
+
+```css
+@import ".jig/tokens/brand.default.css";
+@import ".jig/tokens/mode.product.css";
+```
+
+Copy `brand.default.css` to `brand.<yourproject>.css` and edit that; `jig update`
+will not overwrite a file you have changed.
+
 Token setup is currently manual: copy `jig.config.example.json` to
 `jig.config.json` and import the token files described in
 `rules/02-tokens.md`. A scaffolding command for this is planned but not yet
@@ -52,8 +63,8 @@ implemented.
 | `rules/03-patterns.md` | Component anatomy and behaviour | When building a covered pattern |
 | `rules/04-principles.md` | Five frames + seven tiebreakers | Novel decisions, or rule conflicts |
 | `rules/05-copy.md` | Interface text rules | Writing any user-facing string |
-| `tokens/brand.*.css` | Identity. One per project. | Imported by the app |
-| `tokens/mode.*.css` | Density, scale, rhythm, motion | One per surface |
+| `.jig/tokens/brand.*.css` | Identity. One per project. | Imported by the app |
+| `.jig/tokens/mode.*.css` | Density, scale, rhythm, motion | One per surface |
 
 `00` and `01` are the always-loaded core and are sized to stay cheap in context. `03` is the largest file and should be loaded per-pattern rather than wholesale.
 
@@ -64,7 +75,7 @@ Drop this in the project root so mode selection does not require asking on every
 ```jsonc
 // jig.config.json
 {
-  "brand": "tokens/brand.acme.css",
+  "brand": ".jig/tokens/brand.acme.css",
   "surfaces": [
     { "match": "/",         "mode": "editorial" },
     { "match": "/app/**",   "mode": "product"   },
@@ -78,8 +89,8 @@ Without this file, follow the selection procedure in `rules/01-modes.md`: infer,
 ## Consuming tokens
 
 ```css
-@import "tokens/brand.acme.css";   /* one per project */
-@import "tokens/mode.product.css"; /* one per surface  */
+@import ".jig/tokens/brand.acme.css";   /* one per project */
+@import ".jig/tokens/mode.product.css"; /* one per surface  */
 ```
 
 Then `var(--color-text-strong)`, `var(--spacing-card)`, `var(--text-body)` in any framework. For Tailwind v4, wrap both imports in `@theme` to generate utilities. See `rules/02-tokens.md`.

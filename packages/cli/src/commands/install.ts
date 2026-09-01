@@ -146,6 +146,19 @@ export function install(opts: InstallOptions): InstallResult {
     planned.push({ key: relKey('.jig', file), content: vendorHeader(file, opts.version) + body, checkable: true });
   }
 
+  // The tokens are the other half of the system: the rules cite them by name
+  // and are unusable without them. They vendor alongside the rules so a
+  // consumer has both after a single install.
+  const tokensDir = join(opts.packageRoot, 'tokens');
+  for (const file of readdirSync(tokensDir).filter((f) => f.endsWith('.css')).sort()) {
+    const body = readFileSync(join(tokensDir, file), 'utf8');
+    planned.push({
+      key: relKey('.jig', 'tokens', file),
+      content: vendorHeader(file, opts.version, 'css') + body,
+      checkable: true,
+    });
+  }
+
   planned.push({
     key: relKey('.jig', 'rules.index.json'),
     content: readFileSync(join(opts.packageRoot, 'rules.index.json'), 'utf8'),

@@ -19,9 +19,13 @@ tokens/
 
 A surface loads **exactly one brand file and exactly one mode file**.
 
+`jig install` vendors these into `.jig/tokens/` in your project, which is the
+path the examples below use. Inside the Jig repository itself they live at
+`tokens/` — same files, one directory up from where a consumer finds them.
+
 ```css
-@import "tokens/brand.acme.css";
-@import "tokens/mode.operator.css";
+@import ".jig/tokens/brand.acme.css";
+@import ".jig/tokens/mode.operator.css";
 ```
 
 Three separate mode files rather than one file with variants. The trade: a surface cannot switch modes at runtime, and shared values are duplicated across three files. In exchange each surface ships only the tokens it uses, the files are independently readable, and there is no cascade to reason about. For a system where mode is a routing decision rather than a user preference, that is the right trade.
@@ -190,8 +194,8 @@ In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation s
 
 **Plain CSS, any framework**
 ```css
-@import "tokens/brand.default.css";
-@import "tokens/mode.product.css";
+@import ".jig/tokens/brand.default.css";
+@import ".jig/tokens/mode.product.css";
 
 .card {
   background: var(--color-surface);
@@ -205,8 +209,8 @@ In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation s
 ```css
 @import "tailwindcss";
 @theme {
-  @import "tokens/brand.default.css";
-  @import "tokens/mode.product.css";
+  @import ".jig/tokens/brand.default.css";
+  @import ".jig/tokens/mode.product.css";
 }
 ```
 Yields `bg-surface`, `rounded-surface`, `p-card`, `text-body` as utilities.

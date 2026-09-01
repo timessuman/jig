@@ -1,10 +1,27 @@
 import { BLOCK_START, BLOCK_END } from '../adapters/types.js';
 
-export function vendorHeader(file: string, version: string): string {
+/**
+ * Comment syntax for the attribution header. Markdown tolerates HTML
+ * comments; CSS does not, so a vendored `.css` file must use block comments
+ * or the first three lines are a parse error.
+ */
+export type CommentStyle = 'html' | 'css';
+
+const DELIMITERS: Record<CommentStyle, readonly [string, string]> = {
+  html: ['<!--', '-->'],
+  css: ['/*', '*/'],
+};
+
+export function vendorHeader(
+  file: string,
+  version: string,
+  style: CommentStyle = 'html',
+): string {
+  const [open, close] = DELIMITERS[style];
   return [
-    `<!-- ${file} — vendored from Jig v${version}.`,
+    `${open} ${file} — vendored from Jig v${version}.`,
     '     Licensed Apache-2.0. See .jig/LICENSE and .jig/NOTICE.',
-    '     Edit freely: `jig update` will not overwrite a file you have changed. -->',
+    `     Edit freely: \`jig update\` will not overwrite a file you have changed. ${close}`,
     '',
     '',
   ].join('\n');
