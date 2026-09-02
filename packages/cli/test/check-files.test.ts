@@ -86,4 +86,44 @@ describe('selectFiles', () => {
     const { files } = selectFiles(root, false);
     expect(files).toEqual(['src.css']);
   });
+
+  // I5: build output scanned like source pollutes both `check`'s findings
+  // and (via wholeRepoFiles, which init/detect.ts also uses) brand-colour
+  // derivation. These directories are excluded statically regardless of
+  // whether the target is a git repo.
+  it('excludes .next, build, out, coverage, .svelte-kit and vendor', () => {
+    for (const dir of ['.next', 'build', 'out', 'coverage', '.svelte-kit', 'vendor']) {
+      mkdirSync(join(root, dir), { recursive: true });
+      writeFileSync(join(root, dir, 'artifact.css'), '.a{}');
+    }
+    writeFileSync(join(root, 'src.css'), '.a{}');
+
+    const { files } = selectFiles(root, true);
+    expect(files).toEqual(['src.css']);
+  });
+
+  it('honours .gitignore for a custom build directory the static list does not name', () => {
+    git('init', '-q');
+    git('config', 'user.email', 'test@example.com');
+    git('config', 'user.name', 'Test');
+    writeFileSync(join(root, '.gitignore'), 'generated/\n');
+    mkdirSync(join(root, 'generated'), { recursive: true });
+    writeFileSync(join(root, 'generated', 'artifact.css'), '.a{ color: #e11d48; }');
+    writeFileSync(join(root, 'src.css'), '.a{}');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'init');
+
+    const { files } = selectFiles(root, true);
+    expect(files.sort()).toEqual(['.gitignore', 'src.css']);
+  });
+
+  it('does not filter anything by .gitignore when the target is not a git repo', () => {
+    mkdirSync(join(root, 'generated'), { recursive: true });
+    writeFileSync(join(root, 'generated', 'artifact.css'), '.a{}');
+    writeFileSync(join(root, '.gitignore'), 'generated/\n');
+    writeFileSync(join(root, 'src.css'), '.a{}');
+
+    const { files } = selectFiles(root, false);
+    expect(files.sort()).toEqual(['.gitignore', 'generated/artifact.css', 'src.css']);
+  });
 });
