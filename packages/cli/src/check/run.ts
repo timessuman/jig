@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IndexEntry } from '../rules/schema.js';
+import { maskComments } from './css.js';
 import { getDetector } from './registry.js';
 import type { Bucket, Finding } from './types.js';
 
@@ -15,7 +16,7 @@ import type { Bucket, Finding } from './types.js';
  * all — this is how `--ci` runs the mechanical bucket only.
  */
 export function runChecks(
-  installRoot: string,
+  projectRoot: string,
   files: string[],
   index: IndexEntry[],
   tokens: Record<string, string>,
@@ -35,12 +36,20 @@ export function runChecks(
       .filter(({ detector }) => detector.appliesTo(file));
     if (applicable.length === 0) continue;
 
-    let source: string;
+    let raw: string;
     try {
-      source = readFileSync(join(installRoot, file), 'utf8');
+      raw = readFileSync(join(projectRoot, file), 'utf8');
     } catch {
       continue; // e.g. a file the diff names but that was since deleted
     }
+    // Comments are masked exactly once, here, so every detector — not only
+    // the ones that route through leafBlocks/splitRuleBlocks — sees the same
+    // view of the file. Two detectors used to scan raw `source` directly:
+    // a violation living inside a comment fired, and a commented-out
+    // `:focus-visible` silenced the whole file's focus-removed check. Do not
+    // add a mask call inside an individual detector — that duplication is
+    // how this diverged in the first place.
+    const source = maskComments(raw);
 
     for (const { entry, detector } of applicable) {
       const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens };
