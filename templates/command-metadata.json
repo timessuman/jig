@@ -11,8 +11,8 @@
   },
   "init": {
     "description": "Set up Jig in this project: detect the CSS system, derive or interview for brand values, validate them against the token contract, and write tokens plus jig.config.json.",
-    "argumentHint": "",
-    "status": "planned"
+    "argumentHint": "[--yes]",
+    "status": "available"
   },
   "check": {
     "description": "Check changed files or a named target against the rule set. Reports violations by rule id.",
