@@ -40,9 +40,25 @@ export function renderBrandFile(defaultCssRaw: string, projectSlug: string, vers
       "Edit --brand-h/-s/-l below directly — `jig update` will not touch this file.",
   );
 
-  body = body.replace(/--brand-h:\s*[\d.]+;/, `--brand-h: ${round(proposal.h)};`);
-  body = body.replace(/--brand-s:\s*[\d.]+%;/, `--brand-s: ${round(proposal.s)}%;`);
-  body = body.replace(/--brand-l:\s*[\d.]+%;/, `--brand-l: ${round(proposal.l)}%;`);
+  // M4: `.replace` on a pattern that doesn't match is a silent no-op — a
+  // future edit to brand.default.css's variable declarations would then
+  // ship a brand file whose --brand-h/-s/-l still read the *default*'s
+  // values, with nothing anywhere signalling the mismatch. Each
+  // substitution asserts its pattern actually matched something — not that
+  // the string changed: when the derived colour happens to equal the
+  // default's own value (the DEFAULT_PROPOSAL fallback, near-black, is
+  // exactly brand.default.css's own --brand-h/-s/-l), the replacement is a
+  // legitimate no-op and must not be mistaken for the pattern not matching.
+  const substitute = (source: string, pattern: RegExp, replacement: string, label: string): string => {
+    if (!pattern.test(source)) {
+      throw new Error(`brand-file: tokens/brand.default.css does not match the expected shape — ${label} not found.`);
+    }
+    return source.replace(pattern, replacement);
+  };
+
+  body = substitute(body, /--brand-h:\s*[\d.]+;/, `--brand-h: ${round(proposal.h)};`, '--brand-h');
+  body = substitute(body, /--brand-s:\s*[\d.]+%;/, `--brand-s: ${round(proposal.s)}%;`, '--brand-s');
+  body = substitute(body, /--brand-l:\s*[\d.]+%;/, `--brand-l: ${round(proposal.l)}%;`, '--brand-l');
 
   return header + body;
 }

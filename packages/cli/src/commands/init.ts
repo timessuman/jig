@@ -8,6 +8,7 @@ import { renderBrandFile, brandFileName } from '../init/brand-file.js';
 import { relativeImportPath } from '../init/import-path.js';
 import { deriveProjectSlug } from '../init/project-name.js';
 import { readInitManifest, writeInitManifest, isInitFileModified, checksum } from '../init/state.js';
+import { vendorHeader } from '../install/vendor.js';
 import { relKey } from './install.js';
 import { check } from './check.js';
 import { extractColorComponents } from '../check/color.js';
@@ -47,7 +48,7 @@ export interface InitResult {
   surfaces: Surface[];
   brand: { relPath: string; action: FileAction };
   config: { relPath: string; action: FileAction };
-  wiring: { target: string | null; status: 'wired' | 'already-present' | 'print-only'; snippet: string };
+  wiring: { target: string | null; status: 'wired' | 'rewired' | 'already-present' | 'print-only'; snippet: string };
   baseline: { report: string; findingsCount: number };
 }
 
@@ -59,6 +60,16 @@ async function defaultPrompt(question: string): Promise<string> {
   } finally {
     rl.close();
   }
+}
+
+/** M3: validates the integer h/s/l that will actually land in the written
+ *  file — `renderBrandFile` (`init/brand-file.ts`) rounds every component to
+ *  the nearest integer, while `derive.ts` proposes values rounded only to
+ *  one decimal place. Validating the finer-grained value could in principle
+ *  pass (or fail) right at the 4.5:1 boundary while the rounded value
+ *  actually written does the opposite. */
+function validateRounded(p: { h: number; s: number; l: number }): ValidationResult {
+  return validateBrandColor(Math.round(p.h), Math.round(p.s), Math.round(p.l));
 }
 
 export function describeValidation(v: ValidationResult): string[] {
@@ -119,29 +130,147 @@ function fileState(projectRoot: string, absPath: string, relPath: string, initMa
   return { existsOnDisk, tracked, modified };
 }
 
+function isValidSurfaceArray(v: unknown): v is Surface[] {
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every(
+      (s) =>
+        typeof s === 'object' &&
+        s !== null &&
+        typeof (s as Partial<Surface>).match === 'string' &&
+        MODES.includes((s as Partial<Surface>).mode as Mode),
+    )
+  );
+}
+
+/**
+ * I2: whatever is actually on disk at `configAbsPath` right now is
+ * authoritative for wiring — regardless of whether this run just wrote it,
+ * merged it, or left an existing one alone entirely untouched. Without this,
+ * a kept/skipped config (correctly left intact) gets contradicted by the
+ * stylesheet edit init makes right after, using the freshly-derived
+ * brand/surfaces instead of what the config file actually says.
+ *
+ * `brand` is only trusted when it resolves to a real file — an unresolvable
+ * path (typo, deleted file) falls back rather than wiring an import to
+ * nothing. `surfaces` is only trusted when it is a well-formed, non-empty
+ * array of `{match, mode}` pairs (see M8: a malformed/typo'd surfaces array
+ * is logged as a known follow-up, not hardened further here — this is the
+ * one guard needed so it can't silently produce `surfaces[0] === undefined`).
+ */
+function loadEffectiveConfig(
+  projectRoot: string,
+  configAbsPath: string,
+  fallbackBrand: string,
+  fallbackSurfaces: Surface[],
+): { brand: string; surfaces: Surface[] } {
+  if (!existsSync(configAbsPath)) return { brand: fallbackBrand, surfaces: fallbackSurfaces };
+  try {
+    const parsed = JSON.parse(readFileSync(configAbsPath, 'utf8')) as { brand?: unknown; surfaces?: unknown };
+    const brandCandidate = typeof parsed.brand === 'string' && parsed.brand ? parsed.brand : undefined;
+    const brandResolves = brandCandidate ? existsSync(join(projectRoot, ...brandCandidate.split('/'))) : false;
+    return {
+      brand: brandResolves ? brandCandidate! : fallbackBrand,
+      surfaces: isValidSurfaceArray(parsed.surfaces) ? parsed.surfaces : fallbackSurfaces,
+    };
+  } catch {
+    return { brand: fallbackBrand, surfaces: fallbackSurfaces };
+  }
+}
+
+/** I4: a `*.module.css`/`*.module.scss` file is scoped per-component by its
+ *  build tooling — a `:root`-level token import written into one is dead on
+ *  arrival everywhere except that one component. Excluded here so it can
+ *  never be the lone stylesheet `findWireTarget` treats as unambiguous. */
+function isCssModule(path: string): boolean {
+  return /\.module\.(css|scss)$/i.test(path);
+}
+
 function findWireTarget(d: DetectionResult): string | null {
   if (d.cssSystem === 'tailwind-v4' && d.tailwindV4EntryFile) return d.tailwindV4EntryFile;
-  if (d.cssFiles.length === 1) return d.cssFiles[0];
+  const candidates = d.cssFiles.filter((f) => !isCssModule(f));
+  if (candidates.length === 1) return candidates[0];
   return null;
 }
 
-function wireImport(absPath: string, brandImport: string, modeImport: string): 'wired' | 'already-present' {
-  const content = existsSync(absPath) ? readFileSync(absPath, 'utf8') : '';
-  const importLine = `@import "${brandImport}";`;
-  if (content.includes(importLine)) return 'already-present';
+/** Matches an `@import` of any of the three mode files, regardless of the
+ *  relative path prefix in front of it — this is what lets C2's rewiring
+ *  find "the" mode import to compare/replace without caring how it got
+ *  there (wired by this version of init, an older one, or hand-written). */
+const MODE_IMPORT_RE = new RegExp(`@import\\s+["']([^"']*/)?mode\\.(${MODES.join('|')})\\.css["'];?\\r?\\n?`);
 
-  const lines = `@import "${brandImport}";\n@import "${modeImport}";\n`;
+/** `@charset` is only honoured at byte 0 of a stylesheet (I3) — displaced
+ *  even by one character it is silently ignored, changing decoding for a
+ *  file that declares a non-UTF-8 encoding. Any insertion at "the top of
+ *  the file" must land after it, not before. */
+const CHARSET_RE = /^@charset\s+["'][^"']*["'];\r?\n?/;
+
+function insertAfterCharset(content: string, insertion: string): string {
+  const m = CHARSET_RE.exec(content);
+  const charsetLen = m ? m[0].length : 0;
+  return content.slice(0, charsetLen) + insertion + content.slice(charsetLen);
+}
+
+interface WireOutcome {
+  status: 'wired' | 'rewired' | 'already-present';
+  detail?: string;
+}
+
+/**
+ * Wires (or rewires) the brand + mode `@import`s into `absPath`.
+ *
+ * C2: brand and mode presence are checked independently. Testing only the
+ * brand import (as this used to) means changing the config's mode, or a
+ * user hand-deleting just the mode line, both read as `already-present` —
+ * a false success that leaves the stylesheet and the config permanently
+ * disagreeing. When the brand import is present but the mode import is
+ * either missing or names a different mode, only that one line is
+ * rewritten in place; the brand import and everything else in the file is
+ * left untouched.
+ */
+function wireImport(absPath: string, brandImport: string, modeImport: string, mode: string): WireOutcome {
+  const content = existsSync(absPath) ? readFileSync(absPath, 'utf8') : '';
+  const brandImportLine = `@import "${brandImport}";`;
+  const modeImportLine = `@import "${modeImport}";`;
+  const brandPresent = content.includes(brandImportLine);
+  const existingModeMatch = MODE_IMPORT_RE.exec(content);
+
+  if (brandPresent) {
+    if (existingModeMatch && existingModeMatch[0].trim() === modeImportLine) {
+      return { status: 'already-present' };
+    }
+    if (existingModeMatch) {
+      const previousMode = existingModeMatch[2];
+      const next =
+        content.slice(0, existingModeMatch.index) +
+        `${modeImportLine}\n` +
+        content.slice(existingModeMatch.index + existingModeMatch[0].length);
+      writeFileSync(absPath, next, 'utf8');
+      return { status: 'rewired', detail: `rewired mode: ${previousMode} → ${mode}` };
+    }
+    // Brand import present, mode import missing entirely — insert one right after it.
+    const brandIdx = content.indexOf(brandImportLine);
+    let insertAt = brandIdx + brandImportLine.length;
+    if (content[insertAt] === '\r') insertAt++;
+    if (content[insertAt] === '\n') insertAt++;
+    const next = content.slice(0, insertAt) + modeImportLine + '\n' + content.slice(insertAt);
+    writeFileSync(absPath, next, 'utf8');
+    return { status: 'rewired', detail: `added missing mode import: ${mode}` };
+  }
+
+  const lines = `${brandImportLine}\n${modeImportLine}\n`;
   const tailwindImportMatch = /@import\s+["']tailwindcss["'];?\r?\n?/.exec(content);
   let next: string;
   if (tailwindImportMatch) {
     const idx = tailwindImportMatch.index + tailwindImportMatch[0].length;
     next = content.slice(0, idx) + lines + content.slice(idx);
   } else {
-    next = content ? `${lines}\n${content}` : lines;
+    next = insertAfterCharset(content, content ? `${lines}\n` : lines);
   }
   mkdirSync(dirname(absPath), { recursive: true });
   writeFileSync(absPath, next, 'utf8');
-  return 'wired';
+  return { status: 'wired' };
 }
 
 /**
@@ -175,7 +304,7 @@ export async function init(opts: InitOptions): Promise<InitResult> {
 
   // ---- 2 & 3. Derive + validate ----
   let proposal = deriveBrandColor(opts.projectRoot, detection.cssFiles, detection.tailwindConfigFile);
-  let validation = validateBrandColor(proposal.h, proposal.s, proposal.l);
+  let validation = validateRounded(proposal);
   log(`Proposed brand colour: hsl(${proposal.h} ${proposal.s}% ${proposal.l}%) — ${proposal.detail}`);
   for (const line of describeValidation(validation)) log(line);
 
@@ -188,14 +317,14 @@ export async function init(opts: InitOptions): Promise<InitResult> {
       );
       const normalized = answer.toLowerCase();
       if (normalized === '' || normalized === 'y' || normalized === 'yes') break;
-      if (normalized === 'n' || normalized === 'no') break; // proceed with the derived proposal anyway — nothing else to fall back to interactively
+      if (normalized === 'n' || normalized === 'no') break; // the post-loop contract check below offers the passing alternative, if one exists — see I1
       const comps = extractColorComponents(answer, {});
       if (!comps) {
         log(`  Could not parse '${answer}' as a colour — keeping the proposal.`);
         break;
       }
       proposal = { h: comps.hsl.h, s: comps.hsl.s, l: comps.hsl.l, source: 'default', detail: `user-provided: ${answer}` };
-      validation = validateBrandColor(proposal.h, proposal.s, proposal.l);
+      validation = validateRounded(proposal);
       log(`Brand colour: hsl(${proposal.h} ${proposal.s}% ${proposal.l}%)`);
       for (const line of describeValidation(validation)) log(line);
     }
@@ -205,6 +334,37 @@ export async function init(opts: InitOptions): Promise<InitResult> {
         `(modes: ${MODES.join('/')}): `,
     );
     surfaces = parseSurfaces(surfaceAnswer, DEFAULT_SURFACES);
+    // M8: `parseSurfaces` falls back to `DEFAULT_SURFACES` (by reference) on
+    // any malformed entry — a single typo'd mode name anywhere in the list
+    // silently discards the whole answer with no signal. A non-empty answer
+    // that produced the exact `DEFAULT_SURFACES` reference back only
+    // happens via that fallback branch (the parsed-successfully path always
+    // returns a freshly built array), so this check is reliable without
+    // parseSurfaces needing to report failure explicitly.
+    if (surfaceAnswer.trim() && surfaces === DEFAULT_SURFACES) {
+      log(
+        `  Could not parse '${surfaceAnswer}' as 'match:mode,match:mode' (modes: ${MODES.join('/')}) — ` +
+          `using the default ('/' → product) instead.`,
+      );
+    }
+  }
+
+  // I1: there must be no path that writes a colour failing the contract the
+  // generated brand file itself states. `--yes` used to write `proposal`
+  // verbatim even when `validation.passesContrast` was false, discarding
+  // the passing alternative it had already computed; interactively,
+  // answering `n` (or exhausting the override attempts) had the same
+  // effect. Applying the snap once, here, after every path that can produce
+  // a final `proposal` — derived, `--yes`, accepted, rejected, or
+  // hex-overridden — covers all of them uniformly.
+  if (!validation.passesContrast && validation.nearestPassingLightness !== undefined) {
+    const originalL = proposal.l;
+    proposal = { ...proposal, l: validation.nearestPassingLightness };
+    validation = validateRounded(proposal);
+    log(
+      `\nBrand colour adjusted to clear the 4.5:1 contrast floor: l:${originalL}% → l:${proposal.l}% ` +
+        '(hue/saturation unchanged).',
+    );
   }
 
   const finalColor = { h: proposal.h, s: proposal.s, l: proposal.l };
@@ -279,24 +439,75 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     files[configRelPath] = checksum(content);
   }
 
+  // ---- I2: what actually governs wiring ----
+  // Read back whatever is now on disk at `configAbsPath` — written, merged,
+  // or (kept/skipped) untouched — rather than trusting the `surfaces` /
+  // `brandRelPath` locals. This is what stops a correctly-preserved
+  // existing config from being contradicted by the stylesheet edit below.
+  const effectiveConfig = loadEffectiveConfig(opts.projectRoot, configAbsPath, brandRelPath, surfaces);
+  const primaryMode = effectiveConfig.surfaces[0]?.mode ?? 'product';
+  const wiringBrandAbsPath = join(opts.projectRoot, ...effectiveConfig.brand.split('/'));
+
+  // ---- C3: the mode file a global install wires in must resolve on every
+  // machine that builds this repo, forever — not just the one `init` ran
+  // on. `~/.jig` guards against divergence, which matters only for
+  // artifacts read as authority (rule markdown); a mode CSS file is linked
+  // into a build graph instead, where every edge must resolve everywhere.
+  // So: copy the single selected mode file into the project's own
+  // `.jig/tokens/`, tracked in the init sidecar manifest under the same
+  // edit-preserving rules as the brand file and config (see init/state.ts,
+  // and the companion refresh in commands/update.ts so this copy doesn't go
+  // stale). Project scope already vendored every mode file into the project
+  // tree at install time — nothing to copy there.
+  const modeFileName = `mode.${primaryMode}.css`;
+  const modeAbsPath = join(opts.projectRoot, '.jig', 'tokens', modeFileName);
+  if (resolved.scope === 'global') {
+    const modeRelPath = relKey('.jig', 'tokens', modeFileName);
+    const modeState = fileState(opts.projectRoot, modeAbsPath, modeRelPath, initManifest);
+    let modeAction: FileAction = 'written';
+    if (modeState.existsOnDisk && !modeState.tracked) modeAction = 'skipped-untracked';
+    else if (modeState.modified) modeAction = 'skipped-edited';
+
+    if (modeAction === 'written') {
+      const modeSourceRaw = readFileSync(join(opts.packageRoot, 'tokens', modeFileName), 'utf8');
+      const content = vendorHeader(modeFileName, opts.version, 'css') + modeSourceRaw;
+      mkdirSync(dirname(modeAbsPath), { recursive: true });
+      writeFileSync(modeAbsPath, content, 'utf8');
+      files[modeRelPath] = checksum(content);
+    } else {
+      log(`  ${modeRelPath} exists and is not jig-tracked (or has been edited) — leaving it alone (re-run 'jig update' to refresh it).`);
+    }
+  }
+
   writeInitManifest(opts.projectRoot, { files });
 
   // ---- Wire or print the import ----
-  const primaryMode = surfaces[0]?.mode ?? 'product';
-  const modeAbsPath = join(resolved.installRoot, '.jig', 'tokens', `mode.${primaryMode}.css`);
   const wireTarget = findWireTarget(detection);
 
   let wiring: InitResult['wiring'];
   if (wireTarget) {
     const targetAbsDir = dirname(join(opts.projectRoot, wireTarget));
-    const brandImport = relativeImportPath(targetAbsDir, brandAbsPath);
+    const brandImport = relativeImportPath(targetAbsDir, wiringBrandAbsPath);
     const modeImport = relativeImportPath(targetAbsDir, modeAbsPath);
-    const status = wireImport(join(opts.projectRoot, wireTarget), brandImport, modeImport);
-    wiring = { target: wireTarget, status, snippet: `@import "${brandImport}";\n@import "${modeImport}";` };
-    log(`\n${status === 'wired' ? 'Wired' : 'Already present in'} ${wireTarget}:`);
-    log(`  ${wiring.snippet.split('\n').join('\n  ')}`);
+    const snippet = `@import "${brandImport}";\n@import "${modeImport}";`;
+    // I8: an unwritable stylesheet (permissions, read-only mount, ...) must
+    // not abort the run — fall back to the print-only snippet and still run
+    // the baseline below, the same as the "ambiguous target" case.
+    try {
+      const outcome = wireImport(join(opts.projectRoot, wireTarget), brandImport, modeImport, primaryMode);
+      wiring = { target: wireTarget, status: outcome.status, snippet };
+      const verb = outcome.status === 'wired' ? 'Wired' : outcome.status === 'rewired' ? 'Rewired' : 'Already present in';
+      log(`\n${verb} ${wireTarget}:`);
+      if (outcome.detail) log(`  ${outcome.detail}`);
+      log(`  ${snippet.split('\n').join('\n  ')}`);
+    } catch (err) {
+      wiring = { target: null, status: 'print-only', snippet };
+      log(`\nCould not write to ${wireTarget}: ${(err as Error).message}`);
+      log('Add this near the top of your global stylesheet instead (adjust the path to wherever you paste it):');
+      log(`  ${snippet.split('\n').join('\n  ')}`);
+    }
   } else {
-    const brandImport = relativeImportPath(opts.projectRoot, brandAbsPath);
+    const brandImport = relativeImportPath(opts.projectRoot, wiringBrandAbsPath);
     const modeImport = relativeImportPath(opts.projectRoot, modeAbsPath);
     const snippet = `@import "${brandImport}";\n@import "${modeImport}";`;
     wiring = { target: null, status: 'print-only', snippet };
@@ -317,7 +528,11 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     proposal,
     validation,
     finalColor,
-    surfaces,
+    // I2: report the surfaces that actually govern wiring (effectiveConfig),
+    // not the freshly-derived/prompted `surfaces` local — the two differ
+    // exactly when an existing config was kept, and this field should
+    // describe what happened, not what would have happened on a fresh write.
+    surfaces: effectiveConfig.surfaces,
     brand: { relPath: brandRelPath, action: brandAction },
     config: { relPath: configRelPath, action: configAction },
     wiring,

@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { install } from '../src/commands/install.js';
 import { init } from '../src/commands/init.js';
 import { readManifest } from '../src/install/manifest.js';
+import { deriveBrandColor } from '../src/init/derive.js';
+import { validateBrandColor } from '../src/init/validate.js';
 
 // The real vendored assets (rules/, tokens/, templates/, rules.index.json)
 // live at the repo root. Using them — rather than a synthetic fixture, as
@@ -144,6 +146,150 @@ describe('init — writing', () => {
     const base = project.split('/').pop()!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     expect(result.brand.relPath).toBe(`.jig/tokens/brand.${base}.css`);
   });
+
+  // M4: the DEFAULT_PROPOSAL fallback (no colour found anywhere) is exactly
+  // brand.default.css's own --brand-h/-s/-l (264 / 0% / 15%) — a legitimate
+  // no-op substitution that must not be mistaken by the M4 "did this regex
+  // actually match" guard for the pattern never having matched at all.
+  it('M4: writing the unbranded-default fallback (a no-op substitution) does not throw', async () => {
+    rmSync(join(project, 'src', 'app.css'));
+    const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+    expect(result.proposal.source).toBe('default');
+    const content = readFileSync(join(project, ...result.brand.relPath.split('/')), 'utf8');
+    expect(content).toContain('--brand-h: 264;');
+    expect(content).toContain('--brand-s: 0%;');
+    expect(content).toContain('--brand-l: 15%;');
+  });
+
+  // C1: a Tailwind config with a neutral-only palette (no chromatic colour,
+  // no brand/primary/accent name) used to crash `mostFrequent` with a bare
+  // TypeError. This exercises the exact shape of that repro end-to-end.
+  it('C1: does not crash on a Tailwind v3 config with a neutral-only palette', async () => {
+    rmSync(join(project, 'src', 'app.css'));
+    writeFileSync(
+      join(project, 'tailwind.config.js'),
+      "module.exports = { theme: { extend: { colors: { surface: '#f8f8f8', ink: '#111111' } } } };\n",
+    );
+    await expect(
+      init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG }),
+    ).resolves.toBeDefined();
+  });
+
+  // I1: `--yes` used to write `proposal` verbatim even when it failed the
+  // 4.5:1 contrast the generated file itself states, discarding the passing
+  // `nearestPassingLightness` it had already computed.
+  it('I1: --yes never writes a colour that fails the 4.5:1 contract stated in the file it writes', async () => {
+    writeFileSync(join(project, 'src', 'app.css'), ':root { --brand: #ffe600; }\n');
+    const proposal = deriveBrandColor(project, ['src/app.css'], undefined);
+    const rawValidation = validateBrandColor(proposal.h, proposal.s, proposal.l);
+    // Sanity: this repro really is a failing colour with a passing alternative.
+    expect(rawValidation.passesContrast).toBe(false);
+    expect(rawValidation.nearestPassingLightness).toBeDefined();
+
+    const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+
+    expect(result.validation.passesContrast).toBe(true);
+    expect(result.finalColor.l).toBe(rawValidation.nearestPassingLightness);
+    const content = readFileSync(join(project, ...result.brand.relPath.split('/')), 'utf8');
+    expect(content).toContain(`--brand-l: ${Math.round(result.finalColor.l)}%;`);
+    expect(content).not.toContain(`--brand-l: ${Math.round(proposal.l)}%;`);
+  });
+
+  // I2: an existing config that init correctly leaves alone (untracked, so
+  // "kept") must drive wiring — otherwise the stylesheet ends up importing a
+  // brand file and mode the config doesn't name, a three-way contradiction
+  // reported as success.
+  it('I2: an existing (untracked) config drives wiring — its brand path and mode win over fresh derivation', async () => {
+    mkdirSync(join(project, '.jig', 'tokens'), { recursive: true });
+    writeFileSync(
+      join(project, '.jig', 'tokens', 'brand.custom.css'),
+      ':root { --brand-h: 10; --brand-s: 50%; --brand-l: 40%; }\n',
+    );
+    writeFileSync(
+      join(project, 'jig.config.json'),
+      JSON.stringify({ brand: '.jig/tokens/brand.custom.css', surfaces: [{ match: '/', mode: 'editorial' }] }, null, 2),
+    );
+
+    const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+
+    expect(result.config.action).toBe('skipped-untracked');
+    expect(result.surfaces).toEqual([{ match: '/', mode: 'editorial' }]);
+    const cssContent = readFileSync(join(project, 'src', 'app.css'), 'utf8');
+    expect(cssContent).toContain('brand.custom.css');
+    expect(cssContent).toContain('mode.editorial.css');
+    expect(cssContent).not.toContain('mode.product.css');
+    expect(cssContent).not.toContain('brand.storefront.css');
+  });
+
+  // C2: changing the config's mode (here: a hand-edit after the first run)
+  // used to leave `wireImport` reporting `already-present` forever, because
+  // only the brand import was ever checked.
+  it('C2: changing the config mode on a later run rewires the CSS mode import in place', async () => {
+    const first = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+    expect(first.wiring.status).toBe('wired');
+
+    const configPath = join(project, 'jig.config.json');
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    config.surfaces = [{ match: '/', mode: 'editorial' }];
+    writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+    const second = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+
+    expect(second.config.action).toBe('skipped-edited');
+    expect(second.wiring.status).toBe('rewired');
+    const cssContent = readFileSync(join(project, 'src', 'app.css'), 'utf8');
+    expect(cssContent).toContain('mode.editorial.css');
+    expect(cssContent).not.toContain('mode.product.css');
+    // The brand import itself was left alone — still present exactly once.
+    const brandMatches = cssContent.match(/@import "[^"]*brand\.storefront\.css"/g) ?? [];
+    expect(brandMatches).toHaveLength(1);
+  });
+
+  // I4: a CSS Module is scoped to one component by its own build tooling —
+  // wiring `:root`-level tokens into it as "the" global stylesheet is wrong
+  // even when it's the only stylesheet in the project.
+  it('I4: a single *.module.css stylesheet is excluded from auto-wiring (falls back to print-only)', async () => {
+    rmSync(join(project, 'src', 'app.css'));
+    writeFileSync(join(project, 'src', 'styles.module.css'), ':root { --x: 1; }\n');
+
+    const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+
+    expect(result.wiring.target).toBeNull();
+    expect(result.wiring.status).toBe('print-only');
+    expect(readFileSync(join(project, 'src', 'styles.module.css'), 'utf8')).not.toContain('@import');
+  });
+
+  // I3: `@charset` is only honoured at byte 0 of a stylesheet — displaced
+  // even by a blank line it is silently ignored, changing decoding for a
+  // file that declares a non-UTF-8 encoding. The import must be inserted
+  // after it, never before.
+  it('I3: a leading @charset stays at byte 0 after wiring', async () => {
+    writeFileSync(join(project, 'src', 'app.css'), '@charset "UTF-8";\n:root { --brand-color: #0F766E; }\n');
+    const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+
+    expect(result.wiring.status).toBe('wired');
+    const cssContent = readFileSync(join(project, 'src', 'app.css'), 'utf8');
+    expect(cssContent.startsWith('@charset "UTF-8";')).toBe(true);
+  });
+
+  // I8: a read-only stylesheet used to abort the whole run with a raw
+  // EACCES, after the brand file and config had already been written and
+  // before the baseline check ever ran.
+  it('I8: an unwritable stylesheet falls back to print-only and the baseline still runs', async () => {
+    const cssPath = join(project, 'src', 'app.css');
+    chmodSync(cssPath, 0o444);
+    try {
+      const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+      expect(result.wiring.status).toBe('print-only');
+      expect(result.wiring.target).toBeNull();
+      expect(result.brand.action).toBe('written');
+      expect(result.config.action).toBe('written');
+      expect(typeof result.baseline.findingsCount).toBe('number');
+      expect(result.baseline.report.length).toBeGreaterThan(0);
+    } finally {
+      chmodSync(cssPath, 0o644);
+    }
+  });
 });
 
 describe('init — safety (never silently clobbers)', () => {
@@ -274,6 +420,29 @@ describe('init — interactive prompts (injected, no real stdin)', () => {
     ]);
   });
 
+  // M8: a typo'd mode name in the surface answer used to fall back to the
+  // default surface mapping with no indication anything went wrong.
+  it('M8: logs a warning when the surface mapping answer cannot be parsed, instead of failing silently', async () => {
+    const lines: string[] = [];
+    let call = 0;
+    const prompt = async () => {
+      call += 1;
+      if (call === 1) return 'y';
+      return '/:editoral'; // typo — not a valid mode
+    };
+    const result = await init({
+      projectRoot: project,
+      packageRoot: repoRoot,
+      homeDir: home,
+      version: '0.1.0',
+      yes: false,
+      prompt,
+      log: (l) => lines.push(l),
+    });
+    expect(result.surfaces).toEqual([{ match: '/', mode: 'product' }]);
+    expect(lines.some((l) => l.includes('Could not parse') && l.includes('editoral'))).toBe(true);
+  });
+
   it('offers refresh/keep on an untracked existing config and honors "keep"', async () => {
     writeFileSync(join(project, 'jig.config.json'), JSON.stringify({ brand: 'x.css', surfaces: [] }));
     const prompt = async (q: string) => (q.includes('[k]eep') ? 'k' : '');
@@ -285,7 +454,7 @@ describe('init — interactive prompts (injected, no real stdin)', () => {
 });
 
 describe('init — global scope', () => {
-  it('writes the brand file and config into the project even when the rules install is global, and the mode import resolves into $HOME', async () => {
+  it('writes the brand file and config into the project even when the rules install is global, and the mode import resolves into the project (C3)', async () => {
     install({ agent: 'claude', scope: 'global', projectRoot: project, packageRoot: repoRoot, version: '0.1.0', homeDir: home });
     mkdirSync(join(project, 'src'), { recursive: true });
     writeFileSync(join(project, 'src', 'app.css'), ':root { --brand-color: #0F766E; }\n');
@@ -305,8 +474,31 @@ describe('init — global scope', () => {
     expect(result.wiring.status).toBe('wired');
     const cssContent = readFileSync(join(project, 'src', 'app.css'), 'utf8');
     const modeMatch = /@import "([^"]+mode\.product\.css)";/.exec(cssContent)!;
+    // C3: a global install's mode file is copied into the *project's own*
+    // .jig/tokens/, and the @import is project-relative — never pointing at
+    // $HOME, which would resolve only on the machine that ran `init`.
     const resolved = resolve(dirname(join(project, 'src', 'app.css')), modeMatch[1]);
-    expect(resolved).toBe(join(home, '.jig', 'tokens', 'mode.product.css'));
+    expect(resolved).toBe(join(project, '.jig', 'tokens', 'mode.product.css'));
     expect(existsSync(resolved)).toBe(true);
+    expect(resolved.startsWith(home)).toBe(false);
+
+    // The copy is tracked in the init sidecar manifest, so a later `jig
+    // update` can refresh it (see the companion fix in commands/update.ts).
+    const sidecar = JSON.parse(readFileSync(join(project, '.jig', 'init-manifest.json'), 'utf8'));
+    expect(sidecar.files['.jig/tokens/mode.product.css']).toMatch(/^sha256:/);
+  });
+
+  it('does not clobber a hand-edited copy of the mode file on a second run', async () => {
+    install({ agent: 'claude', scope: 'global', projectRoot: project, packageRoot: repoRoot, version: '0.1.0', homeDir: home });
+    mkdirSync(join(project, 'src'), { recursive: true });
+    writeFileSync(join(project, 'src', 'app.css'), ':root { --brand-color: #0F766E; }\n');
+
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+    const modePath = join(project, '.jig', 'tokens', 'mode.product.css');
+    const edited = `${readFileSync(modePath, 'utf8')}\n:root { --my-own-var: 1; }\n`;
+    writeFileSync(modePath, edited);
+
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+    expect(readFileSync(modePath, 'utf8')).toBe(edited);
   });
 });
