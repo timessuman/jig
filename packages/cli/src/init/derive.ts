@@ -26,6 +26,9 @@ export const DEFAULT_PROPOSAL: ColorProposal = {
 };
 
 const NAME_PRIORITY_RE = /brand|primary|accent/i;
+/** I6: an exact custom-property name outranks a compound one that merely
+ *  contains it (`--accent-border` vs `--accent`) among named candidates. */
+const EXACT_NAMES = new Set(['brand', 'primary', 'accent']);
 /** Anything this desaturated reads as a neutral (grey), not a colour choice
  *  — mirrors the threshold `violet-band-hue` uses for the same reason. */
 const MIN_CHROMATIC_SATURATION = 15;
@@ -48,8 +51,11 @@ function toProposal(c: Candidate, source: DerivationSource, why: string): ColorP
 /** Groups candidates by their resolved hsl (rounded) and returns the one
  *  that occurs most often, preferring a more saturated colour on a tie —
  *  a frequent near-grey is more likely incidental than a deliberate brand
- *  pick. */
-function mostFrequent(candidates: Candidate[]): Candidate {
+ *  pick. Returns `undefined` on an empty input rather than throwing — every
+ *  call site is responsible for falling back to a non-empty pool (see C1:
+ *  a call site that forgets this guard must degrade, not crash). */
+function mostFrequent(candidates: Candidate[]): Candidate | undefined {
+  if (candidates.length === 0) return undefined;
   const counts = new Map<string, { count: number; candidate: Candidate }>();
   for (const c of candidates) {
     const key = `${Math.round(c.hsl.h)}|${Math.round(c.hsl.s)}|${Math.round(c.hsl.l)}`;
@@ -92,14 +98,26 @@ export function fromCssCustomProperties(projectRoot: string, cssFiles: string[])
   }
   if (candidates.length === 0) return null;
 
-  const named = candidates.find((c) => c.name && NAME_PRIORITY_RE.test(c.name));
-  if (named) {
+  // I6: a name match alone isn't enough — `--accent-border: #eee` (a
+  // near-grey border colour that merely has "accent" in its name) must not
+  // beat a real brand colour two lines below just because it comes first in
+  // file order. Named candidates are filtered by the same chromaticity
+  // guard as everything else, and among what's left, an exact name
+  // (`--brand`, `--primary`, `--accent`) outranks a compound one
+  // (`--accent-border`, `--brand-color`, ...) — a person naming a variable
+  // exactly `--brand` is stating the brand colour on purpose.
+  const namedChromatic = candidates.filter(
+    (c) => c.name && NAME_PRIORITY_RE.test(c.name) && c.hsl.s >= MIN_CHROMATIC_SATURATION,
+  );
+  if (namedChromatic.length > 0) {
+    const exact = namedChromatic.find((c) => EXACT_NAMES.has(c.name!.toLowerCase()));
+    const named = exact ?? namedChromatic[0];
     return toProposal(named, 'css-custom-property', `--${named.name}: ${named.value} in ${named.file}`);
   }
 
   const chromatic = candidates.filter((c) => c.hsl.s >= MIN_CHROMATIC_SATURATION);
   const pool = chromatic.length > 0 ? chromatic : candidates;
-  const chosen = mostFrequent(pool);
+  const chosen = mostFrequent(pool) ?? pool[0];
   return toProposal(
     chosen,
     'css-custom-property',
@@ -173,8 +191,18 @@ export function fromTailwindConfig(projectRoot: string, tailwindConfigFile: stri
   }
   if (candidates.length === 0) return null;
 
-  const named = candidates.find((c) => NAME_PRIORITY_RE.test(c.name!));
-  const chosen = named ?? mostFrequent(candidates.filter((c) => c.hsl.s >= MIN_CHROMATIC_SATURATION)) ?? candidates[0];
+  // I6: same guard as the CSS custom-property path — a named key only wins
+  // outright when it's also chromatic, and an exact name (`brand`) outranks
+  // a compound one (`brand-muted`) among what qualifies.
+  const namedChromatic = candidates.filter(
+    (c) => NAME_PRIORITY_RE.test(c.name!) && c.hsl.s >= MIN_CHROMATIC_SATURATION,
+  );
+  const named = namedChromatic.length > 0
+    ? (namedChromatic.find((c) => EXACT_NAMES.has(c.name!.toLowerCase())) ?? namedChromatic[0])
+    : undefined;
+  const chromatic = candidates.filter((c) => c.hsl.s >= MIN_CHROMATIC_SATURATION);
+  const pool = chromatic.length > 0 ? chromatic : candidates;
+  const chosen = named ?? mostFrequent(pool) ?? pool[0];
   return toProposal(
     chosen,
     'tailwind-config',
@@ -213,7 +241,7 @@ export function fromLiteralFrequency(projectRoot: string, cssFiles: string[]): C
   }
   if (candidates.length === 0) return null;
 
-  const chosen = mostFrequent(candidates);
+  const chosen = mostFrequent(candidates) ?? candidates[0];
   return toProposal(
     chosen,
     'literal-frequency',

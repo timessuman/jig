@@ -53,6 +53,26 @@ describe('fromCssCustomProperties', () => {
     writeFileSync(join(project, 'src', 'a.css'), ':root { --spacing: 8px; --radius: 4px; }\n');
     expect(fromCssCustomProperties(project, ['src/a.css'])).toBeNull();
   });
+
+  it('I6: a near-grey named candidate does not beat a real chromatic brand colour further down', () => {
+    mkdirSync(join(project, 'src'), { recursive: true });
+    writeFileSync(join(project, 'src', 'a.css'), ':root { --accent-border: #eeeeee; --brand: #2f5bd0; }\n');
+    const proposal = fromCssCustomProperties(project, ['src/a.css']);
+    expect(proposal).not.toBeNull();
+    expect(proposal!.detail).toContain('--brand');
+    expect(proposal!.detail).toContain('#2f5bd0');
+  });
+
+  it('I6: an exact name (--brand) outranks a compound one (--brand-muted) that appears first', () => {
+    mkdirSync(join(project, 'src'), { recursive: true });
+    writeFileSync(
+      join(project, 'src', 'a.css'),
+      ':root { --brand-muted: #4a6fa5; --brand: #2f5bd0; }\n',
+    );
+    const proposal = fromCssCustomProperties(project, ['src/a.css']);
+    expect(proposal).not.toBeNull();
+    expect(proposal!.detail).toContain('--brand:');
+  });
 });
 
 describe('fromTailwindConfig', () => {
@@ -81,6 +101,24 @@ describe('fromTailwindConfig', () => {
   it('returns null when the config has no parseable colours', () => {
     writeFileSync(join(project, 'tailwind.config.js'), 'module.exports = { content: [] };\n');
     expect(fromTailwindConfig(project, 'tailwind.config.js')).toBeNull();
+  });
+
+  it('C1: does not crash on a neutral-only palette (no chromatic candidate, no brand/primary/accent name)', () => {
+    writeFileSync(
+      join(project, 'tailwind.config.js'),
+      [
+        'module.exports = {',
+        '  theme: {',
+        "    extend: { colors: { surface: '#f8f8f8', ink: '#111111' } },",
+        '  },',
+        '};',
+        '',
+      ].join('\n'),
+    );
+    expect(() => fromTailwindConfig(project, 'tailwind.config.js')).not.toThrow();
+    const proposal = fromTailwindConfig(project, 'tailwind.config.js');
+    expect(proposal).not.toBeNull();
+    expect(proposal!.source).toBe('tailwind-config');
   });
 });
 
