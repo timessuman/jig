@@ -17,7 +17,13 @@ import type { Detector, Finding } from '../types.js';
 // brief: this is the most common accessibility failure in generated code,
 // so a false negative here is far less costly than teaching a user to
 // ignore the detector.
-const OUTLINE_NONE_RE = /(?<![-\w])outline\s*:\s*(none|0(?:px)?)\s*(?:!important)?\s*;/gi;
+// Terminator is `;` OR end-of-body — `.a { outline: none }` is legal CSS and
+// was previously invisible, as was every minified stylesheet.
+// Terminator is `;`, the closing brace, or end of input. This detector scans
+// raw source rather than block bodies, so the last declaration in a rule is
+// followed by `}` — requiring `;` made `.a { outline: none }` invisible, as
+// was every minified stylesheet.
+const OUTLINE_NONE_RE = /(?<![-\w])outline\s*:\s*(none|0(?:px)?)\s*(?:!important)?\s*(?:;|\}|$)/gi;
 const FOCUS_VISIBLE_RE = /:focus-visible\b/i;
 
 export const focusRemoved: Detector = {

@@ -18,7 +18,22 @@ import type { Detector, Finding } from '../types.js';
 // skipped rather than guessed at. The floor itself is a fixed 4.5:1 (WCAG
 // AA normal text; the file's own "Floor: WCAG 2.1 level AA" statement).
 const FLOOR = 4.5;
-const DECL_RE = /(?<![-\w])(color|background(?:-color)?)\s*:\s*([^;]+);/gi;
+// WCAG AA relaxes to 3:1 for large text — >=24px at normal weight, or
+// >=18.66px at bold. Reporting conformant large text as an error at the
+// stricter floor would contradict the rule this detector cites.
+const LARGE_FLOOR = 3;
+const FONT_SIZE_RE = /(?<![-\w])font-size\s*:\s*(-?\d*\.?\d+)px/i;
+const BOLD_RE = /(?<![-\w])font-weight\s*:\s*(bold|[6-9]\d\d)/i;
+
+function isLargeText(body: string): boolean {
+  const m = FONT_SIZE_RE.exec(body);
+  if (!m) return false;
+  const px = parseFloat(m[1]);
+  return BOLD_RE.test(body) ? px >= 18.66 : px >= 24;
+}
+// Terminator is `;` OR end-of-body — the last declaration in a rule may omit
+// its semicolon, and minified CSS always does.
+const DECL_RE = /(?<![-\w])(color|background(?:-color)?)\s*:\s*([^;]+)(?:;|$)/gi;
 
 export const contrastFloor: Detector = {
   name: 'contrast-floor',
@@ -47,8 +62,13 @@ export const contrastFloor: Detector = {
       const bg = resolveOpaqueColor(bgValue, ctx.tokens);
       if (!fg || !bg) continue; // cannot resolve — skip, do not guess
 
+      // WCAG AA has two floors, and applying the stricter one to large text
+      // reports conformant CSS as an error. C-19's own correction makes the
+      // same distinction. Large is >=24px regular, or >=18.66px bold.
+      const floor = isLargeText(block.body) ? LARGE_FLOOR : FLOOR;
+
       const ratio = contrastRatio(fg, bg);
-      if (ratio >= FLOOR) continue;
+      if (ratio >= floor) continue;
 
       const line = lineOfOffset(block, fgOffset);
       findings.push(
@@ -57,7 +77,7 @@ export const contrastFloor: Detector = {
           'contrast-floor',
           file,
           line,
-          `Foreground/background contrast is ${ratio.toFixed(2)}:1, below the ${FLOOR}:1 floor`,
+          `Foreground/background contrast is ${ratio.toFixed(2)}:1, below the ${floor}:1 floor`,
           sourceLine(source, line),
         ),
       );

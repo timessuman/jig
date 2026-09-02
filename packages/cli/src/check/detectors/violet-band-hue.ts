@@ -18,7 +18,12 @@ import type { Detector, Finding } from '../types.js';
 // 92% is skipped (hue is not perceptible that close to black or white).
 // Only hues roughly 250–290° (violet through indigo) in what's left fire.
 const COLOR_TOKEN_RE = /#[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\([^)]*\)/g;
-const HUE_MIN = 250;
+// A-01 names "a violet OR INDIGO fill". Starting at 250 missed the indigo
+// band entirely — Tailwind indigo-500 (#6366f1) is 239 degrees, indigo-600
+// 243, indigo-700 245, and the left stop of the canonical AI gradient
+// (#667eea) is 229. Those are the most common unspecified-default purples
+// in generated UI, which is exactly what this rule exists to catch.
+const HUE_MIN = 235;
 const HUE_MAX = 290;
 const MIN_SATURATION = 15;
 const MIN_LIGHTNESS = 8;

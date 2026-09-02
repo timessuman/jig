@@ -25,10 +25,21 @@ function isGitRepo(root: string): boolean {
  * e.g. a monorepo package.
  */
 function gitChangedFiles(root: string): string[] {
-  const diffOut = execFileSync('git', ['diff', '--name-only', '--relative', 'HEAD'], {
-    cwd: root,
-    encoding: 'utf8',
-  });
+  // A repository with no commits has an unborn HEAD, so `git diff … HEAD`
+  // fails. `git init && jig install && jig check` is a plausible first five
+  // minutes, and it should not exit with a raw git error — treat it as
+  // "nothing committed to compare against" and let the caller fall back to
+  // scanning everything.
+  let diffOut: string;
+  try {
+    diffOut = execFileSync('git', ['diff', '--name-only', '--relative', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    diffOut = '';
+  }
   const untrackedOut = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], {
     cwd: root,
     encoding: 'utf8',

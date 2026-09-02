@@ -40,23 +40,31 @@ export function check(opts: CheckOptions): CheckResult {
     throw new Error(`Jig is not installed in ${opts.projectRoot}. Run 'jig install --agent <name>' first.`);
   }
 
+  // The install root is where the RULES live; it is the home directory for a
+  // global install. The files to CHECK are always the project's own. Scanning
+  // the install root would make `jig check` walk the user's entire home
+  // directory, report findings in unrelated personal files, and never open the
+  // repository they ran it in.
   const indexPath = join(target.installRoot, '.jig', 'rules.index.json');
   const index: IndexEntry[] = validateIndex(JSON.parse(readFileSync(indexPath, 'utf8')));
   const tokens = loadTokenMap(target.installRoot);
-  const { files } = selectFiles(target.installRoot, opts.all);
+  const { files } = selectFiles(opts.projectRoot, opts.all);
 
   const bucketFilter = opts.ci ? (b: string) => b === 'mechanical' : undefined;
-  const findings = runChecks(target.installRoot, files, index, tokens, bucketFilter);
+  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter);
 
   const hasError = findings.some((f) => f.bucket === 'mechanical' && f.severity === 'error');
   // H-47 skips files that have not adopted the token layer. When NO scanned
   // file has, a clean report would read as a clean bill of health rather than
   // "that detector never ran" — so the report says which it is.
-  const noTokenLayer = files
-    .filter((f) => /\.(css|scss|less)$/i.test(f))
-    .every((f) => {
+  const cssFiles = files.filter((f) => /\.(css|scss|less)$/i.test(f));
+  const noTokenLayer =
+    // `[].every()` is true, so without this guard a repo with no CSS at all is
+    // told to add a token @import it has nowhere to put.
+    cssFiles.length > 0 &&
+    cssFiles.every((f) => {
       try {
-        return !participatesInTokenLayer(readFileSync(join(target.installRoot, f), "utf8"), tokens);
+        return !participatesInTokenLayer(readFileSync(join(opts.projectRoot, f), 'utf8'), tokens);
       } catch {
         return true;
       }

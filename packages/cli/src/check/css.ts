@@ -24,9 +24,51 @@ export interface CssBlock {
  * comment as part of the following selector — which meant a vendored token
  * file, whose first bytes are an attribution comment, never yielded a
  * `:root` block and `loadTokenMap` returned nothing at all.
+ *
+ * Walks character by character rather than using a regex, because a regex is
+ * string-unaware: `content: "/*"` would open a comment that runs to the next
+ * `*` + `/` anywhere in the file, blanking every real declaration in between.
+ * That is the same failure this function exists to prevent — a detector that
+ * is silently dead and reports "no findings" — arriving through another door.
+ *
+ * An unterminated comment is masked to end of input rather than left intact,
+ * so it cannot leak into the following selector.
  */
 export function maskComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  let out = '';
+  let i = 0;
+  while (i < source.length) {
+    const ch = source[i];
+
+    if (ch === '"' || ch === "'") {
+      const quote = ch;
+      out += ch;
+      i++;
+      while (i < source.length) {
+        if (source[i] === '\\' && i + 1 < source.length) {
+          out += source[i] + source[i + 1];
+          i += 2;
+          continue;
+        }
+        out += source[i];
+        if (source[i] === quote) { i++; break; }
+        i++;
+      }
+      continue;
+    }
+
+    if (ch === '/' && source[i + 1] === '*') {
+      const end = source.indexOf('*/', i + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      for (let j = i; j < stop; j++) out += source[j] === '\n' ? '\n' : ' ';
+      i = stop;
+      continue;
+    }
+
+    out += ch;
+    i++;
+  }
+  return out;
 }
 
 export function splitRuleBlocks(source: string): CssBlock[] {

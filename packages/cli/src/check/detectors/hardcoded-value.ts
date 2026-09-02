@@ -1,4 +1,4 @@
-import { leafBlocks, lineOfOffset, maskMediaQueries, sourceLine } from '../css.js';
+import { leafBlocks, lineOfOffset, sourceLine } from '../css.js';
 import { CSS_EXTENSIONS, hasExtension } from '../ext.js';
 import { mkFinding } from '../finding.js';
 import { participatesInTokenLayer } from '../token-layer.js';
@@ -28,9 +28,10 @@ import type { Detector, Finding } from '../types.js';
 //  - `0`, `1px` and `2px` are excluded from the spacing/type check —
 //    borders and hairlines Jig has no token for, a known gap stated in the
 //    task brief, not an oversight here.
-//  - Anything inside an `@media (...)` block is excluded — a breakpoint is
-//    not a design token, so a raw px value that exists only to define one
-//    should not be flagged as if it were.
+//  - A breakpoint `px` is never flagged, because it lives in the `@media`
+//    prelude, which lands in the OUTER block's selector — and declarations
+//    are only ever read from a leaf block's body. Declarations INSIDE a
+//    media query are checked normally; they are ordinary design values.
 //  - Declarations are read from parsed rule-block BODIES, not the flat file
 //    text, so a selector that happens to look like a property (a class
 //    named exactly `.color`, `a:hover { ... }`) can never be mistaken for
@@ -65,7 +66,10 @@ const SPACING_PROPS = new Set([
   'column-gap',
 ]);
 
-const DECL_RE = /(?<![-\w])([a-zA-Z-]+)\s*:\s*([^;]+);/g;
+// The terminator is `;` OR end-of-body: the final declaration in a rule may
+// legally omit its semicolon, and minified CSS always does. Requiring `;`
+// made the last declaration of every rule invisible.
+const DECL_RE = /(?<![-\w])([a-zA-Z-]+)\s*:\s*([^;]+)(?:;|$)/g;
 const COLOR_LITERAL_RE = /#[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\([^)]*\)/;
 const PX_RE = /(-?\d*\.?\d+)px/g;
 const EXCLUDED_PX = new Set([0, 1, 2]);
@@ -82,7 +86,12 @@ export const hardcodedValue: Detector = {
 
     const findings: Finding[] = [];
 
-    for (const block of leafBlocks(maskMediaQueries(source))) {
+    // No media-query masking. A breakpoint `px` lives in the `@media` prelude,
+    // which lands in the OUTER block's selector — and `DECL_RE` only ever reads
+    // `block.body`, so the breakpoint is already unreachable. Masking the body
+    // instead (as this once did) deleted every real declaration inside a media
+    // query, which in a responsive stylesheet is most of them.
+    for (const block of leafBlocks(source)) {
       DECL_RE.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = DECL_RE.exec(block.body))) {

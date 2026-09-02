@@ -110,7 +110,7 @@ describe('hardcoded-value (H-47)', () => {
     expect(findings).toHaveLength(2);
   });
 
-  it('does not fire on tokenized values, hairline spacing (0/1px/2px), or values inside @media', () => {
+  it('does not fire on tokenized values or hairline spacing (0/1px/2px)', () => {
     const src = [
       '.card {',
       '  color: var(--color-brand);',
@@ -119,8 +119,12 @@ describe('hardcoded-value (H-47)', () => {
       '  gap: 2px;',
       '  row-gap: 0px;',
       '}',
+      // The breakpoint px is not flagged — it lives in the @media prelude,
+      // which lands in the outer block's selector and is never read as a
+      // declaration. Declarations INSIDE a media query are checked; that is
+      // covered separately below.
       '@media (min-width: 768px) {',
-      '  .card { padding: 999px; }',
+      '  .card { padding: var(--spacing-m); }',
       '}',
     ].join('\n');
     expect(hardcodedValue.run(src, 'a.css', c)).toHaveLength(0);
@@ -148,5 +152,86 @@ describe('violet-band-hue (A-01)', () => {
   it('does not fire on an achromatic grey (0% saturation) even though its HSL hue number sits in the violet band', () => {
     const src = '.hero { background: hsl(264 0% 15%); }\n';
     expect(violetBandHue.run(src, 'a.css', c)).toHaveLength(0);
+  });
+});
+
+describe('violet-band-hue — the band itself is pinned', () => {
+  // These tests exist because the originals passed with the hue window and
+  // the lightness gates removed entirely: they asserted the detector's
+  // existence, not its substance.
+  const c = ctx('A-01', 'hybrid', 'warning');
+  const fire = (hex: string) =>
+    violetBandHue.run(`.a { color: ${hex}; }\n`, 'a.css', c).length;
+
+  it('fires across the violet AND indigo band', () => {
+    expect(fire('#6366f1')).toBe(1); // indigo-500, 239deg — the commonest default
+    expect(fire('#4f46e5')).toBe(1); // indigo-600, 243deg
+    expect(fire('#8b5cf6')).toBe(1); // violet-500, 258deg
+    expect(fire('#764ba2')).toBe(1); // 270deg
+  });
+
+  it('does not fire on blues below the band', () => {
+    expect(fire('#3b82f6')).toBe(0); // blue-500, 217deg
+    expect(fire('#2f5bd0')).toBe(0); // 224deg
+  });
+
+  it('does not fire on hues above the band', () => {
+    expect(fire('#d946ef')).toBe(0); // fuchsia, ~292deg
+  });
+
+  it('does not fire on near-black or near-white in the band', () => {
+    expect(fire('#050307')).toBe(0); // lightness below the gate
+    expect(fire('#faf8fd')).toBe(0); // lightness above the gate
+  });
+});
+
+describe('detectors read the last declaration in a rule', () => {
+  // All three of these required a trailing `;`, so the final declaration of
+  // every rule — and all minified CSS — was invisible.
+  it('focus-removed sees `outline: none` with no trailing semicolon', () => {
+    const c = ctx('E-29', 'mechanical', 'error');
+    expect(focusRemoved.run('.a { outline: none }\n', 'a.css', c)).toHaveLength(1);
+  });
+
+  it('hardcoded-value sees a final declaration with no trailing semicolon', () => {
+    const c = ctx('H-47', 'mechanical', 'error', { 'color-brand': '#000' });
+    const src = '.a { color: var(--color-brand); }\n.b { color: #ff0000 }\n';
+    expect(hardcodedValue.run(src, 'a.css', c)).toHaveLength(1);
+  });
+});
+
+describe('hardcoded-value checks declarations inside media queries', () => {
+  it('flags a literal inside @media but never the breakpoint itself', () => {
+    const c = ctx('H-47', 'mechanical', 'error', { 'color-brand': '#000' });
+    const src = [
+      '.a { color: var(--color-brand); }',
+      '@media (min-width: 768px) {',
+      '  .card { padding: 24px; }',
+      '}',
+      '',
+    ].join('\n');
+    const found = hardcodedValue.run(src, 'a.css', c);
+    expect(found).toHaveLength(1);
+    expect(found[0].message).toContain('24px');
+    expect(found.some((f) => f.message.includes('768'))).toBe(false);
+  });
+});
+
+describe('contrast-floor applies the large-text floor', () => {
+  const c = ctx('C-19', 'mechanical', 'error');
+
+  it('does not flag large text that meets the 3:1 floor', () => {
+    const src = '.h { font-size: 40px; background: #ffffff; color: #949494; }\n';
+    expect(contrastFloor.run(src, 'a.css', c)).toHaveLength(0);
+  });
+
+  it('still flags normal-size text at the same ratio', () => {
+    const src = '.p { font-size: 16px; background: #ffffff; color: #949494; }\n';
+    expect(contrastFloor.run(src, 'a.css', c)).toHaveLength(1);
+  });
+
+  it('treats bold 20px as large', () => {
+    const src = '.h { font-size: 20px; font-weight: 700; background: #ffffff; color: #949494; }\n';
+    expect(contrastFloor.run(src, 'a.css', c)).toHaveLength(0);
   });
 });
