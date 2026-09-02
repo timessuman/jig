@@ -62,7 +62,12 @@ describe('check — end to end', () => {
     mkdirSync(join(project, 'src'), { recursive: true });
     writeFileSync(
       join(project, 'src', 'Button.css'),
-      ['.button {', '  outline: none;', '  color: #6D28D9;', '}', ''].join('\n'),
+      // The first declaration adopts the token layer, so H-47 applies here.
+      // E-29 fires regardless — a removed focus outline is wrong whether or
+      // not the file uses Jig's tokens.
+      // `--from` is the only token this fixture's token files define, so it is
+      // what makes the file count as having adopted the token layer.
+      ['.a { color: var(--from); }', '.button {', '  outline: none;', '  color: #6D28D9;', '}', ''].join('\n'),
     );
 
     const result = check({ projectRoot: project, homeDir: home, version: '0.1.0', all: true, ci: false });

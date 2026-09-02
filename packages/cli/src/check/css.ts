@@ -18,7 +18,19 @@ export interface CssBlock {
  * body contains further blocks). Use `leafBlocks` to get only the
  * declaration-bearing ones.
  */
+/**
+ * Blanks the contents of every CSS comment while preserving newlines, so
+ * line numbers survive. Without this the brace scanner treats a leading
+ * comment as part of the following selector — which meant a vendored token
+ * file, whose first bytes are an attribution comment, never yielded a
+ * `:root` block and `loadTokenMap` returned nothing at all.
+ */
+export function maskComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+}
+
 export function splitRuleBlocks(source: string): CssBlock[] {
+  source = maskComments(source);
   const blocks: CssBlock[] = [];
   const stack: { selectorStart: number; bodyStart: number; bodyStartLine: number }[] = [];
   let line = 1;

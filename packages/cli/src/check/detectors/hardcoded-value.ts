@@ -1,6 +1,7 @@
 import { leafBlocks, lineOfOffset, maskMediaQueries, sourceLine } from '../css.js';
 import { CSS_EXTENSIONS, hasExtension } from '../ext.js';
 import { mkFinding } from '../finding.js';
+import { participatesInTokenLayer } from '../token-layer.js';
 import type { Detector, Finding } from '../types.js';
 
 // H-47: values invented at the call site instead of read from the token
@@ -8,6 +9,12 @@ import type { Detector, Finding } from '../types.js';
 // full of `px` — so this is deliberately narrow:
 //
 // False-positive story:
+//  - The rule is "hard-coded past the token layer" — you can only be past
+//    a layer you are ON. A file with no `var(--jig-token)` reference and no
+//    `@import` of a vendored `.jig/tokens/*.css` file has not adopted
+//    tokens yet; every `px` in it is not a violation, it is pre-adoption
+//    code. `run()` returns early for such a file — see
+//    `participatesInTokenLayer` — rather than flagging its entire contents.
 //  - Only two categories of property are examined: colour (color,
 //    background[-color], border-*-color, fill, stroke, outline-color) and
 //    spacing/type (font-size, margin*, padding*, gap/row-gap/column-gap).
@@ -67,6 +74,12 @@ export const hardcodedValue: Detector = {
   name: 'hardcoded-value',
   appliesTo: (file) => hasExtension(file, CSS_EXTENSIONS),
   run(source, file, ctx) {
+    // A file that has not adopted the token layer is not bypassing it — it
+    // simply has not got there yet. Flagging every literal in such a file
+    // says "your whole codebase is wrong", which is true and useless, and
+    // teaches users to disable the detector.
+    if (!participatesInTokenLayer(source, ctx.tokens)) return [];
+
     const findings: Finding[] = [];
 
     for (const block of leafBlocks(maskMediaQueries(source))) {

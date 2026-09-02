@@ -96,10 +96,16 @@ describe('focus-removed (E-29)', () => {
 });
 
 describe('hardcoded-value (H-47)', () => {
-  const c = ctx('H-47', 'mechanical', 'error');
+  // H-47 only runs on files that participate in the token layer, and
+  // participation means referencing a *known* token — so the context must
+  // carry a token map for these fixtures to be treated as adopted.
+  const c = ctx('H-47', 'mechanical', 'error', { 'color-brand': '#000', 'spacing-m': '24px' });
 
   it('fires on a raw hex colour and a raw px spacing value', () => {
-    const src = '.card {\n  color: #6D28D9;\n  padding: 18px;\n}\n';
+    // The leading token reference makes this an *adopted* file. H-47 means
+    // "hard-coded past the token layer", so it only runs where that layer is
+    // in use — see participatesInTokenLayer.
+    const src = '.a { color: var(--color-brand); }\n.card {\n  color: #6D28D9;\n  padding: 18px;\n}\n';
     const findings = hardcodedValue.run(src, 'a.css', c);
     expect(findings).toHaveLength(2);
   });
@@ -123,7 +129,7 @@ describe('hardcoded-value (H-47)', () => {
   it('does not mistake a selector that looks like a property for a declaration', () => {
     // `.color:hover { ... }` must never be read as a `color:` declaration —
     // declarations are read from parsed block bodies, not flat file text.
-    const src = '.color:hover {\n  background: #ffffff;\n}\n';
+    const src = '.a { color: var(--color-brand); }\n.color:hover {\n  background: #ffffff;\n}\n';
     expect(hardcodedValue.run(src, 'a.css', c)).toHaveLength(1); // only the real background-color literal
   });
 });

@@ -4,6 +4,7 @@ import { resolveInstalled } from '../install/target.js';
 import { validateIndex, type IndexEntry } from '../rules/schema.js';
 import { selectFiles } from '../check/files.js';
 import { formatReport } from '../check/report.js';
+import { participatesInTokenLayer } from '../check/token-layer.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
 import type { Finding } from '../check/types.js';
@@ -48,7 +49,24 @@ export function check(opts: CheckOptions): CheckResult {
   const findings = runChecks(target.installRoot, files, index, tokens, bucketFilter);
 
   const hasError = findings.some((f) => f.bucket === 'mechanical' && f.severity === 'error');
-  const report = formatReport(findings, { totalRules: index.length, version: opts.version });
+  // H-47 skips files that have not adopted the token layer. When NO scanned
+  // file has, a clean report would read as a clean bill of health rather than
+  // "that detector never ran" — so the report says which it is.
+  const noTokenLayer = files
+    .filter((f) => /\.(css|scss|less)$/i.test(f))
+    .every((f) => {
+      try {
+        return !participatesInTokenLayer(readFileSync(join(target.installRoot, f), "utf8"), tokens);
+      } catch {
+        return true;
+      }
+    });
+
+  const report = formatReport(findings, {
+    totalRules: index.length,
+    version: opts.version,
+    noTokenLayer,
+  });
 
   return { findings, report, hasError };
 }
