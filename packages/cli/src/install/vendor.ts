@@ -1,4 +1,7 @@
+import { posix } from 'node:path';
 import { BLOCK_START, BLOCK_END } from '../adapters/types.js';
+
+const { join } = posix;
 
 /**
  * Comment syntax for the attribution header. Markdown tolerates HTML
@@ -12,15 +15,45 @@ const DELIMITERS: Record<CommentStyle, readonly [string, string]> = {
   css: ['/*', '*/'],
 };
 
+/**
+ * How to reach the bundle root from a file stored at `relPath` within it —
+ * `'.'` for `conflicts.md`, `'..'` for `rules/00-anti-patterns.md`. LICENSE and
+ * NOTICE sit at that root, so this is what a header should cite.
+ */
+export function licencePathFor(relPath: string): string {
+  const depth = relPath.split('/').length - 1;
+  return depth === 0 ? '.' : Array(depth).fill('..').join('/');
+}
+
+/**
+ * `licencePath` is where a reader of THIS file can find the licence, expressed
+ * relative to the file itself.
+ *
+ * It used to be the hardcoded string `.jig/LICENSE`, which was true only while
+ * install vendored everything into the project's `.jig/`. Under the
+ * harness-skills layout the bundle lives at `<harness>/skills/jig/` and LICENSE
+ * sits beside the file, so the hardcoded path resolved to nothing in every
+ * install — in a header whose entire job is pointing at the licence terms.
+ *
+ * Files `init` writes into the project (the brand file, the mode copies) are a
+ * different case: the licence is not in the project at all, it is beside the
+ * skill, wherever that was installed. Those pass `null` and get a header that
+ * states the licence without claiming a path that is not there.
+ */
 export function vendorHeader(
   file: string,
   version: string,
   style: CommentStyle = 'html',
+  licencePath: string | null = '.',
 ): string {
   const [open, close] = DELIMITERS[style];
+  const attribution =
+    licencePath === null
+      ? '     Licensed Apache-2.0. LICENSE and NOTICE ship beside the jig skill.'
+      : `     Licensed Apache-2.0. See ${join(licencePath, 'LICENSE')} and ${join(licencePath, 'NOTICE')}.`;
   return [
     `${open} ${file} — vendored from Jig v${version}.`,
-    '     Licensed Apache-2.0. See .jig/LICENSE and .jig/NOTICE.',
+    attribution,
     `     Edit freely: \`jig update\` will not overwrite a file you have changed. ${close}`,
     '',
     '',

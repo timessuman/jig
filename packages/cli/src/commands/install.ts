@@ -12,7 +12,7 @@ import {
   type Scope,
 } from '../install/manifest.js';
 import { render, renderCommandTable, type CommandMetadata } from '../template/render.js';
-import { upsertBlock, vendorHeader } from '../install/vendor.js';
+import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
 
 export { upsertBlock, vendorHeader };
 
@@ -195,7 +195,7 @@ export function install(opts: InstallOptions): InstallResult {
     const body = readFileSync(join(rulesDir, file), 'utf8');
     planned.push({
       key: relKey(referenceDir, 'rules', file),
-      content: vendorHeader(file, opts.version) + body,
+      content: vendorHeader(file, opts.version, 'html', licencePathFor(`rules/${file}`)) + body,
       checkable: true,
     });
   }
@@ -206,7 +206,7 @@ export function install(opts: InstallOptions): InstallResult {
   for (const ref of referenceFiles(opts.packageRoot)) {
     planned.push({
       key: relKey(referenceDir, ...ref.relPath.split('/')),
-      content: vendorHeader(ref.relPath, opts.version) + ref.content,
+      content: vendorHeader(ref.relPath, opts.version, 'html', licencePathFor(ref.relPath)) + ref.content,
       checkable: true,
     });
   }

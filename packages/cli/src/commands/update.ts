@@ -2,7 +2,7 @@ import { dirname, join } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { checksum, isModified, writeManifest, type Manifest } from '../install/manifest.js';
 import { resolveInstalled } from '../install/target.js';
-import { upsertBlock, vendorHeader } from '../install/vendor.js';
+import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
 import { referenceFiles } from '../install/references.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
@@ -69,7 +69,7 @@ export function update(opts: InstallOptions): UpdateResult {
       skipped.push(key);
       continue;
     }
-    write(key, vendorHeader(file, opts.version) + readFileSync(join(rulesDir, file), 'utf8'));
+    write(key, vendorHeader(file, opts.version, 'html', licencePathFor(`rules/${file}`)) + readFileSync(join(rulesDir, file), 'utf8'));
   }
 
   for (const ref of referenceFiles(opts.packageRoot)) {
@@ -78,7 +78,7 @@ export function update(opts: InstallOptions): UpdateResult {
       skipped.push(key);
       continue;
     }
-    write(key, vendorHeader(ref.relPath, opts.version) + ref.content);
+    write(key, vendorHeader(ref.relPath, opts.version, 'html', licencePathFor(ref.relPath)) + ref.content);
   }
 
   const indexKey = relKey(referenceDir, 'rules.index.json');
@@ -170,7 +170,7 @@ export function update(opts: InstallOptions): UpdateResult {
         skipped.push(key);
         continue;
       }
-      const content = vendorHeader(file, opts.version, 'css') + readFileSync(join(tokensDir, file), 'utf8');
+      const content = vendorHeader(file, opts.version, 'css', null) + readFileSync(join(tokensDir, file), 'utf8');
       const abs = join(opts.projectRoot, ...key.split('/'));
       mkdirSync(dirname(abs), { recursive: true });
       writeFileSync(abs, content, 'utf8');

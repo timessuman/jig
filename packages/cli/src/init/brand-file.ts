@@ -22,7 +22,7 @@ function round(n: number): number {
  */
 export function renderBrandFile(defaultCssRaw: string, projectSlug: string, version: string, proposal: ColorProposal): string {
   const fileName = `brand.${projectSlug}.css`;
-  const header = vendorHeader(fileName, version, 'css');
+  const header = vendorHeader(fileName, version, 'css', null);
 
   if (!defaultCssRaw.includes(TOP_COMMENT_FIRST_LINE) || !defaultCssRaw.includes(TOP_COMMENT_LAST_LINE)) {
     throw new Error(
