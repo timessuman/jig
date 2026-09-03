@@ -95,6 +95,39 @@ What it does NOT guard: values that live only in the mode CSS with no prose home
    against both light backgrounds. The source states this directly for system
    colours. `--color-text-warning` shipped at 3.64:1 in 0.1.0 and 0.2.0.
 
+## From the check review
+
+Findings from the whole-branch review of `check` that were triaged as non-blocking
+and deliberately deferred past this fix pass (C1/C2/C3/I1/I3/I4/I6/M1/M7/M8 were
+fixed in the same pass this section was added in).
+
+- **I2 — CSS nesting silently loses the parent block's declarations.** `splitRuleBlocks`
+  (`packages/cli/src/check/css.ts`) treats any block containing a nested `{` as a
+  wrapper and excludes it from `leafBlocks` — correct for `@media`/`@supports`/
+  `@keyframes`, where the outer block carries no declarations of its own, but wrong
+  for native CSS nesting (`.card { color: red; &:hover { color: blue; } }`), where the
+  outer block's OWN declarations (`color: red` here) are real and currently invisible
+  to every detector that reads `leafBlocks`. Fixing this is its own piece of work: the
+  block splitter needs to distinguish "this block is purely a wrapper" from "this block
+  has both its own declarations and a nested rule," which changes what a "leaf" means
+  and likely changes `bodyStartLine`/line-number accounting for the split declarations.
+- **I5 — consumer-declared custom properties are invisible to token-aware detectors.**
+  `tokens` (passed through `DetectorContext`) is only ever the vendored Jig token map
+  loaded from `.jig/tokens/*.css` (`packages/cli/src/check/tokens.ts`) — a `var(--x)`
+  the consumer declares themselves (in their own `:root`, a component-scoped custom
+  property, a CSS-in-JS theme object, ...) is never in that map. `resolveOpaqueColor`/
+  `extractColorComponents` then treat such a reference as unresolved and skip it, which
+  is the safe default (no guessing) but means `contrast-floor` and `violet-band-hue`
+  silently do not evaluate an entire class of real values. There is no `:root` scan of
+  the consumer's own CSS to build a fuller map; adding one is a scope decision (how far
+  to walk imports/scoping) rather than a small fix.
+- **M2, M3, M4, M5, M6, M9** — flagged in the whole-branch review of `check` but their
+  specifics were not included in the handoff that produced this fix pass. Recorded here
+  as open items so they aren't lost; recovering the concrete finding for each requires
+  the original review output (`packages/cli/src/check/**`, review commit range
+  `6ee3ae6..34d298a` per `.superpowers/sdd/2026-08-31-jig-foundation-install/
+  review-6ee3ae6..34d298a.diff`, is the diff they were reviewed against).
+
 ## Open questions raised by the source, not yet acted on
 
 - **Shadow colour.** The source suggests using the "text strong" palette variation
