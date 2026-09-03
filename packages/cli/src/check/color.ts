@@ -155,10 +155,61 @@ export function substituteVars(value: string, tokens: Record<string, string>, de
   return changed ? substituteVars(result, tokens, depth + 1) : result;
 }
 
+// oklch(L C H [/ A]) — L as 0..1 or a percentage, C absolute (or a percentage
+// of 0.4), H in degrees. Tailwind v4 and shadcn/ui emit oklch by default, so a
+// parser that skipped it derived nothing from a large share of real projects
+// and computed no contrast against Jig's own `--color-bg-base`.
+const OKLCH_RE =
+  /^oklch\(\s*([\d.]+%?)\s+([\d.]+%?)\s+([-\d.]+)(?:deg)?\s*(?:\/\s*([\d.]+%?)\s*)?\)$/i;
+
+/** sRGB gamma encode. */
+function gammaEncode(c: number): number {
+  return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+}
+
+/**
+ * oklch -> sRGB, via oklab and linear sRGB (Björn Ottosson's matrices).
+ * Out-of-gamut colours are clamped per channel, which is what browsers do for
+ * an sRGB display, and is the right answer for a contrast calculation.
+ */
+function parseOklchFn(value: string): { r: number; g: number; b: number; a: number } | null {
+  const m = OKLCH_RE.exec(value.trim());
+  if (!m) return null;
+
+  const num = (raw: string, pctBasis: number): number =>
+    raw.endsWith('%') ? (Number.parseFloat(raw) / 100) * pctBasis : Number.parseFloat(raw);
+
+  const L = num(m[1], 1);
+  const C = num(m[2], 0.4);
+  const H = Number.parseFloat(m[3]);
+  const a = m[4] === undefined ? 1 : Math.min(1, Math.max(0, num(m[4], 1)));
+  if ([L, C, H].some((n) => !Number.isFinite(n))) return null;
+
+  const hRad = (H * Math.PI) / 180;
+  const oa = C * Math.cos(hRad);
+  const ob = C * Math.sin(hRad);
+
+  const l_ = L + 0.3963377774 * oa + 0.2158037573 * ob;
+  const m_ = L - 0.1055613458 * oa - 0.0638541728 * ob;
+  const s_ = L - 0.0894841775 * oa - 1.291485548 * ob;
+  const l = l_ ** 3;
+  const mm = m_ ** 3;
+  const ss = s_ ** 3;
+
+  const lr = 4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * ss;
+  const lg = -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * ss;
+  const lb = -0.0041960863 * l - 0.7034186147 * mm + 1.707614701 * ss;
+
+  const to255 = (lin: number): number =>
+    Math.round(Math.min(1, Math.max(0, gammaEncode(lin))) * 255);
+
+  return { r: to255(lr), g: to255(lg), b: to255(lb), a };
+}
+
 /**
  * Resolves `value` to its RGB/HSL components and alpha, substituting any
  * `var(--token)` references against `tokens` first. Returns `null` for
- * anything it cannot parse as a literal colour (oklch, currentColor,
+ * anything it cannot parse as a literal colour (currentColor,
  * gradients, an unresolved custom property, ...) — callers must not guess
  * past that.
  */
@@ -185,6 +236,12 @@ export function extractColorComponents(value: string, tokens: Record<string, str
   if (hslFn) {
     const rgb = hslToRgb(hslFn.h, hslFn.s, hslFn.l);
     return { rgb, hsl: { h: hslFn.h, s: hslFn.s, l: hslFn.l }, alpha: hslFn.a };
+  }
+
+  const oklch = parseOklchFn(substituted);
+  if (oklch) {
+    const rgb = { r: oklch.r, g: oklch.g, b: oklch.b };
+    return { rgb, hsl: rgbToHsl(rgb), alpha: oklch.a };
   }
 
   return null;
