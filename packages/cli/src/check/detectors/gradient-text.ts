@@ -1,5 +1,5 @@
 import { leafBlocks, lineOfOffset, sourceLine } from '../css.js';
-import { CSS_EXTENSIONS, hasExtension } from '../ext.js';
+import { isStyleBearing } from '../ext.js';
 import { mkFinding } from '../finding.js';
 import type { Detector, Finding } from '../types.js';
 
@@ -19,7 +19,7 @@ const GRADIENT_RE = /(?:background|background-image)\s*:[^;]*(?:linear|radial|co
 
 export const gradientText: Detector = {
   name: 'gradient-text',
-  appliesTo: (file) => hasExtension(file, CSS_EXTENSIONS),
+  appliesTo: (file) => isStyleBearing(file),
   run(source, file, ctx) {
     const findings: Finding[] = [];
     for (const block of leafBlocks(source)) {

@@ -108,9 +108,9 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     const exts = meta.unscanned.extensions.join(', ');
     lines.push('');
     lines.push(
-      `  ${meta.unscanned.count} file(s) were not scanned (${exts}). The detectors read plain ` +
-        `stylesheets only, so values written in class attributes, <style> blocks or style props ` +
-        `are invisible to this check — a clean result above does not cover them.`,
+      `  ${meta.unscanned.count} file(s) were not scanned (${exts}) — no style extraction exists ` +
+        `for them, so any CSS they carry is invisible to this check and a clean result above does ` +
+        `not cover it.`,
     );
   }
 

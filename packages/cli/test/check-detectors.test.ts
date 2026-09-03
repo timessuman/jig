@@ -8,8 +8,14 @@ import { hardcodedValue } from '../src/check/detectors/hardcoded-value.js';
 import { violetBandHue } from '../src/check/detectors/violet-band-hue.js';
 import type { Bucket, DetectorContext, Severity } from '../src/check/types.js';
 
-function ctx(ruleId: string, bucket: Bucket, severity: Severity, tokens: Record<string, string> = {}): DetectorContext {
-  return { ruleId, bucket, severity, tokens };
+function ctx(
+  ruleId: string,
+  bucket: Bucket,
+  severity: Severity,
+  tokens: Record<string, string> = {},
+  projectParticipates = false,
+): DetectorContext {
+  return { ruleId, bucket, severity, tokens, projectParticipates };
 }
 
 describe('gradient-text (A-02)', () => {

@@ -1,5 +1,5 @@
 import { buildLineIndex, lineForOffset, sourceLine } from '../css.js';
-import { CSS_EXTENSIONS, hasExtension } from '../ext.js';
+import { isStyleBearing } from '../ext.js';
 import { mkFinding } from '../finding.js';
 import type { Detector, Finding } from '../types.js';
 
@@ -28,7 +28,7 @@ const FOCUS_VISIBLE_RE = /:focus-visible\b/i;
 
 export const focusRemoved: Detector = {
   name: 'focus-removed',
-  appliesTo: (file) => hasExtension(file, CSS_EXTENSIONS),
+  appliesTo: (file) => isStyleBearing(file),
   run(source, file, ctx) {
     if (FOCUS_VISIBLE_RE.test(source)) return [];
 

@@ -5,6 +5,7 @@ import { validateIndex, type IndexEntry } from '../rules/schema.js';
 import { selectFiles } from '../check/files.js';
 import { formatReport } from '../check/report.js';
 import { participatesInTokenLayer } from '../check/token-layer.js';
+import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
 import type { Finding } from '../check/types.js';
@@ -80,17 +81,27 @@ function resolveMode(projectRoot: string): string {
 }
 
 /**
- * Files in the selected set that plausibly carry styling but that the detector
- * suite does not read. Scoping to plain stylesheets is deliberate; reporting a
- * clean result without saying which files were never opened is not.
+ * Files in the selected set that carry styling the suite still cannot read.
+ *
+ * Since style extraction landed, the host languages are scanned — their
+ * `<style>` blocks, style attributes and objects, and CSS tagged templates.
+ * What remains unreadable is values written as utility classes
+ * (`className="p-[13px]"`), which are not CSS at all. `hardcoded-class-value`
+ * covers the arbitrary-value form; a bare `p-4` resolves through a framework's
+ * scale that Jig does not model, so it stays out of scope and out of this
+ * count.
+ *
+ * Only templating languages plausibly carrying styles are counted. A `.json` or
+ * `.md` file is not an omission worth reporting, and listing it turns a useful
+ * caveat into noise people learn to skip.
  */
-const STYLE_BEARING = [
-  '.tsx', '.jsx', '.vue', '.svelte', '.astro', '.html', '.htm',
-  '.php', '.erb', '.twig', '.hbs', '.mdx',
+const UNSUPPORTED_STYLE_HOSTS = [
+  '.pug', '.jade', '.haml', '.slim', '.ejs', '.njk', '.liquid',
+  '.blade.php', '.jinja', '.jinja2', '.j2', '.razor', '.cshtml', '.elm', '.rs',
 ];
 
 function summariseUnscanned(files: string[]): { count: number; extensions: string[] } | undefined {
-  const hit = files.filter((f) => STYLE_BEARING.some((e) => f.toLowerCase().endsWith(e)));
+  const hit = files.filter((f) => !isStyleBearing(f) && hasExtension(f, UNSUPPORTED_STYLE_HOSTS));
   if (hit.length === 0) return undefined;
   const extensions = [...new Set(hit.map((f) => f.slice(f.lastIndexOf('.')).toLowerCase()))].sort();
   return { count: hit.length, extensions };
@@ -109,7 +120,18 @@ export function check(opts: CheckOptions): CheckResult {
   const { files } = selectFiles(opts.projectRoot, opts.all);
 
   const bucketFilter = opts.ci ? (b: string) => b === 'mechanical' : undefined;
-  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter);
+  // Does ANY stylesheet in this project sit on the token layer? Host files
+  // inherit this, since their style regions never carry the project's @import.
+  const projectParticipates = files.some((f) => {
+    if (!hasExtension(f, CSS_EXTENSIONS)) return false;
+    try {
+      return participatesInTokenLayer(readFileSync(join(opts.projectRoot, f), 'utf8'), tokens);
+    } catch {
+      return false;
+    }
+  });
+
+  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates);
 
   const hasError = findings.some((f) => f.bucket === 'mechanical' && f.severity === 'error');
   // H-47 skips files that have not adopted the token layer. When NO scanned

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IndexEntry } from '../rules/schema.js';
 import { maskComments } from './css.js';
+import { maskNonStyleRegions } from './styles.js';
 import { getDetector } from './registry.js';
 import type { Bucket, Finding } from './types.js';
 
@@ -21,6 +22,7 @@ export function runChecks(
   index: IndexEntry[],
   tokens: Record<string, string>,
   bucketFilter?: (bucket: Bucket) => boolean,
+  projectParticipates = false,
 ): Finding[] {
   const findings: Finding[] = [];
 
@@ -49,10 +51,16 @@ export function runChecks(
     // `:focus-visible` silenced the whole file's focus-removed check. Do not
     // add a mask call inside an individual detector — that duplication is
     // how this diverged in the first place.
-    const source = maskComments(raw);
+    // Host languages (`.tsx`, `.vue`, `.astro`, `.php`, ...) are first reduced
+    // to their style regions — `<style>` blocks, `style` attributes and
+    // objects, CSS tagged templates — with every character position preserved,
+    // so the detectors below run unchanged and their line numbers still point
+    // at the host file's real lines. A plain stylesheet passes through
+    // untouched. See ./styles.ts.
+    const source = maskComments(maskNonStyleRegions(raw, file));
 
     for (const { entry, detector } of applicable) {
-      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens };
+      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates };
       findings.push(...detector.run(source, file, ctx));
     }
   }
