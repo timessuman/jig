@@ -7,3 +7,13 @@
 /LICENSE
 /NOTICE
 /README.md
+
+# Harness installs written by running the CLI from inside this package during
+# manual verification. Never source — one such run committed 65 files.
+/.agents/
+/.claude/
+/.codex/
+/.cursor/
+/.gemini/
+/.opencode/
+/.jig/
