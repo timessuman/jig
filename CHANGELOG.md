@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.3.0
+
+Two new commands. `install` and `update` put the system in place; these two make
+it do something.
+
+### Added
+
+- **`jig check`** — verifies a consumer's code against the rules. Seven
+  detectors, exactly the ones `rules.index.json` already named: `gradient-text`
+  (A-02), `backdrop-blur` (A-04), `pure-black-white` (C-18), `contrast-floor`
+  (C-19), `focus-removed` (E-29), `hardcoded-value` (H-47), and
+  `violet-band-hue` (A-01, hybrid — it asks rather than fails). With `--all`,
+  `--ci` (mechanical bucket only, no model, deterministic) and `--json`.
+
+  H-47 runs only on files that reference a Jig token or import a vendored token
+  file. "Hard-coded *past* the token layer" means nothing for a file that never
+  adopted it, and without that scope it produced 13 of 13 findings on a 20-line
+  stylesheet. A project where nothing participates is told how to start.
+
+- **`jig init`** — sets a project up to use the system. Detects the CSS system,
+  derives a brand colour from existing code rather than interviewing cold,
+  validates it against the contract `brand.default.css` already states, writes
+  the brand file and `jig.config.json`, wires the imports, and runs `check` for
+  a baseline.
+
+  This is also what makes global installs coherent. The brand file and config
+  always live in the project, and for a global install the one selected mode
+  file is copied into the project's `.jig/tokens/` so the import is
+  project-relative. A `$HOME`-relative CSS import resolves only on the machine
+  that generated it; a stylesheet is committed and must build everywhere.
+
+- `oklch()` is parsed. Tailwind v4 and shadcn emit it by default, so skipping it
+  meant `init` derived nothing on a large share of new projects and `C-19`
+  computed no contrast against Jig's own `--color-bg-base`.
+
+### Fixed
+
+- **CSS nesting hid the parent's declarations.** A block containing braces was
+  discarded whole, so in `.card { color: red; .h { … } }` the `color: red`
+  belonged to no block and was invisible to every detector. On a Sass codebase
+  that was most declarations, reported as a clean result.
+
+- Comments produced findings, and a commented-out `:focus-visible` silenced
+  E-29 for a whole file — a dead detector reporting success.
+
+- `var(--x, fallback)` was resolved to the fallback and reported as fact.
+
+- The large-text contrast exemption was inert because only `px` font-sizes were
+  recognised, so `2rem` at 3.54:1 was flagged as failing a 4.5:1 floor that did
+  not apply to it.
+
+
 ## 0.2.1
 
 ### Fixed
