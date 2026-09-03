@@ -18,4 +18,5 @@ export const claude: Adapter = {
     ].join('\n');
     return [{ relPath: '.claude/skills/jig/SKILL.md', content }];
   },
+  referenceDir: () => '.claude/skills/jig',
 };

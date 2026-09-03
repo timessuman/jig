@@ -34,6 +34,13 @@ export interface InstallOptions {
 export interface InstallResult {
   written: string[];
   skipped: string[];
+  /**
+   * Set, with nothing written, when this would be a project-scope install
+   * for an agent that already has a global one — installing anyway would
+   * leave two `jig` skills for the same harness with contradicting rule
+   * paths, which is the exact failure this architecture exists to prevent.
+   */
+  warning?: string;
 }
 
 const ASK_INSTRUCTION =
@@ -58,18 +65,17 @@ function writeFile(root: string, key: string, content: string, files: Record<str
 }
 
 /**
- * Renders the shared body of every adapter's skill/instruction file.
+ * Renders the shared body of an adapter's skill/instruction file.
  *
- * `scope` determines where the rendered body tells the agent to look for the
- * vendored rules: `.jig` for a project-scope install (resolved against the
- * agent's own working directory) or `~/.jig` for a global install (resolved
- * against the user's home directory, since a global install's skill file can
- * be read while working in any project). Getting this wrong is finding C2 —
- * a global install whose skill file still says `.jig/...` sends an agent
- * looking for rules in a directory that will not exist in whatever project
- * it happens to be working in.
+ * `rulesPath` is the fully-resolved location — already anchored for the
+ * scope this install targets (`~/`-prefixed for global, bare for project;
+ * see `install()`) — of the `rules/` directory beside wherever this
+ * adapter's own skill file lands. It replaces every `{{rules_path}}` in the
+ * template; getting it wrong is finding C2 — a skill file that points an
+ * agent at a `rules/` directory that does not exist from wherever the agent
+ * actually reads the file.
  */
-export function buildSkillBody(packageRoot: string, scope: Scope): string {
+export function buildSkillBody(packageRoot: string, rulesPath: string): string {
   const template = readFileSync(join(packageRoot, 'templates', 'SKILL.md.tmpl'), 'utf8');
   const metadata = JSON.parse(
     readFileSync(join(packageRoot, 'templates', 'command-metadata.json'), 'utf8'),
@@ -80,8 +86,20 @@ export function buildSkillBody(packageRoot: string, scope: Scope): string {
     ask_instruction: ASK_INSTRUCTION,
     available_commands: renderCommandTable(metadata),
     config_file: 'jig.config.json',
-    rules_path: scope === 'global' ? '~/.jig' : '.jig',
+    rules_path: rulesPath,
   });
+}
+
+/**
+ * The `rules_path` template variable: where the adapter's reference bundle's
+ * `rules/` directory actually lands, expressed so it resolves regardless of
+ * the agent's working directory when it later reads the skill file — bare
+ * (project-root-relative) for a project-scope install, `~/`-anchored
+ * (home-relative) for a global one. Shared by `install` and `update` so a
+ * refreshed skill file's rule paths stay in lockstep with a fresh install's.
+ */
+export function rulesPathFor(referenceDir: string, scope: Scope): string {
+  return scope === 'global' ? `~/${referenceDir}/rules` : `${referenceDir}/rules`;
 }
 
 interface PlannedFile {
@@ -106,11 +124,38 @@ export function install(opts: InstallOptions): InstallResult {
     throw new Error(`Adapter '${adapter.name}' does not support ${opts.scope} scope.`);
   }
 
+  // A project install when this agent is already installed globally would
+  // leave two `jig` skills registered with the same harness, with rule
+  // paths that point at two different places — exactly the incoherence this
+  // architecture exists to prevent. Refuse rather than silently creating a
+  // second, contradictory skill; the user can update the global install
+  // instead, or pick a different agent for this project.
+  if (opts.scope === 'project' && adapter.supportsScope('global')) {
+    const globalReferenceDir = adapter.referenceDir('global');
+    let globalManifest: Manifest | null;
+    try {
+      globalManifest = readManifest(opts.homeDir, globalReferenceDir);
+    } catch {
+      globalManifest = null;
+    }
+    if (globalManifest) {
+      return {
+        written: [],
+        skipped: [],
+        warning:
+          `Jig is already installed globally for '${opts.agent}' (${globalReferenceDir} under your home ` +
+          `directory). Installing again at project scope would leave two contradicting '${opts.agent}' skills. ` +
+          `Run 'jig update' to refresh the global install instead, or choose a different --agent for this project.`,
+      };
+    }
+  }
+
   // `global` scope installs to the user's home directory, not the project
   // root the CLI happened to be invoked from. `homeDir` is supplied by the
   // caller rather than resolved here via `os.homedir()`, so this function
   // stays testable against a temp directory standing in for $HOME.
   const installRoot = opts.scope === 'global' ? opts.homeDir : opts.projectRoot;
+  const referenceDir = adapter.referenceDir(opts.scope);
 
   // A manifest from a prior install at this root, if present, is what makes
   // a *re*-install skip a file the user has since edited (finding I1) — the
@@ -122,7 +167,7 @@ export function install(opts: InstallOptions): InstallResult {
   // install() itself refusing to run.
   let existingManifest: Manifest | null;
   try {
-    existingManifest = readManifest(installRoot);
+    existingManifest = readManifest(installRoot, referenceDir);
   } catch {
     existingManifest = null;
   }
@@ -140,39 +185,37 @@ export function install(opts: InstallOptions): InstallResult {
   // safe one. ----
   const planned: PlannedFile[] = [];
 
+  // The reference bundle: rules, the index that describes them, and
+  // attribution. Lives beside the skill file at `referenceDir` — never in
+  // the project's own `.jig/`, which since 0.4.0 install never touches at
+  // all. Tokens are NOT part of this bundle: they are Jig's property (the
+  // default brand, all three mode files) and no one reads them from here —
+  // `init` copies only the modes a project actually declares, straight from
+  // the package, into the project's own `.jig/tokens/`.
   const rulesDir = join(opts.packageRoot, 'rules');
   for (const file of readdirSync(rulesDir).filter((f) => f.endsWith('.md')).sort()) {
     const body = readFileSync(join(rulesDir, file), 'utf8');
-    planned.push({ key: relKey('.jig', file), content: vendorHeader(file, opts.version) + body, checkable: true });
-  }
-
-  // The tokens are the other half of the system: the rules cite them by name
-  // and are unusable without them. They vendor alongside the rules so a
-  // consumer has both after a single install.
-  const tokensDir = join(opts.packageRoot, 'tokens');
-  for (const file of readdirSync(tokensDir).filter((f) => f.endsWith('.css')).sort()) {
-    const body = readFileSync(join(tokensDir, file), 'utf8');
     planned.push({
-      key: relKey('.jig', 'tokens', file),
-      content: vendorHeader(file, opts.version, 'css') + body,
+      key: relKey(referenceDir, 'rules', file),
+      content: vendorHeader(file, opts.version) + body,
       checkable: true,
     });
   }
-
   planned.push({
-    key: relKey('.jig', 'rules.index.json'),
+    key: relKey(referenceDir, 'rules.index.json'),
     content: readFileSync(join(opts.packageRoot, 'rules.index.json'), 'utf8'),
     checkable: true,
   });
   for (const src of ['LICENSE', 'NOTICE'] as const) {
     planned.push({
-      key: relKey('.jig', src),
+      key: relKey(referenceDir, src),
       content: readFileSync(join(opts.packageRoot, src), 'utf8'),
       checkable: false,
     });
   }
 
-  const skillBody = buildSkillBody(opts.packageRoot, opts.scope);
+  const rulesPath = rulesPathFor(referenceDir, opts.scope);
+  const skillBody = buildSkillBody(opts.packageRoot, rulesPath);
   const skillFiles = skillFilesFor(adapter, {
     version: opts.version,
     scope: opts.scope,
@@ -218,8 +261,8 @@ export function install(opts: InstallOptions): InstallResult {
     installedAt: new Date().toISOString(),
     files,
   };
-  writeManifest(installRoot, manifest);
-  written.push(relKey('.jig', 'manifest.json'));
+  writeManifest(installRoot, manifest, referenceDir);
+  written.push(relKey(referenceDir, 'manifest.json'));
 
   return { written, skipped };
 }

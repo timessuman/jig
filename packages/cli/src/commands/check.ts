@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { resolveInstalled } from '../install/target.js';
+import { assetRoot } from '../paths.js';
 import { validateIndex, type IndexEntry } from '../rules/schema.js';
 import { selectFiles } from '../check/files.js';
 import { formatReport } from '../check/report.js';
@@ -11,6 +11,9 @@ import type { Finding } from '../check/types.js';
 
 export interface CheckOptions {
   projectRoot: string;
+  /** Unused since 0.4.0 — `check` no longer looks for an install at all (see
+   *  `resolveIndexPath`). Kept on the interface so every existing call site
+   *  (the CLI, `init`'s baseline run, tests) doesn't need to change shape. */
   homeDir: string;
   version: string;
   /** Whole-repo instead of just changed files (the first-run case). */
@@ -29,25 +32,41 @@ export interface CheckResult {
   hasError: boolean;
 }
 
+/** Pre-0.4.0 projects had `install` vendor `rules.index.json` straight into
+ *  the project at this path. `check` keeps reading it there, for one minor
+ *  version, so an un-migrated project does not break on upgrade — see the
+ *  migration section of the skill-first design spec. Remove this shim (and
+ *  this whole legacy-index branch of `resolveIndex`) once 0.5.0 ships. */
+const LEGACY_INDEX_REL = join('.jig', 'rules.index.json');
+
+function resolveIndexPath(projectRoot: string): string {
+  const legacy = join(projectRoot, LEGACY_INDEX_REL);
+  if (existsSync(legacy)) return legacy;
+  // Since 0.4.0, `check` never needs a prior `jig install`: the index it
+  // reads is the CLI's own bundled copy, resolved via `assetRoot()` from
+  // wherever this process's code is actually running (the monorepo during
+  // development, or the installed npm package in the real world) — not
+  // anything written into (or missing from) the project.
+  return join(assetRoot(), 'rules.index.json');
+}
+
 /**
  * Checks a consumer's repo against the mechanical + hybrid detectors named
- * in their vendored `rules.index.json`. Throws if Jig is not installed
- * (mirrors `update`'s error, pointing at `jig install`).
+ * in Jig's own `rules.index.json` (bundled with the CLI — see
+ * `resolveIndexPath`). Never requires `jig install` or `jig init` to have
+ * run first: rules that need no tokens (most of the mechanical bucket) work
+ * against a project Jig has never touched.
  */
 export function check(opts: CheckOptions): CheckResult {
-  const target = resolveInstalled(opts.projectRoot, opts.homeDir);
-  if (!target) {
-    throw new Error(`Jig is not installed in ${opts.projectRoot}. Run 'jig install --agent <name>' first.`);
-  }
-
-  // The install root is where the RULES live; it is the home directory for a
-  // global install. The files to CHECK are always the project's own. Scanning
-  // the install root would make `jig check` walk the user's entire home
-  // directory, report findings in unrelated personal files, and never open the
-  // repository they ran it in.
-  const indexPath = join(target.installRoot, '.jig', 'rules.index.json');
+  const indexPath = resolveIndexPath(opts.projectRoot);
   const index: IndexEntry[] = validateIndex(JSON.parse(readFileSync(indexPath, 'utf8')));
-  const tokens = loadTokenMap(target.installRoot);
+  // Tokens are always the PROJECT's own — `.jig/tokens/` under
+  // `projectRoot` — regardless of where the skill/rules happen to be
+  // installed (project-scope skill directory, or global under $HOME). A
+  // global install has no project tokens to speak of; `loadTokenMap`
+  // already returns `{}` for a missing directory, which is exactly right
+  // for a project Jig has never been `init`-ed in.
+  const tokens = loadTokenMap(opts.projectRoot);
   const { files } = selectFiles(opts.projectRoot, opts.all);
 
   const bucketFilter = opts.ci ? (b: string) => b === 'mechanical' : undefined;

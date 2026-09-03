@@ -30,25 +30,20 @@ one. Where a global install lands depends on the agent:
 | opencode | `.opencode/skills/jig/SKILL.md` | `~/.config/opencode/skills/jig/SKILL.md` |
 | Generic | `AGENTS.md` | not supported |
 
-In both scopes, the rules themselves are vendored to `<root>/.jig/` — the
-project root for a project-scoped install, or your home directory for a
-global one.
+Install writes the skill file **and its reference material** (`rules/`,
+`rules.index.json`, `LICENSE`, `NOTICE`) to one place only — beside the skill
+file itself (`.claude/skills/jig/`, `~/.codex/.jig/`, `.cursor/rules/jig/`,
+...). Nothing is written into your project's `.jig/`; the rules are read by
+your agent from the skill install, not vendored into your repo. Installing at
+project scope when the same agent is already installed globally warns instead
+of creating a second, contradicting skill — update the global install, or
+pick a different `--agent` for the project.
 
 Update later with `npx jig-ui@latest update` — files you have edited are left
 alone.
 
-Install writes the rules and the design tokens into `.jig/`. Import the tokens
-your surface needs — one brand file, one mode file:
-
-```css
-@import ".jig/tokens/brand.default.css";
-@import ".jig/tokens/mode.product.css";
-```
-
-Copy `brand.default.css` to `brand.<yourproject>.css` and edit that; `jig update`
-will not overwrite a file you have changed.
-
-Or let `jig init` do the above for you:
+Run `jig init` to set the *project* up — this is the only command that writes
+into your repo:
 
 ```
 npx jig-ui@latest init
@@ -58,12 +53,30 @@ It detects your CSS system (Tailwind v4, Tailwind v3, plain CSS), derives a
 brand colour from what your project already has (custom properties first,
 then a Tailwind config, then the most frequent literal colour) instead of
 asking cold, validates that colour against the contrast and collision
-requirements stated in `brand.default.css` itself, writes
-`.jig/tokens/brand.<project>.css` and `jig.config.json`, wires the `@import`
-into your stylesheet when there is one unambiguous place to put it, and runs
-a baseline `check` so you have a number to move. Add `--yes` to accept every
-derived default non-interactively (the mode CI and agents run in). Re-running
-`init` never overwrites a `jig.config.json` or brand file you have edited.
+requirements stated in Jig's default brand file, writes
+`.jig/tokens/brand.<project>.css` (your identity) and a `.jig/tokens/<mode>.css`
+copy for each mode `jig.config.json` declares (a build input — its `@import`
+must resolve locally, so it is the one thing genuinely copied), wires the
+`@import`s into your stylesheet when there is one unambiguous place to put
+them, and runs a baseline `check` so you have a number to move. Add `--yes`
+to accept every derived default non-interactively (the mode CI and agents run
+in). Re-running `init` never overwrites a `jig.config.json` or brand file you
+have edited — for a single-mode project it writes exactly 3 files:
+
+```
+.jig/
+  tokens/
+    brand.<project>.css   your identity, edit freely
+    <mode>.css            a copy of Jig's mode file — refreshed by `jig update`
+  state.json               (bookkeeping — version, modes in use, checksums)
+jig.config.json             route → mode map
+```
+
+Upgrading from a pre-0.4.0 install that vendored rules into your project's
+`.jig/`? `jig init` (and `jig check`, for one more minor version) detects the
+leftover files, reports them, and — with your consent, and never for a file
+you've edited — offers to remove just the install artifacts, keeping your
+tokens and config untouched.
 
 ## Files
 
@@ -77,6 +90,9 @@ derived default non-interactively (the mode CI and agents run in). Re-running
 | `rules/05-copy.md` | Interface text rules | Writing any user-facing string |
 | `.jig/tokens/brand.*.css` | Identity. One per project. | Imported by the app |
 | `.jig/tokens/mode.*.css` | Density, scale, rhythm, motion | One per surface |
+
+`rules/*` and `rules.index.json` live beside your installed skill file, not
+in the project — see above.
 
 `00` and `01` are the always-loaded core and are sized to stay cheap in context. `03` is the largest file and should be loaded per-pattern rather than wholesale.
 

@@ -36,7 +36,11 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     const loc = `${f.file}:${f.line}`;
     const firstOccurrence = !seenRule.has(f.ruleId);
     seenRule.add(f.ruleId);
-    const hint = firstOccurrence ? `  (see .jig/00-anti-patterns.md#${f.ruleId.toLowerCase()})` : '';
+    // No project-relative path is guaranteed to exist any more — the rules
+    // live beside whichever skill directory `jig install` used (global or
+    // project, and adapter-specific). Point at the rule id in the installed
+    // skill's own reference material instead of a path that may not resolve.
+    const hint = firstOccurrence ? `  (see rule ${f.ruleId} in your installed jig skill's rules/)` : '';
     return { symbol, ruleId: f.ruleId, message: f.message, loc, fileOnly: f.file, bucket: f.bucket, hint };
   });
 
@@ -71,9 +75,7 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     lines.push('');
     if (meta.noTokenLayer) {
       lines.push('  No file references a Jig token, so H-47 (hard-coded values) was not run.');
-      lines.push('  Import a brand and a mode file to bring your CSS under the token layer:');
-      lines.push('    @import ".jig/tokens/brand.default.css";');
-      lines.push('    @import ".jig/tokens/mode.product.css";');
+      lines.push("  Run 'jig init' to generate a brand file and wire it (with a mode file) into your CSS.");
       lines.push('');
     }
   }

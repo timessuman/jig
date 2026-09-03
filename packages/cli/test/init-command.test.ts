@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, chmodSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, chmodSync, readdirSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { install } from '../src/commands/install.js';
@@ -7,6 +7,9 @@ import { init } from '../src/commands/init.js';
 import { readManifest } from '../src/install/manifest.js';
 import { deriveBrandColor } from '../src/init/derive.js';
 import { validateBrandColor } from '../src/init/validate.js';
+import { getAdapter } from '../src/adapters/registry.js';
+
+const claudeDir = getAdapter('claude').referenceDir('project'); // '.claude/skills/jig'
 
 // The real vendored assets (rules/, tokens/, templates/, rules.index.json)
 // live at the repo root. Using them — rather than a synthetic fixture, as
@@ -75,18 +78,18 @@ describe('init — writing', () => {
     expect(config.surfaces).toEqual([{ match: '/', mode: 'product' }]);
   });
 
-  it('records both written files in the init sidecar manifest with forward-slash keys and real checksums', async () => {
+  it('records both written files in the init sidecar (.jig/state.json) with forward-slash keys and real checksums', async () => {
     await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
-    const sidecar = JSON.parse(readFileSync(join(project, '.jig', 'init-manifest.json'), 'utf8'));
+    const sidecar = JSON.parse(readFileSync(join(project, '.jig', 'state.json'), 'utf8'));
     expect(sidecar.files['.jig/tokens/brand.storefront.css']).toMatch(/^sha256:/);
     expect(sidecar.files['jig.config.json']).toMatch(/^sha256:/);
     for (const key of Object.keys(sidecar.files)) expect(key).not.toContain('\\');
   });
 
-  it('does not touch the real install manifest', async () => {
-    const before = readManifest(project)!;
+  it('does not touch the real skill/reference-bundle manifest', async () => {
+    const before = readManifest(project, claudeDir)!;
     await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
-    const after = readManifest(project)!;
+    const after = readManifest(project, claudeDir)!;
     expect(after.files).toEqual(before.files);
   });
 
@@ -364,12 +367,18 @@ describe('init — safety (never silently clobbers)', () => {
     ).resolves.toBeDefined();
   });
 
-  it('throws a clear error naming jig install when Jig is not installed', async () => {
+  // Since 0.4.0, `init` no longer requires a prior `jig install` — nothing
+  // it writes (the brand file, the mode-file copies, the baseline check)
+  // depends on an install being present; the mode files it copies come
+  // straight from `packageRoot`.
+  it('runs successfully with no prior jig install', async () => {
     const bare = mkdtempSync(join(tmpdir(), 'jig-init-bare-'));
     try {
-      await expect(
-        init({ projectRoot: bare, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG }),
-      ).rejects.toThrow(/jig install/i);
+      const result = await init({
+        projectRoot: bare, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG,
+      });
+      expect(result.brand.action).toBe('written');
+      expect(existsSync(join(bare, 'jig.config.json'))).toBe(true);
     } finally {
       rmSync(bare, { recursive: true, force: true });
     }
@@ -464,12 +473,14 @@ describe('init — global scope', () => {
 
     expect(existsSync(join(project, '.jig', 'tokens', 'brand.globalapp.css'))).toBe(true);
     expect(existsSync(join(project, 'jig.config.json'))).toBe(true);
-    // The real rules manifest lives in $HOME, untouched by init's own writes.
-    expect(existsSync(join(home, '.jig', 'manifest.json'))).toBe(true);
+    // The real skill/reference-bundle manifest lives beside the skill file
+    // under $HOME, untouched by init's own writes.
+    expect(existsSync(join(home, claudeDir, 'manifest.json'))).toBe(true);
     // init's sidecar lives in the project, and must never collide with a
-    // real .jig/manifest.json there (which would corrupt scope detection).
-    expect(existsSync(join(project, '.jig', 'manifest.json'))).toBe(false);
-    expect(existsSync(join(project, '.jig', 'init-manifest.json'))).toBe(true);
+    // real reference-bundle manifest.json there (which would corrupt scope
+    // detection).
+    expect(existsSync(join(project, claudeDir, 'manifest.json'))).toBe(false);
+    expect(existsSync(join(project, '.jig', 'state.json'))).toBe(true);
 
     expect(result.wiring.status).toBe('wired');
     const cssContent = readFileSync(join(project, 'src', 'app.css'), 'utf8');
@@ -484,7 +495,7 @@ describe('init — global scope', () => {
 
     // The copy is tracked in the init sidecar manifest, so a later `jig
     // update` can refresh it (see the companion fix in commands/update.ts).
-    const sidecar = JSON.parse(readFileSync(join(project, '.jig', 'init-manifest.json'), 'utf8'));
+    const sidecar = JSON.parse(readFileSync(join(project, '.jig', 'state.json'), 'utf8'));
     expect(sidecar.files['.jig/tokens/mode.product.css']).toMatch(/^sha256:/);
   });
 
@@ -500,5 +511,63 @@ describe('init — global scope', () => {
 
     await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
     expect(readFileSync(modePath, 'utf8')).toBe(edited);
+  });
+});
+
+/** Every file `init` actually put on disk under `.jig/` plus `jig.config.json`
+ *  at the project root — walked fresh each time rather than hardcoded, so
+ *  this fails loudly if a future change adds an unexpected file. */
+function initWrittenFiles(root: string): string[] {
+  const out: string[] = [];
+  const walk = (dir: string, prefix: string) => {
+    for (const name of readdirSync(dir)) {
+      const abs = join(dir, name);
+      if (statSync(abs).isDirectory()) walk(abs, `${prefix}${name}/`);
+      else out.push(`${prefix}${name}`);
+    }
+  };
+  if (existsSync(join(root, '.jig'))) walk(join(root, '.jig'), '.jig/');
+  if (existsSync(join(root, 'jig.config.json'))) out.push('jig.config.json');
+  return out.sort();
+}
+
+// --- Target: 3 files for a single-mode project (brand.css, <mode>.css,
+// jig.config.json) — state.json is bookkeeping, not one of "your files". ---
+describe('init — file count (target: 3 files for a single-mode project)', () => {
+  beforeEach(() => {
+    installProject();
+    writeFileSync(join(project, 'package.json'), JSON.stringify({ name: '@acme/storefront' }));
+    mkdirSync(join(project, 'src'), { recursive: true });
+    writeFileSync(join(project, 'src', 'app.css'), ':root { --brand-color: #0F766E; }\n');
+  });
+
+  it('writes exactly 3 project-facing files: the brand file, one mode file, and jig.config.json', async () => {
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+
+    const files = initWrittenFiles(project);
+    const withoutState = files.filter((f) => f !== '.jig/state.json');
+    expect(withoutState.sort()).toEqual(
+      ['.jig/tokens/brand.storefront.css', '.jig/tokens/mode.product.css', 'jig.config.json'].sort(),
+    );
+    expect(withoutState).toHaveLength(3);
+    // state.json exists too (it has to — it's what makes a safe re-run and
+    // `update`'s refresh possible) but is bookkeeping, not a project file.
+    expect(files).toContain('.jig/state.json');
+  });
+
+  it('copies only the mode(s) actually declared in jig.config.json — not all three', async () => {
+    const prompt = async (q: string) => {
+      if (q.includes('Surface')) return '/:editorial,/admin/**:operator';
+      return '';
+    };
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: NOOP_LOG });
+
+    expect(existsSync(join(project, '.jig', 'tokens', 'mode.editorial.css'))).toBe(true);
+    expect(existsSync(join(project, '.jig', 'tokens', 'mode.operator.css'))).toBe(true);
+    // 'product' was never declared — must not be copied.
+    expect(existsSync(join(project, '.jig', 'tokens', 'mode.product.css'))).toBe(false);
+
+    const sidecar = JSON.parse(readFileSync(join(project, '.jig', 'state.json'), 'utf8'));
+    expect(sidecar.modes.sort()).toEqual(['editorial', 'operator']);
   });
 });

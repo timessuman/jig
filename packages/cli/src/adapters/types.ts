@@ -33,6 +33,25 @@ export interface Adapter {
   displayName: string;
   supportsScope(scope: Scope): boolean;
   skillFiles(ctx: AdapterContext): RenderedFile[];
+  /**
+   * Directory, relative to the install root for `scope` (the project root
+   * for `'project'`, the user's home directory for `'global'`), where Jig's
+   * reference material — `rules/*.md`, `rules.index.json`, `LICENSE`,
+   * `NOTICE`, and this adapter's own `manifest.json` — is written.
+   *
+   * For an adapter with a real skill directory (claude, opencode, cursor)
+   * this is that directory, so the reference material sits beside the skill
+   * file the way impeccable keeps `reference/*.md` inside its own skill
+   * directory. For a marker-based adapter writing into `AGENTS.md` (codex,
+   * generic) — which has no skill directory — this is a `.jig` directory
+   * next to wherever `AGENTS.md` lands.
+   *
+   * `install`/`update` build the `rules_path` baked into the rendered
+   * skill/instructions body from this value too (see `commands/install.ts`),
+   * so it must resolve from wherever the corresponding `skillFiles()` output
+   * actually lands, for both scopes this adapter supports.
+   */
+  referenceDir(scope: Scope): string;
 }
 
 export const SKILL_DESCRIPTION =

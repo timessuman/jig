@@ -41,7 +41,7 @@ describe('formatReport', () => {
       f({ ruleId: 'H-47', line: 20 }),
     ];
     const out = formatReport(findings, { totalRules: 104, version: '0.2.1' });
-    const hintCount = out.split('.jig/00-anti-patterns.md#h-47').length - 1;
+    const hintCount = out.split('see rule H-47').length - 1;
     expect(hintCount).toBe(1);
   });
 

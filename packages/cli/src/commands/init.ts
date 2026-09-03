@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { resolveInstalled } from '../install/target.js';
 import { detect, type DetectionResult } from '../init/detect.js';
+import { detectLegacyRules, describeLegacyReport, removableLegacyFiles, removeLegacyFiles } from '../init/migrate.js';
 import { deriveBrandColor, type ColorProposal } from '../init/derive.js';
 import { validateBrandColor, type ValidationResult } from '../init/validate.js';
 import { renderBrandFile, brandFileName } from '../init/brand-file.js';
@@ -277,20 +277,44 @@ function wireImport(absPath: string, brandImport: string, modeImport: string, mo
  * Sets a project up to actually use Jig: derives a brand colour from what
  * already exists (or falls back to the unbranded default), validates it
  * against `brand.default.css`'s own stated contract, writes
- * `.jig/tokens/brand.<project>.css` and `jig.config.json`, wires or prints
- * the `@import`, and runs a baseline `check`.
+ * `.jig/tokens/brand.<project>.css` (plus a `.jig/tokens/<mode>.css` copy
+ * per mode the config declares) and `jig.config.json`, wires or prints the
+ * `@import`, and runs a baseline `check`.
  *
- * Requires an existing install (`resolveInstalled`) — the brand file's
- * `@import` and the baseline check both depend on the vendored mode files
- * and rules already being present.
+ * Does NOT require a prior `jig install` — since 0.4.0 nothing `init` writes
+ * depends on an install being present (the mode files it copies come
+ * straight from `opts.packageRoot`, and `check`'s baseline run reads its
+ * rules from there too). Running `install` first is still the documented
+ * flow (it is what gets the skill/rules in front of the agent at all), but
+ * `init` no longer errors out if you run it first.
  */
 export async function init(opts: InitOptions): Promise<InitResult> {
   const log = opts.log ?? ((line: string) => console.log(line));
   const prompt = opts.prompt ?? defaultPrompt;
 
-  const resolved = resolveInstalled(opts.projectRoot, opts.homeDir);
-  if (!resolved) {
-    throw new Error(`Jig is not installed in ${opts.projectRoot}. Run 'jig install --agent <name>' first.`);
+  // ---- 0. Migration: a pre-0.4.0 project may have rule files vendored
+  // directly into .jig/ by an old `install`. Report them, and — with
+  // consent, never for a file the user has edited — offer to remove just
+  // the install artifacts, leaving tokens and jig.config.json alone. ----
+  const legacyReport = detectLegacyRules(opts.projectRoot);
+  if (legacyReport.present) {
+    for (const line of describeLegacyReport(legacyReport)) log(line);
+    const removable = removableLegacyFiles(legacyReport);
+    if (removable.length > 0) {
+      if (opts.yes) {
+        log('  Re-run without --yes to be prompted for removal, or delete them yourself.');
+      } else {
+        const answer = (
+          await prompt(`  Remove these ${removable.length} unedited legacy file(s)? [y/N]: `)
+        ).toLowerCase();
+        if (answer === 'y' || answer === 'yes') {
+          removeLegacyFiles(opts.projectRoot, removable);
+          log(`  Removed ${removable.length} file(s).`);
+        } else {
+          log('  Left them in place.');
+        }
+      }
+    }
   }
 
   // ---- 1. Detect ----
@@ -448,20 +472,26 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   const primaryMode = effectiveConfig.surfaces[0]?.mode ?? 'product';
   const wiringBrandAbsPath = join(opts.projectRoot, ...effectiveConfig.brand.split('/'));
 
-  // ---- C3: the mode file a global install wires in must resolve on every
-  // machine that builds this repo, forever — not just the one `init` ran
-  // on. `~/.jig` guards against divergence, which matters only for
-  // artifacts read as authority (rule markdown); a mode CSS file is linked
-  // into a build graph instead, where every edge must resolve everywhere.
-  // So: copy the single selected mode file into the project's own
-  // `.jig/tokens/`, tracked in the init sidecar manifest under the same
-  // edit-preserving rules as the brand file and config (see init/state.ts,
-  // and the companion refresh in commands/update.ts so this copy doesn't go
-  // stale). Project scope already vendored every mode file into the project
-  // tree at install time — nothing to copy there.
-  const modeFileName = `mode.${primaryMode}.css`;
-  const modeAbsPath = join(opts.projectRoot, '.jig', 'tokens', modeFileName);
-  if (resolved.scope === 'global') {
+  // A mode file is a build input — its `@import` is an edge in a build
+  // graph that must resolve locally, on every machine that builds this
+  // project, forever (a rule markdown file has no such requirement: it is
+  // read once by an agent that already has its own copy from the skill
+  // install). So, unlike the rules, a mode's CSS genuinely is copied —
+  // deliberately, not an oversight: 0.2.1 changed `--warning-l` and
+  // `--success-l` to fix a real contrast failure below the 4.5:1 floor.
+  // Inlining those values into the project's own stylesheet, rather than
+  // keeping a checksummed copy `update` can refresh, would mean every
+  // project keeps shipping the failing colours forever, with no way for
+  // `update` to know a fix is even available. One copy per mode the config
+  // actually declares — never all three — tracked in the init sidecar
+  // (`.jig/state.json`) under the same edit-preserving rules as the brand
+  // file and config, and refreshed alongside them by `commands/update.ts`.
+  const declaredModes = [...new Set(effectiveConfig.surfaces.map((s) => s.mode))];
+  const modeAbsPaths: Record<string, string> = {};
+  for (const mode of declaredModes) {
+    const modeFileName = `mode.${mode}.css`;
+    const modeAbsPath = join(opts.projectRoot, '.jig', 'tokens', modeFileName);
+    modeAbsPaths[mode] = modeAbsPath;
     const modeRelPath = relKey('.jig', 'tokens', modeFileName);
     const modeState = fileState(opts.projectRoot, modeAbsPath, modeRelPath, initManifest);
     let modeAction: FileAction = 'written';
@@ -478,8 +508,9 @@ export async function init(opts: InitOptions): Promise<InitResult> {
       log(`  ${modeRelPath} exists and is not jig-tracked (or has been edited) — leaving it alone (re-run 'jig update' to refresh it).`);
     }
   }
+  const modeAbsPath = modeAbsPaths[primaryMode]!;
 
-  writeInitManifest(opts.projectRoot, { files });
+  writeInitManifest(opts.projectRoot, { version: opts.version, modes: declaredModes, files });
 
   // ---- Wire or print the import ----
   const wireTarget = findWireTarget(detection);
