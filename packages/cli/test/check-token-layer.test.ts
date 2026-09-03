@@ -49,7 +49,7 @@ describe('formatReport grouping', () => {
   it('explains why H-47 did not run when no file adopted the token layer', () => {
     const out = formatReport([], { totalRules: 104, version: '0.0.0', noTokenLayer: true });
     expect(out).toContain('No file references a Jig token');
-    expect(out).toContain('@import ".jig/tokens/brand.default.css"');
+    expect(out).toContain("jig init");
   });
 
   it('stays quiet about the token layer when files have adopted it', () => {

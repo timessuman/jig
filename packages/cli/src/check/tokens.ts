@@ -4,7 +4,10 @@ import { splitRuleBlocks } from './css.js';
 
 /**
  * Builds a flat map of custom-property name (without the leading `--`) to
- * its raw declared value, from every vendored `.jig/tokens/*.css` file.
+ * its raw declared value, from every `.jig/tokens/*.css` file in a project —
+ * always the project's own tokens (its brand file and declared mode
+ * file(s), written by `init`), never anything from wherever the skill/rules
+ * happen to be installed.
  *
  * Only the top-level `:root { ... }` block is read — not the
  * `prefers-color-scheme: dark` or `[data-theme="dark"]` overrides, whose
@@ -20,8 +23,8 @@ import { splitRuleBlocks } from './css.js';
  * custom property wins — in practice this only matters if a consumer's own
  * mode file redeclares something brand.default.css also sets.
  */
-export function loadTokenMap(installRoot: string): Record<string, string> {
-  const tokensDir = join(installRoot, '.jig', 'tokens');
+export function loadTokenMap(projectRoot: string): Record<string, string> {
+  const tokensDir = join(projectRoot, '.jig', 'tokens');
   const tokens: Record<string, string> = {};
   if (!existsSync(tokensDir)) return tokens;
 
