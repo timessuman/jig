@@ -12,7 +12,7 @@ one `app.css`, with Jig installed as a Claude skill and nothing else said.
 
 | Reference | Claimed failure | Reproduced? |
 | --- | --- | --- |
-| `conflicts.md` | resolves a false rule conflict by silently changing the design | **No** |
+| `conflicts.md` | resolves a false rule conflict by silently changing the design | **No** — but see the invented-token failure below |
 | `commands/init.md` | no ask-versus-proceed gate; `/jig init` is not instruction | **No** |
 | `commands/check.md` | runs the CLI, reports only the mechanical half | **Partly — for a different reason** |
 | `commands/build.md` | improvises the build procedure | Not run (cancelled) |
@@ -56,8 +56,33 @@ than stop, the agent invented one:
 It flagged them honestly, but it wrote invented design decisions into the
 project's stylesheet to keep going. This is the one failure that reproduced
 cleanly, and it has a precise trigger: **the skill is installed, `init` has not
-been run, and the agent is asked to build.** Nothing in `SKILL.md` says what to
+been run, and the agent is asked to build.** Nothing in `SKILL.md` said what to
 do in that state.
+
+Note the shape of the failure. Step 5 said "consume tokens by semantic name
+only", and the agent complied *to the letter* — it used semantic names — by
+inventing the definitions behind them. A rule followed exactly and violated
+completely, which is the loophole `superpowers:writing-skills` says to close
+explicitly rather than restate.
+
+### GREEN
+
+`SKILL.md` gained a step 0 (no `jig.config.json` means no token layer: run
+`init`, do not author a `:root` block of your own) and step 5 gained the
+specific counter: *if a token you need has no value, that is a finding to
+report, not a number to supply.*
+
+Re-run on an identical fixture — installed, not initialised, same task — the
+agent wrote no `:root` block at all. It consumed tokens by name, and where the
+contract had no name for what it needed it said so instead of inventing one:
+
+> `H-47` deliberately broken: the token contract has no border/outline-width
+> namespace, so these two widths have no semantic name to consume. Reported as a
+> missing token rather than added to the token layer here.
+
+That gap is real — `--color-focus` exists, no width token does — so the fix
+turned a silently invented value into a correctly reported hole in the system.
+Recorded as M11.
 
 ## `commands/init.md` — did not reproduce
 

@@ -206,3 +206,13 @@ fixed in the same pass this section was added in).
   the fix — `loadRules` checks both directions and throws, which is it correctly
   refusing to hold two different kinds of thing in one list. A separate spec index,
   or a citation validator that knows about both, would be.
+- **M11 — the token contract has no width namespace.** `--color-focus` exists;
+  nothing names a border width, an outline width or a focus-ring offset. Every
+  rule that requires a visible border or focus ring (`E-28`, `E-29`, `P-02`'s
+  3:1 shape floor) therefore ends at a call site writing `2px` by hand, which
+  `H-47` forbids. A GREEN run of the invented-tokens fix hit this and reported it
+  rather than inventing a value — "the token contract has no border/outline-width
+  namespace, so these two widths have no semantic name to consume" — which is the
+  instruction working, and also the clearest evidence the gap is real. Adding
+  `--border-width-*` and focus-ring geometry is a token-architecture decision,
+  not a mid-release patch.
