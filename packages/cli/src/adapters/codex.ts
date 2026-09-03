@@ -10,8 +10,25 @@ export const codex: Adapter = {
     const relPath = ctx.scope === 'global' ? '.codex/AGENTS.md' : 'AGENTS.md';
     return [{ relPath, content: agentsBlock(ctx.skillBody) }];
   },
-  // codex has no skill directory: AGENTS.md is a plain file (project root,
-  // or `.codex/` for a global install). Reference material lives in a
-  // `.jig` directory right beside it.
-  referenceDir: (scope) => (scope === 'global' ? '.codex/.jig' : '.jig'),
+  /**
+   * codex has no skill directory: AGENTS.md is a plain file (project root, or
+   * `.codex/` for a global install). Reference material lives under `.codex/`
+   * at BOTH scopes.
+   *
+   * Project scope used to be a bare `.jig`, which put Jig's rules, index,
+   * licence and manifest into the one directory 0.4.0 reserves for the
+   * project's own material — the brand file, the mode copies, `state.json`.
+   * That cost more than tidiness:
+   *
+   * - `detectLegacyRules` scans `.jig/` for install artifacts and offers to
+   *   remove them. Under the old layout a *live* codex install looked exactly
+   *   like the legacy one, so the migration path could offer to delete the
+   *   install just made.
+   * - One directory holding two manifests is what let a stale
+   *   `.jig/manifest.json` hijack `update` and resurrect the vendored layout.
+   *
+   * Mirroring the global path keeps codex's own convention and leaves `.jig/`
+   * unambiguously the project's.
+   */
+  referenceDir: () => '.codex/.jig',
 };

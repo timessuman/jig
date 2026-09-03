@@ -243,16 +243,19 @@ describe('install', () => {
   });
 });
 
-describe('install — codex reference material lives beside AGENTS.md in .jig/', () => {
-  it("codex (project scope) puts rules in .jig/, since it has no skill directory of its own", () => {
+describe('install — codex reference material lives under .codex/', () => {
+  it('codex (project scope) puts rules in .codex/.jig/, not the project .jig/', () => {
+    // codex has no skill directory of its own — AGENTS.md is a plain file — so
+    // its bundle needs somewhere to live. It used to be a bare `.jig`, the one
+    // directory 0.4.0 reserves for the project's own material; it now mirrors
+    // codex's own global path. See codex-project-dir.test.ts for why.
     install({ ...opts(), agent: 'codex' });
-    expect(existsSync(join(project, '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
-    expect(existsSync(join(project, '.jig', 'rules.index.json'))).toBe(true);
+    expect(existsSync(join(project, '.codex', '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(project, '.codex', '.jig', 'rules.index.json'))).toBe(true);
     expect(existsSync(join(project, 'AGENTS.md'))).toBe(true);
-    // But install still never writes any project-state file — those come
-    // only from `init` (tokens/, jig.config.json, state.json).
-    expect(existsSync(join(project, '.jig', 'tokens'))).toBe(false);
-    expect(existsSync(join(project, '.jig', 'state.json'))).toBe(false);
+    // install writes no project-state file — those come only from `init` — and
+    // now touches the project's `.jig/` not at all.
+    expect(existsSync(join(project, '.jig'))).toBe(false);
     expect(existsSync(join(project, 'jig.config.json'))).toBe(false);
   });
 });

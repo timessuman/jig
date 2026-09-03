@@ -12,10 +12,12 @@ let home: string;
 // claude's referenceDir is `.claude/skills/jig` regardless of scope — the
 // interesting collision case for the sameRoot/C2 regression tests below.
 const claudeDir = getAdapter('claude').referenceDir('project');
-// codex's referenceDir DIFFERS by scope, so it's the interesting case for
-// showing sameRoot does NOT by itself create ambiguity.
-const codexProjectDir = getAdapter('codex').referenceDir('project');
-const codexGlobalDir = getAdapter('codex').referenceDir('global');
+// opencode's referenceDir DIFFERS by scope (`.opencode` vs
+// `.config/opencode`), so it's the interesting case for showing sameRoot does
+// NOT by itself create ambiguity. codex used to serve this role, back when its
+// project scope was a bare `.jig`; it now mirrors its own global path.
+const splitProjectDir = getAdapter('opencode').referenceDir('project');
+const splitGlobalDir = getAdapter('opencode').referenceDir('global');
 
 const baseManifest = (scope: 'project' | 'global', agent = 'claude'): Manifest => ({
   version: '0.1.0',
@@ -49,11 +51,11 @@ describe('resolveInstalled', () => {
   });
 
   it('discovers a global-scope install via homeDir', () => {
-    writeManifest(home, baseManifest('global', 'codex'), codexGlobalDir);
+    writeManifest(home, baseManifest('global', 'opencode'), splitGlobalDir);
     const result = resolveInstalled(project, home);
     expect(result?.installRoot).toBe(home);
     expect(result?.scope).toBe('global');
-    expect(result?.referenceDir).toBe(codexGlobalDir);
+    expect(result?.referenceDir).toBe(splitGlobalDir);
   });
 
   it('prefers projectRoot and never trusts the manifest scope field when roots differ (C3)', () => {
@@ -75,22 +77,27 @@ describe('resolveInstalled', () => {
   });
 
   it('does not need the scope-field trust even when roots coincide, for an adapter whose scopes use different paths', () => {
-    // codex's project (`.jig`) and global (`.codex/.jig`) reference dirs
-    // differ, so even with projectRoot === homeDir there is no collision —
-    // a manifest found under the project-shaped path is unambiguously
-    // project-scoped regardless of what it claims.
-    writeManifest(home, baseManifest('global', 'codex'), codexProjectDir);
+    // opencode's project (`.opencode/skills/jig`) and global
+    // (`.config/opencode/skills/jig`) reference dirs differ, so even with
+    // projectRoot === homeDir there is no collision — a manifest found under
+    // the project-shaped path is unambiguously project-scoped regardless of
+    // what it claims.
+    writeManifest(home, baseManifest('global', 'opencode'), splitProjectDir);
     const result = resolveInstalled(home, home);
     expect(result?.scope).toBe('project');
   });
 });
 
-describe('a legacy manifest cannot be claimed by the wrong adapter (C1)', () => {
-  // codex's project referenceDir is `.jig`, which is exactly where the
-  // pre-0.4.0 layout put its manifest. Probing by directory alone let a
-  // leftover `.jig/manifest.json` be read as a codex install, and `update`
-  // then rebuilt the whole vendored layout at the project root — undoing the
+describe('a legacy .jig/manifest.json is claimed by nobody', () => {
+  // This used to need a guard: codex's project referenceDir was a bare `.jig`,
+  // exactly where the pre-0.4.0 layout put its manifest, so probing by
+  // directory let a leftover be read as a codex install — and `update` then
+  // rebuilt the whole vendored layout at the project root, undoing the
   // migration on the exact upgrade path a real user takes.
+  //
+  // Codex now uses `.codex/.jig` at both scopes, so no adapter probes `.jig`
+  // at all and the collision cannot occur. The guard stays because it is the
+  // property that matters, not the mechanism that currently provides it.
   it('ignores a .jig/manifest.json that names a different adapter', () => {
     const dir = mkdtempSync(join(tmpdir(), 'jig-legacy-'));
     mkdirSync(join(dir, '.jig'), { recursive: true });
@@ -107,10 +114,13 @@ describe('a legacy manifest cannot be claimed by the wrong adapter (C1)', () => 
   });
 
   it('still reports a manifest naming an agent that is not an adapter at all', () => {
+    // Written where an adapter actually probes, so the C1 guard is reached:
+    // a manifest naming an unknown agent must fail loudly rather than be
+    // passed over as "some other harness's".
     const dir = mkdtempSync(join(tmpdir(), 'jig-bogus-'));
-    mkdirSync(join(dir, '.jig'), { recursive: true });
+    mkdirSync(join(dir, claudeDir), { recursive: true });
     writeFileSync(
-      join(dir, '.jig', 'manifest.json'),
+      join(dir, claudeDir, 'manifest.json'),
       JSON.stringify({
         version: '0.3.0', agent: 'not-a-real-agent', scope: 'project',
         installedAt: '2026-01-01T00:00:00.000Z', files: {},

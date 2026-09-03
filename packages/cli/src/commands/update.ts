@@ -8,6 +8,7 @@ import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
 import { buildSkillBody, relKey, rulesPathFor, type InstallOptions } from './install.js';
 import { readInitManifest, writeInitManifest, isInitFileModified } from '../init/state.js';
+import { detectLegacyRules } from '../init/migrate.js';
 
 export interface UpdateResult {
   updated: string[];
@@ -53,8 +54,20 @@ export interface UpdatedTarget {
 export function update(opts: InstallOptions): UpdateResult {
   const resolved = resolveAllInstalled(opts.projectRoot, opts.homeDir);
   if (resolved.length === 0) {
+    // "Jig is not installed" reads as nonsense to someone upgrading from the
+    // pre-0.4.0 vendored layout: they did install it, and the files are right
+    // there in `.jig/`. Nothing probes that directory any more — it is the
+    // project's own now — so name what was found rather than leaving them to
+    // guess why the CLI cannot see an install they can.
+    const legacy = detectLegacyRules(opts.projectRoot);
+    const hint = legacy.present
+      ? ` A pre-0.4.0 bundle is still in .jig/ (${legacy.files.length} file(s)); since 0.4.0 the ` +
+        `skill and its rules live beside your agent's skill file instead, so that copy is no ` +
+        `longer read. Re-run install, then 'jig init' will report the leftovers — it never removes ` +
+        `a file you have edited.`
+      : '';
     throw new Error(
-      `Jig is not installed in ${opts.projectRoot}. Run 'jig install --agent <name>' first.`,
+      `Jig is not installed in ${opts.projectRoot}. Run 'jig install --agent <name>' first.${hint}`,
     );
   }
 

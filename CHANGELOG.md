@@ -66,6 +66,25 @@ them its own.
   just as directly. The shipped table is asserted at module load, so a bad entry
   fails at import rather than at whichever command writes first.
 
+- **A project-scope Codex install wrote Jig's rules into your project's
+  `.jig/`.** Codex has no skill-directory convention, so its bundle went to a
+  bare `.jig` — the one directory this release reserves for the project's own
+  material. Install plus `init` left 13 files there, Jig's rules and manifest
+  interleaved with your tokens and state, and the harness that most needed the
+  0.4.0 separation was the only one that did not get it.
+
+  Two concrete harms beyond the untidiness: `init`'s legacy scanner looks in
+  `.jig/` for exactly those artifacts and offers to remove them, so it could
+  offer to delete a live install; and one directory holding two manifests is
+  what let a stale `.jig/manifest.json` hijack `update` in the first place.
+
+  Codex now uses `.codex/.jig/` at both scopes, mirroring the path its global
+  install already used. Verified against the real Codex CLI: it reads
+  `AGENTS.md`, resolves every rule path under the new location, and picks up the
+  declared mode. Upgrading leaves the old bundle in place — nothing is deleted —
+  and `update` now names it rather than reporting a bare "Jig is not installed"
+  to someone looking straight at the files.
+
 - **`update` could never move an install forward.** Pinning the CLI fixed version
   skew, but applied to every command it trapped the install: `npx jig-ui@0.4.0
   update` refreshes to 0.4.0, reports success, and changes nothing. `update` is
