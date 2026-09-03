@@ -66,6 +66,16 @@ them its own.
   just as directly. The shipped table is asserted at module load, so a bad entry
   fails at import rather than at whichever command writes first.
 
+- **`update` could never move an install forward.** Pinning the CLI fixed version
+  skew, but applied to every command it trapped the install: `npx jig-ui@0.4.0
+  update` refreshes to 0.4.0, reports success, and changes nothing. `update` is
+  the one command whose job is moving the pin, so it is the one that does not
+  carry it — the skill renders `npx jig-ui@latest update`.
+
+- **A source build could stamp a pin to a version that was never published**,
+  silently, until an agent tried to run it. `install` and `update` now say so
+  when the running CLI is not an npm-installed package.
+
 - **An asset could be staged at prepack and left out of the tarball** — correct
   code reading an asset that never shipped. Both lists must now agree, verified
   against the real `npm pack` output.
