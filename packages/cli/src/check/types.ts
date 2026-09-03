@@ -38,6 +38,15 @@ export interface DetectorContext {
    * token layer" means, so host files inherit the project's answer.
    */
   projectParticipates: boolean;
+  /**
+   * The file's unmasked text.
+   *
+   * `source` has been reduced to CSS — everything else blanked — which is what
+   * the CSS detectors want. Values written as utility classes are not CSS and
+   * live in exactly the regions that masking removes, so a detector reading
+   * them needs the original.
+   */
+  raw: string;
 }
 
 export interface Detector {

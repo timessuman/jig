@@ -120,14 +120,27 @@ token layer, contrast floors, removed focus rings, gradient text, and so on.
 the rule files and applies them, then runs the self-check at the end of
 `00-anti-patterns.md`. A clean `check` is not a clean review.
 
-`check` reads **plain stylesheets only** — `.css`, `.scss`, `.less`. Values
-written in Tailwind class attributes (`className="bg-[#6D28D9] p-[13px]"`), in
-`<style>` blocks in `.vue`/`.astro`/`.svelte` files, or in `style={{ }}` props
-are **not** examined. Separating style text from application code needs real
-parsing, and a regex over it would either miss most of it or fire on unrelated
-code. The report says how many files it skipped rather than letting a narrow
-pass read as a broad one, but if your values live in class attributes, `check`
-is currently checking very little — the judgment half still applies in full.
+`check` reads CSS wherever it lives:
+
+| Where | Example |
+| --- | --- |
+| Stylesheets | `.css`, `.scss`, `.less` |
+| `<style>` blocks | Astro, Vue, Svelte, HTML, PHP, ERB, Twig, Handlebars, MDX |
+| Style attributes | `style="color: #777"`, `style={{ color: '#777' }}` |
+| CSS-in-JS | `styled.button\`…\``, `styled(Link)\`…\``, `css\`…\``, `createGlobalStyle`, `keyframes` |
+| Tailwind arbitrary values | `className="bg-[#6D28D9] p-[13px]"` |
+| Tailwind palette pairs | `className="bg-white text-gray-400"` — resolved against the default palette |
+
+Host files are reduced to their style regions before the detectors run, with
+character positions preserved, so a finding's line points at the real line in
+your `.vue` or `.tsx` file. Application code outside a style region is never
+read as CSS.
+
+Two deliberate limits. A bare `p-4` is **not** a finding — it resolves through a
+scale, which is what a scale is for, and the scale is your project's decision.
+And a colour outside the framework's default palette is not resolved rather than
+guessed at. Anything the suite still cannot read is named in the report, so a
+narrow pass never reads as a broad one.
 
 Both halves report against the same attestation line:
 

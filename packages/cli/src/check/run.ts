@@ -60,7 +60,7 @@ export function runChecks(
     const source = maskComments(maskNonStyleRegions(raw, file));
 
     for (const { entry, detector } of applicable) {
-      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates };
+      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw };
       findings.push(...detector.run(source, file, ctx));
     }
   }

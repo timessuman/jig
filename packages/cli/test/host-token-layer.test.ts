@@ -67,3 +67,35 @@ describe('H-47 inside host languages', () => {
     expect(run().findings.filter((f) => f.file.endsWith('data.ts'))).toEqual([]);
   });
 });
+
+describe('values written as Tailwind classes', () => {
+  it('flags arbitrary colour and length values as H-47', () => {
+    write('src/Card.tsx', 'export const C = () => (\n  <div className="bg-[#6D28D9] p-[13px] rounded-lg">x</div>\n);\n');
+    const found = run().findings.filter((f) => f.file.endsWith('Card.tsx'));
+    expect(found.map((f) => f.ruleId)).toContain('H-47');
+    expect(found.every((f) => f.line === 2), 'lines must point at the class attribute').toBe(true);
+    const messages = found.map((f) => f.message).join(' ');
+    expect(messages).toContain('#6D28D9');
+    expect(messages).toContain('13px');
+    // `rounded-lg` resolves through the scale and is correct Tailwind.
+    expect(messages).not.toContain('rounded-lg');
+  });
+
+  it('resolves a default-palette contrast pair', () => {
+    // gray-950 on white is fine; white ON gray-950 is fine too. Use a pair that
+    // actually fails: gray-400 text on white.
+    write('src/Faint.tsx', 'export const F = () => <p className="bg-white text-gray-400">faint</p>;\n');
+    const found = run().findings.filter((f) => f.file.endsWith('Faint.tsx'));
+    expect(found.map((f) => f.ruleId)).toContain('C-19');
+  });
+
+  it('says nothing about a passing palette pair', () => {
+    write('src/Ok.tsx', 'export const O = () => <p className="bg-white text-gray-900">ok</p>;\n');
+    expect(run().findings.filter((f) => f.file.endsWith('Ok.tsx'))).toEqual([]);
+  });
+
+  it('says nothing about scale utilities', () => {
+    write('src/Fine.tsx', 'export const F = () => <div className="p-4 text-sm rounded-lg flex">x</div>;\n');
+    expect(run().findings.filter((f) => f.file.endsWith('Fine.tsx'))).toEqual([]);
+  });
+});

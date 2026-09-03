@@ -220,29 +220,3 @@ fixed in the same pass this section was added in).
   no border-width namespace, so there is no token to reference." Two independent
   hits on the same missing namespace. Adding `--border-width-*` and focus-ring
   geometry is a token-architecture decision, not a mid-release patch.
-- **M13 — `check` cannot see values written outside plain stylesheets.** The
-  detector suite reads `.css`/`.scss`/`.less` only, which is a defensible scope
-  (separating style text from application code needs real parsing). But for a
-  Tailwind project it means `check` examines almost nothing: a v4 stylesheet that
-  `@import`s the tokens *participates* in the token layer, which suppresses the
-  "H-47 was not run" notice, while every value lives in `className`. A fixture
-  with `bg-[#6D28D9] p-[13px] rounded-[12px] text-[22px] h-[32px]` and a
-  `bg-gray-950 text-white` pair reported "No findings · 0 errors ·
-  mechanical=pass:0". The report now names the files it skipped, so a narrow pass
-  no longer reads as a broad one, but the coverage gap itself is open. Five pieces
-  of work, roughly in value order:
-  1. **Arbitrary values in class attributes** — `bg-[#6D28D9]`, `p-[13px]`,
-     `text-[22px]`. Regex-detectable with near-zero ambiguity, and literally H-47.
-     Applies to Tailwind in any host language.
-  2. **`<style>` block extraction** — Astro, Vue, Svelte, PHP, Django, ERB, HTML.
-     The block delimiters are unambiguous; the contents are plain CSS the existing
-     detectors already handle.
-  3. **`style="..."` and `style={{ }}`** — inline declarations, same detectors.
-  4. **Default-palette lookup** — `bg-gray-950 text-white` is a contrast pair
-     whose values are known constants, so C-19 could resolve it without parsing.
-  5. **Tagged templates and style objects** — styled-components, emotion. The
-     hardest, and the one where a regex genuinely risks false positives; wants a
-     real parser or explicit opt-in.
-  Treating `@theme` as a token layer belongs with (1): a v4 project declares
-  tokens there and consumes them as utilities, so token participation and value
-  detection both need to understand it.

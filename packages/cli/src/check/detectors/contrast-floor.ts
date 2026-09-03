@@ -1,8 +1,10 @@
 import { leafBlocks, lineOfOffset, sourceLine } from '../css.js';
 import { contrastRatio, resolveOpaqueColor } from '../color.js';
 import { isStyleBearing } from '../ext.js';
+import { isMarkupHost } from '../styles.js';
 import { mkFinding } from '../finding.js';
 import type { Detector, Finding } from '../types.js';
+import { classAttributeValues, palettePairs } from '../tailwind.js';
 
 // C-19: grey text below contrast floor.
 // ❌ a mid-grey used for secondary text, placeholders or timestamps
@@ -112,6 +114,36 @@ export const contrastFloor: Detector = {
         ),
       );
     }
+
+    // Contrast written as utility classes — `bg-white text-gray-400`. Both
+    // sides resolve in the framework's default palette, so the ratio is
+    // computable without parsing anything. Only complete pairs are considered:
+    // one known side says nothing, because the other could be any value.
+    // Class attributes are markup; a `className="..."` in a pure script file is
+    // a string literal, not an element.
+    for (const attr of isMarkupHost(file) ? classAttributeValues(ctx.raw) : []) {
+      const at = ctx.raw.indexOf(attr);
+      const line = at === -1 ? 1 : ctx.raw.slice(0, at).split('\n').length;
+      for (const pair of palettePairs(attr)) {
+        const fg = resolveOpaqueColor(pair.foreground, ctx.tokens);
+        const bg = resolveOpaqueColor(pair.background, ctx.tokens);
+        if (!fg || !bg) continue;
+        const ratio = contrastRatio(fg, bg);
+        if (ratio >= 4.5) continue;
+        findings.push(
+          mkFinding(
+            ctx,
+            'contrast-floor',
+            file,
+            line,
+            `Foreground/background contrast is ${ratio.toFixed(2)}:1, below the 4.5:1 floor ` +
+              `(${pair.foreground} on ${pair.background})`,
+            sourceLine(ctx.raw, line),
+          ),
+        );
+      }
+    }
+
     return findings;
   },
 };

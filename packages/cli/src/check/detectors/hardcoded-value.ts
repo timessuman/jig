@@ -1,6 +1,7 @@
 import { leafBlocks, lineOfOffset, sourceLine } from '../css.js';
 import { isStyleBearing } from '../ext.js';
-import { isStyleHost } from '../styles.js';
+import { isMarkupHost, isStyleHost } from '../styles.js';
+import { arbitraryValues, classAttributeValues } from '../tailwind.js';
 import { mkFinding } from '../finding.js';
 import { participatesInTokenLayer } from '../token-layer.js';
 import type { Detector, Finding } from '../types.js';
@@ -156,6 +157,42 @@ export const hardcodedValue: Detector = {
         }
       }
     }
+    // Values written as utility classes are not CSS, so they live in exactly
+    // the regions `source` has masked away — `ctx.raw` is the original text.
+    // Only the arbitrary-value form (`p-[13px]`) is a finding: it means "this
+    // exact value, bypassing the scale", which is H-47 in Tailwind's own
+    // notation. A bare `p-4` resolves through the scale, which is correct.
+    // Class attributes are markup. A `className="..."` in a pure script file
+    // is a string — test data, a template being assembled — not an element.
+    for (const attr of isMarkupHost(file) ? classAttributesWithLines(ctx.raw) : []) {
+      for (const found of arbitraryValues(attr.classes)) {
+        findings.push(
+          mkFinding(
+            ctx,
+            'hardcoded-value',
+            file,
+            attr.line,
+            found.kind === 'colour'
+              ? `Hard-coded colour \`${found.value}\` past the token layer (${found.utility}-[…])`
+              : `Hard-coded \`${found.value}\` past the token layer (${found.utility}-[…])`,
+            attr.classes.length > 80 ? `${attr.classes.slice(0, 77)}…` : attr.classes,
+          ),
+        );
+      }
+    }
+
     return findings;
   },
 };
+
+
+/** Each class attribute in `raw`, with the 1-based line it starts on. */
+function classAttributesWithLines(raw: string): { classes: string; line: number }[] {
+  const out: { classes: string; line: number }[] = [];
+  for (const classes of classAttributeValues(raw)) {
+    const at = raw.indexOf(classes);
+    const line = at === -1 ? 1 : raw.slice(0, at).split('\n').length;
+    out.push({ classes, line });
+  }
+  return out;
+}

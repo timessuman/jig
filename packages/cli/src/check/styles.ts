@@ -16,7 +16,11 @@ export function isStyleHost(file: string): boolean {
  * a template being assembled, a test fixture — not a stylesheet, and treating it
  * as one lets application data be read as CSS.
  */
-const MARKUP_HOSTS = [
+export function isMarkupHost(file: string): boolean {
+  return hasExtension(file, MARKUP_HOSTS);
+}
+
+export const MARKUP_HOSTS = [
   '.html', '.htm', '.vue', '.svelte', '.astro',
   '.php', '.erb', '.twig', '.hbs', '.mdx', '.jsx', '.tsx',
 ];

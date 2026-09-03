@@ -127,6 +127,28 @@ them its own.
 
 ### Added
 
+- **`check` reads CSS wherever it lives.** It read `.css`/`.scss`/`.less` only,
+  which for most projects meant it examined almost nothing — and said nothing
+  about that. A Tailwind v4 fixture with `bg-[#6D28D9] p-[13px] rounded-[12px]
+  text-[22px] h-[32px]` reported "No findings · 0 errors · mechanical=pass:0". A
+  clean bill of health for a project where every value bypassed the token layer.
+
+  Now covered: `<style>` blocks (Astro, Vue, Svelte, HTML, PHP, ERB, Twig,
+  Handlebars, MDX), `style="…"` and `style={{ }}`, CSS-in-JS tagged templates
+  (`styled.button`, `styled(Link)`, `css`, `createGlobalStyle`, `keyframes`),
+  Tailwind arbitrary values, and Tailwind default-palette contrast pairs.
+  `@theme` counts as the token layer, so a v4 project that has adopted Jig is
+  recognised as having done so.
+
+  The mechanism is extraction rather than a detector per language: everything
+  that is not CSS is blanked, preserving character positions, and the existing
+  detectors run unchanged — so a finding in a `.vue` file still points at the
+  right line, and all seven rules gained host-language support at once.
+
+  Two deliberate limits. A bare `p-4` is not a finding: it resolves through a
+  scale, and flagging it would mean flagging correct Tailwind. A colour outside
+  the default palette is not resolved rather than guessed at.
+
 - **Reference files ship beside the skill.** `references/**` in the package
   installs into the bundle with its subdirectory shape preserved, refreshed by
   `update` under the same rule as the rules: replace when untouched, skip when

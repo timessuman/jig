@@ -15,7 +15,7 @@ function ctx(
   tokens: Record<string, string> = {},
   projectParticipates = false,
 ): DetectorContext {
-  return { ruleId, bucket, severity, tokens, projectParticipates };
+  return { ruleId, bucket, severity, tokens, projectParticipates, raw: '' };
 }
 
 describe('gradient-text (A-02)', () => {
