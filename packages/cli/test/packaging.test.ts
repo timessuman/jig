@@ -64,10 +64,30 @@ describe('installed skill file', () => {
     }
   });
 
-  it('the JIG_CHECK attestation line does not claim results no engine produces yet', () => {
+  it('pins the CLI it tells the agent to run to the version that wrote it', () => {
+    // `npx jig-ui` unpinned resolves to whatever is latest on npm, which is not
+    // necessarily the version that produced this bundle. Two baseline runs hit
+    // exactly that: the skill was written by one version, `npx jig-ui` fetched
+    // another, and the older CLI could not read the newer layout — one reported
+    // "the published CLI can't see this install", the other "`npx jig-ui check
+    // --all` refused to run". Both fell back to working by hand.
+    //
+    // The bundle and the CLI are versioned together and `jig update` moves them
+    // together, so the skill must name the version it was built with.
+    const pinned = buildSkillBody(repoRoot, '.claude/skills/jig/rules', '9.9.9');
+    expect(pinned).toContain('npx jig-ui@9.9.9');
+    expect(pinned).not.toMatch(/npx jig-ui(?!@)/);
+  });
+
+  it('renders a JIG_CHECK attestation line into the installed skill', () => {
+    // This used to assert the line did NOT claim `mechanical=`, because no
+    // engine produced it. `check` shipped and does, so the constraint the
+    // assertion was holding open has been met. What replaces it is the
+    // invariant that actually matters and cannot go stale: the skill and the
+    // CLI emit the same field set — asserted against both sources in
+    // attestation.test.ts.
     const attestationLine = body.split('\n').find((line) => line.startsWith('JIG_CHECK:'));
     expect(attestationLine).toBeDefined();
-    expect(attestationLine).not.toMatch(/mechanical=/);
   });
 });
 

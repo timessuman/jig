@@ -96,7 +96,7 @@ export function update(opts: InstallOptions): UpdateResult {
   // `discoveredScope`, not `existing.scope` (C3), so the render context
   // matches where this update is actually writing.
   const rulesPath = rulesPathFor(referenceDir, discoveredScope);
-  const skillBody = buildSkillBody(opts.packageRoot, rulesPath);
+  const skillBody = buildSkillBody(opts.packageRoot, rulesPath, opts.version);
   const skillFiles = skillFilesFor(adapter, {
     version: opts.version,
     scope: discoveredScope,

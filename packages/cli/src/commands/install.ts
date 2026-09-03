@@ -75,15 +75,27 @@ function writeFile(root: string, key: string, content: string, files: Record<str
  * template; getting it wrong is finding C2 — a skill file that points an
  * agent at a `rules/` directory that does not exist from wherever the agent
  * actually reads the file.
+ *
+ * `version` pins the CLI the skill tells the agent to run. Unpinned, `npx
+ * jig-ui` resolves to whatever is latest on npm, which need not be the version
+ * that wrote this bundle — two baseline runs hit exactly that and fell back to
+ * working by hand when the older published CLI could not read the newer layout.
+ * The bundle and the CLI are versioned together and `jig update` moves them
+ * together, so the skill names the version it was built with. Optional only so
+ * that callers checking the body's shape need not invent one.
  */
-export function buildSkillBody(packageRoot: string, rulesPath: string): string {
+export function buildSkillBody(
+  packageRoot: string,
+  rulesPath: string,
+  version?: string,
+): string {
   const template = readFileSync(join(packageRoot, 'templates', 'SKILL.md.tmpl'), 'utf8');
   const metadata = JSON.parse(
     readFileSync(join(packageRoot, 'templates', 'command-metadata.json'), 'utf8'),
   ) as CommandMetadata;
   return render(template, {
     command_prefix: '/jig ',
-    scripts_path: 'npx jig-ui',
+    scripts_path: version ? `npx jig-ui@${version}` : 'npx jig-ui',
     ask_instruction: ASK_INSTRUCTION,
     available_commands: renderCommandTable(metadata),
     config_file: 'jig.config.json',
@@ -224,7 +236,7 @@ export function install(opts: InstallOptions): InstallResult {
   }
 
   const rulesPath = rulesPathFor(referenceDir, opts.scope);
-  const skillBody = buildSkillBody(opts.packageRoot, rulesPath);
+  const skillBody = buildSkillBody(opts.packageRoot, rulesPath, opts.version);
   const skillFiles = skillFilesFor(adapter, {
     version: opts.version,
     scope: opts.scope,

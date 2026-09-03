@@ -10,8 +10,9 @@ cite the number when you follow or deliberately break one.
 4. Load `{{rules_path}}/05-copy.md` whenever you write a label, button, heading, error or empty state.
 5. Consume tokens by semantic name only. Never write a raw colour or pixel value
    at a call site.
-6. Run the self-check at the end of `{{rules_path}}/00-anti-patterns.md` before finishing
-   (a future `check` command will automate this).
+6. Run `check` for the rules the CLI can detect, then run the self-check at the
+   end of `{{rules_path}}/00-anti-patterns.md` for the rules it cannot. Both
+   halves, every time — a clean `check` is not a clean review.
 7. Cite any rule you deliberately break, with the reason, in one line.
 
 Load `{{rules_path}}/04-principles.md` only when two rules conflict.
@@ -42,12 +43,12 @@ changed since, do not re-run it.
 Before you finish a task that generated or modified UI, emit this line:
 
 ```text
-JIG_CHECK: version=<version> mode=<mode> self_check=<ran|skipped>
+JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail>:<n> judgment=<ran|skipped>
 ```
 
-<!-- `mechanical=<pass|fail>:<n>/<total>` and `judgment=<ran|skipped>` fields
-     belong here once the `check` command lands and can actually produce
-     them — do not add them back before that. -->
+`jig check` emits this same line for the half it can do, with
+`judgment=not-run`. Take `mechanical=` from its output rather than counting by
+hand; fill `judgment=` yourself.
 
-A skipped self-check must say `skipped` and give the reason. Do not report
-`ran` for a check you did not perform.
+A skipped check must say `skipped` and give the reason. Do not report `ran` for
+a check you did not perform.
