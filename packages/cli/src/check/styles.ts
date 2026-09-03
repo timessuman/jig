@@ -23,6 +23,13 @@ export function isMarkupHost(file: string): boolean {
 export const MARKUP_HOSTS = [
   '.html', '.htm', '.vue', '.svelte', '.astro',
   '.php', '.erb', '.twig', '.hbs', '.mdx', '.jsx', '.tsx',
+  '.asp', '.aspx', '.ascx', '.master',
+  '.cshtml', '.vbhtml', '.razor',
+  '.jsp', '.jspx',
+  '.eex', '.heex', '.leex',
+  '.ejs', '.njk', '.liquid', '.mustache',
+  '.vm', '.ftl',
+  '.jinja', '.jinja2', '.j2',
 ];
 
 /**

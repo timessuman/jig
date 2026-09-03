@@ -100,4 +100,33 @@ describe('maskNonStyleRegions', () => {
     const out = maskNonStyleRegions(src, 'a.ts');
     expect(out.trim()).toBe('');
   });
+
+  it('handles the server-rendered markup family', () => {
+    // ASP, ASP.NET, Razor, JSP, Phoenix, and the HTML-shaped template engines
+    // are plain markup around a template syntax: their <style> blocks and
+    // style attributes are exactly the ones already handled. Only the
+    // indentation-based languages (Pug, Haml, Slim) genuinely need different
+    // parsing, and they stay out.
+    for (const file of [
+      'Default.asp', 'Default.aspx', 'Ctrl.ascx', 'Site.master',
+      'Index.cshtml', 'Index.vbhtml', 'Counter.razor',
+      'index.jsp', 'page.jspx', 'view.eex', 'view.heex',
+      'page.ejs', 'page.njk', 'page.liquid', 'page.mustache',
+      'page.vm', 'page.ftl', 'page.jinja', 'page.jinja2', 'page.j2',
+    ]) {
+      const src = `<div style="color: #123456">x</div>\n<style>\n.a { padding: 13px; }\n</style>`;
+      const out = maskNonStyleRegions(src, file);
+      expect(out, `${file} style attribute`).toContain('#123456');
+      expect(out, `${file} style block`).toContain('13px');
+      expect(out, `${file} markup`).not.toContain('<div');
+    }
+  });
+
+  it('still does not pretend to read indentation-based templates', () => {
+    // Pug/Haml/Slim do not write `<style>`; treating them as markup would find
+    // nothing and imply coverage that is not there. They are reported as
+    // unscanned instead.
+    const src = 'div(style="color: #123456")\n';
+    expect(maskNonStyleRegions(src, 'page.pug').trim()).toBe('');
+  });
 });

@@ -95,10 +95,12 @@ function resolveMode(projectRoot: string): string {
  * `.md` file is not an omission worth reporting, and listing it turns a useful
  * caveat into noise people learn to skip.
  */
-const UNSUPPORTED_STYLE_HOSTS = [
-  '.pug', '.jade', '.haml', '.slim', '.ejs', '.njk', '.liquid',
-  '.blade.php', '.jinja', '.jinja2', '.j2', '.razor', '.cshtml', '.elm', '.rs',
-];
+// Indentation-based templates, which do not write `<style>` or `style="..."`
+// at all — `div(style="…")` in Pug, `%div{style: "…"}` in Haml. Reading them as
+// markup would find nothing while implying coverage, so they are reported as
+// unscanned until someone writes a real extractor. Everything HTML-shaped now
+// lives in STYLE_HOST_EXTENSIONS instead.
+const UNSUPPORTED_STYLE_HOSTS = ['.pug', '.jade', '.haml', '.slim', '.elm'];
 
 function summariseUnscanned(files: string[]): { count: number; extensions: string[] } | undefined {
   const hit = files.filter((f) => !isStyleBearing(f) && hasExtension(f, UNSUPPORTED_STYLE_HOSTS));

@@ -133,8 +133,10 @@ them its own.
   text-[22px] h-[32px]` reported "No findings · 0 errors · mechanical=pass:0". A
   clean bill of health for a project where every value bypassed the token layer.
 
-  Now covered: `<style>` blocks (Astro, Vue, Svelte, HTML, PHP, ERB, Twig,
-  Handlebars, MDX), `style="…"` and `style={{ }}`, CSS-in-JS tagged templates
+  Now covered: `<style>` blocks (HTML, Astro, Vue, Svelte, PHP, ERB, Twig,
+  Handlebars, MDX, ASP and ASP.NET, Razor, JSP, Phoenix, EJS, Nunjucks, Liquid,
+  Jinja, Velocity, FreeMarker), `style="…"` and `style={{ }}`, CSS-in-JS tagged
+  templates
   (`styled.button`, `styled(Link)`, `css`, `createGlobalStyle`, `keyframes`),
   Tailwind arbitrary values, and Tailwind default-palette contrast pairs.
   `@theme` counts as the token layer, so a v4 project that has adopted Jig is
