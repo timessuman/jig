@@ -515,7 +515,7 @@ export async function init(opts: InitOptions): Promise<InitResult> {
 
     if (modeAction === 'written') {
       const modeSourceRaw = readFileSync(join(opts.packageRoot, 'tokens', modeFileName), 'utf8');
-      const content = vendorHeader(modeFileName, opts.version, 'css') + modeSourceRaw;
+      const content = vendorHeader(modeFileName, opts.version, 'css', null) + modeSourceRaw;
       mkdirSync(dirname(modeAbsPath), { recursive: true });
       writeFileSync(modeAbsPath, content, 'utf8');
       files[modeRelPath] = checksum(content);

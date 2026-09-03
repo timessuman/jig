@@ -2,7 +2,8 @@ import { dirname, join } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { checksum, isModified, writeManifest, type Manifest, type Scope } from '../install/manifest.js';
 import { resolveAllInstalled, type ResolvedTarget } from '../install/target.js';
-import { upsertBlock, vendorHeader } from '../install/vendor.js';
+import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
+import { referenceFiles } from '../install/references.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
 import { buildSkillBody, relKey, rulesPathFor, type InstallOptions } from './install.js';
@@ -124,7 +125,16 @@ function updateTarget(
       skipped.push(key);
       continue;
     }
-    write(key, vendorHeader(file, opts.version) + readFileSync(join(rulesDir, file), 'utf8'));
+    write(key, vendorHeader(file, opts.version, 'html', licencePathFor(`rules/${file}`)) + readFileSync(join(rulesDir, file), 'utf8'));
+  }
+
+  for (const ref of referenceFiles(opts.packageRoot)) {
+    const key = relKey(referenceDir, ...ref.relPath.split('/'));
+    if (isModified(installRoot, key, existing)) {
+      skipped.push(key);
+      continue;
+    }
+    write(key, vendorHeader(ref.relPath, opts.version, 'html', licencePathFor(ref.relPath)) + ref.content);
   }
 
   const indexKey = relKey(referenceDir, 'rules.index.json');
@@ -142,7 +152,7 @@ function updateTarget(
   // `discoveredScope`, not `existing.scope` (C3), so the render context
   // matches where this update is actually writing.
   const rulesPath = rulesPathFor(referenceDir, discoveredScope);
-  const skillBody = buildSkillBody(opts.packageRoot, rulesPath);
+  const skillBody = buildSkillBody(opts.packageRoot, rulesPath, opts.version);
   const skillFiles = skillFilesFor(adapter, {
     version: opts.version,
     scope: discoveredScope,
@@ -237,7 +247,7 @@ function updateInitFiles(opts: InstallOptions): { updated: string[]; skipped: st
         skipped.push(key);
         continue;
       }
-      const content = vendorHeader(file, opts.version, 'css') + readFileSync(join(tokensDir, file), 'utf8');
+      const content = vendorHeader(file, opts.version, 'css', null) + readFileSync(join(tokensDir, file), 'utf8');
       const abs = join(opts.projectRoot, ...key.split('/'));
       mkdirSync(dirname(abs), { recursive: true });
       writeFileSync(abs, content, 'utf8');

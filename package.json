@@ -9,5 +9,6 @@
     "test": "node scripts/check-tokens.mjs && npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "check-tokens": "node scripts/check-tokens.mjs"
-  }
+  },
+  "version": "0.4.0"
 }

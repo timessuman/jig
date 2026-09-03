@@ -7,6 +7,11 @@ export interface ReportMeta {
    *  such files by design, so the report says why rather than staying silent
    *  and looking like a clean bill of health. */
   noTokenLayer?: boolean;
+  /** The mode this run resolved from `jig.config.json`, when there is one.
+   *  Part of the `JIG_CHECK:` contract: the CLI fills what it can determine
+   *  and says `unknown` for the rest, rather than dropping the field and
+   *  emitting a differently-shaped record under the same label. */
+  mode?: string;
 }
 
 /** Rows beyond this many, for one rule in one file, collapse into a count.
@@ -92,7 +97,14 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
 
   const mechanicalErrors = findings.filter((f) => f.bucket === 'mechanical' && f.severity === 'error').length;
   const mechStatus = `${mechanicalErrors > 0 ? 'fail' : 'pass'}:${mechanicalErrors}`;
-  lines.push(`  JIG_CHECK: version=${meta.version} mechanical=${mechStatus} judgment=not-run`);
+  // One label, one record. The CLI can determine version, mode and the
+  // mechanical result; it cannot run the judgment rules, so it reports
+  // `judgment=not-run` rather than omitting the field. An agent completing a
+  // task emits the same four with `judgment=ran`. See templates/SKILL.md.tmpl.
+  lines.push(
+    `  JIG_CHECK: version=${meta.version} mode=${meta.mode ?? 'unknown'} ` +
+      `mechanical=${mechStatus} judgment=not-run`,
+  );
 
   return lines.join('\n');
 }

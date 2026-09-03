@@ -57,6 +57,28 @@ function resolveIndexPath(projectRoot: string): string {
  * run first: rules that need no tokens (most of the mechanical bucket) work
  * against a project Jig has never touched.
  */
+/**
+ * The mode to report in the attestation, read from `jig.config.json`.
+ *
+ * A repo-wide check can span several surfaces, so a single `mode=` value is
+ * only well-defined when the project declares one distinct mode. Several
+ * reports `mixed`, and no config reports `unknown` — the field is always
+ * present, because `JIG_CHECK:` is one record and an emitter that cannot
+ * determine a field says so in the value rather than dropping it.
+ */
+function resolveMode(projectRoot: string): string {
+  try {
+    const config = JSON.parse(readFileSync(join(projectRoot, 'jig.config.json'), 'utf8')) as {
+      surfaces?: { mode?: string }[];
+    };
+    const modes = [...new Set((config.surfaces ?? []).map((s) => s.mode).filter(Boolean))];
+    if (modes.length === 1) return modes[0]!;
+    return modes.length > 1 ? 'mixed' : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 export function check(opts: CheckOptions): CheckResult {
   const indexPath = resolveIndexPath(opts.projectRoot);
   const index: IndexEntry[] = validateIndex(JSON.parse(readFileSync(indexPath, 'utf8')));
@@ -93,6 +115,7 @@ export function check(opts: CheckOptions): CheckResult {
     totalRules: index.length,
     version: opts.version,
     noTokenLayer,
+    mode: resolveMode(opts.projectRoot),
   });
 
   return { findings, report, hasError };

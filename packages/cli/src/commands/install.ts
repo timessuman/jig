@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getAdapter, referenceDirFor, skillFilesFor } from '../adapters/registry.js';
+import { referenceFiles } from '../install/references.js';
 import { BLOCK_START } from '../adapters/types.js';
 import {
   checksum,
@@ -11,7 +12,7 @@ import {
   type Scope,
 } from '../install/manifest.js';
 import { render, renderCommandTable, type CommandMetadata } from '../template/render.js';
-import { upsertBlock, vendorHeader } from '../install/vendor.js';
+import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
 
 export { upsertBlock, vendorHeader };
 
@@ -74,15 +75,27 @@ function writeFile(root: string, key: string, content: string, files: Record<str
  * template; getting it wrong is finding C2 — a skill file that points an
  * agent at a `rules/` directory that does not exist from wherever the agent
  * actually reads the file.
+ *
+ * `version` pins the CLI the skill tells the agent to run. Unpinned, `npx
+ * jig-ui` resolves to whatever is latest on npm, which need not be the version
+ * that wrote this bundle — two baseline runs hit exactly that and fell back to
+ * working by hand when the older published CLI could not read the newer layout.
+ * The bundle and the CLI are versioned together and `jig update` moves them
+ * together, so the skill names the version it was built with. Optional only so
+ * that callers checking the body's shape need not invent one.
  */
-export function buildSkillBody(packageRoot: string, rulesPath: string): string {
+export function buildSkillBody(
+  packageRoot: string,
+  rulesPath: string,
+  version?: string,
+): string {
   const template = readFileSync(join(packageRoot, 'templates', 'SKILL.md.tmpl'), 'utf8');
   const metadata = JSON.parse(
     readFileSync(join(packageRoot, 'templates', 'command-metadata.json'), 'utf8'),
   ) as CommandMetadata;
   return render(template, {
     command_prefix: '/jig ',
-    scripts_path: 'npx jig-ui',
+    scripts_path: version ? `npx jig-ui@${version}` : 'npx jig-ui',
     ask_instruction: ASK_INSTRUCTION,
     available_commands: renderCommandTable(metadata),
     config_file: 'jig.config.json',
@@ -194,7 +207,18 @@ export function install(opts: InstallOptions): InstallResult {
     const body = readFileSync(join(rulesDir, file), 'utf8');
     planned.push({
       key: relKey(referenceDir, 'rules', file),
-      content: vendorHeader(file, opts.version) + body,
+      content: vendorHeader(file, opts.version, 'html', licencePathFor(`rules/${file}`)) + body,
+      checkable: true,
+    });
+  }
+  // References — `references/**` in the package — ship beside the rules for the
+  // same reason the rules do: an agent reads them. Their subdirectory shape is
+  // preserved, so `references/commands/init.md` installs as
+  // `<referenceDir>/commands/init.md`.
+  for (const ref of referenceFiles(opts.packageRoot)) {
+    planned.push({
+      key: relKey(referenceDir, ...ref.relPath.split('/')),
+      content: vendorHeader(ref.relPath, opts.version, 'html', licencePathFor(ref.relPath)) + ref.content,
       checkable: true,
     });
   }
@@ -212,7 +236,7 @@ export function install(opts: InstallOptions): InstallResult {
   }
 
   const rulesPath = rulesPathFor(referenceDir, opts.scope);
-  const skillBody = buildSkillBody(opts.packageRoot, rulesPath);
+  const skillBody = buildSkillBody(opts.packageRoot, rulesPath, opts.version);
   const skillFiles = skillFilesFor(adapter, {
     version: opts.version,
     scope: opts.scope,
