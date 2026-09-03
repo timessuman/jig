@@ -46,13 +46,12 @@ rules are read by your agent from the skill install, not vendored into your
 repo, so a single-mode project carries four files of its own: `jig.config.json`,
 `.jig/state.json`, and one brand plus one mode stylesheet.
 
-**Codex is the exception.** It has no skill-directory convention — its
-instruction file is `AGENTS.md` at the project root — so its reference bundle
-goes to `~/.codex/.jig/` for a global install and to the project's own `.jig/`
-for a project one. A project-scope Codex install therefore does put Jig's rules
-in your repo, alongside the token files `init` writes there. Install Codex
-globally to keep the project tree to the four files above. Installing at
-project scope when the same agent is already installed globally warns instead
+Codex has no skill-directory convention — its instruction file is `AGENTS.md` —
+so its reference bundle goes under `.codex/.jig/`: in your home directory for a
+global install, in the project for a project one. Your project's `.jig/` stays
+yours either way.
+
+Installing at project scope when the same agent is already installed globally warns instead
 of creating a second, contradicting skill — update the global install, or
 pick a different `--agent` for the project.
 
