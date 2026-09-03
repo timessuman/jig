@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { ADAPTERS } from '../adapters/registry.js';
+import { ADAPTERS, getAdapter } from '../adapters/registry.js';
 import { readManifest, type Manifest, type Scope } from './manifest.js';
 
 export interface ResolvedTarget {
@@ -48,6 +48,20 @@ export function resolveInstalled(projectRoot: string, homeDir: string): Resolved
     const referenceDir = adapter.referenceDir('project');
     const manifest = readManifest(projectRoot, referenceDir);
     if (!manifest) continue;
+    // The manifest must name the adapter whose directory it was found in.
+    // Without this, a leftover pre-0.4.0 `.jig/manifest.json` is claimed by
+    // codex — whose project referenceDir is `.jig` — and `update` then
+    // rebuilds the whole vendored layout at the project root, undoing the
+    // migration on the exact upgrade path a real user takes.
+    //
+    // A manifest naming an agent that is not an adapter AT ALL is a different
+    // case: the file is corrupt or hand-edited, and the user needs to be told
+    // that rather than "Jig is not installed", which is both wrong and
+    // unactionable. `getAdapter` throws with the available names.
+    if (manifest.agent !== adapter.name) {
+      getAdapter(manifest.agent); // throws `Unknown agent '<x>'` for a bogus name
+      continue; // a real adapter, just not this one — keep probing
+    }
 
     const collides = sameRoot && adapter.referenceDir('global') === referenceDir;
     const scope: Scope = collides ? manifest.scope : 'project';
@@ -59,6 +73,10 @@ export function resolveInstalled(projectRoot: string, homeDir: string): Resolved
     const referenceDir = adapter.referenceDir('global');
     const manifest = readManifest(homeDir, referenceDir);
     if (!manifest) continue;
+    if (manifest.agent !== adapter.name) {
+      getAdapter(manifest.agent);
+      continue;
+    }
     return { installRoot: homeDir, scope: 'global', manifest, referenceDir };
   }
 

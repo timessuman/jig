@@ -10,6 +10,10 @@
 
 # Harness installs written by running the CLI from inside this package during
 # manual verification. Never source — one such run committed 65 files.
+#
+# NOTE: the codex adapter writes AGENTS.md, a legitimate filename that cannot
+# be ignored here. Do not run `jig install --agent codex` from inside this
+# repo; it will shadow the real root AGENTS.md with generated, stale content.
 /.agents/
 /.claude/
 /.codex/

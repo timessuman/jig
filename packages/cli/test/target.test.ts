@@ -84,3 +84,39 @@ describe('resolveInstalled', () => {
     expect(result?.scope).toBe('project');
   });
 });
+
+describe('a legacy manifest cannot be claimed by the wrong adapter (C1)', () => {
+  // codex's project referenceDir is `.jig`, which is exactly where the
+  // pre-0.4.0 layout put its manifest. Probing by directory alone let a
+  // leftover `.jig/manifest.json` be read as a codex install, and `update`
+  // then rebuilt the whole vendored layout at the project root — undoing the
+  // migration on the exact upgrade path a real user takes.
+  it('ignores a .jig/manifest.json that names a different adapter', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'jig-legacy-'));
+    mkdirSync(join(dir, '.jig'), { recursive: true });
+    writeFileSync(
+      join(dir, '.jig', 'manifest.json'),
+      JSON.stringify({
+        version: '0.3.0', agent: 'claude', scope: 'project',
+        installedAt: '2026-01-01T00:00:00.000Z', files: {},
+      }),
+    );
+    // codex would otherwise claim it, because the directory matches.
+    expect(resolveInstalled(dir, join(dir, 'home'))).toBeNull();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('still reports a manifest naming an agent that is not an adapter at all', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'jig-bogus-'));
+    mkdirSync(join(dir, '.jig'), { recursive: true });
+    writeFileSync(
+      join(dir, '.jig', 'manifest.json'),
+      JSON.stringify({
+        version: '0.3.0', agent: 'not-a-real-agent', scope: 'project',
+        installedAt: '2026-01-01T00:00:00.000Z', files: {},
+      }),
+    );
+    expect(() => resolveInstalled(dir, join(dir, 'home'))).toThrow(/Unknown agent/i);
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
