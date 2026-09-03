@@ -10,7 +10,9 @@ const LEGACY_RULE_RE = /^\d{2}-.*\.md$/;
  *  remove from a project's `.jig/` — Jig's own property, vendored there by
  *  a version of `install` that no longer exists. Everything else in
  *  `.jig/` (`tokens/`, `state.json`/`init-manifest.json`) is the project's
- *  own and is never touched by this module. */
+ *  own and is never touched by this module. The same filter also applies
+ *  to the pre-refactor Cursor reference bundle (`.cursor/rules/jig/`,
+ *  see `detectLegacyCursorRules`) — it vendored the identical file set. */
 function isLegacyInstallArtifact(name: string): boolean {
   return LEGACY_RULE_RE.test(name) || name === 'rules.index.json' || name === 'LICENSE' || name === 'NOTICE' || name === 'manifest.json';
 }
@@ -18,15 +20,42 @@ function isLegacyInstallArtifact(name: string): boolean {
 export interface LegacyFile {
   /** Project-root-relative, forward-slash (e.g. `.jig/00-anti-patterns.md`). */
   relPath: string;
-  /** `true`/`false` from comparing against the legacy `.jig/manifest.json`'s
-   *  recorded checksum; `'unknown'` when there is no legacy manifest (or no
-   *  entry for this file) to verify against — treated as "do not remove". */
+  /** `true`/`false` from comparing against the legacy manifest's recorded
+   *  checksum; `'unknown'` when there is no legacy manifest (or no entry
+   *  for this file) to verify against — treated as "do not remove". */
   modified: boolean | 'unknown';
 }
 
 export interface LegacyReport {
   present: boolean;
   files: LegacyFile[];
+}
+
+/** Reads and loosely validates a legacy `manifest.json` at `dirAbs` —
+ *  tolerant of anything that isn't shaped like `{ files: {...} }`, since a
+ *  pre-refactor manifest predates (or, for the Cursor case, simply isn't
+ *  guaranteed to match) the current strict schema in `install/manifest.ts`.
+ *  Never throws; a missing or malformed manifest just means every file
+ *  found alongside it is unverifiable (`'unknown'`), not an error. */
+function readLegacyManifest(dirAbs: string): Manifest | null {
+  try {
+    const raw = JSON.parse(readFileSync(join(dirAbs, 'manifest.json'), 'utf8')) as unknown;
+    if (raw && typeof raw === 'object' && typeof (raw as Manifest).files === 'object') {
+      return raw as Manifest;
+    }
+  } catch {
+    // fall through — no manifest to verify against
+  }
+  return null;
+}
+
+/** Classifies one legacy file against `legacyManifest`: `false` (safe to
+ *  remove) or `true` (edited, never removed) when the manifest records a
+ *  checksum for it, `'unknown'` (kept, unverifiable) otherwise. */
+function classify(projectRoot: string, relPath: string, legacyManifest: Manifest | null): boolean | 'unknown' {
+  return legacyManifest && relPath in legacyManifest.files
+    ? isModified(projectRoot, relPath, legacyManifest)
+    : 'unknown';
 }
 
 /**
@@ -44,15 +73,7 @@ export function detectLegacyRules(projectRoot: string): LegacyReport {
   const jigDir = join(projectRoot, '.jig');
   if (!existsSync(jigDir)) return { present: false, files: [] };
 
-  let legacyManifest: Manifest | null = null;
-  try {
-    const raw = JSON.parse(readFileSync(join(jigDir, 'manifest.json'), 'utf8')) as unknown;
-    if (raw && typeof raw === 'object' && typeof (raw as Manifest).files === 'object') {
-      legacyManifest = raw as Manifest;
-    }
-  } catch {
-    legacyManifest = null;
-  }
+  const legacyManifest = readLegacyManifest(jigDir);
 
   let entries: string[];
   try {
@@ -66,21 +87,63 @@ export function detectLegacyRules(projectRoot: string): LegacyReport {
     .sort()
     .map((name) => {
       const relPath = `.jig/${name}`;
-      const modified: boolean | 'unknown' =
-        legacyManifest && relPath in legacyManifest.files ? isModified(projectRoot, relPath, legacyManifest) : 'unknown';
-      return { relPath, modified };
+      return { relPath, modified: classify(projectRoot, relPath, legacyManifest) };
     });
 
   return { present: files.length > 0, files };
 }
 
-/** Human-readable report lines describing what was found — always safe to
- *  log, even when nothing was found (returns `[]`). */
-export function describeLegacyReport(report: LegacyReport): string[] {
+/**
+ * Scans a project for a pre-harness-table Cursor install: the single rule
+ * file at `.cursor/rules/jig.mdc`, plus its reference bundle (`rules/`,
+ * `rules.index.json`, `LICENSE`, `NOTICE`, `manifest.json`) that used to
+ * live beside it in `.cursor/rules/jig/` — Cursor's own `referenceDir`
+ * before it moved onto the shared `<harness>/skills/<name>/` convention.
+ * Cursor's skill now lives at `.cursor/skills/jig/SKILL.md`, so both old
+ * locations are dead weight.
+ *
+ * Reuses the exact same `LegacyFile`/`LegacyReport` shape, artifact filter,
+ * and checksum-based edit detection as `detectLegacyRules` — this is the
+ * same migration machinery pointed at a different legacy location, not a
+ * second implementation.
+ */
+export function detectLegacyCursorRules(projectRoot: string): LegacyReport {
+  const bundleDirRel = '.cursor/rules/jig';
+  const bundleDir = join(projectRoot, ...bundleDirRel.split('/'));
+  const mdcRel = '.cursor/rules/jig.mdc';
+  const mdcAbs = join(projectRoot, ...mdcRel.split('/'));
+
+  // Both the loose .mdc file and the bundle directory were tracked by the
+  // same manifest, written at referenceDir = '.cursor/rules/jig'.
+  const legacyManifest = readLegacyManifest(bundleDir);
+
+  const files: LegacyFile[] = [];
+  if (existsSync(mdcAbs)) {
+    files.push({ relPath: mdcRel, modified: classify(projectRoot, mdcRel, legacyManifest) });
+  }
+
+  let entries: string[];
+  try {
+    entries = readdirSync(bundleDir);
+  } catch {
+    entries = [];
+  }
+  for (const name of entries.filter(isLegacyInstallArtifact).sort()) {
+    const relPath = `${bundleDirRel}/${name}`;
+    files.push({ relPath, modified: classify(projectRoot, relPath, legacyManifest) });
+  }
+
+  return { present: files.length > 0, files };
+}
+
+/** Shared renderer behind `describeLegacyReport` and
+ *  `describeLegacyCursorReport` — same file listing / edited / unverifiable
+ *  breakdown, different header naming what moved and why. */
+function describeLegacyFiles(report: LegacyReport, headerLine: string, subheaderLine: string): string[] {
   if (!report.present) return [];
   const lines: string[] = [];
-  lines.push(`\nFound a pre-0.4.0 Jig install in .jig/ (${report.files.length} file(s)). These are no longer used —`);
-  lines.push("  since 0.4.0 the skill and its rules live in your agent's skill directory, not the project:");
+  lines.push(`\n${headerLine}`);
+  lines.push(subheaderLine);
   for (const f of report.files) lines.push(`    ${f.relPath}`);
 
   const edited = report.files.filter((f) => f.modified === true).map((f) => f.relPath);
@@ -94,6 +157,26 @@ export function describeLegacyReport(report: LegacyReport): string[] {
     for (const relPath of unknown) lines.push(`    ${relPath}`);
   }
   return lines;
+}
+
+/** Human-readable report lines describing what was found — always safe to
+ *  log, even when nothing was found (returns `[]`). */
+export function describeLegacyReport(report: LegacyReport): string[] {
+  return describeLegacyFiles(
+    report,
+    `Found a pre-0.4.0 Jig install in .jig/ (${report.files.length} file(s)). These are no longer used —`,
+    "  since 0.4.0 the skill and its rules live in your agent's skill directory, not the project:",
+  );
+}
+
+/** Human-readable report lines for a legacy Cursor install — same shape as
+ *  `describeLegacyReport`, naming where Cursor's skill moved to instead. */
+export function describeLegacyCursorReport(report: LegacyReport): string[] {
+  return describeLegacyFiles(
+    report,
+    `Found a legacy Cursor install (${report.files.length} file(s)). Cursor's skill has moved —`,
+    '  from .cursor/rules/jig.mdc to .cursor/skills/jig/SKILL.md; these are no longer read:',
+  );
 }
 
 /** Files safe to remove with consent: present in the legacy manifest and

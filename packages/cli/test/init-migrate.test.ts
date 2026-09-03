@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import {
   detectLegacyRules,
   describeLegacyReport,
+  detectLegacyCursorRules,
+  describeLegacyCursorReport,
   removableLegacyFiles,
   removeLegacyFiles,
 } from '../src/init/migrate.js';
@@ -146,6 +148,111 @@ describe('removeLegacyFiles', () => {
   });
 });
 
+/** Seeds a pre-harness-table Cursor install: `.cursor/rules/jig.mdc` plus
+ *  its reference bundle in `.cursor/rules/jig/` (rules/index/LICENSE/NOTICE
+ *  + the old manifest.json recording their checksums), exactly what the
+ *  Cursor adapter wrote before it moved onto `.cursor/skills/jig/`. */
+function seedLegacyCursorInstall(opts: { editMdc?: boolean; withManifest?: boolean } = {}) {
+  const cursorRulesDir = join(project, '.cursor', 'rules');
+  const bundleDir = join(cursorRulesDir, 'jig');
+  mkdirSync(bundleDir, { recursive: true });
+
+  const mdcBody = '---\ndescription: "Design system rules"\nalwaysApply: false\n---\n\nBODY\n';
+  writeFileSync(join(cursorRulesDir, 'jig.mdc'), mdcBody);
+
+  const ruleBody = '### A-01 Rule\n❌ bad\n✅ good\n';
+  const indexBody = JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' }]);
+  writeFileSync(join(bundleDir, '00-anti-patterns.md'), ruleBody);
+  writeFileSync(join(bundleDir, 'rules.index.json'), indexBody);
+  writeFileSync(join(bundleDir, 'LICENSE'), 'Apache License 2.0 text');
+  writeFileSync(join(bundleDir, 'NOTICE'), 'Jig');
+
+  if (opts.withManifest !== false) {
+    writeFileSync(
+      join(bundleDir, 'manifest.json'),
+      JSON.stringify({
+        version: '0.3.0',
+        agent: 'cursor',
+        scope: 'project',
+        installedAt: new Date().toISOString(),
+        files: {
+          '.cursor/rules/jig.mdc': checksum(mdcBody),
+          '.cursor/rules/jig/00-anti-patterns.md': checksum(ruleBody),
+          '.cursor/rules/jig/rules.index.json': checksum(indexBody),
+        },
+      }),
+    );
+  }
+
+  if (opts.editMdc) {
+    writeFileSync(join(cursorRulesDir, 'jig.mdc'), `${mdcBody}\n<!-- my own notes -->\n`);
+  }
+}
+
+describe('detectLegacyCursorRules', () => {
+  it('reports nothing for a project with no legacy Cursor install', () => {
+    const report = detectLegacyCursorRules(project);
+    expect(report.present).toBe(false);
+    expect(report.files).toHaveLength(0);
+  });
+
+  it('reports nothing for a project whose .cursor/ only holds the current .cursor/skills/jig install', () => {
+    mkdirSync(join(project, '.cursor', 'skills', 'jig'), { recursive: true });
+    writeFileSync(join(project, '.cursor', 'skills', 'jig', 'SKILL.md'), '---\nname: jig\n---\n');
+    const report = detectLegacyCursorRules(project);
+    expect(report.present).toBe(false);
+  });
+
+  it('finds the loose .mdc file plus the old reference bundle, classifying an untouched .mdc as removable', () => {
+    seedLegacyCursorInstall();
+    const report = detectLegacyCursorRules(project);
+    expect(report.present).toBe(true);
+    const relPaths = report.files.map((f) => f.relPath).sort();
+    expect(relPaths).toEqual([
+      '.cursor/rules/jig.mdc',
+      '.cursor/rules/jig/00-anti-patterns.md',
+      '.cursor/rules/jig/LICENSE',
+      '.cursor/rules/jig/NOTICE',
+      '.cursor/rules/jig/manifest.json',
+      '.cursor/rules/jig/rules.index.json',
+    ]);
+    const mdcFile = report.files.find((f) => f.relPath === '.cursor/rules/jig.mdc')!;
+    expect(mdcFile.modified).toBe(false);
+    expect(removableLegacyFiles(report)).toContain('.cursor/rules/jig.mdc');
+  });
+
+  it('never marks an edited .mdc file as removable', () => {
+    seedLegacyCursorInstall({ editMdc: true });
+    const report = detectLegacyCursorRules(project);
+    const mdcFile = report.files.find((f) => f.relPath === '.cursor/rules/jig.mdc')!;
+    expect(mdcFile.modified).toBe(true);
+    expect(removableLegacyFiles(report)).not.toContain('.cursor/rules/jig.mdc');
+  });
+
+  it('treats a file with no legacy manifest to verify against as unverifiable, not removable', () => {
+    seedLegacyCursorInstall({ withManifest: false });
+    const report = detectLegacyCursorRules(project);
+    const mdcFile = report.files.find((f) => f.relPath === '.cursor/rules/jig.mdc')!;
+    expect(mdcFile.modified).toBe('unknown');
+    expect(removableLegacyFiles(report)).toHaveLength(0);
+  });
+});
+
+describe('describeLegacyCursorReport', () => {
+  it('is empty for an absent report', () => {
+    expect(describeLegacyCursorReport({ present: false, files: [] })).toEqual([]);
+  });
+
+  it('names the new SKILL.md location and lists an edited file explicitly', () => {
+    seedLegacyCursorInstall({ editMdc: true });
+    const report = detectLegacyCursorRules(project);
+    const lines = describeLegacyCursorReport(report).join('\n');
+    expect(lines).toContain('.cursor/skills/jig/SKILL.md');
+    expect(lines).toContain('Edited since install');
+    expect(lines).toContain('.cursor/rules/jig.mdc');
+  });
+});
+
 // --- End-to-end through `init()`: report, consent-gated removal, and never
 // removing an edited file, exactly as the migration section of the
 // skill-first spec requires. ---
@@ -190,5 +297,40 @@ describe('init — migration integration', () => {
 
     expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(true);
     expect(lines.some((l) => l.includes('pre-0.4.0 Jig install'))).toBe(true);
+  });
+
+  // --- Same report/consent/never-remove-an-edit contract, for the legacy
+  // Cursor location (.cursor/rules/jig.mdc + .cursor/rules/jig/) — proves
+  // `init` drives detectLegacyCursorRules/describeLegacyCursorReport through
+  // the identical migrateLegacy path used for the pre-0.4.0 .jig/ case. ---
+  it('reports a legacy Cursor install and removes the unedited .mdc with consent', async () => {
+    seedLegacyCursorInstall();
+    const lines: string[] = [];
+    const prompt = async (q: string) => (q.includes('Remove these') ? 'y' : '');
+    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
+
+    expect(lines.some((l) => l.includes('legacy Cursor install'))).toBe(true);
+    expect(existsSync(join(project, '.cursor', 'rules', 'jig.mdc'))).toBe(false);
+    expect(existsSync(join(project, '.cursor', 'rules', 'jig', 'rules.index.json'))).toBe(false);
+  });
+
+  it('leaves the legacy Cursor .mdc in place when consent is withheld', async () => {
+    seedLegacyCursorInstall();
+    const prompt = async (q: string) => (q.includes('Remove these') ? 'n' : '');
+    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: false, prompt, log: NOOP_LOG });
+
+    expect(existsSync(join(project, '.cursor', 'rules', 'jig.mdc'))).toBe(true);
+  });
+
+  it('never removes an edited legacy .mdc even with consent, and reports it by name', async () => {
+    seedLegacyCursorInstall({ editMdc: true });
+    const lines: string[] = [];
+    const prompt = async (q: string) => (q.includes('Remove these') ? 'y' : '');
+    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
+
+    expect(existsSync(join(project, '.cursor', 'rules', 'jig.mdc'))).toBe(true);
+    expect(readFileSync(join(project, '.cursor', 'rules', 'jig.mdc'), 'utf8')).toContain('my own notes');
+    expect(lines.some((l) => l.includes('Edited since install'))).toBe(true);
+    expect(lines.some((l) => l.includes('.cursor/rules/jig.mdc'))).toBe(true);
   });
 });

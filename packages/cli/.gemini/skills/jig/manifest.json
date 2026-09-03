@@ -1,0 +1,18 @@
+{
+  "version": "0.3.0",
+  "agent": "gemini",
+  "scope": "project",
+  "installedAt": "2026-09-03T05:31:44.550Z",
+  "files": {
+    ".gemini/skills/jig/rules/00-anti-patterns.md": "sha256:41cc14a34bc34b74701672a10b78ce36a8e6583ba4cfbaf75cbcfd369f288901",
+    ".gemini/skills/jig/rules/01-modes.md": "sha256:f67d864c066eee1e688645777128f96af7a983d51a690223185879828ad5e921",
+    ".gemini/skills/jig/rules/02-tokens.md": "sha256:0b5ff33ee0c20a17624223b22149989ac0f60a73fa858f9add71d38a9992bb58",
+    ".gemini/skills/jig/rules/03-patterns.md": "sha256:25eecdb5e7422a40f12b3fd2e4569b8781ff07ffb13c4de71cacad755fba7e5f",
+    ".gemini/skills/jig/rules/04-principles.md": "sha256:063e002ca737be92ce3a0f50e21f4c6d4315fc4c9f74a68433f67f8f02832510",
+    ".gemini/skills/jig/rules/05-copy.md": "sha256:249d95727ac76deafa21e9994193281f214a500964c21d197a075639799c4f0b",
+    ".gemini/skills/jig/rules.index.json": "sha256:606d802dd0038b974f66f372500532724f4620125fb918f248a1f39004f2b17f",
+    ".gemini/skills/jig/LICENSE": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    ".gemini/skills/jig/NOTICE": "sha256:2e3628b6abe7663f5f69920c2623c25451dd3884652dd71251298e4cbd236fdf",
+    ".gemini/skills/jig/SKILL.md": "sha256:1ea20d77c666fded7056eeaeb457fd2e8d1d98654f682b231f6225c2cb173e96"
+  }
+}

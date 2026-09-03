@@ -27,7 +27,7 @@ describe('packaging', () => {
 
   it('README documents an install line for every adapter', () => {
     const text = readme();
-    for (const agent of ['claude', 'codex', 'cursor', 'opencode', 'generic']) {
+    for (const agent of ['claude', 'codex', 'cursor', 'opencode', 'gemini', 'generic']) {
       expect(text).toContain(`npx jig-ui@latest install --agent ${agent}`);
     }
   });

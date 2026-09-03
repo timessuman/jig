@@ -239,7 +239,7 @@ describe('update — skill file refresh', () => {
 // must fail loudly rather than silently writing somewhere unexpected. ---
 describe('update — manifest cannot redirect writes outside where it was found (C3)', () => {
   it('a manifest claiming global scope while sitting at the project root updates the PROJECT, not $HOME', () => {
-    const genericDir = getAdapter('generic').referenceDir('project'); // '.jig'
+    const genericDir = getAdapter('generic').referenceDir('project'); // '.agents/skills/jig'
     mkdirSync(join(project, genericDir), { recursive: true });
     writeFileSync(
       join(project, genericDir, 'manifest.json'),
@@ -255,10 +255,9 @@ describe('update — manifest cannot redirect writes outside where it was found 
     const result = update({ ...opts('0.1.0'), agent: 'generic' });
 
     expect(existsSync(join(project, genericDir, 'rules', '00-anti-patterns.md'))).toBe(true);
-    expect(existsSync(join(project, 'AGENTS.md'))).toBe(true);
+    expect(existsSync(join(project, genericDir, 'SKILL.md'))).toBe(true);
     // Nothing escaped to $HOME.
     expect(existsSync(join(home, genericDir))).toBe(false);
-    expect(existsSync(join(home, 'AGENTS.md'))).toBe(false);
 
     const m = readManifest(project, genericDir)!;
     expect(m.scope).toBe('project');
@@ -286,26 +285,26 @@ describe('update — manifest cannot redirect writes outside where it was found 
     expect(() => update(opts('0.2.0'))).toThrow(/jig install/i);
   });
 
-  it('rejects an adapter/scope mismatch instead of silently updating', () => {
-    const cursorDir = getAdapter('cursor').referenceDir('project');
-    mkdirSync(join(home, cursorDir), { recursive: true });
+  it('rejects a manifest recording an unknown agent instead of silently updating', () => {
+    // Every adapter supports both scopes as of the harness-table refactor,
+    // so there is no longer an adapter/scope combination `resolveInstalled`
+    // itself rejects — the remaining way a manifest's own content can try
+    // to redirect behavior is claiming an `agent` this build doesn't know,
+    // which `getAdapter` (called with the manifest's recorded agent, not
+    // whatever `update()` was invoked with) must still fail loudly on.
+    const globalDir = getAdapter('claude').referenceDir('global');
+    mkdirSync(join(home, globalDir), { recursive: true });
     writeFileSync(
-      join(home, cursorDir, 'manifest.json'),
+      join(home, globalDir, 'manifest.json'),
       JSON.stringify({
         version: '0.1.0',
-        agent: 'cursor',
+        agent: 'not-a-real-agent',
         scope: 'global',
         installedAt: new Date().toISOString(),
         files: {},
       }),
     );
-    // cursor doesn't support global scope at all, so `resolveInstalled`
-    // never finds this manifest via its (project-only) reference dir search
-    // under `home` when treated as a global candidate — it's simply not
-    // discovered, and update() reports "not installed" rather than a scope
-    // mismatch. This still proves the manifest cannot silently redirect an
-    // update to an unsupported scope.
-    expect(() => update({ ...opts('0.2.0'), agent: 'cursor' })).toThrow(/not installed/i);
+    expect(() => update({ ...opts('0.2.0'), agent: 'claude' })).toThrow(/Unknown agent/i);
   });
 });
 

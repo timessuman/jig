@@ -1,7 +1,15 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { detect, type DetectionResult } from '../init/detect.js';
-import { detectLegacyRules, describeLegacyReport, removableLegacyFiles, removeLegacyFiles } from '../init/migrate.js';
+import {
+  detectLegacyRules,
+  describeLegacyReport,
+  detectLegacyCursorRules,
+  describeLegacyCursorReport,
+  removableLegacyFiles,
+  removeLegacyFiles,
+  type LegacyReport,
+} from '../init/migrate.js';
 import { deriveBrandColor, type ColorProposal } from '../init/derive.js';
 import { validateBrandColor, type ValidationResult } from '../init/validate.js';
 import { renderBrandFile, brandFileName } from '../init/brand-file.js';
@@ -292,30 +300,37 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   const log = opts.log ?? ((line: string) => console.log(line));
   const prompt = opts.prompt ?? defaultPrompt;
 
-  // ---- 0. Migration: a pre-0.4.0 project may have rule files vendored
-  // directly into .jig/ by an old `install`. Report them, and — with
-  // consent, never for a file the user has edited — offer to remove just
-  // the install artifacts, leaving tokens and jig.config.json alone. ----
-  const legacyReport = detectLegacyRules(opts.projectRoot);
-  if (legacyReport.present) {
-    for (const line of describeLegacyReport(legacyReport)) log(line);
-    const removable = removableLegacyFiles(legacyReport);
-    if (removable.length > 0) {
-      if (opts.yes) {
-        log('  Re-run without --yes to be prompted for removal, or delete them yourself.');
-      } else {
-        const answer = (
-          await prompt(`  Remove these ${removable.length} unedited legacy file(s)? [y/N]: `)
-        ).toLowerCase();
-        if (answer === 'y' || answer === 'yes') {
-          removeLegacyFiles(opts.projectRoot, removable);
-          log(`  Removed ${removable.length} file(s).`);
-        } else {
-          log('  Left them in place.');
-        }
-      }
+  // ---- 0. Migration: report + consent-gated removal, shared by every
+  // legacy layout `init` knows about (a pre-0.4.0 project with rule files
+  // vendored directly into .jig/, and a pre-harness-table Cursor install at
+  // .cursor/rules/jig.mdc — see ../init/migrate.ts). Never removes a file
+  // the user has edited, and never removes anything without consent. ----
+  const migrateLegacy = async (report: LegacyReport, describe: (r: LegacyReport) => string[]) => {
+    if (!report.present) return;
+    for (const line of describe(report)) log(line);
+    const removable = removableLegacyFiles(report);
+    if (removable.length === 0) return;
+    if (opts.yes) {
+      log('  Re-run without --yes to be prompted for removal, or delete them yourself.');
+      return;
     }
-  }
+    const answer = (
+      await prompt(`  Remove these ${removable.length} unedited legacy file(s)? [y/N]: `)
+    ).toLowerCase();
+    if (answer === 'y' || answer === 'yes') {
+      removeLegacyFiles(opts.projectRoot, removable);
+      log(`  Removed ${removable.length} file(s).`);
+    } else {
+      log('  Left them in place.');
+    }
+  };
+
+  await migrateLegacy(detectLegacyRules(opts.projectRoot), describeLegacyReport);
+  // Cursor moved from .cursor/rules/jig.mdc to .cursor/skills/jig/SKILL.md
+  // (the shared <harness>/skills/<name>/ convention) — a breaking change
+  // for anyone who already installed Cursor support, so it gets the same
+  // report-and-offer treatment as the .jig/ migration above.
+  await migrateLegacy(detectLegacyCursorRules(opts.projectRoot), describeLegacyCursorReport);
 
   // ---- 1. Detect ----
   const detection = detect(opts.projectRoot);
