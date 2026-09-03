@@ -45,7 +45,7 @@ describe('packaging', () => {
 });
 
 describe('installed skill file', () => {
-  const body = buildSkillBody(repoRoot, 'project');
+  const body = buildSkillBody(repoRoot, '.claude/skills/jig/rules');
   const commandMetadata = JSON.parse(
     readFileSync(join(repoRoot, 'templates', 'command-metadata.json'), 'utf8'),
   ) as Record<string, { status?: string }>;
@@ -84,27 +84,45 @@ describe('installed skill file', () => {
   });
 });
 
-// --- C2: a global install's skill file must point at ~/.jig, not a bare
-// .jig that only resolves relative to whatever project the agent happens to
-// be sitting in when it later reads the skill file. ---
+// --- C2: a global install's skill file must point at a home-anchored rules
+// path, not a bare project-relative one that only resolves relative to
+// whatever project the agent happens to be sitting in when it later reads
+// the skill file. Since 0.4.0 the anchor is adapter-specific (each
+// adapter's own `referenceDir`, see adapters/types.ts) rather than a
+// hardcoded `.jig` — `install`/`update` compute it via `rulesPathFor` and
+// pass it straight into `buildSkillBody`. ---
 describe('buildSkillBody scope (C2)', () => {
-  it('renders project-scope rule paths anchored at .jig', () => {
-    const body = buildSkillBody(repoRoot, 'project');
-    expect(body).toContain('`.jig/00-anti-patterns.md`');
-    expect(body).toContain('`.jig/01-modes.md`');
-    expect(body).toContain('`.jig/03-patterns.md`');
-    expect(body).toContain('`.jig/04-principles.md`');
-    expect(body).toContain('`.jig/05-copy.md`');
+  it('renders project-scope rule paths anchored at the given rules_path', () => {
+    const body = buildSkillBody(repoRoot, '.claude/skills/jig/rules');
+    expect(body).toContain('`.claude/skills/jig/rules/00-anti-patterns.md`');
+    expect(body).toContain('`.claude/skills/jig/rules/01-modes.md`');
+    expect(body).toContain('`.claude/skills/jig/rules/03-patterns.md`');
+    expect(body).toContain('`.claude/skills/jig/rules/04-principles.md`');
+    expect(body).toContain('`.claude/skills/jig/rules/05-copy.md`');
   });
 
-  it('renders global-scope rule paths anchored at ~/.jig', () => {
-    const body = buildSkillBody(repoRoot, 'global');
-    expect(body).toContain('`~/.jig/00-anti-patterns.md`');
-    expect(body).toContain('`~/.jig/01-modes.md`');
-    expect(body).toContain('`~/.jig/03-patterns.md`');
-    expect(body).toContain('`~/.jig/04-principles.md`');
-    expect(body).toContain('`~/.jig/05-copy.md`');
+  it('renders a home-anchored rules_path verbatim for a global install', () => {
+    const body = buildSkillBody(repoRoot, '~/.claude/skills/jig/rules');
+    expect(body).toContain('`~/.claude/skills/jig/rules/00-anti-patterns.md`');
+    expect(body).toContain('`~/.claude/skills/jig/rules/01-modes.md`');
+    expect(body).toContain('`~/.claude/skills/jig/rules/03-patterns.md`');
+    expect(body).toContain('`~/.claude/skills/jig/rules/04-principles.md`');
+    expect(body).toContain('`~/.claude/skills/jig/rules/05-copy.md`');
     // Must not also contain the bare project-scope form.
-    expect(body).not.toContain('`.jig/00-anti-patterns.md`');
+    expect(body).not.toContain('`.claude/skills/jig/rules/00-anti-patterns.md`');
+  });
+});
+
+// --- rulesPathFor: the exact function install/update use to compute the
+// rules_path baked into a rendered skill/instructions body. ---
+describe('rulesPathFor', () => {
+  it('is bare (project-relative) for project scope', async () => {
+    const { rulesPathFor } = await import('../src/commands/install.js');
+    expect(rulesPathFor('.claude/skills/jig', 'project')).toBe('.claude/skills/jig/rules');
+  });
+
+  it('is home-anchored for global scope', async () => {
+    const { rulesPathFor } = await import('../src/commands/install.js');
+    expect(rulesPathFor('.claude/skills/jig', 'global')).toBe('~/.claude/skills/jig/rules');
   });
 });

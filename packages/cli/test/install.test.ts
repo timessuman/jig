@@ -5,10 +5,13 @@ import { join } from 'node:path';
 import { install, upsertBlock, vendorHeader } from '../src/commands/install.js';
 import { readManifest } from '../src/install/manifest.js';
 import { BLOCK_START, BLOCK_END } from '../src/adapters/types.js';
+import { getAdapter } from '../src/adapters/registry.js';
 
 let project: string;
 let pkg: string;
 let home: string;
+
+const claudeDir = getAdapter('claude').referenceDir('project'); // '.claude/skills/jig'
 
 beforeEach(() => {
   project = mkdtempSync(join(tmpdir(), 'jig-proj-'));
@@ -120,35 +123,51 @@ describe('vendorHeader', () => {
 });
 
 describe('install', () => {
-  it('vendors rules into .jig/', () => {
+  it('vendors rules beside the skill file, not into the project', () => {
     install(opts());
-    expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(true);
-    expect(existsSync(join(project, '.jig', 'rules.index.json'))).toBe(true);
+    expect(existsSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(project, claudeDir, 'rules.index.json'))).toBe(true);
+  });
+
+  it('writes nothing into the project-local .jig/ directory (claude, project scope)', () => {
+    install(opts());
+    expect(existsSync(join(project, '.jig'))).toBe(false);
+  });
+
+  it('writes nothing into the project-local .jig/ directory (claude, global scope)', () => {
+    install({ ...opts(), scope: 'global' });
+    expect(existsSync(join(project, '.jig'))).toBe(false);
+    expect(existsSync(join(project, '.claude'))).toBe(false);
   });
 
   it('prefixes each vendored rule file with an attribution header', () => {
     install(opts());
-    const body = readFileSync(join(project, '.jig', '00-anti-patterns.md'), 'utf8');
+    const body = readFileSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'), 'utf8');
     expect(body).toContain('Apache-2.0');
     expect(body).toContain('### A-01 Rule');
   });
 
-  it('writes LICENSE and NOTICE into .jig/', () => {
+  it('writes LICENSE and NOTICE beside the skill file', () => {
     install(opts());
-    expect(existsSync(join(project, '.jig', 'LICENSE'))).toBe(true);
-    expect(existsSync(join(project, '.jig', 'NOTICE'))).toBe(true);
+    expect(existsSync(join(project, claudeDir, 'LICENSE'))).toBe(true);
+    expect(existsSync(join(project, claudeDir, 'NOTICE'))).toBe(true);
   });
 
   it('writes the agent skill file', () => {
     install(opts());
-    const skill = join(project, '.claude', 'skills', 'jig', 'SKILL.md');
+    const skill = join(project, claudeDir, 'SKILL.md');
     expect(existsSync(skill)).toBe(true);
     expect(readFileSync(skill, 'utf8')).toContain('/jig check');
   });
 
+  it('does not vendor any token file — tokens are project property, written only by init', () => {
+    install(opts());
+    expect(existsSync(join(project, claudeDir, 'tokens'))).toBe(false);
+  });
+
   it('records every written file in the manifest with a checksum', () => {
     const result = install(opts());
-    const m = readManifest(project)!;
+    const m = readManifest(project, claudeDir)!;
     expect(m.agent).toBe('claude');
     expect(m.version).toBe('0.1.0');
     for (const rel of result.written) {
@@ -159,9 +178,9 @@ describe('install', () => {
 
   it('is idempotent', () => {
     install(opts());
-    const first = readFileSync(join(project, '.jig', '00-anti-patterns.md'), 'utf8');
+    const first = readFileSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'), 'utf8');
     install(opts());
-    expect(readFileSync(join(project, '.jig', '00-anti-patterns.md'), 'utf8')).toBe(first);
+    expect(readFileSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'), 'utf8')).toBe(first);
   });
 
   it('rejects an unsupported scope for the adapter', () => {
@@ -176,26 +195,26 @@ describe('install', () => {
   // second `install` run is a real, common path — not just `update`. ---
   it('does not clobber a locally edited rule file on a second install, and reports it skipped (I1)', () => {
     install(opts());
-    const target = join(project, '.jig', '00-anti-patterns.md');
+    const target = join(project, claudeDir, 'rules', '00-anti-patterns.md');
     const edited = `${readFileSync(target, 'utf8')}\n### A-99 My own addition\n`;
     writeFileSync(target, edited);
 
     const result = install(opts());
 
     expect(readFileSync(target, 'utf8')).toBe(edited);
-    expect(result.skipped).toContain('.jig/00-anti-patterns.md');
-    expect(result.written).not.toContain('.jig/00-anti-patterns.md');
+    expect(result.skipped).toContain(`${claudeDir}/rules/00-anti-patterns.md`);
+    expect(result.written).not.toContain(`${claudeDir}/rules/00-anti-patterns.md`);
   });
 
   it('still replaces LICENSE and NOTICE on a second install even if they were edited (I1)', () => {
     install(opts());
-    writeFileSync(join(project, '.jig', 'NOTICE'), 'tampered');
+    writeFileSync(join(project, claudeDir, 'NOTICE'), 'tampered');
     writeFileSync(join(pkg, 'NOTICE'), 'Jig v2 NOTICE');
 
     const result = install(opts());
 
-    expect(readFileSync(join(project, '.jig', 'NOTICE'), 'utf8')).toBe('Jig v2 NOTICE');
-    expect(result.skipped).not.toContain('.jig/NOTICE');
+    expect(readFileSync(join(project, claudeDir, 'NOTICE'), 'utf8')).toBe('Jig v2 NOTICE');
+    expect(result.skipped).not.toContain(`${claudeDir}/NOTICE`);
   });
 
   it('preserves existing AGENTS.md content (I3: install must recognize the block via BLOCK_START, not a hardcoded literal)', () => {
@@ -215,29 +234,72 @@ describe('install', () => {
 
   it('records manifest keys using forward slashes only (Correction 2)', () => {
     install(opts());
-    const m = readManifest(project)!;
+    const m = readManifest(project, claudeDir)!;
     for (const key of Object.keys(m.files)) {
       expect(key).not.toContain('\\');
     }
     // Spot-check a couple of well-known keys are POSIX-style.
-    expect(m.files['.jig/00-anti-patterns.md']).toMatch(/^sha256:/);
-    expect(m.files['.jig/LICENSE']).toMatch(/^sha256:/);
+    expect(m.files[`${claudeDir}/rules/00-anti-patterns.md`]).toMatch(/^sha256:/);
+    expect(m.files[`${claudeDir}/LICENSE`]).toMatch(/^sha256:/);
+  });
+});
+
+describe('install — codex/generic reference material lives beside AGENTS.md in .jig/', () => {
+  it("codex (project scope) puts rules in .jig/, since it has no skill directory of its own", () => {
+    install({ ...opts(), agent: 'codex' });
+    expect(existsSync(join(project, '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(project, '.jig', 'rules.index.json'))).toBe(true);
+    expect(existsSync(join(project, 'AGENTS.md'))).toBe(true);
+    // But install still never writes any project-state file — those come
+    // only from `init` (tokens/, jig.config.json, state.json).
+    expect(existsSync(join(project, '.jig', 'tokens'))).toBe(false);
+    expect(existsSync(join(project, '.jig', 'state.json'))).toBe(false);
+    expect(existsSync(join(project, 'jig.config.json'))).toBe(false);
+  });
+
+  it('generic (AGENTS.md, project only) puts rules in .jig/ too', () => {
+    install({ ...opts(), agent: 'generic' });
+    expect(existsSync(join(project, '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(project, 'AGENTS.md'))).toBe(true);
+  });
+});
+
+describe('install — global install already present warns instead of duplicating (project install)', () => {
+  it('warns and writes nothing when the same agent is already installed globally', () => {
+    install({ ...opts(), scope: 'global' });
+    const result = install(opts());
+    expect(result.warning).toMatch(/already installed globally/i);
+    expect(result.written).toHaveLength(0);
+    expect(result.skipped).toHaveLength(0);
+    expect(existsSync(join(project, claudeDir))).toBe(false);
+  });
+
+  it('does not warn for a different agent even if that one is installed globally', () => {
+    install({ ...opts(), agent: 'claude', scope: 'global' });
+    const result = install({ ...opts(), agent: 'cursor', scope: 'project' });
+    expect(result.warning).toBeUndefined();
+    expect(existsSync(join(project, '.cursor', 'rules', 'jig.mdc'))).toBe(true);
+  });
+
+  it('a plain project install with no existing global install proceeds normally', () => {
+    const result = install(opts());
+    expect(result.warning).toBeUndefined();
+    expect(result.written.length).toBeGreaterThan(0);
   });
 });
 
 describe('install — scope resolution (Fix 1)', () => {
   it('writes a global-scope install under homeDir, not projectRoot', () => {
     install({ ...opts(), scope: 'global' });
-    expect(existsSync(join(home, '.jig', '00-anti-patterns.md'))).toBe(true);
-    expect(existsSync(join(home, '.claude', 'skills', 'jig', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(project, '.jig'))).toBe(false);
-    expect(existsSync(join(project, '.claude'))).toBe(false);
+    expect(existsSync(join(home, claudeDir, 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(home, claudeDir, 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(project, claudeDir))).toBe(false);
   });
 
   it('project-scope install is unaffected by homeDir', () => {
     install(opts());
-    expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(true);
-    expect(existsSync(join(home, '.jig'))).toBe(false);
+    expect(existsSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(home, claudeDir))).toBe(false);
   });
 
   it('codex writes AGENTS.md for project scope and .codex/AGENTS.md for global scope', () => {
@@ -247,6 +309,9 @@ describe('install — scope resolution (Fix 1)', () => {
     install({ ...opts(), agent: 'codex', scope: 'global' });
     expect(existsSync(join(home, '.codex', 'AGENTS.md'))).toBe(true);
     expect(existsSync(join(home, 'AGENTS.md'))).toBe(false);
+    // The global codex reference bundle lives beside .codex/AGENTS.md, in
+    // .codex/.jig — not the bare ~/.jig this project no longer uses.
+    expect(existsSync(join(home, '.codex', '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
   });
 
   it('opencode writes .opencode/skills for project scope and .config/opencode/skills for global scope', () => {
@@ -264,21 +329,50 @@ describe('install — scope resolution (Fix 1)', () => {
 
   it('a global install writes a skill file whose rule paths are home-anchored (C2)', () => {
     install({ ...opts(), scope: 'global' });
-    const skill = readFileSync(join(home, '.claude', 'skills', 'jig', 'SKILL.md'), 'utf8');
-    expect(skill).toContain('Rules at ~/.jig/00-anti-patterns.md.');
+    const skill = readFileSync(join(home, claudeDir, 'SKILL.md'), 'utf8');
+    expect(skill).toContain(`Rules at ~/${claudeDir}/rules/00-anti-patterns.md.`);
   });
 
   it('a project install writes a skill file whose rule paths are project-anchored (C2)', () => {
     install(opts());
-    const skill = readFileSync(join(project, '.claude', 'skills', 'jig', 'SKILL.md'), 'utf8');
-    expect(skill).toContain('Rules at .jig/00-anti-patterns.md.');
+    const skill = readFileSync(join(project, claudeDir, 'SKILL.md'), 'utf8');
+    expect(skill).toContain(`Rules at ${claudeDir}/rules/00-anti-patterns.md.`);
   });
 
-  it('writes the global-scope manifest under homeDir/.jig/manifest.json', () => {
+  // --- "Verify the rendered path actually resolves from where the skill
+  // file lands... not that it looks right — that it resolves." Both scopes:
+  // extract rules_path from the rendered SKILL.md and confirm a rule file
+  // really exists there, resolved the way the two anchors are meant to be
+  // read (project-relative from projectRoot; ~/-relative from homeDir). ---
+  it("a project-scope SKILL.md's rules_path resolves, on disk, to the vendored rule file", () => {
+    install(opts());
+    const skill = readFileSync(join(project, claudeDir, 'SKILL.md'), 'utf8');
+    const m = /Rules at (\S+)\/00-anti-patterns\.md\./.exec(skill);
+    expect(m).not.toBeNull();
+    const rulesPath = m![1];
+    expect(rulesPath.startsWith('~')).toBe(false);
+    const resolved = join(project, ...rulesPath.split('/'), '00-anti-patterns.md');
+    expect(existsSync(resolved)).toBe(true);
+    expect(resolved).toBe(join(project, claudeDir, 'rules', '00-anti-patterns.md'));
+  });
+
+  it("a global-scope SKILL.md's rules_path resolves, on disk (via ~ = homeDir), to the vendored rule file", () => {
     install({ ...opts(), scope: 'global' });
-    expect(existsSync(join(home, '.jig', 'manifest.json'))).toBe(true);
-    expect(existsSync(join(project, '.jig', 'manifest.json'))).toBe(false);
-    const m = readManifest(home)!;
+    const skill = readFileSync(join(home, claudeDir, 'SKILL.md'), 'utf8');
+    const m = /Rules at (\S+)\/00-anti-patterns\.md\./.exec(skill);
+    expect(m).not.toBeNull();
+    const rulesPath = m![1];
+    expect(rulesPath.startsWith('~/')).toBe(true);
+    const resolved = join(home, ...rulesPath.slice(2).split('/'), '00-anti-patterns.md');
+    expect(existsSync(resolved)).toBe(true);
+    expect(resolved).toBe(join(home, claudeDir, 'rules', '00-anti-patterns.md'));
+  });
+
+  it('writes the global-scope manifest beside the skill file under homeDir', () => {
+    install({ ...opts(), scope: 'global' });
+    expect(existsSync(join(home, claudeDir, 'manifest.json'))).toBe(true);
+    expect(existsSync(join(project, claudeDir, 'manifest.json'))).toBe(false);
+    const m = readManifest(home, claudeDir)!;
     expect(m.scope).toBe('global');
   });
 });
@@ -287,56 +381,20 @@ describe('install — prepare-then-commit (Fix 2)', () => {
   it('is a clean no-op when a required source asset is unreadable', () => {
     rmSync(join(pkg, 'NOTICE'));
     expect(() => install(opts())).toThrow();
-    expect(existsSync(join(project, '.jig'))).toBe(false);
-    expect(existsSync(join(project, '.claude'))).toBe(false);
+    expect(existsSync(join(project, claudeDir))).toBe(false);
   });
 
   it('does not write a manifest when install fails while gathering', () => {
     rmSync(join(pkg, 'templates', 'command-metadata.json'));
     expect(() => install(opts())).toThrow();
-    expect(readManifest(project)).toBeNull();
+    expect(readManifest(project, claudeDir)).toBeNull();
   });
 
   it('leaves a prior good install untouched when a later install call fails', () => {
     install(opts());
-    const before = readFileSync(join(project, '.jig', '00-anti-patterns.md'), 'utf8');
+    const before = readFileSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'), 'utf8');
     rmSync(join(pkg, 'LICENSE'));
     expect(() => install(opts())).toThrow();
-    expect(readFileSync(join(project, '.jig', '00-anti-patterns.md'), 'utf8')).toBe(before);
-  });
-});
-
-describe('token vendoring', () => {
-  it('writes every token file into .jig/tokens/', () => {
-    install(opts());
-    for (const f of ['brand.default.css', 'mode.editorial.css', 'mode.product.css', 'mode.operator.css']) {
-      expect(existsSync(join(project, '.jig', 'tokens', f))).toBe(true);
-    }
-  });
-
-  it('gives vendored CSS a CSS comment header, never an HTML one', () => {
-    install(opts());
-    const css = readFileSync(join(project, '.jig', 'tokens', 'brand.default.css'), 'utf8');
-    expect(css.startsWith('/*')).toBe(true);
-    expect(css).not.toContain('<!--');
-    expect(css).toContain('Apache-2.0');
-  });
-
-  it('keys token files with forward slashes', () => {
-    install(opts());
-    const m = readManifest(project)!;
-    const keys = Object.keys(m.files).filter((k) => k.includes('tokens'));
-    expect(keys.length).toBeGreaterThan(0);
-    for (const k of keys) expect(k).not.toContain('\\');
-  });
-
-  it('preserves a user-edited token file on reinstall and reports it skipped', () => {
-    install(opts());
-    const target = join(project, '.jig', 'tokens', 'brand.default.css');
-    const mine = `${readFileSync(target, 'utf8')}\n:root { --brand-h: 200; }\n`;
-    writeFileSync(target, mine);
-    const result = install(opts());
-    expect(readFileSync(target, 'utf8')).toBe(mine);
-    expect(result.skipped).toContain('.jig/tokens/brand.default.css');
+    expect(readFileSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'), 'utf8')).toBe(before);
   });
 });
