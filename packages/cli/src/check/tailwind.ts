@@ -42,14 +42,32 @@ function readBraced(source: string, open: number): string | null {
   return null;
 }
 
-export function classAttributeValues(source: string): string[] {
-  const out: string[] = [];
+export interface ClassAttribute {
+  /** The class names, with interpolations removed. */
+  classes: string;
+  /** 1-based line the attribute's value starts on, in the source given. */
+  line: number;
+}
+
+/**
+ * Every class attribute in `source`, each carrying its own line.
+ *
+ * The line is computed here, from the match offset, rather than by the caller
+ * searching for the text afterwards. `indexOf` returns the FIRST occurrence, so
+ * two identical attributes — the same component rendered twice, the same
+ * utility string copied — both reported the first one's line. A user fixes that
+ * line, re-runs, and sees what looks like the identical finding, with nothing
+ * naming the line still wrong.
+ */
+export function classAttributeValues(source: string): ClassAttribute[] {
+  const out: ClassAttribute[] = [];
+  const lineAt = (offset: number) => source.slice(0, offset).split('\n').length;
   for (const m of source.matchAll(CLASS_ATTR)) {
     const at = m.index! + m[0].length;
     const opener = source[at];
     if (opener === '"' || opener === "'") {
       const end = source.indexOf(opener, at + 1);
-      if (end !== -1) out.push(source.slice(at + 1, end));
+      if (end !== -1) out.push({ classes: source.slice(at + 1, end), line: lineAt(at) });
       continue;
     }
     if (opener !== '{') continue;
@@ -61,7 +79,7 @@ export function classAttributeValues(source: string): string[] {
     const literals = [...raw.matchAll(/(["'`])([\s\S]*?)\1/g)].map((q) =>
       q[2].replace(/\$\{[\s\S]*?\}/g, ' '),
     );
-    if (literals.length > 0) out.push(literals.join(' ').trim());
+    if (literals.length > 0) out.push({ classes: literals.join(' ').trim(), line: lineAt(at) });
   }
   return out;
 }

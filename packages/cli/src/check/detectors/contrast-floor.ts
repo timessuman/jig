@@ -122,9 +122,7 @@ export const contrastFloor: Detector = {
     // Class attributes are markup; a `className="..."` in a pure script file is
     // a string literal, not an element.
     for (const attr of isMarkupHost(file) ? classAttributeValues(ctx.raw) : []) {
-      const at = ctx.raw.indexOf(attr);
-      const line = at === -1 ? 1 : ctx.raw.slice(0, at).split('\n').length;
-      for (const pair of palettePairs(attr)) {
+      for (const pair of palettePairs(attr.classes)) {
         const fg = resolveOpaqueColor(pair.foreground, ctx.tokens);
         const bg = resolveOpaqueColor(pair.background, ctx.tokens);
         if (!fg || !bg) continue;
@@ -135,10 +133,10 @@ export const contrastFloor: Detector = {
             ctx,
             'contrast-floor',
             file,
-            line,
+            attr.line,
             `Foreground/background contrast is ${ratio.toFixed(2)}:1, below the 4.5:1 floor ` +
               `(${pair.foreground} on ${pair.background})`,
-            sourceLine(ctx.raw, line),
+            sourceLine(ctx.raw, attr.line),
           ),
         );
       }

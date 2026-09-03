@@ -117,12 +117,22 @@ export function check(opts: CheckOptions): CheckResult {
   // already returns `{}` for a missing directory, which is exactly right
   // for a project Jig has never been `init`-ed in.
   const tokens = loadTokenMap(opts.projectRoot);
-  const { files } = selectFiles(opts.projectRoot, opts.all);
+  const selection = selectFiles(opts.projectRoot, opts.all);
+  const { files } = selection;
 
   const bucketFilter = opts.ci ? (b: string) => b === 'mechanical' : undefined;
   // Does ANY stylesheet in this project sit on the token layer? Host files
   // inherit this, since their style regions never carry the project's @import.
-  const projectParticipates = files.some((f) => {
+  //
+  // Computed over the whole project, NOT the selected files. On the default
+  // changed-files run — a pre-commit hook, CI on a diff — a commit touching
+  // only a component puts no stylesheet in the set, and computing from that
+  // set made the project read as having no token layer at all: H-47 reported
+  // nothing, silently, on exactly the files being reviewed. Whether a project
+  // is on the token layer is a property of the project, not of the diff.
+  const stylesheets =
+    selection.mode === 'all' ? files : selectFiles(opts.projectRoot, true).files;
+  const projectParticipates = stylesheets.some((f) => {
     if (!hasExtension(f, CSS_EXTENSIONS)) return false;
     try {
       return participatesInTokenLayer(readFileSync(join(opts.projectRoot, f), 'utf8'), tokens);

@@ -164,7 +164,7 @@ export const hardcodedValue: Detector = {
     // notation. A bare `p-4` resolves through the scale, which is correct.
     // Class attributes are markup. A `className="..."` in a pure script file
     // is a string — test data, a template being assembled — not an element.
-    for (const attr of isMarkupHost(file) ? classAttributesWithLines(ctx.raw) : []) {
+    for (const attr of isMarkupHost(file) ? classAttributeValues(ctx.raw) : []) {
       for (const found of arbitraryValues(attr.classes)) {
         findings.push(
           mkFinding(
@@ -186,13 +186,3 @@ export const hardcodedValue: Detector = {
 };
 
 
-/** Each class attribute in `raw`, with the 1-based line it starts on. */
-function classAttributesWithLines(raw: string): { classes: string; line: number }[] {
-  const out: { classes: string; line: number }[] = [];
-  for (const classes of classAttributeValues(raw)) {
-    const at = raw.indexOf(classes);
-    const line = at === -1 ? 1 : raw.slice(0, at).split('\n').length;
-    out.push({ classes, line });
-  }
-  return out;
-}

@@ -16,23 +16,29 @@ import { classAttributeValues, arbitraryValues, palettePairs } from '../src/chec
  * is what a scale is for. Flagging it would mean flagging correct Tailwind.
  */
 describe('classAttributeValues', () => {
+  const classesOf = (s: string) => classAttributeValues(s).map((c) => c.classes);
+
   it('reads class and className, single or double quoted', () => {
-    expect(classAttributeValues('<div class="a b">')).toEqual(['a b']);
-    expect(classAttributeValues("<div className='c d'>")).toEqual(['c d']);
+    expect(classesOf('<div class="a b">')).toEqual(['a b']);
+    expect(classesOf("<div className='c d'>")).toEqual(['c d']);
   });
 
   it('reads a JSX expression container', () => {
-    expect(classAttributeValues('<div className={"e f"}>')).toEqual(['e f']);
+    expect(classesOf('<div className={"e f"}>')).toEqual(['e f']);
   });
 
   it('reads template literals and clsx-style joins', () => {
-    const out = classAttributeValues('<div className={`g ${x} h`}>').join(' ');
+    const out = classesOf('<div className={`g ${x} h`}>').join(' ');
     expect(out).toContain('g');
     expect(out).toContain('h');
   });
 
   it('ignores unrelated attributes', () => {
-    expect(classAttributeValues('<div data-x="p-[13px]">')).toEqual([]);
+    expect(classesOf('<div data-x="p-[13px]">')).toEqual([]);
+  });
+
+  it('carries the line each attribute starts on', () => {
+    expect(classAttributeValues('<a/>\n<div class="x">')[0].line).toBe(2);
   });
 });
 

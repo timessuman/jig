@@ -95,10 +95,18 @@ function readTemplate(source: string, openBacktick: number): Span | null {
  */
 const STYLE_OBJECT = /\bstyle\s*=\s*\{\{/g;
 
-/** Matching `}}` for a `style={{` whose braces start at `open`. */
+/**
+ * The INNER object's body for a `style={{` whose outer brace is at `open`.
+ *
+ * Depth is counted from the inner brace (`open + 1`), not the outer one. Counted
+ * from the outer, the body ran to the outer `}` and so swallowed the inner one —
+ * and the brace rewrite then appended another, producing `{ color: red }}`. A
+ * stray `}` is wrong output on its own, and closes an enclosing block early
+ * wherever the region sits inside one.
+ */
 function readObject(source: string, open: number): Span | null {
   let depth = 0;
-  let i = open;
+  let i = open + 1;
   const start = open + 2;
   while (i < source.length) {
     const ch = source[i];

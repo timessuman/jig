@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { selectFiles } from '../src/check/files.js';
 import { check } from '../src/commands/check.js';
 
 /**
@@ -97,5 +99,37 @@ describe('values written as Tailwind classes', () => {
   it('says nothing about scale utilities', () => {
     write('src/Fine.tsx', 'export const F = () => <div className="p-4 text-sm rounded-lg flex">x</div>;\n');
     expect(run().findings.filter((f) => f.file.endsWith('Fine.tsx'))).toEqual([]);
+  });
+});
+
+describe('project participation does not depend on what is being checked', () => {
+  it('holds on a changed-files run where no stylesheet is in the set', () => {
+    // `projectParticipates` was computed from the SELECTED files. On the
+    // default changed-files run — a pre-commit hook, CI on a diff — a commit
+    // touching only a component put no stylesheet in the set, so the project
+    // read as having no token layer and H-47 reported nothing at all.
+    // Participation is a property of the project, not of the diff.
+    write('src/Card.vue', '<template><b/></template>\n<style>\n.c { color: #999999; }\n</style>\n');
+
+    const git = (...args: string[]) =>
+      execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=T', ...args], { cwd: project });
+    git('init', '-q');
+    git('add', '-A');
+    git('commit', '-qm', 'base');
+
+    // Only the component changes. No stylesheet is in the diff.
+    write('src/Card.vue', '<template><b/></template>\n<style>\n.c { color: #999999; padding: 13px; }\n</style>\n');
+    expect(selectFiles(project, false).files, 'the diff must hold only the component').toEqual([
+      'src/Card.vue',
+    ]);
+
+    const result = check({
+      projectRoot: project,
+      homeDir: project,
+      version: '0.4.0',
+      all: false,
+      ci: false,
+    });
+    expect(result.findings.map((f) => f.ruleId)).toContain('H-47');
   });
 });
