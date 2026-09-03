@@ -26,6 +26,14 @@ export interface AdapterContext {
   scope: Scope;
   skillBody: string;
   commandPrefix: string;
+  /**
+   * The rendered slash-command body, already carrying the harness's own
+   * argument placeholder. Absent when a caller only wants the skill file.
+   */
+  commandBody?: string;
+  /** Subcommands the command file should offer — the ones actually implemented. */
+  subcommands?: string[];
+
 }
 
 export interface Adapter {
@@ -53,7 +61,16 @@ export interface Adapter {
    * actually lands, for both scopes — every adapter supports both scopes.
    */
   referenceDir(scope: Scope): string;
+  /**
+   * The placeholder this harness substitutes the slash command's arguments
+   * into — `$ARGUMENTS` for the markdown harnesses, `{{args}}` for Gemini's
+   * TOML. Absent for a harness with no slash commands.
+   */
+  argsPlaceholder?: string;
 }
+
+export const COMMAND_DESCRIPTION =
+  'Run a Jig design-system command: set the project up, review the UI against the rules, or refresh the install.';
 
 export const SKILL_DESCRIPTION =
   'Design system rules for generating and reviewing UI. Load before building any interface.';

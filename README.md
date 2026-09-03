@@ -135,6 +135,32 @@ any UI, takes the mode from `jig.config.json`, loads the pattern section for
 whatever it is building, consumes tokens by name, and cites any rule it
 deliberately breaks.
 
+### Slash commands
+
+`install` also writes a `/jig` command, so the CLI is reachable without leaving
+your session:
+
+```
+/jig init          /jig check --all          /jig update
+```
+
+It runs the CLI and then does the part the CLI cannot — for `/jig check` that
+means applying the 97 judgment rules to the same files and merging both halves
+into one report keyed by rule id.
+
+| Harness | Command file |
+| --- | --- |
+| Claude Code | `.claude/commands/jig.md` |
+| Cursor | `.cursor/commands/jig.md` |
+| opencode | `.opencode/command/jig.md` |
+| Gemini CLI | `.gemini/commands/jig.toml` |
+| Codex | — run the CLI directly; see below |
+| Generic | — no harness to register with |
+
+Codex's custom prompts are not written: `codex exec` does not expand them, so a
+command file could sit there and never fire. Codex users run
+`npx jig-ui@latest check` directly — the skill in `AGENTS.md` is unaffected.
+
 **You still prompt normally.** Ask for a settings page, a data table, an empty
 state — whatever you were going to ask for. What you no longer have to say is
 *how*: "use the design tokens", "handle the loading state", "don't invent a

@@ -1,6 +1,17 @@
 import type { Adapter, AdapterContext, RenderedFile } from './types.js';
 import { agentsBlock } from './types.js';
 
+/**
+ * No slash command is written for Codex.
+ *
+ * Its custom prompts live in `~/.codex/prompts/*.md`, but `codex exec` does not
+ * expand them: probed with a real prompt file and `codex exec "/jigprobe
+ * hello-world"`, Codex treated the text literally and went looking for a
+ * `jigprobe` binary on PATH. Whether the interactive TUI expands them is
+ * untested here, and shipping a file on that guess would put a command in a
+ * user's config that may never fire. Codex users run the CLI directly; the
+ * skill in `AGENTS.md` works exactly as it does for every other harness.
+ */
 export const codex: Adapter = {
   name: 'codex',
   displayName: 'Codex',

@@ -108,6 +108,47 @@ export function buildSkillBody(
 }
 
 /**
+ * The slash-command body, plus the subcommands it offers.
+ *
+ * Only commands the CLI actually registers are offered: a `/jig explain` that
+ * errors out is worse than no `/jig explain` at all, which is the same reason
+ * the skill's own command table marks planned entries rather than hiding them.
+ *
+ * `argsPlaceholder` is the harness's own — `$ARGUMENTS` for the markdown
+ * harnesses, `{{args}}` for Gemini's TOML — so the body is rendered per
+ * harness rather than once and patched.
+ */
+export function buildCommandBody(
+  packageRoot: string,
+  rulesPath: string,
+  version: string,
+  argsPlaceholder: string,
+): { body: string; subcommands: string[] } {
+  const metadata = JSON.parse(
+    readFileSync(join(packageRoot, 'templates', 'command-metadata.json'), 'utf8'),
+  ) as CommandMetadata;
+  const subcommands = Object.entries(metadata)
+    .filter(([, meta]) => meta.status === 'available')
+    .map(([name]) => name)
+    .sort();
+  // A build without the template writes no slash commands rather than failing
+  // the whole install. That the shipped package HAS it is asserted at pack
+  // time instead (see tarball.test.ts) — the same split the reference tree
+  // uses, so a packaging defect surfaces where it is caused rather than in a
+  // user's terminal.
+  const templatePath = join(packageRoot, 'templates', 'COMMAND.md.tmpl');
+  if (!existsSync(templatePath)) return { body: '', subcommands };
+  const template = readFileSync(templatePath, 'utf8');
+  const body = template
+    .replace(/\{\{command_prefix\}\}/g, '/jig ')
+    .replace(/\{\{args_placeholder\}\}/g, argsPlaceholder)
+    .replace(/\{\{subcommand_list\}\}/g, subcommands.join(', '))
+    .replace(/\{\{scripts_path\}\}/g, `npx jig-ui@${version}`)
+    .replace(/\{\{rules_path\}\}/g, rulesPath);
+  return { body, subcommands };
+}
+
+/**
  * The `rules_path` template variable: where the adapter's reference bundle's
  * `rules/` directory actually lands, expressed so it resolves regardless of
  * the agent's working directory when it later reads the skill file — bare
@@ -241,11 +282,19 @@ export function install(opts: InstallOptions): InstallResult {
 
   const rulesPath = rulesPathFor(referenceDir, opts.scope);
   const skillBody = buildSkillBody(opts.packageRoot, rulesPath, opts.version);
+  const { body: commandBody, subcommands } = buildCommandBody(
+    opts.packageRoot,
+    rulesPath,
+    opts.version,
+    adapter.argsPlaceholder ?? '$ARGUMENTS',
+  );
+  const command = { commandBody, subcommands };
   const skillFiles = skillFilesFor(adapter, {
     version: opts.version,
     scope: opts.scope,
     skillBody,
     commandPrefix: '/jig ',
+    ...command,
   });
   for (const file of skillFiles) {
     const key = file.relPath;

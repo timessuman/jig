@@ -1,0 +1,62 @@
+The user invoked `{{command_prefix}}{{args_placeholder}}`. Treat
+`{{args_placeholder}}` as the subcommand and its flags.
+
+Available subcommands: {{subcommand_list}}. If it is empty or is not one of
+these, say so, list them, and stop.
+
+Run the matching CLI command with `{{scripts_path}}`, passing the flags through
+unchanged. Then do the work below for that subcommand. Read the command's full
+output — findings are ordered by severity, not position, so `head`, `tail`,
+`grep` and `jq` drop the ones that matter.
+
+## init
+
+Report what it detected, the brand colour it derived and where that came from,
+and the mode it wrote. The mode is the load-bearing decision: `jig.config.json`
+outranks your own inference from then on, so if the project's signals point
+elsewhere — the mode table in `{{rules_path}}/01-modes.md` — say so and ask
+before leaving it.
+
+If the token layer does not exist yet, this is the command that creates it. Do
+not author token values yourself under any circumstances.
+
+## check
+
+The CLI decides the rules a machine can decide. **It is half the review**, and
+its own attestation says `judgment=not-run` to make that explicit.
+
+Do the other half yourself:
+
+1. Load `{{rules_path}}/00-anti-patterns.md` and `{{rules_path}}/05-copy.md`,
+   plus the relevant section of `{{rules_path}}/03-patterns.md` for whatever the
+   changed files build.
+2. Apply the judgment rules to the same files the CLI just scanned.
+3. Merge both halves into **one** report keyed by rule id, ordered by severity —
+   not two lists. A reader should not have to know which half found what.
+4. Run the self-check at the end of `{{rules_path}}/00-anti-patterns.md`.
+
+Then emit the attestation with both halves filled in:
+
+```text
+JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judgment=<ran|skipped>
+```
+
+Take `mechanical=` from the CLI's own line. If `check` could not run, that is
+`mechanical=skipped:0` — never `pass`, which would report a clean result for a
+check that inspected nothing. Report `judgment=ran` only if you did step 2.
+
+## install
+
+Report where the skill landed and at which scope. If it warned that a global
+install already exists, do not work around it — that warning is the system
+refusing to leave two contradictory skills for one harness.
+
+## update
+
+Report what moved and what was left alone. Files reported as skipped were edited
+locally and are the user's; never re-apply Jig's version over them.
+
+---
+
+Everything in `{{rules_path}}/` is yours to read. Cite rules by id, and cite any
+rule you deliberately break with the reason, in one line.

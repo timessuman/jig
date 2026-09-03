@@ -76,6 +76,13 @@ describe('published tarball (C1)', () => {
     }
   });
 
+  it('ships the slash-command template, without which no command file is written', () => {
+    // `buildCommandBody` returns an empty body when the template is missing, so
+    // install succeeds and simply writes no slash commands — silently. The
+    // guard belongs here, where the cause is.
+    expect(files).toContain('templates/COMMAND.md.tmpl');
+  });
+
   it('includes the CLI entrypoint dist/index.js', () => {
     expect(files).toContain('dist/index.js');
   });

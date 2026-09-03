@@ -127,6 +127,23 @@ them its own.
 
 ### Added
 
+- **`/jig` slash commands.** `install` writes a command file for every harness
+  that has a slash-command mechanism, so `/jig init`, `/jig check --all` and
+  `/jig update` work without leaving the session. One file named `jig`
+  dispatching on its arguments, which is what gives `/jig init` with a space
+  rather than a separate `/jig-init` per subcommand.
+
+  The command is not a thin wrapper: `/jig check` runs the CLI for the seven
+  mechanical rules, then applies the 97 judgment rules to the same files and
+  merges both halves into one report keyed by rule id — the half a CLI cannot
+  do, which is the reason the command exists at all.
+
+  Claude Code, Cursor, opencode and Gemini CLI (which gets its own TOML shape).
+  Not Codex: its custom prompts are not expanded by `codex exec` — probed
+  directly — so a file there could sit and never fire. Only subcommands the CLI
+  actually registers are offered, since a slash command that errors out is worse
+  than one that does not exist.
+
 - **`check` reads CSS wherever it lives.** It read `.css`/`.scss`/`.less` only,
   which for most projects meant it examined almost nothing — and said nothing
   about that. A Tailwind v4 fixture with `bg-[#6D28D9] p-[13px] rounded-[12px]

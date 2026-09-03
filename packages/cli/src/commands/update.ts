@@ -6,7 +6,7 @@ import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js'
 import { referenceFiles } from '../install/references.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
-import { buildSkillBody, relKey, rulesPathFor, type InstallOptions } from './install.js';
+import { buildCommandBody, buildSkillBody, relKey, rulesPathFor, type InstallOptions } from './install.js';
 import { readInitManifest, writeInitManifest, isInitFileModified } from '../init/state.js';
 import { detectLegacyRules } from '../init/migrate.js';
 
@@ -166,11 +166,19 @@ function updateTarget(
   // matches where this update is actually writing.
   const rulesPath = rulesPathFor(referenceDir, discoveredScope);
   const skillBody = buildSkillBody(opts.packageRoot, rulesPath, opts.version);
+  const { body: commandBody, subcommands } = buildCommandBody(
+    opts.packageRoot,
+    rulesPath,
+    opts.version,
+    adapter.argsPlaceholder ?? '$ARGUMENTS',
+  );
+  const command = { commandBody, subcommands };
   const skillFiles = skillFilesFor(adapter, {
     version: opts.version,
     scope: discoveredScope,
     skillBody,
     commandPrefix: '/jig ',
+    ...command,
   });
 
   for (const file of skillFiles) {
