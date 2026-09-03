@@ -190,9 +190,24 @@ export function extractColorComponents(value: string, tokens: Record<string, str
   return null;
 }
 
+// Matches a `var(--name, fallback)` call — specifically one THAT CARRIES A
+// FALLBACK. The fallback only applies on the branch where the custom
+// property is undefined, which by construction is the branch that does NOT
+// run when it IS defined — and Jig never reads the consumer's `:root` to
+// know which branch is live. Substituting it in for a contrast calculation
+// reports the fallback as fact when it may never be the value in play.
+const VAR_WITH_FALLBACK_RE = /var\(\s*--[\w-]+\s*,/i;
+
 /** Like `extractColorComponents`, but returns `null` unless the colour is
- * fully opaque — the only case a contrast calculation can trust. */
+ * fully opaque — the only case a contrast calculation can trust — AND the
+ * value contains no `var(--x, fallback)`. A fallback is a guess about a
+ * branch of the cascade Jig cannot observe; `contrast-floor` must skip
+ * those pairs rather than score the fallback as if it were live. (The
+ * plain fallback substitution in `substituteVars`/`extractColorComponents`
+ * is preserved for callers like `violet-band-hue`, which only asks a
+ * question at `warning` severity and is not claiming certainty.) */
 export function resolveOpaqueColor(value: string, tokens: Record<string, string>): RGB | null {
+  if (VAR_WITH_FALLBACK_RE.test(value)) return null;
   const c = extractColorComponents(value, tokens);
   if (!c || c.alpha < 0.999) return null;
   return c.rgb;

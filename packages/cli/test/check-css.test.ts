@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildLineIndex, leafBlocks, lineForOffset, maskMediaQueries, splitRuleBlocks } from '../src/check/css.js';
+import { buildLineIndex, leafBlocks, lineForOffset, splitRuleBlocks } from '../src/check/css.js';
 
 describe('splitRuleBlocks / leafBlocks', () => {
   it('extracts a simple leaf block with its body and start line', () => {
@@ -18,17 +18,6 @@ describe('splitRuleBlocks / leafBlocks', () => {
     const leaves = leafBlocks(source);
     expect(leaves).toHaveLength(1);
     expect(leaves[0].selector).toBe('.a');
-  });
-});
-
-describe('maskMediaQueries', () => {
-  it('blanks the interior of an @media block while preserving line count', () => {
-    const source = '.a { padding: 4px; }\n@media (min-width: 600px) {\n  .b { padding: 999px; }\n}\n.c { padding: 8px; }\n';
-    const masked = maskMediaQueries(source);
-    expect(masked).not.toContain('999px');
-    expect(masked).toContain('4px');
-    expect(masked).toContain('8px');
-    expect(masked.split('\n')).toHaveLength(source.split('\n').length);
   });
 });
 

@@ -58,6 +58,20 @@ describe('pure-black-white (C-18)', () => {
     const src = '.body {\n  color: #111;\n  background: #f9f8f5;\n}\n';
     expect(pureBlackWhite.run(src, 'a.css', c)).toHaveLength(0);
   });
+
+  // M7: the original regexes matched only #000/#fff hex literals. C-18's own
+  // rule is about the colours, not the syntax used to spell them — the
+  // `black`/`white` keywords and the rgb() equivalents are the same
+  // violation and must be caught too.
+  it('fires on the black/white keywords', () => {
+    const src = '.body {\n  color: black;\n  background: white;\n}\n';
+    expect(pureBlackWhite.run(src, 'a.css', c)).toHaveLength(1);
+  });
+
+  it('fires on rgb(0,0,0) over rgb(255,255,255)', () => {
+    const src = '.body {\n  color: rgb(0, 0, 0);\n  background-color: rgb(255, 255, 255);\n}\n';
+    expect(pureBlackWhite.run(src, 'a.css', c)).toHaveLength(1);
+  });
 });
 
 describe('contrast-floor (C-19)', () => {
@@ -76,6 +90,14 @@ describe('contrast-floor (C-19)', () => {
     // translucent colour: unresolvable, must be skipped rather than guessed
     const unresolvable = '.body {\n  color: rgb(0 0 0 / 90%);\n  background: #ffffff;\n}\n';
     expect(contrastFloor.run(unresolvable, 'a.css', c)).toHaveLength(0);
+  });
+
+  // C2: a var() with a fallback is a guess about a cascade branch Jig
+  // cannot observe — even though the fallback alone would fail the floor,
+  // the pair must be skipped, not reported as fact.
+  it('does not fire on var(--x, fallback) even when the fallback would fail the floor', () => {
+    const src = ':root { --brand-muted: #333333; }\n.c2 { color: var(--brand-muted, #999999); background: #ffffff; }\n';
+    expect(contrastFloor.run(src, 'a.css', c)).toHaveLength(0);
   });
 });
 
@@ -135,6 +157,22 @@ describe('hardcoded-value (H-47)', () => {
     // declarations are read from parsed block bodies, not flat file text.
     const src = '.a { color: var(--color-brand); }\n.color:hover {\n  background: #ffffff;\n}\n';
     expect(hardcodedValue.run(src, 'a.css', c)).toHaveLength(1); // only the real background-color literal
+  });
+
+  // I1: an animation waypoint (`from`, `to`, or a percentage step) inside
+  // `@keyframes` is not a design value on the token layer — it's how far
+  // something moves. Flagging it teaches users to distrust the detector.
+  it('does not flag @keyframes steps as hard-coded spacing', () => {
+    const src = [
+      '.a { color: var(--color-brand); }',
+      '@keyframes slide {',
+      '  from { margin-left: 0; }',
+      '  to { margin-left: 240px; }',
+      '  50% { margin-left: 120px; }',
+      '}',
+      '',
+    ].join('\n');
+    expect(hardcodedValue.run(src, 'a.css', c)).toHaveLength(0);
   });
 });
 
@@ -232,6 +270,27 @@ describe('contrast-floor applies the large-text floor', () => {
 
   it('treats bold 20px as large', () => {
     const src = '.h { font-size: 20px; font-weight: 700; background: #ffffff; color: #949494; }\n';
+    expect(contrastFloor.run(src, 'a.css', c)).toHaveLength(0);
+  });
+
+  // C3: `font-size: 2rem` is 32px — large text — but the exemption only
+  // recognised `px` before this fix, so it never applied to a codebase that
+  // sizes type in `rem` (the common case). 3.54:1 is AA-conformant for
+  // large text; 2.5:1 is not.
+  it('recognises rem font sizes for the large-text exemption', () => {
+    const large = '.h { font-size: 2rem; background: #ffffff; color: #888888; }\n'; // ~3.54:1
+    expect(contrastFloor.run(large, 'a.css', c)).toHaveLength(0);
+
+    const tooLow = '.h { font-size: 2rem; background: #ffffff; color: #a4a4a4; }\n'; // ~2.49:1
+    expect(contrastFloor.run(tooLow, 'a.css', c)).toHaveLength(1);
+  });
+
+  // An unresolvable unit (em, %, clamp()) must fall back to the LENIENT
+  // floor rather than the strict one — guessing large produces a false
+  // negative, guessing normal produces the false positive this fix exists
+  // to remove.
+  it('falls back to the lenient floor for a font-size it cannot resolve to px', () => {
+    const src = '.h { font-size: 1.5em; background: #ffffff; color: #949494; }\n'; // ~3.54:1
     expect(contrastFloor.run(src, 'a.css', c)).toHaveLength(0);
   });
 });

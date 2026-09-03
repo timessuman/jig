@@ -14,6 +14,9 @@ import type { Detector, Finding } from '../types.js';
 // rule block. Anything else — a translucent colour (most of Jig's own
 // foreground tokens are intentionally alpha-based and mix with whatever
 // they sit on), `oklch()` (several background tokens), `currentColor`, a
+// `var(--x, fallback)` (the fallback only applies on the branch that does
+// NOT run when the property is defined, and Jig never reads the consumer's
+// `:root` to know which branch is live — see `resolveOpaqueColor`), a
 // colour set in a different rule, or a value that doesn't parse — is
 // skipped rather than guessed at. The floor itself is a fixed 4.5:1 (WCAG
 // AA normal text; the file's own "Floor: WCAG 2.1 level AA" statement).
@@ -22,14 +25,41 @@ const FLOOR = 4.5;
 // >=18.66px at bold. Reporting conformant large text as an error at the
 // stricter floor would contradict the rule this detector cites.
 const LARGE_FLOOR = 3;
-const FONT_SIZE_RE = /(?<![-\w])font-size\s*:\s*(-?\d*\.?\d+)px/i;
+// `px` and `rem` (converted at the standard 16px root) are the only units
+// resolved to a number. `em`/`%` are relative to a context this scanner
+// doesn't have (the parent's computed size, unknown here), and `clamp()`
+// resolves to a range, not a point — so none of those can be converted with
+// any confidence. A modern codebase sizes type in `rem` far more often than
+// `px`; recognising only `px` (as this once did) meant the large-text
+// exemption almost never applied in practice.
+const REM_TO_PX = 16;
+const FONT_SIZE_DECL_RE = /(?<![-\w])font-size\s*:\s*([^;]+?)(?:;|$)/i;
+const FONT_SIZE_PX_RE = /^(-?\d*\.?\d+)px$/i;
+const FONT_SIZE_REM_RE = /^(-?\d*\.?\d+)rem$/i;
 const BOLD_RE = /(?<![-\w])font-weight\s*:\s*(bold|[6-9]\d\d)/i;
 
-function isLargeText(body: string): boolean {
-  const m = FONT_SIZE_RE.exec(body);
-  if (!m) return false;
-  const px = parseFloat(m[1]);
-  return BOLD_RE.test(body) ? px >= 18.66 : px >= 24;
+/**
+ * The floor for this block: the strict 4.5:1 by default, relaxed to 3:1
+ * when the text is confidently large. A `font-size` declared in a unit this
+ * cannot resolve (`em`, `%`, `clamp()`, ...) falls back to the LENIENT
+ * floor rather than the strict one — an unknown size must not produce a
+ * confident error. No `font-size` at all keeps the strict floor: the
+ * browser default (16px) is normal-size text.
+ */
+function resolveFloor(body: string): number {
+  const m = FONT_SIZE_DECL_RE.exec(body);
+  if (!m) return FLOOR;
+
+  const raw = m[1].trim();
+  const pxMatch = FONT_SIZE_PX_RE.exec(raw);
+  const remMatch = FONT_SIZE_REM_RE.exec(raw);
+  let px: number;
+  if (pxMatch) px = parseFloat(pxMatch[1]);
+  else if (remMatch) px = parseFloat(remMatch[1]) * REM_TO_PX;
+  else return LARGE_FLOOR; // unresolvable unit — do not guess at the strict floor
+
+  const large = BOLD_RE.test(body) ? px >= 18.66 : px >= 24;
+  return large ? LARGE_FLOOR : FLOOR;
 }
 // Terminator is `;` OR end-of-body — the last declaration in a rule may omit
 // its semicolon, and minified CSS always does.
@@ -65,7 +95,7 @@ export const contrastFloor: Detector = {
       // WCAG AA has two floors, and applying the stricter one to large text
       // reports conformant CSS as an error. C-19's own correction makes the
       // same distinction. Large is >=24px regular, or >=18.66px bold.
-      const floor = isLargeText(block.body) ? LARGE_FLOOR : FLOOR;
+      const floor = resolveFloor(block.body);
 
       const ratio = contrastRatio(fg, bg);
       if (ratio >= floor) continue;

@@ -50,6 +50,23 @@ describe('resolveOpaqueColor', () => {
     expect(resolveOpaqueColor('rgba(0, 0, 0, 0.9)', {})).toBeNull();
     expect(resolveOpaqueColor('rgb(0 0 0 / 90%)', {})).toBeNull();
   });
+
+  // C2: a var() carrying a fallback is unresolved for contrast purposes —
+  // the fallback only applies on the branch that does NOT run when the
+  // custom property is defined, and Jig never reads the consumer's `:root`
+  // to know which branch is live. Reporting the fallback as fact is a guess.
+  it('refuses a var() with a fallback, even when the fallback alone would resolve', () => {
+    expect(resolveOpaqueColor('var(--brand-muted, #999999)', {})).toBeNull();
+    expect(resolveOpaqueColor('var(--brand-muted, #999999)', { 'brand-muted': '#333333' })).toBeNull();
+  });
+
+  it('still resolves a var() with no fallback against a known token', () => {
+    expect(resolveOpaqueColor('var(--brand-muted)', { 'brand-muted': '#333333' })).toEqual({
+      r: 0x33,
+      g: 0x33,
+      b: 0x33,
+    });
+  });
 });
 
 describe('contrastRatio', () => {

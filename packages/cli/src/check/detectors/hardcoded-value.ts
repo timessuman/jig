@@ -73,6 +73,14 @@ const DECL_RE = /(?<![-\w])([a-zA-Z-]+)\s*:\s*([^;]+)(?:;|$)/g;
 const COLOR_LITERAL_RE = /#[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\([^)]*\)/;
 const PX_RE = /(-?\d*\.?\d+)px/g;
 const EXCLUDED_PX = new Set([0, 1, 2]);
+// A leaf block whose selector is a `@keyframes` step (`from`, `to`, or a
+// percentage) is an animation waypoint, not a design value — `margin-left:
+// 240px` inside `to { ... }` is how far something travels, not spacing that
+// belongs on the token layer. Only the step selector itself is percentage-
+// shaped; a real CSS selector can't legally be a bare percentage outside
+// `@keyframes`, so this is safe to check without knowing the enclosing
+// at-rule.
+const KEYFRAME_STEP_RE = /^(from|to|\d+(\.\d+)?%)$/i;
 
 export const hardcodedValue: Detector = {
   name: 'hardcoded-value',
@@ -92,6 +100,7 @@ export const hardcodedValue: Detector = {
     // instead (as this once did) deleted every real declaration inside a media
     // query, which in a responsive stylesheet is most of them.
     for (const block of leafBlocks(source)) {
+      if (KEYFRAME_STEP_RE.test(block.selector.trim())) continue;
       DECL_RE.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = DECL_RE.exec(block.body))) {
