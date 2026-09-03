@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { checksum, isModified, writeManifest, type Manifest } from '../install/manifest.js';
 import { resolveInstalled } from '../install/target.js';
 import { upsertBlock, vendorHeader } from '../install/vendor.js';
+import { referenceFiles } from '../install/references.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
 import { buildSkillBody, relKey, rulesPathFor, type InstallOptions } from './install.js';
@@ -69,6 +70,15 @@ export function update(opts: InstallOptions): UpdateResult {
       continue;
     }
     write(key, vendorHeader(file, opts.version) + readFileSync(join(rulesDir, file), 'utf8'));
+  }
+
+  for (const ref of referenceFiles(opts.packageRoot)) {
+    const key = relKey(referenceDir, ...ref.relPath.split('/'));
+    if (isModified(installRoot, key, existing)) {
+      skipped.push(key);
+      continue;
+    }
+    write(key, vendorHeader(ref.relPath, opts.version) + ref.content);
   }
 
   const indexKey = relKey(referenceDir, 'rules.index.json');

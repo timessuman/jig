@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
+import { referenceFiles } from './../install/references.js';
 import { BLOCK_START } from '../adapters/types.js';
 import {
   checksum,
@@ -195,6 +196,17 @@ export function install(opts: InstallOptions): InstallResult {
     planned.push({
       key: relKey(referenceDir, 'rules', file),
       content: vendorHeader(file, opts.version) + body,
+      checkable: true,
+    });
+  }
+  // References — `references/**` in the package — ship beside the rules for the
+  // same reason the rules do: an agent reads them. Their subdirectory shape is
+  // preserved, so `references/commands/init.md` installs as
+  // `<referenceDir>/commands/init.md`.
+  for (const ref of referenceFiles(opts.packageRoot)) {
+    planned.push({
+      key: relKey(referenceDir, ...ref.relPath.split('/')),
+      content: vendorHeader(ref.relPath, opts.version) + ref.content,
       checkable: true,
     });
   }

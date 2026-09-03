@@ -193,3 +193,16 @@ fixed in the same pass this section was added in).
   themselves — worth a README line, and an `init`-time warning (e.g. via
   `git check-ignore`, the same mechanism I5 now uses) when `.jig/` resolves as
   ignored.
+- **M10 — the pattern and mode specs have no index.** `rules.index.json` covers the
+  `### X-NN` rules — the ones with a ❌/✅ pair, which is what a bucket, a severity
+  and a detector describe. The `## P-NN · Name` pattern specs in `03-patterns.md`
+  (11 of them) and the `## M-NN` mode specs in `01-modes.md` (3) are outside it, and
+  `parseRules` does not emit them. That is coherent — they are specifications, not
+  checkable rules — but agents cite them as rule ids: two baseline reviews cited
+  P-02, P-05, P-06, P-08 and M-02, all real and none confirmable against any index.
+  Consequences worth deciding on: `check`'s "104 rules" is the indexed count, not
+  the number of things an agent can cite; and any future validation of an agent's
+  citations would reject a correct P-06. Adding them to `rules.index.json` is not
+  the fix — `loadRules` checks both directions and throws, which is it correctly
+  refusing to hold two different kinds of thing in one list. A separate spec index,
+  or a citation validator that knows about both, would be.
