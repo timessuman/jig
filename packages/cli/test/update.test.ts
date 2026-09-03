@@ -410,4 +410,33 @@ describe('update and the project mode-file copy (state.json)', () => {
     expect(existsSync(join(project, '.jig'))).toBe(false);
     expect(result.updated.some((f) => f.includes('tokens'))).toBe(false);
   });
+
+});
+
+describe('update — every installed harness (I2)', () => {
+  it('refreshes every installed harness, not just the first one found', () => {
+    // A project may hold several installs — the README documents installing
+    // per agent — and each keeps its own manifest under its own reference
+    // directory. Refreshing only the first left the rest pinned at their
+    // install version forever, with nothing said about them.
+    for (const agent of ['claude', 'cursor', 'gemini']) {
+      install({ ...opts('0.1.0'), agent });
+    }
+    seedPackage('### A-01 Rule revised\n❌ bad\n✅ better\n');
+
+    const result = update(opts('0.2.0'));
+
+    for (const agent of ['claude', 'cursor', 'gemini']) {
+      const dir = getAdapter(agent).referenceDir('project');
+      const manifest = readManifest(project, dir);
+      expect(manifest?.version, `${agent} manifest version`).toBe('0.2.0');
+      expect(
+        readFileSync(join(project, dir, 'rules', '00-anti-patterns.md'), 'utf8'),
+        `${agent} rules`,
+      ).toContain('Rule revised');
+    }
+
+    expect(result.targets.map((t) => t.agent).sort()).toEqual(['claude', 'cursor', 'gemini']);
+    for (const t of result.targets) expect(t.fromVersion).toBe('0.1.0');
+  });
 });
