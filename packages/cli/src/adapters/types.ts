@@ -31,7 +31,6 @@ export interface AdapterContext {
 export interface Adapter {
   name: string;
   displayName: string;
-  supportsScope(scope: Scope): boolean;
   skillFiles(ctx: AdapterContext): RenderedFile[];
   /**
    * Directory, relative to the install root for `scope` (the project root
@@ -39,17 +38,19 @@ export interface Adapter {
    * reference material — `rules/*.md`, `rules.index.json`, `LICENSE`,
    * `NOTICE`, and this adapter's own `manifest.json` — is written.
    *
-   * For an adapter with a real skill directory (claude, opencode, cursor)
-   * this is that directory, so the reference material sits beside the skill
-   * file the way impeccable keeps `reference/*.md` inside its own skill
-   * directory. For a marker-based adapter writing into `AGENTS.md` (codex,
-   * generic) — which has no skill directory — this is a `.jig` directory
-   * next to wherever `AGENTS.md` lands.
+   * For an adapter with a real skill directory (every harness in
+   * `adapters/skill-dir.ts` — claude, cursor, opencode, generic, gemini,
+   * and any future row added to that table) this is that directory, so the
+   * reference material sits beside the skill file the way impeccable keeps
+   * `reference/*.md` inside its own skill directory. For codex — the one
+   * marker-based adapter left, writing into `AGENTS.md`, which has no
+   * skill directory — this is a `.jig` directory next to wherever
+   * `AGENTS.md` lands.
    *
    * `install`/`update` build the `rules_path` baked into the rendered
    * skill/instructions body from this value too (see `commands/install.ts`),
    * so it must resolve from wherever the corresponding `skillFiles()` output
-   * actually lands, for both scopes this adapter supports.
+   * actually lands, for both scopes — every adapter supports both scopes.
    */
   referenceDir(scope: Scope): string;
 }

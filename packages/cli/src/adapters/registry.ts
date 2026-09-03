@@ -1,12 +1,13 @@
 import type { Adapter, AdapterContext, RenderedFile } from './types.js';
 import { assertSafeRelPath } from './types.js';
-import { claude } from './claude.js';
 import { codex } from './codex.js';
-import { cursor } from './cursor.js';
-import { opencode } from './opencode.js';
-import { generic } from './generic.js';
+import { SKILL_DIR_ADAPTERS } from './skill-dir.js';
 
-const ADAPTERS: Adapter[] = [claude, codex, cursor, opencode, generic];
+// codex is the one adapter left with a bespoke implementation — AGENTS.md
+// is genuinely a different mechanism, not a skill directory. Every other
+// harness comes from the SKILL_DIR_HARNESSES table (see skill-dir.ts);
+// adding one there is the entire diff for a new harness.
+const ADAPTERS: Adapter[] = [codex, ...SKILL_DIR_ADAPTERS];
 
 export function adapterNames(): string[] {
   return ADAPTERS.map((a) => a.name);

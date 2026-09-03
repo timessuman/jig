@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { ADAPTERS } from '../adapters/registry.js';
+import { ADAPTERS, getAdapter } from '../adapters/registry.js';
 import { readManifest, type Manifest, type Scope } from './manifest.js';
 
 export interface ResolvedTarget {
@@ -29,35 +29,54 @@ export interface ResolvedTarget {
  * Exception: when `projectRoot` and `homeDir` resolve to the same path
  * (e.g. `cd ~ && jig update`, or a dotfiles repo rooted at `~/.git`) AND the
  * matched adapter's project- and global-scope `referenceDir` are the same
- * literal path (true for claude/opencode's whole-file adapters when the two
- * roots coincide, since e.g. claude's skill directory doesn't vary by
- * scope), `readManifest` at that path reads the identical file under both
- * scopes — there is only one possible destination, so the manifest's own
- * `scope` is safe to trust there, and only there. Any adapter whose
- * project/global `referenceDir` differ (codex, opencode) is unambiguous
- * even when the roots coincide, since the two scopes are physically
- * different files.
+ * literal path (true for most skill-dir adapters, since e.g. claude's skill
+ * directory doesn't vary by scope), `readManifest` at that path reads the
+ * identical file under both scopes — there is only one possible
+ * destination, so the manifest's own `scope` is safe to trust there, and
+ * only there. Any adapter whose project/global `referenceDir` differ
+ * (codex; opencode, whose global scope resolves under the XDG config
+ * directory instead of `.opencode`) is unambiguous even when the roots
+ * coincide, since the two scopes are physically different files.
+ *
+ * Every adapter supports both scopes as of the harness-table refactor, so
+ * this no longer needs to skip any adapter per scope the way it once did.
  */
 export function resolveInstalled(projectRoot: string, homeDir: string): ResolvedTarget | null {
   const sameRoot = resolve(projectRoot) === resolve(homeDir);
 
   for (const adapter of ADAPTERS) {
-    if (!adapter.supportsScope('project')) continue;
     const referenceDir = adapter.referenceDir('project');
     const manifest = readManifest(projectRoot, referenceDir);
     if (!manifest) continue;
+    // The manifest must name the adapter whose directory it was found in.
+    // Without this, a leftover pre-0.4.0 `.jig/manifest.json` is claimed by
+    // codex — whose project referenceDir is `.jig` — and `update` then
+    // rebuilds the whole vendored layout at the project root, undoing the
+    // migration on the exact upgrade path a real user takes.
+    //
+    // A manifest naming an agent that is not an adapter AT ALL is a different
+    // case: the file is corrupt or hand-edited, and the user needs to be told
+    // that rather than "Jig is not installed", which is both wrong and
+    // unactionable. `getAdapter` throws with the available names.
+    if (manifest.agent !== adapter.name) {
+      getAdapter(manifest.agent); // throws `Unknown agent '<x>'` for a bogus name
+      continue; // a real adapter, just not this one — keep probing
+    }
 
-    const collides = sameRoot && adapter.supportsScope('global') && adapter.referenceDir('global') === referenceDir;
+    const collides = sameRoot && adapter.referenceDir('global') === referenceDir;
     const scope: Scope = collides ? manifest.scope : 'project';
     const installRoot = scope === 'global' ? homeDir : projectRoot;
     return { installRoot, scope, manifest, referenceDir };
   }
 
   for (const adapter of ADAPTERS) {
-    if (!adapter.supportsScope('global')) continue;
     const referenceDir = adapter.referenceDir('global');
     const manifest = readManifest(homeDir, referenceDir);
     if (!manifest) continue;
+    if (manifest.agent !== adapter.name) {
+      getAdapter(manifest.agent);
+      continue;
+    }
     return { installRoot: homeDir, scope: 'global', manifest, referenceDir };
   }
 

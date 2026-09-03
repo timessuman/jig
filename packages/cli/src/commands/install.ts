@@ -120,9 +120,6 @@ interface PlannedFile {
 
 export function install(opts: InstallOptions): InstallResult {
   const adapter = getAdapter(opts.agent);
-  if (!adapter.supportsScope(opts.scope)) {
-    throw new Error(`Adapter '${adapter.name}' does not support ${opts.scope} scope.`);
-  }
 
   // A project install when this agent is already installed globally would
   // leave two `jig` skills registered with the same harness, with rule
@@ -130,7 +127,7 @@ export function install(opts: InstallOptions): InstallResult {
   // architecture exists to prevent. Refuse rather than silently creating a
   // second, contradictory skill; the user can update the global install
   // instead, or pick a different agent for this project.
-  if (opts.scope === 'project' && adapter.supportsScope('global')) {
+  if (opts.scope === 'project') {
     const globalReferenceDir = adapter.referenceDir('global');
     let globalManifest: Manifest | null;
     try {

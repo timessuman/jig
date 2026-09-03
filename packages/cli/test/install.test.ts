@@ -183,9 +183,8 @@ describe('install', () => {
     expect(readFileSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'), 'utf8')).toBe(first);
   });
 
-  it('rejects an unsupported scope for the adapter', () => {
-    expect(() => install({ ...opts(), agent: 'cursor', scope: 'global' }))
-      .toThrow(/does not support global/);
+  it('rejects an unknown agent', () => {
+    expect(() => install({ ...opts(), agent: 'nope' })).toThrow(/Unknown agent 'nope'/);
   });
 
   // --- I1: re-running install must not silently destroy a user's edit to a
@@ -244,7 +243,7 @@ describe('install', () => {
   });
 });
 
-describe('install — codex/generic reference material lives beside AGENTS.md in .jig/', () => {
+describe('install — codex reference material lives beside AGENTS.md in .jig/', () => {
   it("codex (project scope) puts rules in .jig/, since it has no skill directory of its own", () => {
     install({ ...opts(), agent: 'codex' });
     expect(existsSync(join(project, '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
@@ -256,11 +255,19 @@ describe('install — codex/generic reference material lives beside AGENTS.md in
     expect(existsSync(join(project, '.jig', 'state.json'))).toBe(false);
     expect(existsSync(join(project, 'jig.config.json'))).toBe(false);
   });
+});
 
-  it('generic (AGENTS.md, project only) puts rules in .jig/ too', () => {
+describe('install — generic uses the shared skill-dir convention', () => {
+  it('generic writes SKILL.md and rules under .agents/skills/jig/, not AGENTS.md', () => {
     install({ ...opts(), agent: 'generic' });
-    expect(existsSync(join(project, '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
-    expect(existsSync(join(project, 'AGENTS.md'))).toBe(true);
+    expect(existsSync(join(project, '.agents', 'skills', 'jig', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(project, '.agents', 'skills', 'jig', 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(project, 'AGENTS.md'))).toBe(false);
+  });
+
+  it('generic supports global scope too, at ~/.agents/skills/jig/', () => {
+    install({ ...opts(), agent: 'generic', scope: 'global' });
+    expect(existsSync(join(home, '.agents', 'skills', 'jig', 'SKILL.md'))).toBe(true);
   });
 });
 
@@ -278,7 +285,7 @@ describe('install — global install already present warns instead of duplicatin
     install({ ...opts(), agent: 'claude', scope: 'global' });
     const result = install({ ...opts(), agent: 'cursor', scope: 'project' });
     expect(result.warning).toBeUndefined();
-    expect(existsSync(join(project, '.cursor', 'rules', 'jig.mdc'))).toBe(true);
+    expect(existsSync(join(project, '.cursor', 'skills', 'jig', 'SKILL.md'))).toBe(true);
   });
 
   it('a plain project install with no existing global install proceeds normally', () => {
@@ -322,9 +329,12 @@ describe('install — scope resolution (Fix 1)', () => {
     expect(existsSync(join(home, '.config', 'opencode', 'skills', 'jig', 'SKILL.md'))).toBe(true);
   });
 
-  it('cursor still rejects global scope', () => {
-    expect(() => install({ ...opts(), agent: 'cursor', scope: 'global' }))
-      .toThrow(/does not support global/);
+  it('cursor now supports global scope too, at ~/.cursor/skills/jig/', () => {
+    install({ ...opts(), agent: 'cursor', scope: 'project' });
+    expect(existsSync(join(project, '.cursor', 'skills', 'jig', 'SKILL.md'))).toBe(true);
+
+    install({ ...opts(), agent: 'cursor', scope: 'global' });
+    expect(existsSync(join(home, '.cursor', 'skills', 'jig', 'SKILL.md'))).toBe(true);
   });
 
   it('a global install writes a skill file whose rule paths are home-anchored (C2)', () => {

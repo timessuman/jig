@@ -17,27 +17,40 @@ Paste the line for your agent and let it run the command.
 | Codex | `npx jig-ui@latest install --agent codex` |
 | Cursor | `npx jig-ui@latest install --agent cursor` |
 | opencode | `npx jig-ui@latest install --agent opencode` |
+| Gemini CLI | `npx jig-ui@latest install --agent gemini` |
 | Any other agent | `npx jig-ui@latest install --agent generic` |
 
 Add `--scope global` to install once for every project instead of just this
-one. Where a global install lands depends on the agent:
+one. Every agent supports both scopes. Where a global install lands depends
+on the agent:
 
 | Agent | Project scope | Global scope |
 | --- | --- | --- |
 | Claude Code | `.claude/skills/jig/SKILL.md` | `~/.claude/skills/jig/SKILL.md` |
 | Codex | `AGENTS.md` | `~/.codex/AGENTS.md` |
-| Cursor | `.cursor/rules/jig.mdc` | not supported |
+| Cursor | `.cursor/skills/jig/SKILL.md` | `~/.cursor/skills/jig/SKILL.md` |
 | opencode | `.opencode/skills/jig/SKILL.md` | `~/.config/opencode/skills/jig/SKILL.md` |
-| Generic | `AGENTS.md` | not supported |
+| Gemini CLI | `.gemini/skills/jig/SKILL.md` | `~/.gemini/skills/jig/SKILL.md` |
+| Generic | `.agents/skills/jig/SKILL.md` | `~/.agents/skills/jig/SKILL.md` |
+
+Every agent except Codex reads `<harness>/skills/jig/SKILL.md` — the same
+convention across the board, so adding support for a new harness is a config
+change, not a new code path. Codex keeps `AGENTS.md`, since that really is a
+different mechanism.
 
 Install writes the skill file **and its reference material** (`rules/`,
 `rules.index.json`, `LICENSE`, `NOTICE`) to one place only — beside the skill
-file itself (`.claude/skills/jig/`, `~/.codex/.jig/`, `.cursor/rules/jig/`,
+file itself (`.claude/skills/jig/`, `~/.codex/.jig/`, `.cursor/skills/jig/`,
 ...). Nothing is written into your project's `.jig/`; the rules are read by
 your agent from the skill install, not vendored into your repo. Installing at
 project scope when the same agent is already installed globally warns instead
 of creating a second, contradicting skill — update the global install, or
 pick a different `--agent` for the project.
+
+Cursor's skill moved from `.cursor/rules/jig.mdc` to `.cursor/skills/jig/
+SKILL.md`. If you installed Cursor support before this change, `jig init`
+finds the old file, reports it, and offers to remove it — never without your
+consent, and never if you've edited it.
 
 Update later with `npx jig-ui@latest update` — files you have edited are left
 alone.

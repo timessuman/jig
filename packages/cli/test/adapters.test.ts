@@ -15,9 +15,9 @@ describe('registry', () => {
 describe('claude adapter', () => {
   const a = getAdapter('claude');
 
-  it('supports both scopes', () => {
-    expect(a.supportsScope('project')).toBe(true);
-    expect(a.supportsScope('global')).toBe(true);
+  it('supports both scopes (referenceDir resolves for each)', () => {
+    expect(a.referenceDir('project')).toBe('.claude/skills/jig');
+    expect(a.referenceDir('global')).toBe('.claude/skills/jig');
   });
 
   it('writes SKILL.md under .claude/skills/jig at project scope', () => {

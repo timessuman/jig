@@ -45,12 +45,6 @@ export function update(opts: InstallOptions): UpdateResult {
   const { installRoot, scope: discoveredScope, manifest: existing, referenceDir } = resolved;
 
   const adapter = getAdapter(existing.agent);
-  if (!adapter.supportsScope(discoveredScope)) {
-    throw new Error(
-      `Jig's manifest at ${installRoot} records agent '${existing.agent}', which does not support ` +
-        `${discoveredScope} scope. Re-run 'jig install --agent <name>' to fix it.`,
-    );
-  }
 
   const updated: string[] = [];
   const skipped: string[] = [];
