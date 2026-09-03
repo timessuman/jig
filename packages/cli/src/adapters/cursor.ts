@@ -17,4 +17,10 @@ export const cursor: Adapter = {
     ].join('\n');
     return [{ relPath: '.cursor/rules/jig.mdc', content }];
   },
+  // Cursor has no notion of a skill directory — `.cursor/rules/jig.mdc` is a
+  // single rule file living among a project's other `.cursor/rules/*.mdc`
+  // files. Reference material gets its own `jig/` subdirectory there rather
+  // than spilling rules/index/LICENSE/NOTICE directly into the shared
+  // `.cursor/rules/` folder.
+  referenceDir: () => '.cursor/rules/jig',
 };

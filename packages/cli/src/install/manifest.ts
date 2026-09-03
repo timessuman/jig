@@ -12,9 +12,18 @@ export interface Manifest {
   files: Record<string, string>;
 }
 
-const MANIFEST_REL = join('.jig', 'manifest.json');
-
 const REGENERATE_HINT = "Re-run 'jig install --agent <name>' to fix it.";
+
+/**
+ * Where `manifest.json` itself lives, relative to `root`. Defaults to
+ * `.jig` for backward compatibility with the pre-0.4.0 install layout;
+ * every current call site passes the adapter's own `referenceDir(scope)`
+ * explicitly (see `adapters/types.ts`), since `install` no longer writes
+ * anything into a project's `.jig/`.
+ */
+function manifestPath(root: string, manifestDir: string): string {
+  return join(root, ...manifestDir.split('/'), 'manifest.json');
+}
 
 export function checksum(content: string): string {
   const normalized = content.replace(/\r\n/g, '\n');
@@ -69,8 +78,8 @@ function validateManifest(raw: unknown, path: string): Manifest {
   };
 }
 
-export function readManifest(projectRoot: string): Manifest | null {
-  const path = join(projectRoot, MANIFEST_REL);
+export function readManifest(root: string, manifestDir = '.jig'): Manifest | null {
+  const path = manifestPath(root, manifestDir);
   if (!existsSync(path)) return null;
 
   let raw: unknown;
@@ -82,8 +91,8 @@ export function readManifest(projectRoot: string): Manifest | null {
   return validateManifest(raw, path);
 }
 
-export function writeManifest(projectRoot: string, m: Manifest): void {
-  const path = join(projectRoot, MANIFEST_REL);
+export function writeManifest(root: string, m: Manifest, manifestDir = '.jig'): void {
+  const path = manifestPath(root, manifestDir);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(m, null, 2)}\n`, 'utf8');
 }

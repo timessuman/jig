@@ -20,4 +20,6 @@ export const opencode: Adapter = {
       : '.opencode/skills/jig/SKILL.md';
     return [{ relPath, content }];
   },
+  referenceDir: (scope) =>
+    scope === 'global' ? '.config/opencode/skills/jig' : '.opencode/skills/jig',
 };

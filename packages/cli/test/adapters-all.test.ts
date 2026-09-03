@@ -57,6 +57,7 @@ describe('skillFilesFor guard', () => {
       name: 'bad-dotdot',
       displayName: 'Bad Dotdot',
       supportsScope: () => true,
+      referenceDir: () => '.jig',
       skillFiles: () => [{ relPath: '../escape.md', content: 'x' }],
     };
     expect(() => skillFilesFor(badAdapter, ctx)).toThrow(/unsafe/i);
@@ -67,6 +68,7 @@ describe('skillFilesFor guard', () => {
       name: 'bad-abs',
       displayName: 'Bad Abs',
       supportsScope: () => true,
+      referenceDir: () => '.jig',
       skillFiles: () => [{ relPath: '/etc/passwd', content: 'x' }],
     };
     expect(() => skillFilesFor(badAdapter, ctx)).toThrow(/unsafe/i);
@@ -77,6 +79,7 @@ describe('skillFilesFor guard', () => {
       name: 'bad-drive',
       displayName: 'Bad Drive',
       supportsScope: () => true,
+      referenceDir: () => '.jig',
       skillFiles: () => [{ relPath: 'C:\\evil.md', content: 'x' }],
     };
     expect(() => skillFilesFor(badAdapter, ctx)).toThrow(/unsafe/i);
