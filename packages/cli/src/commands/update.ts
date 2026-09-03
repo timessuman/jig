@@ -6,6 +6,7 @@ import { upsertBlock, vendorHeader } from '../install/vendor.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
 import { buildSkillBody, relKey, type InstallOptions } from './install.js';
+import { readInitManifest, writeInitManifest, isInitFileModified } from '../init/state.js';
 
 export interface UpdateResult {
   updated: string[];
@@ -142,6 +143,45 @@ export function update(opts: InstallOptions): UpdateResult {
   // install or a local edit must never be able to strip attribution.
   for (const key of ALWAYS_REPLACE) {
     write(key, readFileSync(join(opts.packageRoot, basename(key)), 'utf8'));
+  }
+
+  // C3 companion fix: a global install's mode-file copy inside the
+  // *project* tree (`.jig/tokens/mode.<mode>.css`, written by `init` so its
+  // `@import` stays project-relative — see init.ts) is tracked in the
+  // project's `.jig/init-manifest.json`, not the real manifest at
+  // `installRoot`. A global `update` only ever writes to `$HOME`, so
+  // without this that copy would silently rot: rules and tokens at `$HOME`
+  // move on, the project's copy never does. Refresh it under the exact same
+  // rule as everything above — skip when the user edited it, refresh when
+  // untouched — reusing `opts.projectRoot` (the directory `update` was
+  // actually invoked from) as init.ts does, not `installRoot`.
+  //
+  // Iterating the package's own tokensDir (rather than hardcoding
+  // "mode.*.css") means this generalizes to any package-origin file init
+  // ever copies into the project this way. A project-scope install never
+  // populates init-manifest with any of these keys — every mode file is
+  // already vendored straight into the project tree by `install`/`update`
+  // above — so this is a no-op there.
+  const initManifest = readInitManifest(opts.projectRoot);
+  if (initManifest) {
+    const initFiles = { ...initManifest.files };
+    let initChanged = false;
+    for (const file of readdirSync(tokensDir).filter((f) => f.endsWith('.css')).sort()) {
+      const key = relKey('.jig', 'tokens', file);
+      if (!(key in initManifest.files)) continue;
+      if (isInitFileModified(opts.projectRoot, key, initManifest)) {
+        skipped.push(key);
+        continue;
+      }
+      const content = vendorHeader(file, opts.version, 'css') + readFileSync(join(tokensDir, file), 'utf8');
+      const abs = join(opts.projectRoot, ...key.split('/'));
+      mkdirSync(dirname(abs), { recursive: true });
+      writeFileSync(abs, content, 'utf8');
+      initFiles[key] = checksum(content);
+      initChanged = true;
+      updated.push(key);
+    }
+    if (initChanged) writeInitManifest(opts.projectRoot, { files: initFiles });
   }
 
   const manifest: Manifest = {

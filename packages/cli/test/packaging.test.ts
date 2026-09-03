@@ -9,7 +9,7 @@ const readme = () => readFileSync(join(repoRoot, 'README.md'), 'utf8');
 // The commands `src/index.ts` actually registers on the commander program.
 // Update this list the same commit a new command lands there — the tests
 // below fail loudly if it drifts from `templates/command-metadata.json`.
-const IMPLEMENTED_COMMANDS = ['install', 'update'];
+const IMPLEMENTED_COMMANDS = ['install', 'update', 'init'];
 
 describe('packaging', () => {
   it('has a LICENSE naming Apache', () => {
@@ -38,9 +38,9 @@ describe('packaging', () => {
     expect(text).not.toContain('ui.config.json');
   });
 
-  it('README does not advertise the unimplemented init command', () => {
+  it('README documents jig init now that it is implemented', () => {
     const text = readme();
-    expect(text).not.toMatch(/jig-ui@latest init/);
+    expect(text).toMatch(/jig-ui@latest init/);
   });
 });
 

@@ -48,10 +48,22 @@ your surface needs — one brand file, one mode file:
 Copy `brand.default.css` to `brand.<yourproject>.css` and edit that; `jig update`
 will not overwrite a file you have changed.
 
-Token setup is currently manual: copy `jig.config.example.json` to
-`jig.config.json` and import the token files described in
-`rules/02-tokens.md`. A scaffolding command for this is planned but not yet
-implemented.
+Or let `jig init` do the above for you:
+
+```
+npx jig-ui@latest init
+```
+
+It detects your CSS system (Tailwind v4, Tailwind v3, plain CSS), derives a
+brand colour from what your project already has (custom properties first,
+then a Tailwind config, then the most frequent literal colour) instead of
+asking cold, validates that colour against the contrast and collision
+requirements stated in `brand.default.css` itself, writes
+`.jig/tokens/brand.<project>.css` and `jig.config.json`, wires the `@import`
+into your stylesheet when there is one unambiguous place to put it, and runs
+a baseline `check` so you have a number to move. Add `--yes` to accept every
+derived default non-interactively (the mode CI and agents run in). Re-running
+`init` never overwrites a `jig.config.json` or brand file you have edited.
 
 ## Files
 

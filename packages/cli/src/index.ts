@@ -6,6 +6,7 @@ import { assetRoot, findProjectRoot, getPackageRoot } from './paths.js';
 import { install } from './commands/install.js';
 import { update } from './commands/update.js';
 import { check } from './commands/check.js';
+import { init } from './commands/init.js';
 import { adapterNames } from './adapters/registry.js';
 
 const packageRoot = getPackageRoot();
@@ -89,6 +90,26 @@ program
       });
       console.log(opts.json ? JSON.stringify(result.findings, null, 2) : result.report);
       if (opts.ci && result.hasError) process.exit(1);
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('init')
+  .description("Set the project up to use Jig: a brand file, jig.config.json, and a baseline check.")
+  .option('--yes', 'non-interactive: derive everything, accept the proposal, ask nothing', false)
+  .action(async (opts: { yes: boolean }) => {
+    const projectRoot = findProjectRoot(process.cwd());
+    try {
+      await init({
+        projectRoot,
+        packageRoot: assetRoot(),
+        homeDir: homedir(),
+        version,
+        yes: opts.yes,
+      });
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);

@@ -1,0 +1,541 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { resolveInstalled } from '../install/target.js';
+import { detect, type DetectionResult } from '../init/detect.js';
+import { deriveBrandColor, type ColorProposal } from '../init/derive.js';
+import { validateBrandColor, type ValidationResult } from '../init/validate.js';
+import { renderBrandFile, brandFileName } from '../init/brand-file.js';
+import { relativeImportPath } from '../init/import-path.js';
+import { deriveProjectSlug } from '../init/project-name.js';
+import { readInitManifest, writeInitManifest, isInitFileModified, checksum } from '../init/state.js';
+import { vendorHeader } from '../install/vendor.js';
+import { relKey } from './install.js';
+import { check } from './check.js';
+import { extractColorComponents } from '../check/color.js';
+
+const MODES = ['editorial', 'product', 'operator'] as const;
+type Mode = (typeof MODES)[number];
+
+export interface Surface {
+  match: string;
+  mode: Mode;
+}
+
+const DEFAULT_SURFACES: Surface[] = [{ match: '/', mode: 'product' }];
+
+export interface InitOptions {
+  projectRoot: string;
+  packageRoot: string;
+  homeDir: string;
+  version: string;
+  /** Non-interactive: derive everything, accept the proposal, ask nothing. */
+  yes: boolean;
+  /** Asks one question and returns the trimmed answer. Defaults to a real
+   *  `readline/promises` prompt against stdin/stdout — injectable so this
+   *  command is testable without a real TTY. Never called when `yes`. */
+  prompt?: (question: string) => Promise<string>;
+  /** Status line sink. Defaults to `console.log`. Injectable for tests. */
+  log?: (line: string) => void;
+}
+
+type FileAction = 'written' | 'skipped-untracked' | 'skipped-edited' | 'kept' | 'merged';
+
+export interface InitResult {
+  detection: DetectionResult;
+  proposal: ColorProposal;
+  validation: ValidationResult;
+  finalColor: { h: number; s: number; l: number };
+  surfaces: Surface[];
+  brand: { relPath: string; action: FileAction };
+  config: { relPath: string; action: FileAction };
+  wiring: { target: string | null; status: 'wired' | 'rewired' | 'already-present' | 'print-only'; snippet: string };
+  baseline: { report: string; findingsCount: number };
+}
+
+async function defaultPrompt(question: string): Promise<string> {
+  const { createInterface } = await import('node:readline/promises');
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return (await rl.question(question)).trim();
+  } finally {
+    rl.close();
+  }
+}
+
+/** M3: validates the integer h/s/l that will actually land in the written
+ *  file — `renderBrandFile` (`init/brand-file.ts`) rounds every component to
+ *  the nearest integer, while `derive.ts` proposes values rounded only to
+ *  one decimal place. Validating the finer-grained value could in principle
+ *  pass (or fail) right at the 4.5:1 boundary while the rounded value
+ *  actually written does the opposite. */
+function validateRounded(p: { h: number; s: number; l: number }): ValidationResult {
+  return validateBrandColor(Math.round(p.h), Math.round(p.s), Math.round(p.l));
+}
+
+export function describeValidation(v: ValidationResult): string[] {
+  const lines: string[] = [];
+  if (v.passesContrast) {
+    lines.push(
+      `  contrast OK — ${v.ratioVsRaised.toFixed(2)}:1 vs --color-bg-raised, ${v.ratioVsFill.toFixed(2)}:1 vs --color-fill (floor 4.5:1)`,
+    );
+  } else {
+    lines.push(
+      `  contrast FAILS — worst is ${v.worstRatio.toFixed(2)}:1 against the 4.5:1 floor ` +
+        `(${v.ratioVsRaised.toFixed(2)}:1 vs --color-bg-raised, ${v.ratioVsFill.toFixed(2)}:1 vs --color-fill)`,
+    );
+    if (v.nearestPassingLightness !== undefined) {
+      lines.push(`  nearest passing lightness at the same hue/saturation: ${v.nearestPassingLightness}%`);
+    }
+  }
+  if (v.violetBand) {
+    lines.push(
+      '  A-01: this hue falls in the violet/indigo band — the unspecified-default hue. Confirm this was a deliberate choice.',
+    );
+  }
+  if (v.systemCollision) {
+    lines.push(
+      `  E-64: this hue reads as ${v.systemCollision} — a system colour. Do not use it for interactive elements ` +
+        '(links, buttons); keep it decorative.',
+    );
+  }
+  return lines;
+}
+
+export function parseSurfaces(answer: string, fallback: Surface[]): Surface[] {
+  const trimmed = answer.trim();
+  if (!trimmed) return fallback;
+  const parts = trimmed.split(',').map((p) => p.trim()).filter(Boolean);
+  const parsed: Surface[] = [];
+  for (const part of parts) {
+    const idx = part.lastIndexOf(':');
+    if (idx === -1) return fallback;
+    const match = part.slice(0, idx).trim();
+    const mode = part.slice(idx + 1).trim() as Mode;
+    if (!match || !MODES.includes(mode)) return fallback;
+    parsed.push({ match, mode });
+  }
+  return parsed.length > 0 ? parsed : fallback;
+}
+
+interface FileState {
+  existsOnDisk: boolean;
+  tracked: boolean;
+  modified: boolean;
+}
+
+function fileState(projectRoot: string, absPath: string, relPath: string, initManifest: ReturnType<typeof readInitManifest>): FileState {
+  const existsOnDisk = existsSync(absPath);
+  const tracked = !!initManifest && relPath in initManifest.files;
+  const modified = tracked && isInitFileModified(projectRoot, relPath, initManifest!);
+  return { existsOnDisk, tracked, modified };
+}
+
+function isValidSurfaceArray(v: unknown): v is Surface[] {
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every(
+      (s) =>
+        typeof s === 'object' &&
+        s !== null &&
+        typeof (s as Partial<Surface>).match === 'string' &&
+        MODES.includes((s as Partial<Surface>).mode as Mode),
+    )
+  );
+}
+
+/**
+ * I2: whatever is actually on disk at `configAbsPath` right now is
+ * authoritative for wiring — regardless of whether this run just wrote it,
+ * merged it, or left an existing one alone entirely untouched. Without this,
+ * a kept/skipped config (correctly left intact) gets contradicted by the
+ * stylesheet edit init makes right after, using the freshly-derived
+ * brand/surfaces instead of what the config file actually says.
+ *
+ * `brand` is only trusted when it resolves to a real file — an unresolvable
+ * path (typo, deleted file) falls back rather than wiring an import to
+ * nothing. `surfaces` is only trusted when it is a well-formed, non-empty
+ * array of `{match, mode}` pairs (see M8: a malformed/typo'd surfaces array
+ * is logged as a known follow-up, not hardened further here — this is the
+ * one guard needed so it can't silently produce `surfaces[0] === undefined`).
+ */
+function loadEffectiveConfig(
+  projectRoot: string,
+  configAbsPath: string,
+  fallbackBrand: string,
+  fallbackSurfaces: Surface[],
+): { brand: string; surfaces: Surface[] } {
+  if (!existsSync(configAbsPath)) return { brand: fallbackBrand, surfaces: fallbackSurfaces };
+  try {
+    const parsed = JSON.parse(readFileSync(configAbsPath, 'utf8')) as { brand?: unknown; surfaces?: unknown };
+    const brandCandidate = typeof parsed.brand === 'string' && parsed.brand ? parsed.brand : undefined;
+    const brandResolves = brandCandidate ? existsSync(join(projectRoot, ...brandCandidate.split('/'))) : false;
+    return {
+      brand: brandResolves ? brandCandidate! : fallbackBrand,
+      surfaces: isValidSurfaceArray(parsed.surfaces) ? parsed.surfaces : fallbackSurfaces,
+    };
+  } catch {
+    return { brand: fallbackBrand, surfaces: fallbackSurfaces };
+  }
+}
+
+/** I4: a `*.module.css`/`*.module.scss` file is scoped per-component by its
+ *  build tooling — a `:root`-level token import written into one is dead on
+ *  arrival everywhere except that one component. Excluded here so it can
+ *  never be the lone stylesheet `findWireTarget` treats as unambiguous. */
+function isCssModule(path: string): boolean {
+  return /\.module\.(css|scss)$/i.test(path);
+}
+
+function findWireTarget(d: DetectionResult): string | null {
+  if (d.cssSystem === 'tailwind-v4' && d.tailwindV4EntryFile) return d.tailwindV4EntryFile;
+  const candidates = d.cssFiles.filter((f) => !isCssModule(f));
+  if (candidates.length === 1) return candidates[0];
+  return null;
+}
+
+/** Matches an `@import` of any of the three mode files, regardless of the
+ *  relative path prefix in front of it — this is what lets C2's rewiring
+ *  find "the" mode import to compare/replace without caring how it got
+ *  there (wired by this version of init, an older one, or hand-written). */
+const MODE_IMPORT_RE = new RegExp(`@import\\s+["']([^"']*/)?mode\\.(${MODES.join('|')})\\.css["'];?\\r?\\n?`);
+
+/** `@charset` is only honoured at byte 0 of a stylesheet (I3) — displaced
+ *  even by one character it is silently ignored, changing decoding for a
+ *  file that declares a non-UTF-8 encoding. Any insertion at "the top of
+ *  the file" must land after it, not before. */
+const CHARSET_RE = /^@charset\s+["'][^"']*["'];\r?\n?/;
+
+function insertAfterCharset(content: string, insertion: string): string {
+  const m = CHARSET_RE.exec(content);
+  const charsetLen = m ? m[0].length : 0;
+  return content.slice(0, charsetLen) + insertion + content.slice(charsetLen);
+}
+
+interface WireOutcome {
+  status: 'wired' | 'rewired' | 'already-present';
+  detail?: string;
+}
+
+/**
+ * Wires (or rewires) the brand + mode `@import`s into `absPath`.
+ *
+ * C2: brand and mode presence are checked independently. Testing only the
+ * brand import (as this used to) means changing the config's mode, or a
+ * user hand-deleting just the mode line, both read as `already-present` —
+ * a false success that leaves the stylesheet and the config permanently
+ * disagreeing. When the brand import is present but the mode import is
+ * either missing or names a different mode, only that one line is
+ * rewritten in place; the brand import and everything else in the file is
+ * left untouched.
+ */
+function wireImport(absPath: string, brandImport: string, modeImport: string, mode: string): WireOutcome {
+  const content = existsSync(absPath) ? readFileSync(absPath, 'utf8') : '';
+  const brandImportLine = `@import "${brandImport}";`;
+  const modeImportLine = `@import "${modeImport}";`;
+  const brandPresent = content.includes(brandImportLine);
+  const existingModeMatch = MODE_IMPORT_RE.exec(content);
+
+  if (brandPresent) {
+    if (existingModeMatch && existingModeMatch[0].trim() === modeImportLine) {
+      return { status: 'already-present' };
+    }
+    if (existingModeMatch) {
+      const previousMode = existingModeMatch[2];
+      const next =
+        content.slice(0, existingModeMatch.index) +
+        `${modeImportLine}\n` +
+        content.slice(existingModeMatch.index + existingModeMatch[0].length);
+      writeFileSync(absPath, next, 'utf8');
+      return { status: 'rewired', detail: `rewired mode: ${previousMode} → ${mode}` };
+    }
+    // Brand import present, mode import missing entirely — insert one right after it.
+    const brandIdx = content.indexOf(brandImportLine);
+    let insertAt = brandIdx + brandImportLine.length;
+    if (content[insertAt] === '\r') insertAt++;
+    if (content[insertAt] === '\n') insertAt++;
+    const next = content.slice(0, insertAt) + modeImportLine + '\n' + content.slice(insertAt);
+    writeFileSync(absPath, next, 'utf8');
+    return { status: 'rewired', detail: `added missing mode import: ${mode}` };
+  }
+
+  const lines = `${brandImportLine}\n${modeImportLine}\n`;
+  const tailwindImportMatch = /@import\s+["']tailwindcss["'];?\r?\n?/.exec(content);
+  let next: string;
+  if (tailwindImportMatch) {
+    const idx = tailwindImportMatch.index + tailwindImportMatch[0].length;
+    next = content.slice(0, idx) + lines + content.slice(idx);
+  } else {
+    next = insertAfterCharset(content, content ? `${lines}\n` : lines);
+  }
+  mkdirSync(dirname(absPath), { recursive: true });
+  writeFileSync(absPath, next, 'utf8');
+  return { status: 'wired' };
+}
+
+/**
+ * Sets a project up to actually use Jig: derives a brand colour from what
+ * already exists (or falls back to the unbranded default), validates it
+ * against `brand.default.css`'s own stated contract, writes
+ * `.jig/tokens/brand.<project>.css` and `jig.config.json`, wires or prints
+ * the `@import`, and runs a baseline `check`.
+ *
+ * Requires an existing install (`resolveInstalled`) — the brand file's
+ * `@import` and the baseline check both depend on the vendored mode files
+ * and rules already being present.
+ */
+export async function init(opts: InitOptions): Promise<InitResult> {
+  const log = opts.log ?? ((line: string) => console.log(line));
+  const prompt = opts.prompt ?? defaultPrompt;
+
+  const resolved = resolveInstalled(opts.projectRoot, opts.homeDir);
+  if (!resolved) {
+    throw new Error(`Jig is not installed in ${opts.projectRoot}. Run 'jig install --agent <name>' first.`);
+  }
+
+  // ---- 1. Detect ----
+  const detection = detect(opts.projectRoot);
+  log(`Detected: ${detection.cssSystem}${detection.framework ? ` (${detection.framework})` : ''}`);
+  if (detection.cssFiles.length === 0) {
+    log('  No stylesheets found.');
+  } else {
+    log(`  ${detection.cssFiles.length} stylesheet(s) found.`);
+  }
+
+  // ---- 2 & 3. Derive + validate ----
+  let proposal = deriveBrandColor(opts.projectRoot, detection.cssFiles, detection.tailwindConfigFile);
+  let validation = validateRounded(proposal);
+  log(`Proposed brand colour: hsl(${proposal.h} ${proposal.s}% ${proposal.l}%) — ${proposal.detail}`);
+  for (const line of describeValidation(validation)) log(line);
+
+  // ---- 4. Ask only what cannot be derived ----
+  let surfaces = DEFAULT_SURFACES;
+  if (!opts.yes) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const answer = await prompt(
+        `Use this brand colour? [Y/n, or paste a hex to override]: `,
+      );
+      const normalized = answer.toLowerCase();
+      if (normalized === '' || normalized === 'y' || normalized === 'yes') break;
+      if (normalized === 'n' || normalized === 'no') break; // the post-loop contract check below offers the passing alternative, if one exists — see I1
+      const comps = extractColorComponents(answer, {});
+      if (!comps) {
+        log(`  Could not parse '${answer}' as a colour — keeping the proposal.`);
+        break;
+      }
+      proposal = { h: comps.hsl.h, s: comps.hsl.s, l: comps.hsl.l, source: 'default', detail: `user-provided: ${answer}` };
+      validation = validateRounded(proposal);
+      log(`Brand colour: hsl(${proposal.h} ${proposal.s}% ${proposal.l}%)`);
+      for (const line of describeValidation(validation)) log(line);
+    }
+
+    const surfaceAnswer = await prompt(
+      `Surface → mode mapping. Enter to accept '/' → product, or 'match:mode,match:mode' ` +
+        `(modes: ${MODES.join('/')}): `,
+    );
+    surfaces = parseSurfaces(surfaceAnswer, DEFAULT_SURFACES);
+    // M8: `parseSurfaces` falls back to `DEFAULT_SURFACES` (by reference) on
+    // any malformed entry — a single typo'd mode name anywhere in the list
+    // silently discards the whole answer with no signal. A non-empty answer
+    // that produced the exact `DEFAULT_SURFACES` reference back only
+    // happens via that fallback branch (the parsed-successfully path always
+    // returns a freshly built array), so this check is reliable without
+    // parseSurfaces needing to report failure explicitly.
+    if (surfaceAnswer.trim() && surfaces === DEFAULT_SURFACES) {
+      log(
+        `  Could not parse '${surfaceAnswer}' as 'match:mode,match:mode' (modes: ${MODES.join('/')}) — ` +
+          `using the default ('/' → product) instead.`,
+      );
+    }
+  }
+
+  // I1: there must be no path that writes a colour failing the contract the
+  // generated brand file itself states. `--yes` used to write `proposal`
+  // verbatim even when `validation.passesContrast` was false, discarding
+  // the passing alternative it had already computed; interactively,
+  // answering `n` (or exhausting the override attempts) had the same
+  // effect. Applying the snap once, here, after every path that can produce
+  // a final `proposal` — derived, `--yes`, accepted, rejected, or
+  // hex-overridden — covers all of them uniformly.
+  if (!validation.passesContrast && validation.nearestPassingLightness !== undefined) {
+    const originalL = proposal.l;
+    proposal = { ...proposal, l: validation.nearestPassingLightness };
+    validation = validateRounded(proposal);
+    log(
+      `\nBrand colour adjusted to clear the 4.5:1 contrast floor: l:${originalL}% → l:${proposal.l}% ` +
+        '(hue/saturation unchanged).',
+    );
+  }
+
+  const finalColor = { h: proposal.h, s: proposal.s, l: proposal.l };
+
+  // ---- 5. Write ----
+  const projectSlug = deriveProjectSlug(opts.projectRoot);
+  const brandRelPath = relKey('.jig', 'tokens', brandFileName(projectSlug));
+  const brandAbsPath = join(opts.projectRoot, '.jig', 'tokens', brandFileName(projectSlug));
+  const configRelPath = 'jig.config.json';
+  const configAbsPath = join(opts.projectRoot, configRelPath);
+
+  const initManifest = readInitManifest(opts.projectRoot);
+  const files: Record<string, string> = { ...(initManifest?.files ?? {}) };
+
+  const brandState = fileState(opts.projectRoot, brandAbsPath, brandRelPath, initManifest);
+  const configState = fileState(opts.projectRoot, configAbsPath, configRelPath, initManifest);
+
+  let brandAction: FileAction = 'written';
+  if (brandState.existsOnDisk && !brandState.tracked) brandAction = 'skipped-untracked';
+  else if (brandState.modified) brandAction = 'skipped-edited';
+
+  let configAction: FileAction = 'written';
+  if (configState.existsOnDisk && !configState.tracked) configAction = 'skipped-untracked';
+  else if (configState.modified) configAction = 'skipped-edited';
+
+  if (!opts.yes && (brandAction !== 'written' || configAction !== 'written')) {
+    if (brandAction !== 'written') {
+      log(`\n${brandRelPath} already exists and was not created by 'jig init' (or has been edited).`);
+      const answer = (await prompt(`  [k]eep it, or [r]efresh it with the freshly derived colour? [k/r]: `)).toLowerCase();
+      brandAction = answer.startsWith('r') ? 'written' : 'kept';
+    }
+    if (configAction !== 'written') {
+      log(`\n${configRelPath} already exists and was not created by 'jig init' (or has been edited).`);
+      const answer = (
+        await prompt(`  [k]eep it, [r]efresh it, or [m]erge (keep your surfaces, only fix a missing brand path)? [k/r/m]: `)
+      ).toLowerCase();
+      configAction = answer.startsWith('r') ? 'written' : answer.startsWith('m') ? 'merged' : 'kept';
+    }
+  } else {
+    if (brandAction !== 'written') log(`  ${brandRelPath} exists and is not jig-tracked — leaving it alone (re-run without --yes to refresh).`);
+    if (configAction !== 'written') log(`  ${configRelPath} exists and is not jig-tracked — leaving it alone (re-run without --yes to refresh).`);
+  }
+
+  if (brandAction === 'written') {
+    const defaultCssRaw = readFileSync(join(opts.packageRoot, 'tokens', 'brand.default.css'), 'utf8');
+    const content = renderBrandFile(defaultCssRaw, projectSlug, opts.version, proposal);
+    mkdirSync(dirname(brandAbsPath), { recursive: true });
+    writeFileSync(brandAbsPath, content, 'utf8');
+    files[brandRelPath] = checksum(content);
+  }
+
+  if (configAction === 'written') {
+    const config = { brand: brandRelPath, surfaces };
+    const content = `${JSON.stringify(config, null, 2)}\n`;
+    writeFileSync(configAbsPath, content, 'utf8');
+    files[configRelPath] = checksum(content);
+  } else if (configAction === 'merged') {
+    let existing: { brand?: unknown; surfaces?: unknown } = {};
+    try {
+      existing = JSON.parse(readFileSync(configAbsPath, 'utf8'));
+    } catch {
+      existing = {};
+    }
+    const existingBrand = typeof existing.brand === 'string' ? existing.brand : undefined;
+    const brandStillResolves = existingBrand ? existsSync(join(opts.projectRoot, ...existingBrand.split('/'))) : false;
+    const merged = {
+      brand: brandStillResolves ? existingBrand : brandRelPath,
+      surfaces: Array.isArray(existing.surfaces) && existing.surfaces.length > 0 ? existing.surfaces : surfaces,
+    };
+    const content = `${JSON.stringify(merged, null, 2)}\n`;
+    writeFileSync(configAbsPath, content, 'utf8');
+    files[configRelPath] = checksum(content);
+  }
+
+  // ---- I2: what actually governs wiring ----
+  // Read back whatever is now on disk at `configAbsPath` — written, merged,
+  // or (kept/skipped) untouched — rather than trusting the `surfaces` /
+  // `brandRelPath` locals. This is what stops a correctly-preserved
+  // existing config from being contradicted by the stylesheet edit below.
+  const effectiveConfig = loadEffectiveConfig(opts.projectRoot, configAbsPath, brandRelPath, surfaces);
+  const primaryMode = effectiveConfig.surfaces[0]?.mode ?? 'product';
+  const wiringBrandAbsPath = join(opts.projectRoot, ...effectiveConfig.brand.split('/'));
+
+  // ---- C3: the mode file a global install wires in must resolve on every
+  // machine that builds this repo, forever — not just the one `init` ran
+  // on. `~/.jig` guards against divergence, which matters only for
+  // artifacts read as authority (rule markdown); a mode CSS file is linked
+  // into a build graph instead, where every edge must resolve everywhere.
+  // So: copy the single selected mode file into the project's own
+  // `.jig/tokens/`, tracked in the init sidecar manifest under the same
+  // edit-preserving rules as the brand file and config (see init/state.ts,
+  // and the companion refresh in commands/update.ts so this copy doesn't go
+  // stale). Project scope already vendored every mode file into the project
+  // tree at install time — nothing to copy there.
+  const modeFileName = `mode.${primaryMode}.css`;
+  const modeAbsPath = join(opts.projectRoot, '.jig', 'tokens', modeFileName);
+  if (resolved.scope === 'global') {
+    const modeRelPath = relKey('.jig', 'tokens', modeFileName);
+    const modeState = fileState(opts.projectRoot, modeAbsPath, modeRelPath, initManifest);
+    let modeAction: FileAction = 'written';
+    if (modeState.existsOnDisk && !modeState.tracked) modeAction = 'skipped-untracked';
+    else if (modeState.modified) modeAction = 'skipped-edited';
+
+    if (modeAction === 'written') {
+      const modeSourceRaw = readFileSync(join(opts.packageRoot, 'tokens', modeFileName), 'utf8');
+      const content = vendorHeader(modeFileName, opts.version, 'css') + modeSourceRaw;
+      mkdirSync(dirname(modeAbsPath), { recursive: true });
+      writeFileSync(modeAbsPath, content, 'utf8');
+      files[modeRelPath] = checksum(content);
+    } else {
+      log(`  ${modeRelPath} exists and is not jig-tracked (or has been edited) — leaving it alone (re-run 'jig update' to refresh it).`);
+    }
+  }
+
+  writeInitManifest(opts.projectRoot, { files });
+
+  // ---- Wire or print the import ----
+  const wireTarget = findWireTarget(detection);
+
+  let wiring: InitResult['wiring'];
+  if (wireTarget) {
+    const targetAbsDir = dirname(join(opts.projectRoot, wireTarget));
+    const brandImport = relativeImportPath(targetAbsDir, wiringBrandAbsPath);
+    const modeImport = relativeImportPath(targetAbsDir, modeAbsPath);
+    const snippet = `@import "${brandImport}";\n@import "${modeImport}";`;
+    // I8: an unwritable stylesheet (permissions, read-only mount, ...) must
+    // not abort the run — fall back to the print-only snippet and still run
+    // the baseline below, the same as the "ambiguous target" case.
+    try {
+      const outcome = wireImport(join(opts.projectRoot, wireTarget), brandImport, modeImport, primaryMode);
+      wiring = { target: wireTarget, status: outcome.status, snippet };
+      const verb = outcome.status === 'wired' ? 'Wired' : outcome.status === 'rewired' ? 'Rewired' : 'Already present in';
+      log(`\n${verb} ${wireTarget}:`);
+      if (outcome.detail) log(`  ${outcome.detail}`);
+      log(`  ${snippet.split('\n').join('\n  ')}`);
+    } catch (err) {
+      wiring = { target: null, status: 'print-only', snippet };
+      log(`\nCould not write to ${wireTarget}: ${(err as Error).message}`);
+      log('Add this near the top of your global stylesheet instead (adjust the path to wherever you paste it):');
+      log(`  ${snippet.split('\n').join('\n  ')}`);
+    }
+  } else {
+    const brandImport = relativeImportPath(opts.projectRoot, wiringBrandAbsPath);
+    const modeImport = relativeImportPath(opts.projectRoot, modeAbsPath);
+    const snippet = `@import "${brandImport}";\n@import "${modeImport}";`;
+    wiring = { target: null, status: 'print-only', snippet };
+    log(
+      `\nCould not find a single unambiguous stylesheet to wire the import into. Add this near the top of your ` +
+        `global stylesheet (paths shown relative to the project root — adjust to wherever you paste them):`,
+    );
+    log(`  ${snippet.split('\n').join('\n  ')}`);
+  }
+
+  // ---- 6. Baseline ----
+  const baselineResult = check({ projectRoot: opts.projectRoot, homeDir: opts.homeDir, version: opts.version, all: true, ci: false });
+  log('\nBaseline:');
+  log(baselineResult.report);
+
+  return {
+    detection,
+    proposal,
+    validation,
+    finalColor,
+    // I2: report the surfaces that actually govern wiring (effectiveConfig),
+    // not the freshly-derived/prompted `surfaces` local — the two differ
+    // exactly when an existing config was kept, and this field should
+    // describe what happened, not what would have happened on a fresh write.
+    surfaces: effectiveConfig.surfaces,
+    brand: { relPath: brandRelPath, action: brandAction },
+    config: { relPath: configRelPath, action: configAction },
+    wiring,
+    baseline: { report: baselineResult.report, findingsCount: baselineResult.findings.length },
+  };
+}
