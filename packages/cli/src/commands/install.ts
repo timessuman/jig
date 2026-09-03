@@ -96,6 +96,10 @@ export function buildSkillBody(
   return render(template, {
     command_prefix: '/jig ',
     scripts_path: version ? `npx jig-ui@${version}` : 'npx jig-ui',
+    // `update` must NOT carry the pin. Pinned, it refreshes to the version
+    // already installed — reporting "Updated Jig → <same version>" for a no-op
+    // — so a reader following the skill could never upgrade.
+    update_path: 'npx jig-ui@latest',
     ask_instruction: ASK_INSTRUCTION,
     available_commands: renderCommandTable(metadata),
     config_file: 'jig.config.json',

@@ -1,6 +1,13 @@
 export interface TemplateVars {
   command_prefix: string;
   scripts_path: string;
+  /**
+   * How to invoke `update`, which alone among the commands must NOT carry the
+   * version pin `scripts_path` renders. `update` exists to move an install
+   * forward; pinned, it refreshes to the version already installed and reports
+   * success for a no-op, so a reader following the skill could never upgrade.
+   */
+  update_path: string;
   ask_instruction: string;
   available_commands: string;
   config_file: string;

@@ -79,6 +79,17 @@ describe('installed skill file', () => {
     expect(pinned).not.toMatch(/npx jig-ui(?!@)/);
   });
 
+  it('tells the reader to run update unpinned, so an install can move forward', () => {
+    // Pinning every command to the installed version traps the install: `npx
+    // jig-ui@0.4.0 update` refreshes to 0.4.0, reports "Updated Jig → 0.4.0",
+    // and changes nothing — a success message for a no-op. A reader following
+    // the skill literally could never upgrade. `update` is the one command
+    // whose job is moving the pin forward, so it is the one that must not
+    // carry it.
+    const body = buildSkillBody(repoRoot, '.claude/skills/jig/rules', '9.9.9');
+    expect(body).toContain('npx jig-ui@latest update');
+  });
+
   it('renders a JIG_CHECK attestation line into the installed skill', () => {
     // This used to assert the line did NOT claim `mechanical=`, because no
     // engine produced it. `check` shipped and does, so the constraint the

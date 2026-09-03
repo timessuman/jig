@@ -27,9 +27,15 @@ Load `{{rules_path}}/04-principles.md` only when two rules conflict.
 
 {{available_commands}}
 
-Commands marked `available` run via the CLI at `{{scripts_path}}`. Commands
-marked `planned` are listed for context only — running one errors out, since
-it is not yet registered.
+Commands marked `available` run via the CLI at `{{scripts_path}}` — the version
+this skill was installed with, so the CLI and these rules always agree.
+
+`update` is the exception: its job is to move that version forward, so run it
+as `{{update_path}} update`. Run pinned, it refreshes to the version already
+installed and reports success for a no-op.
+
+Commands marked `planned` are listed for context only — running one errors out,
+since it is not yet registered.
 
 ## Reading command output
 
