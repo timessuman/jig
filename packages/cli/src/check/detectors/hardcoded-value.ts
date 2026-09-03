@@ -1,5 +1,7 @@
 import { leafBlocks, lineOfOffset, sourceLine } from '../css.js';
-import { CSS_EXTENSIONS, hasExtension } from '../ext.js';
+import { isStyleBearing } from '../ext.js';
+import { isMarkupHost, isStyleHost } from '../styles.js';
+import { arbitraryValues, classAttributeValues } from '../tailwind.js';
 import { mkFinding } from '../finding.js';
 import { participatesInTokenLayer } from '../token-layer.js';
 import type { Detector, Finding } from '../types.js';
@@ -84,13 +86,19 @@ const KEYFRAME_STEP_RE = /^(from|to|\d+(\.\d+)?%)$/i;
 
 export const hardcodedValue: Detector = {
   name: 'hardcoded-value',
-  appliesTo: (file) => hasExtension(file, CSS_EXTENSIONS),
+  appliesTo: (file) => isStyleBearing(file),
   run(source, file, ctx) {
     // A file that has not adopted the token layer is not bypassing it — it
     // simply has not got there yet. Flagging every literal in such a file
     // says "your whole codebase is wrong", which is true and useless, and
     // teaches users to disable the detector.
-    if (!participatesInTokenLayer(source, ctx.tokens)) return [];
+    // A stylesheet answers for itself. A host file's style regions never carry
+    // the project's `@import`, so it inherits the project's answer — see
+    // `projectParticipates`.
+    const participates = isStyleHost(file)
+      ? ctx.projectParticipates
+      : participatesInTokenLayer(source, ctx.tokens);
+    if (!participates) return [];
 
     const findings: Finding[] = [];
 
@@ -149,6 +157,32 @@ export const hardcodedValue: Detector = {
         }
       }
     }
+    // Values written as utility classes are not CSS, so they live in exactly
+    // the regions `source` has masked away — `ctx.raw` is the original text.
+    // Only the arbitrary-value form (`p-[13px]`) is a finding: it means "this
+    // exact value, bypassing the scale", which is H-47 in Tailwind's own
+    // notation. A bare `p-4` resolves through the scale, which is correct.
+    // Class attributes are markup. A `className="..."` in a pure script file
+    // is a string — test data, a template being assembled — not an element.
+    for (const attr of isMarkupHost(file) ? classAttributeValues(ctx.raw) : []) {
+      for (const found of arbitraryValues(attr.classes)) {
+        findings.push(
+          mkFinding(
+            ctx,
+            'hardcoded-value',
+            file,
+            attr.line,
+            found.kind === 'colour'
+              ? `Hard-coded colour \`${found.value}\` past the token layer (${found.utility}-[…])`
+              : `Hard-coded \`${found.value}\` past the token layer (${found.utility}-[…])`,
+            attr.classes.length > 80 ? `${attr.classes.slice(0, 77)}…` : attr.classes,
+          ),
+        );
+      }
+    }
+
     return findings;
   },
 };
+
+

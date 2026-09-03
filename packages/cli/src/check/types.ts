@@ -27,6 +27,26 @@ export interface DetectorContext {
   bucket: Bucket;
   severity: Severity;
   tokens: Record<string, string>;
+  /**
+   * Whether any stylesheet in this project is on the token layer.
+   *
+   * H-47 is gated on participation, which a file answers for itself when it is
+   * a stylesheet that imports the tokens. A component cannot: a `.vue` scoped
+   * block or a styled-components template imports nothing, so it would never
+   * participate and H-47 could never fire inside one. But raw values in a
+   * component of a project that HAS a token layer are precisely what "past the
+   * token layer" means, so host files inherit the project's answer.
+   */
+  projectParticipates: boolean;
+  /**
+   * The file's unmasked text.
+   *
+   * `source` has been reduced to CSS — everything else blanked — which is what
+   * the CSS detectors want. Values written as utility classes are not CSS and
+   * live in exactly the regions that masking removes, so a detector reading
+   * them needs the original.
+   */
+  raw: string;
 }
 
 export interface Detector {

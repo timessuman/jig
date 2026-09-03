@@ -1,6 +1,6 @@
 import { leafBlocks, lineOfOffset, sourceLine } from '../css.js';
 import { extractColorComponents, type RGB } from '../color.js';
-import { CSS_EXTENSIONS, hasExtension } from '../ext.js';
+import { isStyleBearing } from '../ext.js';
 import { mkFinding } from '../finding.js';
 import type { Detector, Finding } from '../types.js';
 
@@ -27,7 +27,7 @@ function isPure(rgb: RGB, target: 0 | 255): boolean {
 
 export const pureBlackWhite: Detector = {
   name: 'pure-black-white',
-  appliesTo: (file) => hasExtension(file, CSS_EXTENSIONS),
+  appliesTo: (file) => isStyleBearing(file),
   run(source, file, ctx) {
     const findings: Finding[] = [];
     for (const block of leafBlocks(source)) {

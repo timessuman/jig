@@ -2,10 +2,36 @@
 
 A design system written to be consumed by coding agents, not read by designers.
 
-Installed as `npx jig-ui` — the bare name was taken on npm.
-
 Framework-agnostic. Tokens are CSS custom properties; rules are stated in CSS
 properties and behaviour, never in one framework's class names.
+
+Installed as `npx jig-ui` — the bare name was taken on npm.
+
+## Two ways to use it
+
+Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
+They are two halves of the same thing, and the split is not arbitrary:
+
+- Of the 104 rules, **7 can be decided by a machine** — a hard-coded colour, a
+  contrast ratio below the floor, a removed focus ring. The CLI decides those.
+- The other **97 are judgment** — whether an empty state says anything useful,
+  whether a label reads as an instruction, whether motion earns its place. No
+  regex settles those. An agent reads the rules and applies them.
+
+Running only the CLI gets you the 7. Running only the agent gets you the 97 with
+no verification. **A clean `jig check` is not a clean review**, and the skill
+says so to every agent that reads it.
+
+## Quick start
+
+```bash
+npx jig-ui@latest install --agent claude   # put the skill where your agent finds it
+npx jig-ui@latest init                     # set this project up
+npx jig-ui@latest check --all              # see where you stand
+```
+
+Then ask your agent to build something. It reads the rules from the install and
+cites them.
 
 ## Install
 
@@ -20,9 +46,8 @@ Paste the line for your agent and let it run the command.
 | Gemini CLI | `npx jig-ui@latest install --agent gemini` |
 | Any other agent | `npx jig-ui@latest install --agent generic` |
 
-Add `--scope global` to install once for every project instead of just this
-one. Every agent supports both scopes. Where a global install lands depends
-on the agent:
+Add `--scope global` to install once for every project instead of just this one.
+Every agent supports both scopes.
 
 | Agent | Project scope | Global scope |
 | --- | --- | --- |
@@ -33,71 +58,168 @@ on the agent:
 | Gemini CLI | `.gemini/skills/jig/SKILL.md` | `~/.gemini/skills/jig/SKILL.md` |
 | Generic | `.agents/skills/jig/SKILL.md` | `~/.agents/skills/jig/SKILL.md` |
 
-Every agent except Codex reads `<harness>/skills/jig/SKILL.md` — the same
-convention across the board, so adding support for a new harness is a config
-change, not a new code path. Codex keeps `AGENTS.md`, since that really is a
-different mechanism.
+Every agent except Codex reads `<harness>/skills/jig/SKILL.md`, so adding a new
+harness is a config change rather than a new code path. Codex keeps `AGENTS.md`,
+which really is a different mechanism, and its reference bundle goes under
+`.codex/.jig/`.
 
-Install writes the skill file **and its reference material** (`rules/`,
-`rules.index.json`, `LICENSE`, `NOTICE`) to one place only — beside the skill
-file itself (`.claude/skills/jig/`, `.cursor/skills/jig/`,
-`.gemini/skills/jig/`, `.opencode/skills/jig/`, `.agents/skills/jig/`). The
-rules are read by your agent from the skill install, not vendored into your
-repo, so a single-mode project carries four files of its own: `jig.config.json`,
-`.jig/state.json`, and one brand plus one mode stylesheet.
+Install writes the skill file **and its rules** to one place only — beside the
+skill file itself. Nothing of Jig's is vendored into your repo; your agent reads
+the rules from the install. Installing at project scope when the same agent is
+already installed globally warns rather than creating a second, contradicting
+skill.
 
-Codex has no skill-directory convention — its instruction file is `AGENTS.md` —
-so its reference bundle goes under `.codex/.jig/`: in your home directory for a
-global install, in the project for a project one. Your project's `.jig/` stays
-yours either way.
+## Set the project up
 
-Installing at project scope when the same agent is already installed globally warns instead
-of creating a second, contradicting skill — update the global install, or
-pick a different `--agent` for the project.
-
-Cursor's skill moved from `.cursor/rules/jig.mdc` to `.cursor/skills/jig/
-SKILL.md`. If you installed Cursor support before this change, `jig init`
-finds the old file, reports it, and offers to remove it — never without your
-consent, and never if you've edited it.
-
-Update later with `npx jig-ui@latest update` — files you have edited are left
-alone.
-
-Run `jig init` to set the *project* up — this is the only command that writes
-into your repo:
-
-```
+```bash
 npx jig-ui@latest init
 ```
 
-It detects your CSS system (Tailwind v4, Tailwind v3, plain CSS), derives a
-brand colour from what your project already has (custom properties first,
-then a Tailwind config, then the most frequent literal colour) instead of
-asking cold, validates that colour against the contrast and collision
-requirements stated in Jig's default brand file, writes
-`.jig/tokens/brand.<project>.css` (your identity) and a `.jig/tokens/<mode>.css`
-copy for each mode `jig.config.json` declares (a build input — its `@import`
-must resolve locally, so it is the one thing genuinely copied), wires the
-`@import`s into your stylesheet when there is one unambiguous place to put
-them, and runs a baseline `check` so you have a number to move. Add `--yes`
-to accept every derived default non-interactively (the mode CI and agents run
-in). Re-running `init` never overwrites a `jig.config.json` or brand file you
-have edited — for a single-mode project it writes exactly 3 files:
+`init` is the only command that writes into your repo. It detects your CSS
+system (Tailwind v4, Tailwind v3, plain CSS), derives a brand colour from what
+your project already has — custom properties first, then a Tailwind config, then
+the most frequent literal colour — rather than interviewing you cold, validates
+that colour against the contrast and collision requirements in Jig's own brand
+file, writes the token files, wires the `@import`s into your stylesheet when
+there is one unambiguous place for them, and runs a baseline `check` so you have
+a number to move.
+
+A single-mode project ends up with four files, all of them yours:
 
 ```
-.jig/
-  tokens/
-    brand.<project>.css   your identity, edit freely
-    <mode>.css            a copy of Jig's mode file — refreshed by `jig update`
-  state.json               (bookkeeping — version, modes in use, checksums)
 jig.config.json             route → mode map
+.jig/
+  state.json                bookkeeping — version, modes in use, checksums
+  tokens/
+    brand.<project>.css     your identity, edit freely
+    <mode>.css              a copy of Jig's mode file, refreshed by `update`
 ```
 
-Upgrading from a pre-0.4.0 install that vendored rules into your project's
-`.jig/`? `jig init` (and `jig check`, for one more minor version) detects the
-leftover files, reports them, and — with your consent, and never for a file
-you've edited — offers to remove just the install artifacts, keeping your
-tokens and config untouched.
+The mode file is the one thing genuinely copied: a stylesheet `@import` is an
+edge in a build graph and has to resolve locally, on every machine that builds.
+
+Add `--yes` to accept every derived default non-interactively — the mode CI and
+agents run in. It states the mode it chose and where to change it, because
+`jig.config.json` outranks an agent's own inference. Re-running `init` never
+overwrites a config or brand file you have edited.
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `install --agent <name> [--scope project\|global]` | Puts the skill and its rules where your agent will find them. Writes nothing else into your repo. |
+| `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. The only command that writes into your repo. |
+| `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
+| `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
+
+Flags worth knowing:
+
+| Flag | Effect |
+| --- | --- |
+| `check --all` | Scan the whole repo instead of just changed files. Use on a first run. |
+| `check --ci` | Mechanical bucket only — deterministic, and exits non-zero on any error. |
+| `check --json` | Machine-readable findings, for tooling or for reading every finding when the terminal output elides repeats. |
+| `init --yes` | Non-interactive; accept every derived default. |
+| `install --scope global` | Install once for every project. |
+
+**Run `update` unpinned:** `npx jig-ui@latest update`. The skill pins every other
+command to the version that wrote it, so the CLI and the rules always agree;
+`update` is the one command whose job is to move that pin, so pinning it would
+mean it could never move.
+
+## Using it with a coding agent
+
+`install` puts a skill file where your agent looks, and the rules beside it. From
+then on the agent loads the anti-patterns and the mode profile before building
+any UI, takes the mode from `jig.config.json`, loads the pattern section for
+whatever it is building, consumes tokens by name, and cites any rule it
+deliberately breaks.
+
+You do not need to prompt any of that — it is what the skill says. What you get
+back is work that names its own decisions: *"P-02 forbids a column of primaries
+where an action repeats down a list"* rather than "I made the button secondary."
+
+Every finished piece of UI work ends with an attestation line:
+
+```text
+JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judgment=<ran|skipped>
+```
+
+`jig check` emits the same line for the half it can do, with `judgment=not-run`.
+If an agent reports `judgment=ran`, it ran the self-check at the end of
+`rules/00-anti-patterns.md`; if it says `skipped`, it must say why.
+
+## Using it from the command line
+
+No agent required. `check` is a linter with a design system behind it.
+
+```bash
+npx jig-ui@latest check --all      # everything
+npx jig-ui@latest check            # just what changed
+npx jig-ui@latest check --ci       # for CI: deterministic, non-zero on error
+npx jig-ui@latest check --json     # for tooling
+```
+
+In CI:
+
+```yaml
+- run: npx jig-ui@latest check --ci
+```
+
+`--ci` restricts to the mechanical bucket, so the result depends only on your
+code — nothing model-dependent, no network. As a pre-commit hook, plain `check`
+looks at changed files only.
+
+What you will not get from the CLI alone is the other 97 rules. `check` says so
+rather than letting a narrow pass read as a broad one.
+
+## What `check` covers
+
+It reads CSS wherever it lives:
+
+| Where | Example |
+| --- | --- |
+| Stylesheets | `.css`, `.scss`, `.less` |
+| `<style>` blocks | HTML, Astro, Vue, Svelte, PHP, ERB, Twig, Handlebars, MDX, ASP/ASP.NET, Razor, JSP, Phoenix, EJS, Nunjucks, Liquid, Jinja, Velocity, FreeMarker |
+| Style attributes | `style="color: #777"`, `style={{ color: '#777' }}` |
+| CSS-in-JS | `styled.button\`…\``, `styled(Link)\`…\``, `css\`…\``, `createGlobalStyle`, `keyframes` |
+| Tailwind arbitrary values | `className="bg-[#6D28D9] p-[13px]"` |
+| Tailwind palette pairs | `className="bg-white text-gray-400"` |
+
+Host files are reduced to their style regions before the detectors run, with
+character positions preserved, so a finding's line points at the real line in
+your `.vue` or `.tsx` file. Application code outside a style region is never read
+as CSS.
+
+The seven mechanical rules: hard-coded values past the token layer (`H-47`),
+contrast below the floor (`C-19`), removed focus rings (`E-29`), gradient text
+(`A-02`), backdrop blur (`A-04`), pure black and white (`C-18`), and the
+violet-band hue check (`A-01`, which asks rather than fails).
+
+Two deliberate limits. A bare `p-4` is **not** a finding — it resolves through a
+scale, which is what a scale is for, and the scale is your project's decision.
+And a colour outside the framework's default palette is not resolved rather than
+guessed at.
+
+The indentation-based templates — Pug, Haml, Slim — are not read: they write
+`div(style="…")` rather than markup, so they need a real extractor. `check`
+names them as unscanned rather than implying coverage it does not have.
+
+## Upgrading
+
+```bash
+npx jig-ui@latest update
+```
+
+Files you have edited are left alone. Upgrading from a pre-0.4.0 install that
+vendored rules into your project's `.jig/`? `init` and `check` detect the
+leftover files, report them, and — with your consent, and never for a file you
+have edited — offer to remove just the install artifacts, keeping your tokens
+and config untouched.
+
+Cursor's skill moved from `.cursor/rules/jig.mdc` to
+`.cursor/skills/jig/SKILL.md`; `init` finds the old file and offers the same
+treatment.
 
 ## Files
 

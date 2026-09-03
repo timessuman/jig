@@ -5,6 +5,7 @@ import { validateIndex, type IndexEntry } from '../rules/schema.js';
 import { selectFiles } from '../check/files.js';
 import { formatReport } from '../check/report.js';
 import { participatesInTokenLayer } from '../check/token-layer.js';
+import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
 import type { Finding } from '../check/types.js';
@@ -79,6 +80,35 @@ function resolveMode(projectRoot: string): string {
   }
 }
 
+/**
+ * Files in the selected set that carry styling the suite still cannot read.
+ *
+ * Since style extraction landed, the host languages are scanned — their
+ * `<style>` blocks, style attributes and objects, and CSS tagged templates.
+ * What remains unreadable is values written as utility classes
+ * (`className="p-[13px]"`), which are not CSS at all. `hardcoded-class-value`
+ * covers the arbitrary-value form; a bare `p-4` resolves through a framework's
+ * scale that Jig does not model, so it stays out of scope and out of this
+ * count.
+ *
+ * Only templating languages plausibly carrying styles are counted. A `.json` or
+ * `.md` file is not an omission worth reporting, and listing it turns a useful
+ * caveat into noise people learn to skip.
+ */
+// Indentation-based templates, which do not write `<style>` or `style="..."`
+// at all — `div(style="…")` in Pug, `%div{style: "…"}` in Haml. Reading them as
+// markup would find nothing while implying coverage, so they are reported as
+// unscanned until someone writes a real extractor. Everything HTML-shaped now
+// lives in STYLE_HOST_EXTENSIONS instead.
+const UNSUPPORTED_STYLE_HOSTS = ['.pug', '.jade', '.haml', '.slim', '.elm'];
+
+function summariseUnscanned(files: string[]): { count: number; extensions: string[] } | undefined {
+  const hit = files.filter((f) => !isStyleBearing(f) && hasExtension(f, UNSUPPORTED_STYLE_HOSTS));
+  if (hit.length === 0) return undefined;
+  const extensions = [...new Set(hit.map((f) => f.slice(f.lastIndexOf('.')).toLowerCase()))].sort();
+  return { count: hit.length, extensions };
+}
+
 export function check(opts: CheckOptions): CheckResult {
   const indexPath = resolveIndexPath(opts.projectRoot);
   const index: IndexEntry[] = validateIndex(JSON.parse(readFileSync(indexPath, 'utf8')));
@@ -89,10 +119,31 @@ export function check(opts: CheckOptions): CheckResult {
   // already returns `{}` for a missing directory, which is exactly right
   // for a project Jig has never been `init`-ed in.
   const tokens = loadTokenMap(opts.projectRoot);
-  const { files } = selectFiles(opts.projectRoot, opts.all);
+  const selection = selectFiles(opts.projectRoot, opts.all);
+  const { files } = selection;
 
   const bucketFilter = opts.ci ? (b: string) => b === 'mechanical' : undefined;
-  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter);
+  // Does ANY stylesheet in this project sit on the token layer? Host files
+  // inherit this, since their style regions never carry the project's @import.
+  //
+  // Computed over the whole project, NOT the selected files. On the default
+  // changed-files run — a pre-commit hook, CI on a diff — a commit touching
+  // only a component puts no stylesheet in the set, and computing from that
+  // set made the project read as having no token layer at all: H-47 reported
+  // nothing, silently, on exactly the files being reviewed. Whether a project
+  // is on the token layer is a property of the project, not of the diff.
+  const stylesheets =
+    selection.mode === 'all' ? files : selectFiles(opts.projectRoot, true).files;
+  const projectParticipates = stylesheets.some((f) => {
+    if (!hasExtension(f, CSS_EXTENSIONS)) return false;
+    try {
+      return participatesInTokenLayer(readFileSync(join(opts.projectRoot, f), 'utf8'), tokens);
+    } catch {
+      return false;
+    }
+  });
+
+  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates);
 
   const hasError = findings.some((f) => f.bucket === 'mechanical' && f.severity === 'error');
   // H-47 skips files that have not adopted the token layer. When NO scanned
@@ -116,6 +167,7 @@ export function check(opts: CheckOptions): CheckResult {
     version: opts.version,
     noTokenLayer,
     mode: resolveMode(opts.projectRoot),
+    unscanned: summariseUnscanned(files),
   });
 
   return { findings, report, hasError };

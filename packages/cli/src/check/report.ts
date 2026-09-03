@@ -12,6 +12,15 @@ export interface ReportMeta {
    *  and says `unknown` for the rest, rather than dropping the field and
    *  emitting a differently-shaped record under the same label. */
   mode?: string;
+  /**
+   * Files carrying styling that the detector suite does not read — `.tsx`,
+   * `.vue`, `.astro`, and friends. The scope is deliberate (separating style
+   * text from application code needs real parsing), but silence about it turns
+   * a narrow check into a false clean bill of health: a Tailwind project whose
+   * stylesheet imports the tokens, with every value in `className`, otherwise
+   * reports "No findings" having examined none of them.
+   */
+  unscanned?: { count: number; extensions: string[] };
 }
 
 /** Rows beyond this many, for one rule in one file, collapse into a count.
@@ -94,6 +103,16 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
 
   const rulesFired = new Set(findings.map((f) => f.ruleId)).size;
   lines.push(`  ${summaryParts.join(', ')} · ${meta.totalRules} rules, ${rulesFired} fired`);
+
+  if (meta.unscanned && meta.unscanned.count > 0) {
+    const exts = meta.unscanned.extensions.join(', ');
+    lines.push('');
+    lines.push(
+      `  ${meta.unscanned.count} file(s) were not scanned (${exts}) — no style extraction exists ` +
+        `for them, so any CSS they carry is invisible to this check and a clean result above does ` +
+        `not cover it.`,
+    );
+  }
 
   const mechanicalErrors = findings.filter((f) => f.bucket === 'mechanical' && f.severity === 'error').length;
   const mechStatus = `${mechanicalErrors > 0 ? 'fail' : 'pass'}:${mechanicalErrors}`;

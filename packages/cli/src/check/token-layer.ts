@@ -12,6 +12,15 @@
  */
 const IMPORT_RE = /@import\s+(?:url\()?["']?[^"')]*\.jig\/tokens\/[^"')]+\.css["']?\)?/i;
 const VAR_RE = /var\(\s*--([\w-]+)/g;
+/**
+ * Tailwind v4 declares tokens inside `@theme { --name: value }` and consumes
+ * them as utility classes, never as `var(--name)`. A v4 project that has fully
+ * adopted the token layer would otherwise look like one that never had — and
+ * H-47, which only means anything for a file on the layer, would never run on
+ * the whole framework's user base.
+ */
+const THEME_DECL_RE = /@theme\b[^{]*\{([\s\S]*?)\}/gi;
+const CUSTOM_PROP_RE = /--([\w-]+)\s*:/g;
 
 export function participatesInTokenLayer(source: string, tokens: Record<string, string>): boolean {
   if (IMPORT_RE.test(source)) return true;
@@ -21,5 +30,17 @@ export function participatesInTokenLayer(source: string, tokens: Record<string, 
   while ((m = VAR_RE.exec(source))) {
     if (Object.prototype.hasOwnProperty.call(tokens, m[1])) return true;
   }
+
+  THEME_DECL_RE.lastIndex = 0;
+  let theme: RegExpExecArray | null;
+  while ((theme = THEME_DECL_RE.exec(source))) {
+    if (IMPORT_RE.test(theme[1])) return true;
+    CUSTOM_PROP_RE.lastIndex = 0;
+    let prop: RegExpExecArray | null;
+    while ((prop = CUSTOM_PROP_RE.exec(theme[1]))) {
+      if (Object.prototype.hasOwnProperty.call(tokens, prop[1])) return true;
+    }
+  }
+
   return false;
 }
