@@ -73,6 +73,20 @@ them its own.
 - **A legacy `.jig/manifest.json` hijacked `update`** and resurrected the whole
   vendored layout.
 
+- **Agents invented token values when `init` had not been run.** A baseline run
+  with the skill installed but the project not initialised authored its own
+  `:root` block — "control height (32), row height (48), duration (120ms) and
+  the near-black brand default are my resolved values, not the system's" — and
+  wrote it into the project's stylesheet. Step 5 said "consume tokens by
+  semantic name only", and it complied to the letter by inventing the
+  definitions behind the names.
+
+  `SKILL.md` now opens with the precondition: no `jig.config.json` means no
+  token layer, so run `init` and stop, and do not author a `:root` block of your
+  own. Step 5 gained the counter — a token with no value is a finding to report,
+  not a number to supply. Re-run on the same fixture, the agent invented
+  nothing, and reported a real gap in the token contract instead.
+
 ### Added
 
 - **Reference files ship beside the skill.** `references/**` in the package

@@ -49,12 +49,14 @@ changed since, do not re-run it.
 Before you finish a task that generated or modified UI, emit this line:
 
 ```text
-JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail>:<n> judgment=<ran|skipped>
+JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judgment=<ran|skipped>
 ```
 
 `jig check` emits this same line for the half it can do, with
 `judgment=not-run`. Take `mechanical=` from its output rather than counting by
-hand; fill `judgment=` yourself.
+hand; fill `judgment=` yourself. If `check` could not run at all, that is
+`mechanical=skipped:0` — never `pass`, which would report a clean result for a
+check that never inspected anything.
 
 A skipped check must say `skipped` and give the reason. Do not report `ran` for
 a check you did not perform.
