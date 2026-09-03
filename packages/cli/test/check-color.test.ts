@@ -35,9 +35,14 @@ describe('extractColorComponents', () => {
     expect(extractColorComponents('var(--unknown-token)', {})).toBeNull();
   });
 
-  it('returns null for oklch() and other unsupported forms', () => {
-    expect(extractColorComponents('oklch(0.98 0.004 95)', {})).toBeNull();
+  // oklch() used to return null here. It is now parsed — see
+  // test/color-oklch.test.ts — because Tailwind v4 and shadcn emit it by
+  // default, so skipping it meant deriving nothing and computing no contrast
+  // on a large share of real projects.
+  it('returns null only for forms it genuinely cannot resolve', () => {
     expect(extractColorComponents('currentColor', {})).toBeNull();
+    expect(extractColorComponents('inherit', {})).toBeNull();
+    expect(extractColorComponents('linear-gradient(90deg,#f00,#00f)', {})).toBeNull();
   });
 });
 

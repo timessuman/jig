@@ -144,7 +144,12 @@ fixed in the same pass this section was added in).
 
 ## From the init review
 
-- **I7 — `oklch()` is unparsed, so Tailwind v4 / shadcn projects derive nothing.**
+- **I7 — RESOLVED.** `oklch()` is now parsed (`check/color.ts`, via oklab and linear
+  sRGB, out-of-gamut clamped per channel). `init` derives from oklch custom
+  properties and `C-19` computes contrast against them. Original note kept for
+  context:
+
+  **`oklch()` was unparsed, so Tailwind v4 / shadcn projects derived nothing.**
   `check/color.ts`'s colour parser has no `oklch()` branch, so any project whose
   tokens are declared in `oklch()` (the Tailwind v4 / shadcn default) yields zero
   candidates at every derivation priority and falls through to `DEFAULT_PROPOSAL`.
