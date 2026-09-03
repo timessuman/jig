@@ -388,6 +388,24 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     }
   }
 
+  // Tiebreaker 5: ship the plainer thing and surface the question. `--yes`
+  // takes the default surface map without inferring anything, and
+  // `01-modes.md` rule 1 then makes that config authoritative over inference —
+  // so the default is not a neutral placeholder, it binds every agent that
+  // reads the project afterwards. Two baseline runs on an `ops-console`
+  // project read every signal as `operator`, found `product` here, and
+  // correctly deferred to it; one noted "the density difference is expensive
+  // to reverse". The brand colour already states its default and why; the mode
+  // is the more consequential of the two and said nothing.
+  if (opts.yes) {
+    log(
+      `Surface → mode: ${surfaces.map((s) => `'${s.match}' → ${s.mode}`).join(', ')} — the default, ` +
+        `not inferred from this project. Mode sets density, type scale and control sizes, and it ` +
+        `wins over an agent's own inference, so change it in jig.config.json if another mode fits ` +
+        `(${MODES.join('/')}).`,
+    );
+  }
+
   // I1: there must be no path that writes a colour failing the contract the
   // generated brand file itself states. `--yes` used to write `proposal`
   // verbatim even when `validation.passesContrast` was false, discarding

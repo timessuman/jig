@@ -66,6 +66,25 @@ them its own.
   just as directly. The shipped table is asserted at module load, so a bad entry
   fails at import rather than at whichever command writes first.
 
+- **`update` could never move an install forward.** Pinning the CLI fixed version
+  skew, but applied to every command it trapped the install: `npx jig-ui@0.4.0
+  update` refreshes to 0.4.0, reports success, and changes nothing. `update` is
+  the one command whose job is moving the pin, so it is the one that does not
+  carry it — the skill renders `npx jig-ui@latest update`.
+
+- **`init --yes` chose a mode silently.** It takes `'/' → product` without
+  inferring anything, and `01-modes.md` rule 1 makes the config authoritative
+  over an agent's own inference — so the default is not a neutral placeholder,
+  it binds every agent that reads the project afterwards. Two baseline runs on
+  an `ops-console` project read every signal as `operator`, found `product`, and
+  correctly deferred to it; one noted the density difference is expensive to
+  reverse. The brand colour already stated its default and why. The mode now
+  does too, and says where to change it.
+
+- **A source build could stamp a pin to a version that was never published**,
+  silently, until an agent tried to run it. `install` and `update` now say so
+  when the running CLI is not an npm-installed package.
+
 - **An asset could be staged at prepack and left out of the tarball** — correct
   code reading an asset that never shipped. Both lists must now agree, verified
   against the real `npm pack` output.
@@ -93,6 +112,16 @@ them its own.
   installs into the bundle with its subdirectory shape preserved, refreshed by
   `update` under the same rule as the rules: replace when untouched, skip when
   you have edited it. Adding one is a file drop, no code change.
+
+  **No reference ships in 0.4.0.** Four were planned — a procedure for `init`,
+  for `check`, for building a component, and one for resolving apparent rule
+  conflicts. Each was tested first by running an agent on the task with no
+  guidance, and in every case the agent already did the right thing: it inferred
+  the mode with signals stated, kept a 32px control inside a 48px target rather
+  than reading the two as contradictory, surfaced the brand question instead of
+  guessing, and handled loading, error and never-checked states unprompted.
+  `04-principles.md`'s tiebreakers were doing the work the references were meant
+  to do. Writing them anyway would have added words the rules already carry.
 
 ### Migration
 

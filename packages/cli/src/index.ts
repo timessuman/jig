@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { assetRoot, findProjectRoot, getPackageRoot } from './paths.js';
+import { assetRoot, findProjectRoot, getPackageRoot, isPublishedBuild } from './paths.js';
 import { install } from './commands/install.js';
 import { update } from './commands/update.js';
 import { check } from './commands/check.js';
@@ -11,6 +11,20 @@ import { adapterNames } from './adapters/registry.js';
 
 const packageRoot = getPackageRoot();
 const { version } = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8')) as { version: string };
+
+/**
+ * The skill file pins `npx jig-ui@<version>`. That only resolves if this
+ * version is on npm, which is guaranteed when this CLI came from npm and not
+ * otherwise — so say so rather than let an agent discover it as a 404 later.
+ */
+function warnIfUnpublishedPin(): void {
+  if (isPublishedBuild(packageRoot)) return;
+  console.warn(
+    `Note: this is a source build, so the skill pins 'npx jig-ui@${version}' — a version that ` +
+      `may not be published. Agents reading it will not be able to run the CLI until it is. ` +
+      `Re-run install or update from a published build to correct the pin.`,
+  );
+}
 
 const program = new Command();
 program.name('jig').description('A design system for coding agents.').version(version);
@@ -40,6 +54,7 @@ program
         return;
       }
       console.log(`Installed Jig v${version} for ${opts.agent} (${opts.scope} scope)`);
+      warnIfUnpublishedPin();
       for (const f of result.written) console.log(`  + ${f}`);
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
     } catch (err) {
@@ -70,6 +85,7 @@ program
       const label = result.targets
         .map((t) => `${t.agent} (${t.scope}, ${t.fromVersion})`)
         .join(', ');
+      warnIfUnpublishedPin();
       console.log(
         `Updated Jig → ${result.toVersion} in ${result.targets.length} harness${
           result.targets.length === 1 ? '' : 'es'

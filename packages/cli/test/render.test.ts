@@ -4,6 +4,7 @@ import { render, renderCommandTable } from '../src/template/render.js';
 const vars = {
   command_prefix: '/jig ',
   scripts_path: '/usr/local/bin/jig',
+  update_path: 'npx jig-ui@latest',
   ask_instruction: 'Ask directly in chat.',
   available_commands: 'TABLE',
   config_file: 'jig.config.json',

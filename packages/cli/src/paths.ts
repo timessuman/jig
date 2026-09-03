@@ -44,3 +44,21 @@ export function assetRoot(startDir: string = getPackageRoot()): string {
     current = dirname(current);
   }
 }
+
+/**
+ * Whether `packageRoot` is an npm-installed copy of this package rather than a
+ * source checkout.
+ *
+ * The skill file pins the CLI agents are told to run to the version that wrote
+ * it. That pin resolves only if the version is on npm — guaranteed when this
+ * CLI came from npm, and not otherwise. Run from a clone, an `npm link`, or a
+ * pre-release verification build, the skill can name a version that does not
+ * exist, and nothing notices until an agent tries to run it. Both of 0.4.0's
+ * own review baselines hit precisely that.
+ *
+ * `node_modules` is matched as a path segment, not a substring: a project at
+ * `~/my-node_modules-experiment` is a checkout, not an install.
+ */
+export function isPublishedBuild(packageRoot: string): boolean {
+  return packageRoot.split(/[\\/]/).includes('node_modules');
+}

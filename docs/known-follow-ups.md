@@ -213,6 +213,22 @@ fixed in the same pass this section was added in).
   `H-47` forbids. A GREEN run of the invented-tokens fix hit this and reported it
   rather than inventing a value — "the token contract has no border/outline-width
   namespace, so these two widths have no semantic name to consume" — which is the
-  instruction working, and also the clearest evidence the gap is real. Adding
-  `--border-width-*` and focus-ring geometry is a token-architecture decision,
-  not a mid-release patch.
+  instruction working, and also the clearest evidence the gap is real. A second
+  agent, building a different component on a different fixture, hit it
+  independently and reported it in the same terms: "stroke widths (`1px` borders,
+  `2px` focus outline) are literals — the token contract in `02-tokens.md` defines
+  no border-width namespace, so there is no token to reference." Two independent
+  hits on the same missing namespace. Adding `--border-width-*` and focus-ring
+  geometry is a token-architecture decision, not a mid-release patch.
+- **M12 — a project-scope Codex install mixes Jig's property with the project's.**
+  Codex has no skill-directory convention, so its `referenceDir` is the project's
+  own `.jig/` at project scope. Install plus `init` therefore leaves 13 files
+  there — `rules/`, `rules.index.json`, `LICENSE`, `NOTICE` and `manifest.json`
+  (Jig's) sharing a directory with `state.json` and `tokens/` (the project's).
+  Every other harness gets the four-file project tree 0.4.0 promises. This is the
+  exact conflation the release set out to end, and one directory holding two
+  manifests is what made a legacy `.jig/manifest.json` able to hijack `update`
+  (ffb1b13). `.codex/.jig/` would mirror the global layout and separate them, but
+  it relocates an existing install's files, so it needs a migration path rather
+  than a quiet path change. The README now states the exception rather than
+  claiming nothing is written to `.jig/`.
