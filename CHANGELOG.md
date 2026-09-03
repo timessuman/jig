@@ -104,6 +104,16 @@ them its own.
   `update` under the same rule as the rules: replace when untouched, skip when
   you have edited it. Adding one is a file drop, no code change.
 
+  **No reference ships in 0.4.0.** Four were planned — a procedure for `init`,
+  for `check`, for building a component, and one for resolving apparent rule
+  conflicts. Each was tested first by running an agent on the task with no
+  guidance, and in every case the agent already did the right thing: it inferred
+  the mode with signals stated, kept a 32px control inside a 48px target rather
+  than reading the two as contradictory, surfaced the brand question instead of
+  guessing, and handled loading, error and never-checked states unprompted.
+  `04-principles.md`'s tiebreakers were doing the work the references were meant
+  to do. Writing them anyway would have added words the rules already carry.
+
 ### Migration
 
 `install` no longer writes rule files into `.jig/`, so a pre-0.4.0 project has
