@@ -15,10 +15,10 @@ one `app.css`, with Jig installed as a Claude skill and nothing else said.
 | `conflicts.md` | resolves a false rule conflict by silently changing the design | **No** — but see the invented-token failure below |
 | `commands/init.md` | no ask-versus-proceed gate; `/jig init` is not instruction | **No** |
 | `commands/check.md` | runs the CLI, reports only the mechanical half | **Partly — for a different reason** |
-| `commands/build.md` | improvises the build procedure | Not run (cancelled) |
+| `commands/build.md` | improvises the build procedure | **No** |
 
-Two of the three completed baselines did not exhibit the failure the reference
-was meant to fix. Per `superpowers:writing-skills` — "always include a
+Three of the four did not exhibit the failure the reference was meant to fix;
+the fourth's cause turned out to be a packaging bug, fixed separately. Per `superpowers:writing-skills` — "always include a
 no-guidance control; if the control doesn't exhibit the failure, there is
 nothing to fix" — that is a reason not to write those files, not a reason to
 write them anyway.
@@ -162,3 +162,48 @@ JIG_CHECK: version=0.3.0 mechanical=fail:5 judgment=not-run
 
 Disjoint field sets, one label. Anything parsing `JIG_CHECK:` sees two
 incompatible records.
+
+## `commands/build.md` — did not reproduce
+
+Run last, on a fixture that was both installed *and* initialised, so the token
+layer existed and this tested the build procedure rather than the missing-token
+failure above.
+
+The claim was that the agent improvises the procedure — mode → pattern → tokens
+→ copy → self-check — rather than following one. It did not improvise; it
+followed it, and went past what the task asked for.
+
+Asked only for a panel with a name, a status, a last-checked time, a button, and
+the never-checked case, it produced a component handling **four** states —
+never-checked, checking, error, and healthy — with `aria-live="polite"` scoped to
+exactly the pair of values that change under the user's feet, and `role="alert"`
+on the error. Nothing in the prompt asked for loading or error states; `P-05`,
+`P-08` and `E-35` did.
+
+Token discipline held completely: **zero** raw hex or pixel values in the
+component, 64 token references in the stylesheet it wrote. Decisions carry their
+rule id at the point they are made, in the code:
+
+> `h2`, not `h3`, because heading order is document structure; the size step is
+> set in CSS instead (B-17).
+
+> Pill shape and a subtle tonal fill, so a non-interactive badge never carries
+> the visual signature of the button beside it (C-68).
+
+That is the procedure a `build.md` would have prescribed, applied without one.
+
+## What this says about the plan
+
+The four references were proposed off a single earlier baseline that showed real
+failures. Re-tested one at a time, with the packaging defects fixed, none of the
+judgment failures survived. The rules — `01-modes.md`'s "What mode does not
+control", `03-patterns.md`'s anatomies, and above all `04-principles.md`'s
+tiebreakers — were already carrying the load.
+
+The failures that were real were **packaging**: a stale command status, an
+unpinned CLI, two attestation shapes, a licence path pointing nowhere, an asset
+in neither packaging list. Those are fixed. Reference files would not have
+touched any of them.
+
+The one judgment failure that did reproduce — inventing token values when `init`
+had not been run — was fixed with two sentences in `SKILL.md`, not a file.
