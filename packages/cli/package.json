@@ -1,6 +1,6 @@
 {
   "name": "jig-ui",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A design system for coding agents. 104 numbered UI rules, brand x mode design tokens, and an installer for Claude Code, Codex, Cursor and opencode.",
   "license": "Apache-2.0",
   "type": "module",

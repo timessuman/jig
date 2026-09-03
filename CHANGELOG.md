@@ -1,5 +1,93 @@
 # Changelog
 
+## 0.4.0
+
+Jig stops copying itself into your project. It is a skill an agent reads, and
+0.3.0 wrote 220KB across 17 files into every consuming repo to deliver it —
+roughly 200KB of that Jig's own property, read by an agent that already had it
+from the skill install. A single-mode project now gets **three** files, all of
+them its own.
+
+### Changed
+
+- **`install` writes one place: the harness's skill directory.** `SKILL.md`, the
+  rules, `rules.index.json` and attribution live beside each other at
+  `<harness>/skills/jig/`, project or global. Nothing lands in `.jig/` any more.
+
+  The rules are not a build input — nothing compiles them, and the agent reading
+  them already has them. The genuine exception is CSS: a stylesheet `@import` is
+  an edge in a build graph and must resolve inside the project, on every machine
+  that builds it. That is the one category `init` still copies.
+
+- **`.jig/` holds only what belongs to the project** — the brand file, the mode
+  files for the modes actually declared (not all three), and `state.json`.
+
+- **A project install refuses when a global one exists.** Two `jig` skills
+  registered with the same harness, whose rule paths point at different places,
+  is exactly the incoherence this layout exists to prevent.
+
+- **Every harness comes from one table.** Five adapters — Claude Code, Cursor,
+  opencode, Gemini CLI, and a generic `.agents/skills` — share the
+  `<harness>/skills/<name>/` convention, so adding one is a row rather than a
+  file. Codex keeps a bespoke implementation because `AGENTS.md` genuinely is a
+  different mechanism.
+
+### Fixed
+
+- **The skill told agents `check` was planned.** It shipped in 0.3.0. A baseline
+  run reported "the CLI is ahead of the doc" and worked by hand rather than
+  running it. The guard that should have caught this compared the metadata
+  against a hand-maintained list, so when `check` landed and neither was
+  updated, the two agreed and the test stayed green. The list is now read out of
+  the CLI source, and agreement is asserted in both directions.
+
+- **The skill sent agents to an unpinned CLI.** `npx jig-ui` resolves to whatever
+  is latest on npm, which need not be the version that wrote the bundle. Two
+  baselines hit this and fell back to working by hand. The skill now names the
+  version that built it, and `jig update` moves both together.
+
+- **`JIG_CHECK:` named two different records.** The CLI emitted `version=
+  mechanical= judgment=`; the skill told the agent to emit `version= mode=
+  self_check=` — disjoint fields under one label. There is now one field set,
+  `version mode mechanical judgment`, asserted against both sources. An emitter
+  that cannot determine a field says so in the value rather than dropping it.
+
+- **Every vendored file cited a licence path that no longer exists.** The header
+  hardcoded `.jig/LICENSE`, true only while install vendored into `.jig/`. In
+  the new layout the one line whose job is directing a reader to the licence
+  directed them nowhere. It is now computed from the file's depth in the bundle.
+
+- **`update` refreshed only one harness.** A project can hold several installs,
+  each with its own manifest; the rest stayed pinned at their install version
+  with nothing said about them. It now refreshes every one and reports each.
+
+- **`update` wrote files before checking the path.** `assertSafeRelPath` covered
+  adapter-rendered files but not `referenceDir`, which the harness table derives
+  just as directly. The shipped table is asserted at module load, so a bad entry
+  fails at import rather than at whichever command writes first.
+
+- **An asset could be staged at prepack and left out of the tarball** — correct
+  code reading an asset that never shipped. Both lists must now agree, verified
+  against the real `npm pack` output.
+
+- **A legacy `.jig/manifest.json` hijacked `update`** and resurrected the whole
+  vendored layout.
+
+### Added
+
+- **Reference files ship beside the skill.** `references/**` in the package
+  installs into the bundle with its subdirectory shape preserved, refreshed by
+  `update` under the same rule as the rules: replace when untouched, skip when
+  you have edited it. Adding one is a file drop, no code change.
+
+### Migration
+
+`install` no longer writes rule files into `.jig/`, so a pre-0.4.0 project has
+rules in two places. The old copies are yours to remove; nothing deletes them
+for you, because you may have edited one and that edit is yours to keep. Run
+`jig install --agent <name>` to place the new bundle, then delete `.jig/rules/`
+and `.jig/rules.index.json` once you have checked them for your own changes.
+
 ## 0.3.0
 
 Two new commands. `install` and `update` put the system in place; these two make
