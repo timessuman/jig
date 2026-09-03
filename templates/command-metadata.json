@@ -15,9 +15,9 @@
     "status": "available"
   },
   "check": {
-    "description": "Check changed files or a named target against the rule set. Reports violations by rule id.",
-    "argumentHint": "[target]",
-    "status": "planned"
+    "description": "Check the repo against the mechanical and hybrid rules the CLI can detect. Reports findings by rule id; the judgment rules remain yours to apply.",
+    "argumentHint": "[--all] [--ci] [--json]",
+    "status": "available"
   },
   "explain": {
     "description": "Print a rule's full text, its correction, and the version it was introduced in.",

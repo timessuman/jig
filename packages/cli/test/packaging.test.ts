@@ -2,14 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildSkillBody } from '../src/commands/install.js';
+import { repoRoot } from './helpers/registered-commands.js';
 
-const repoRoot = join(process.cwd(), '..', '..');
+// `repoRoot` is derived from the package location, not from `process.cwd()`,
+// so these tests resolve the same whether vitest is invoked from the workspace
+// or from the repo root.
 const readme = () => readFileSync(join(repoRoot, 'README.md'), 'utf8');
 
-// The commands `src/index.ts` actually registers on the commander program.
-// Update this list the same commit a new command lands there — the tests
-// below fail loudly if it drifts from `templates/command-metadata.json`.
-const IMPLEMENTED_COMMANDS = ['install', 'update', 'init'];
 
 describe('packaging', () => {
   it('has a LICENSE naming Apache', () => {
@@ -50,19 +49,7 @@ describe('installed skill file', () => {
     readFileSync(join(repoRoot, 'templates', 'command-metadata.json'), 'utf8'),
   ) as Record<string, { status?: string }>;
 
-  it('marks every command src/index.ts registers as available', () => {
-    for (const name of IMPLEMENTED_COMMANDS) {
-      expect(commandMetadata[name]?.status).toBe('available');
-    }
-  });
-
-  it('does not mark a command src/index.ts has not registered as available', () => {
-    for (const [name, meta] of Object.entries(commandMetadata)) {
-      if (meta.status === 'available') {
-        expect(IMPLEMENTED_COMMANDS).toContain(name);
-      }
-    }
-  });
+  // Metadata/CLI agreement in both directions lives in command-metadata.test.ts.
 
   it('does not instruct running a command that is not implemented', () => {
     // The numbered "before generating or reviewing" steps are what an agent
