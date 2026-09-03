@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { ADAPTERS, getAdapter } from '../adapters/registry.js';
+import { ADAPTERS, getAdapter, referenceDirFor } from '../adapters/registry.js';
 import { readManifest, type Manifest, type Scope } from './manifest.js';
 
 export interface ResolvedTarget {
@@ -41,11 +41,65 @@ export interface ResolvedTarget {
  * Every adapter supports both scopes as of the harness-table refactor, so
  * this no longer needs to skip any adapter per scope the way it once did.
  */
+/**
+ * Every Jig install reachable from this project — one per harness. A user can
+ * install several (`--agent claude`, then `--agent cursor`), and each has its
+ * own manifest under its own reference directory.
+ *
+ * `update` must refresh all of them. Returning only the first left the others
+ * pinned at the version they were installed at, forever, with no signal — a
+ * far easier mistake to hit now that five harnesses share one path shape and
+ * the README invites per-agent installs.
+ */
+export function resolveAllInstalled(projectRoot: string, homeDir: string): ResolvedTarget[] {
+  const found: ResolvedTarget[] = [];
+  const seen = new Set<string>();
+  const sameRoot = resolve(projectRoot) === resolve(homeDir);
+
+  for (const adapter of ADAPTERS) {
+    const referenceDir = referenceDirFor(adapter, 'project');
+    const manifest = readManifest(projectRoot, referenceDir);
+    if (manifest && manifest.agent !== adapter.name) {
+      // A manifest claiming an agent this build doesn't know must fail loudly
+      // rather than be passed over as "some other harness's" — the same C1
+      // guard `resolveInstalled` applies.
+      getAdapter(manifest.agent);
+    }
+    if (manifest && manifest.agent === adapter.name) {
+      const collides = sameRoot && referenceDirFor(adapter, 'global') === referenceDir;
+      const scope: Scope = collides ? manifest.scope : 'project';
+      const installRoot = scope === 'global' ? homeDir : projectRoot;
+      const key = `${resolve(installRoot)}\u0000${referenceDir}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        found.push({ installRoot, scope, manifest, referenceDir });
+      }
+    }
+  }
+
+  for (const adapter of ADAPTERS) {
+    const referenceDir = referenceDirFor(adapter, 'global');
+    const manifest = readManifest(homeDir, referenceDir);
+    if (manifest && manifest.agent !== adapter.name) {
+      getAdapter(manifest.agent);
+    }
+    if (manifest && manifest.agent === adapter.name) {
+      const key = `${resolve(homeDir)}\u0000${referenceDir}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        found.push({ installRoot: homeDir, scope: 'global', manifest, referenceDir });
+      }
+    }
+  }
+
+  return found;
+}
+
 export function resolveInstalled(projectRoot: string, homeDir: string): ResolvedTarget | null {
   const sameRoot = resolve(projectRoot) === resolve(homeDir);
 
   for (const adapter of ADAPTERS) {
-    const referenceDir = adapter.referenceDir('project');
+    const referenceDir = referenceDirFor(adapter, 'project');
     const manifest = readManifest(projectRoot, referenceDir);
     if (!manifest) continue;
     // The manifest must name the adapter whose directory it was found in.
@@ -63,14 +117,14 @@ export function resolveInstalled(projectRoot: string, homeDir: string): Resolved
       continue; // a real adapter, just not this one — keep probing
     }
 
-    const collides = sameRoot && adapter.referenceDir('global') === referenceDir;
+    const collides = sameRoot && referenceDirFor(adapter, 'global') === referenceDir;
     const scope: Scope = collides ? manifest.scope : 'project';
     const installRoot = scope === 'global' ? homeDir : projectRoot;
     return { installRoot, scope, manifest, referenceDir };
   }
 
   for (const adapter of ADAPTERS) {
-    const referenceDir = adapter.referenceDir('global');
+    const referenceDir = referenceDirFor(adapter, 'global');
     const manifest = readManifest(homeDir, referenceDir);
     if (!manifest) continue;
     if (manifest.agent !== adapter.name) {

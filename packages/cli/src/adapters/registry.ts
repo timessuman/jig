@@ -1,4 +1,5 @@
 import type { Adapter, AdapterContext, RenderedFile } from './types.js';
+import type { Scope } from '../install/manifest.js';
 import { assertSafeRelPath } from './types.js';
 import { codex } from './codex.js';
 import { SKILL_DIR_ADAPTERS } from './skill-dir.js';
@@ -8,6 +9,31 @@ import { SKILL_DIR_ADAPTERS } from './skill-dir.js';
 // harness comes from the SKILL_DIR_HARNESSES table (see skill-dir.ts);
 // adding one there is the entire diff for a new harness.
 const ADAPTERS: Adapter[] = [codex, ...SKILL_DIR_ADAPTERS];
+
+/**
+ * An adapter's reference directory, asserted safe to join against a project or
+ * home root before it is returned.
+ *
+ * `referenceDir` is as table-derived as `skillFiles` — since the harness-table
+ * refactor a single bad `dir` entry (`'../evil'`) sends every write for that
+ * harness outside the tree. `install` happened to survive it because it gathers
+ * all files before writing anything, but `update` wrote its whole reference
+ * bundle and only then hit the guard on the skill file. Route every write-path
+ * lookup through here so no write can precede the check.
+ */
+export function referenceDirFor(adapter: Adapter, scope: Scope): string {
+  const dir = adapter.referenceDir(scope);
+  assertSafeRelPath(dir, adapter.name);
+  return dir;
+}
+
+// The shipped table is fixed at build time, so a bad entry is a bug that should
+// surface immediately rather than at whichever command first writes with it.
+for (const adapter of ADAPTERS) {
+  for (const scope of ['project', 'global'] as const) {
+    assertSafeRelPath(adapter.referenceDir(scope), adapter.name);
+  }
+}
 
 export function adapterNames(): string[] {
   return ADAPTERS.map((a) => a.name);
