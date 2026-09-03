@@ -67,7 +67,14 @@ program
         version,
         homeDir: homedir(),
       });
-      console.log(`Updated Jig ${result.fromVersion} → ${result.toVersion}`);
+      const label = result.targets
+        .map((t) => `${t.agent} (${t.scope}, ${t.fromVersion})`)
+        .join(', ');
+      console.log(
+        `Updated Jig → ${result.toVersion} in ${result.targets.length} harness${
+          result.targets.length === 1 ? '' : 'es'
+        }: ${label}`,
+      );
       for (const f of result.updated) console.log(`  ~ ${f}`);
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
     } catch (err) {

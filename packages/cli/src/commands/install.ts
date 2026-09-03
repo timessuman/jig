@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { getAdapter, skillFilesFor } from '../adapters/registry.js';
-import { referenceFiles } from './../install/references.js';
+import { getAdapter, referenceDirFor, skillFilesFor } from '../adapters/registry.js';
+import { referenceFiles } from '../install/references.js';
 import { BLOCK_START } from '../adapters/types.js';
 import {
   checksum,
@@ -141,7 +141,7 @@ export function install(opts: InstallOptions): InstallResult {
   // second, contradictory skill; the user can update the global install
   // instead, or pick a different agent for this project.
   if (opts.scope === 'project') {
-    const globalReferenceDir = adapter.referenceDir('global');
+    const globalReferenceDir = referenceDirFor(adapter, 'global');
     let globalManifest: Manifest | null;
     try {
       globalManifest = readManifest(opts.homeDir, globalReferenceDir);
@@ -165,7 +165,7 @@ export function install(opts: InstallOptions): InstallResult {
   // caller rather than resolved here via `os.homedir()`, so this function
   // stays testable against a temp directory standing in for $HOME.
   const installRoot = opts.scope === 'global' ? opts.homeDir : opts.projectRoot;
-  const referenceDir = adapter.referenceDir(opts.scope);
+  const referenceDir = referenceDirFor(adapter, opts.scope);
 
   // A manifest from a prior install at this root, if present, is what makes
   // a *re*-install skip a file the user has since edited (finding I1) — the

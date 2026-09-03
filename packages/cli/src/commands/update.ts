@@ -1,7 +1,7 @@
 import { dirname, join } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { checksum, isModified, writeManifest, type Manifest } from '../install/manifest.js';
-import { resolveInstalled } from '../install/target.js';
+import { checksum, isModified, writeManifest, type Manifest, type Scope } from '../install/manifest.js';
+import { resolveAllInstalled, type ResolvedTarget } from '../install/target.js';
 import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
 import { referenceFiles } from '../install/references.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
@@ -14,10 +14,24 @@ export interface UpdateResult {
   skipped: string[];
   fromVersion: string;
   toVersion: string;
+  /**
+   * One entry per harness refreshed, in the order they were found. A project
+   * can hold several installs (claude + cursor + gemini), and each carries its
+   * own version — so callers that only read the flat `fromVersion` above see
+   * the first target's, and should print this list when it holds more than one.
+   */
+  targets: UpdatedTarget[];
+}
+
+export interface UpdatedTarget {
+  agent: string;
+  scope: Scope;
+  referenceDir: string;
+  fromVersion: string;
 }
 
 /**
- * Refreshes a vendored Jig install to `opts.version`, leaving alone any file
+ * Refreshes every vendored Jig install to `opts.version`, leaving alone any file
  * the user has edited (per its recorded checksum) so in-place rule edits
  * survive an update.
  *
@@ -30,19 +44,61 @@ export interface UpdateResult {
  * values from the manifest (see Correction 1 in the task-9 brief).
  *
  * Manifest discovery, and the install-root/scope/referenceDir resolution
- * described above (Correction 2, C3), is delegated to `resolveInstalled`
- * (see `../install/target.ts`) — the same logic `check` used to use to find
- * an existing install. The manifest is rewritten at the end with `scope`
- * corrected to the discovered value, self-healing a manifest that lied
- * about it.
+ * described above (Correction 2, C3), is delegated to `resolveAllInstalled`
+ * (see `../install/target.ts`) — which returns EVERY harness installed for
+ * this project, not just the first. Each is refreshed by `updateTarget`, and
+ * its manifest rewritten at the end with `scope` corrected to the discovered
+ * value, self-healing a manifest that lied about it.
  */
 export function update(opts: InstallOptions): UpdateResult {
-  const resolved = resolveInstalled(opts.projectRoot, opts.homeDir);
-  if (!resolved) {
+  const resolved = resolveAllInstalled(opts.projectRoot, opts.homeDir);
+  if (resolved.length === 0) {
     throw new Error(
       `Jig is not installed in ${opts.projectRoot}. Run 'jig install --agent <name>' first.`,
     );
   }
+
+  const updated: string[] = [];
+  const skipped: string[] = [];
+  const targets: UpdatedTarget[] = [];
+
+  // Every install found gets refreshed, not just the first. Installing two
+  // harnesses in one project is a supported, documented flow, and refreshing
+  // only one of them left the rest pinned at their install version with no
+  // signal that they had been passed over.
+  for (const target of resolved) {
+    const one = updateTarget(opts, target);
+    updated.push(...one.updated);
+    skipped.push(...one.skipped);
+    targets.push({
+      agent: target.manifest.agent,
+      scope: target.scope,
+      referenceDir: target.referenceDir,
+      fromVersion: target.manifest.version,
+    });
+  }
+
+  // Project-tree files written by `init` belong to the project, not to any one
+  // harness, so they are refreshed once here rather than inside the per-target
+  // loop — otherwise a two-harness project would rewrite and re-report them
+  // once per harness.
+  const initResult = updateInitFiles(opts);
+  updated.push(...initResult.updated);
+  skipped.push(...initResult.skipped);
+
+  return {
+    updated,
+    skipped,
+    fromVersion: resolved[0].manifest.version,
+    toVersion: opts.version,
+    targets,
+  };
+}
+
+function updateTarget(
+  opts: InstallOptions,
+  resolved: ResolvedTarget,
+): { updated: string[]; skipped: string[] } {
   const { installRoot, scope: discoveredScope, manifest: existing, referenceDir } = resolved;
 
   const adapter = getAdapter(existing.agent);
@@ -142,22 +198,43 @@ export function update(opts: InstallOptions): UpdateResult {
     write(relKey(referenceDir, src), readFileSync(join(opts.packageRoot, src), 'utf8'));
   }
 
-  // A global install's mode-file copies inside the *project* tree
-  // (`.jig/tokens/<mode>.css`, written by `init` so their `@import`s stay
-  // project-relative — see init.ts) are tracked in the project's own
-  // `.jig/state.json`, not the reference-bundle manifest at `installRoot`.
-  // An `update` only ever writes to `installRoot`, so without this those
-  // copies would silently rot: rules move on, the project's copies never
-  // do. Refresh under the exact same rule as everything above — skip when
-  // the user edited it, refresh when untouched — reusing `opts.projectRoot`
-  // (the directory `update` was actually invoked from), not `installRoot`.
-  //
-  // Iterating the package's own tokensDir (rather than hardcoding
-  // "mode.*.css") means this generalizes to any package-origin file init
-  // ever copies into the project this way. Only keys `init` actually wrote
-  // are tracked in state.json (i.e. only the modes a project declared), so
-  // this naturally scopes itself to what's really in use — a project that
-  // never ran `init` has no state.json and this is a no-op.
+  const manifest: Manifest = {
+    ...existing,
+    scope: discoveredScope,
+    version: opts.version,
+    installedAt: new Date().toISOString(),
+    files,
+  };
+  writeManifest(installRoot, manifest, referenceDir);
+
+  return { updated, skipped };
+}
+
+/**
+ * A global install's mode-file copies inside the *project* tree
+ * (`.jig/tokens/<mode>.css`, written by `init` so their `@import`s stay
+ * project-relative — see init.ts) are tracked in the project's own
+ * `.jig/state.json`, not the reference-bundle manifest at `installRoot`.
+ * `updateTarget` only ever writes to `installRoot`, so without this those
+ * copies would silently rot: rules move on, the project's copies never
+ * do. Refresh under the exact same rule as everything there — skip when
+ * the user edited it, refresh when untouched — reusing `opts.projectRoot`
+ * (the directory `update` was actually invoked from), not `installRoot`.
+ *
+ * These files belong to the project, not to any one harness, so this runs
+ * once per `update` rather than inside the per-harness loop — otherwise a
+ * two-harness project would rewrite and re-report them once per harness.
+ *
+ * Iterating the package's own tokensDir (rather than hardcoding
+ * "mode.*.css") means this generalizes to any package-origin file init
+ * ever copies into the project this way. Only keys `init` actually wrote
+ * are tracked in state.json (i.e. only the modes a project declared), so
+ * this naturally scopes itself to what's really in use — a project that
+ * never ran `init` has no state.json and this is a no-op.
+ */
+function updateInitFiles(opts: InstallOptions): { updated: string[]; skipped: string[] } {
+  const updated: string[] = [];
+  const skipped: string[] = [];
   const tokensDir = join(opts.packageRoot, 'tokens');
   const initManifest = readInitManifest(opts.projectRoot);
   if (initManifest) {
@@ -180,15 +257,5 @@ export function update(opts: InstallOptions): UpdateResult {
     }
     if (initChanged) writeInitManifest(opts.projectRoot, { ...initManifest, version: opts.version, files: initFiles });
   }
-
-  const manifest: Manifest = {
-    ...existing,
-    scope: discoveredScope,
-    version: opts.version,
-    installedAt: new Date().toISOString(),
-    files,
-  };
-  writeManifest(installRoot, manifest, referenceDir);
-
-  return { updated, skipped, fromVersion: existing.version, toVersion: opts.version };
+  return { updated, skipped };
 }

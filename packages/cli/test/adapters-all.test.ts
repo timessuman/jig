@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ADAPTERS, getAdapter, skillFilesFor } from '../src/adapters/registry.js';
+import { ADAPTERS, getAdapter, referenceDirFor, skillFilesFor } from '../src/adapters/registry.js';
 import { SKILL_DIR_HARNESSES } from '../src/adapters/skill-dir.js';
 import type { Adapter } from '../src/adapters/types.js';
 
@@ -117,6 +117,37 @@ describe('skillFilesFor guard', () => {
       skillFiles: () => [{ relPath: '../escape.md', content: 'x' }],
     };
     expect(() => skillFilesFor(badAdapter, ctx)).toThrow(/unsafe/i);
+  });
+
+  it('rejects an adapter whose referenceDir escapes the install root', () => {
+    // `referenceDir` is as table-derived as `skillFiles`, and every reference
+    // file an install writes is joined against it — so it needs the same guard,
+    // applied before the first write rather than after.
+    const badAdapter: Adapter = {
+      name: 'bad-refdir',
+      displayName: 'Bad RefDir',
+      referenceDir: () => '../evil/skills/jig',
+      skillFiles: () => [{ relPath: '.claude/skills/jig/SKILL.md', content: 'x' }],
+    };
+    expect(() => referenceDirFor(badAdapter, 'project')).toThrow(/unsafe/i);
+  });
+
+  it('rejects an adapter whose referenceDir is absolute', () => {
+    const badAdapter: Adapter = {
+      name: 'bad-refdir-abs',
+      displayName: 'Bad RefDir Abs',
+      referenceDir: () => '/etc/jig',
+      skillFiles: () => [],
+    };
+    expect(() => referenceDirFor(badAdapter, 'global')).toThrow(/unsafe/i);
+  });
+
+  it('ships a harness table whose every referenceDir is already safe', () => {
+    for (const adapter of ADAPTERS) {
+      for (const scope of ['project', 'global'] as const) {
+        expect(() => referenceDirFor(adapter, scope)).not.toThrow();
+      }
+    }
   });
 
   it('rejects an adapter that produces an absolute relPath', () => {
