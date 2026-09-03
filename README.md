@@ -99,6 +99,42 @@ leftover files, reports them, and — with your consent, and never for a file
 you've edited — offers to remove just the install artifacts, keeping your
 tokens and config untouched.
 
+## Commands
+
+Four commands. `install` and `init` are the setup; after that you mostly let
+your agent read the rules and run `check` when you want the mechanical half
+verified.
+
+| Command | What it does |
+| --- | --- |
+| `install --agent <name> [--scope project\|global]` | Puts the skill and its rules where your agent will find them. Writes nothing else into your repo. |
+| `init [--yes]` | Sets the *project* up: detects your CSS system, derives a brand colour from existing code, validates it against the contrast contract, writes `jig.config.json` and the token files, wires the imports, and runs a baseline check. |
+| `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. `--all` scans the repo rather than changed files; `--ci` restricts to the mechanical bucket and exits non-zero on any error; `--json` for tooling. |
+| `update` | Refreshes an install to a newer version, skipping any file you have edited. Run it as `npx jig-ui@latest update` — the skill pins every other command to the version that wrote it, and this is the one that moves that pin. |
+
+### What `check` does and does not cover
+
+Of the rules, seven can be decided mechanically — hard-coded values past the
+token layer, contrast floors, removed focus rings, gradient text, and so on.
+`check` runs those. The rest are judgment, and are the agent's job: it reads
+the rule files and applies them, then runs the self-check at the end of
+`00-anti-patterns.md`. A clean `check` is not a clean review.
+
+`check` reads **plain stylesheets only** — `.css`, `.scss`, `.less`. Values
+written in Tailwind class attributes (`className="bg-[#6D28D9] p-[13px]"`), in
+`<style>` blocks in `.vue`/`.astro`/`.svelte` files, or in `style={{ }}` props
+are **not** examined. Separating style text from application code needs real
+parsing, and a regex over it would either miss most of it or fire on unrelated
+code. The report says how many files it skipped rather than letting a narrow
+pass read as a broad one, but if your values live in class attributes, `check`
+is currently checking very little — the judgment half still applies in full.
+
+Both halves report against the same attestation line:
+
+```text
+JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judgment=<ran|skipped>
+```
+
 ## Files
 
 | File | Contents | Load |

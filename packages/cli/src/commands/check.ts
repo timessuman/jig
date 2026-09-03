@@ -79,6 +79,23 @@ function resolveMode(projectRoot: string): string {
   }
 }
 
+/**
+ * Files in the selected set that plausibly carry styling but that the detector
+ * suite does not read. Scoping to plain stylesheets is deliberate; reporting a
+ * clean result without saying which files were never opened is not.
+ */
+const STYLE_BEARING = [
+  '.tsx', '.jsx', '.vue', '.svelte', '.astro', '.html', '.htm',
+  '.php', '.erb', '.twig', '.hbs', '.mdx',
+];
+
+function summariseUnscanned(files: string[]): { count: number; extensions: string[] } | undefined {
+  const hit = files.filter((f) => STYLE_BEARING.some((e) => f.toLowerCase().endsWith(e)));
+  if (hit.length === 0) return undefined;
+  const extensions = [...new Set(hit.map((f) => f.slice(f.lastIndexOf('.')).toLowerCase()))].sort();
+  return { count: hit.length, extensions };
+}
+
 export function check(opts: CheckOptions): CheckResult {
   const indexPath = resolveIndexPath(opts.projectRoot);
   const index: IndexEntry[] = validateIndex(JSON.parse(readFileSync(indexPath, 'utf8')));
@@ -116,6 +133,7 @@ export function check(opts: CheckOptions): CheckResult {
     version: opts.version,
     noTokenLayer,
     mode: resolveMode(opts.projectRoot),
+    unscanned: summariseUnscanned(files),
   });
 
   return { findings, report, hasError };
