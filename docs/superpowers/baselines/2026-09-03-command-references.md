@@ -191,6 +191,26 @@ rule id at the point they are made, in the code:
 > the visual signature of the button beside it (C-68).
 
 That is the procedure a `build.md` would have prescribed, applied without one.
+Its own account of the decisions is closer to a design review than a build log:
+
+> **Button is secondary, not primary.** P-02 forbids a column of primaries where
+> an action repeats down a list, and a panel component can't know it's the view's
+> only action.
+
+> **Loading uses `aria-disabled`, not `disabled`.** E-32 says a disabled button is
+> unreachable by keyboard, so the user can't find out why it's dead. […] Contrast
+> is deliberately *not* dimmed — `--opacity-disabled` (0.38) would put the label
+> under 4.5:1.
+
+It also ran the self-check and it earned its place: three fixes came out of it
+before the agent finished — heading spacing tightened to the 3× ratio, the error
+strip raised from caption to body size, and a badge baseline correction.
+
+Two of its findings became fixes in this release: the mode default `init --yes`
+writes silently, and the unpinned-CLI gap, which it hit a third independent time
+("npm only publishes up to `0.3.0`, and `0.3.0` rejects the 0.4.0 install
+layout"). A third, the missing border-width token namespace, is M11 — the second
+independent hit on that gap.
 
 ## What this says about the plan
 
