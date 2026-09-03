@@ -3,13 +3,19 @@ cite the number when you follow or deliberately break one.
 
 ## Before generating or reviewing any UI
 
+0. Check that `{{config_file}}` exists. If it does not, this project has no
+   token layer: run `init` and stop until it has been run. Do not proceed by
+   writing token definitions of your own — a `:root` block you author, however
+   clearly you label it, is an invented design system wearing this one's names,
+   and it will not be replaced when the real tokens arrive.
 1. Load `{{rules_path}}/00-anti-patterns.md` and `{{rules_path}}/01-modes.md`.
 2. Determine the mode from `{{config_file}}`, or infer it using the procedure in
    `{{rules_path}}/01-modes.md` and state the inference in one line before building.
 3. Load the relevant section of `{{rules_path}}/03-patterns.md` for the component you are building.
 4. Load `{{rules_path}}/05-copy.md` whenever you write a label, button, heading, error or empty state.
 5. Consume tokens by semantic name only. Never write a raw colour or pixel value
-   at a call site.
+   at a call site, and never resolve a name yourself: if a token you need has no
+   value, that is a finding to report, not a number to supply.
 6. Run `check` for the rules the CLI can detect, then run the self-check at the
    end of `{{rules_path}}/00-anti-patterns.md` for the rules it cannot. Both
    halves, every time — a clean `check` is not a clean review.

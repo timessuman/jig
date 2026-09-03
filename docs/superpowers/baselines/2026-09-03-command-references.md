@@ -95,8 +95,28 @@ severity, each with a rule id — and never ran the `check` CLI at all:
 
 So the failure was not "reports only the mechanical half". It was the inverse:
 **all judgment, no mechanical**, caused by the stale `command-metadata.json`
-rather than by any missing procedure. That metadata is fixed in `8b703b6`, so
-this baseline needs re-running as a control before `check.md` can be justified.
+rather than by any missing procedure.
+
+### The control, with the metadata fixed
+
+Re-run against a fixture carrying the corrected metadata, the agent did reach
+for the CLI — and still could not run it:
+
+> **Mechanical check:** `npx jig-ui check --all` refused to run (`Jig is not
+> installed in …`) — the CLI looks for an install marker this project does not
+> present, even though the skill and tokens are vendored. All findings below are
+> the judgment self-check applied by hand.
+
+The remaining cause is not a missing procedure either. It is that the skill said
+to run `npx jig-ui` unpinned, so the agent got npm's published build rather than
+the one that wrote the bundle. Fixed in `d4f3bdd`; the skill now names its own
+version.
+
+So across two runs, the check reference's claimed failure never appeared. What
+appeared twice was a packaging defect wearing its clothes. The judgment half was
+never the weak point: both runs produced 26–31 findings ordered by severity,
+each carrying a rule id, and both ran the `00-anti-patterns.md` self-check
+unprompted — the second rendered it as a table with a pass/fail per question.
 
 It also cited P-02, P-05, P-06, P-08 and M-02 — all real rules, none of them in
 `rules.index.json`. See M10 in `docs/known-follow-ups.md`.
