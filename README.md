@@ -135,9 +135,17 @@ any UI, takes the mode from `jig.config.json`, loads the pattern section for
 whatever it is building, consumes tokens by name, and cites any rule it
 deliberately breaks.
 
-You do not need to prompt any of that — it is what the skill says. What you get
-back is work that names its own decisions: *"P-02 forbids a column of primaries
-where an action repeats down a list"* rather than "I made the button secondary."
+**You still prompt normally.** Ask for a settings page, a data table, an empty
+state — whatever you were going to ask for. What you no longer have to say is
+*how*: "use the design tokens", "handle the loading state", "don't invent a
+colour". That part is the skill's job, and what you get back names its own
+decisions — *"P-02 forbids a column of primaries where an action repeats down a
+list"* rather than "I made the button secondary."
+
+Whether the agent picks the skill up on its own depends on the harness. Most
+surface a skill by matching your request against its description, so a request
+that plainly involves UI usually loads it. If it does not, say so once —
+"follow the jig skill" — and it will.
 
 Every finished piece of UI work ends with an attestation line:
 
