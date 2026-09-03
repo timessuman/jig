@@ -108,3 +108,50 @@ What it does NOT guard: values that live only in the mode CSS with no prose home
 - **APCA.** The source says to check both WCAG 2 and APCA, and gives the full
   threshold table. `02-tokens.md` references APCA; `00-anti-patterns.md` does not.
   A second check rule computing APCA alongside WCAG would close this.
+
+## From the init review
+
+- **I7 — `oklch()` is unparsed, so Tailwind v4 / shadcn projects derive nothing.**
+  `check/color.ts`'s colour parser has no `oklch()` branch, so any project whose
+  tokens are declared in `oklch()` (the Tailwind v4 / shadcn default) yields zero
+  candidates at every derivation priority and falls through to `DEFAULT_PROPOSAL`.
+  This degrades cleanly — no crash, no wrong colour, just the unbranded default —
+  but it means `init` derives nothing for what is likely the most common stack in
+  new projects going forward. Highest-value follow-up from this review: add an
+  `oklch()` branch to `extractColorComponents`.
+- **M1 — symlinked stylesheets are invisible.** `wholeRepoFiles`'s walk
+  (`check/files.ts`) uses `readdirSync(..., { withFileTypes: true })` and only
+  recurses/collects on `isDirectory()`/`isFile()`; a symlinked `.css` file or
+  directory is neither, so it's silently skipped — a monorepo with a shared
+  `styles/` symlinked into an app package derives and checks nothing from it.
+- **M2 — CRLF gets mixed endings.** `checksum()` (`install/manifest.ts`) normalizes
+  `\r\n` → `\n` before hashing, but the actual file writes throughout `init`/
+  `install`/`update` do not — a file written on Windows (or checked out with
+  `core.autocrlf`) can end up with LF-written new content appended after a CRLF
+  header/body, or vice versa on a subsequent refresh, producing a file with mixed
+  line endings even though its checksum "matches".
+- **M5 — dark mode is never validated.** `validate.ts` checks the proposed brand
+  colour's contrast only against light-mode `--color-bg-raised`/`--color-fill`
+  (`BG_RAISED`, `BG_BASE_APPROX`). `brand.default.css` also defines a dark-mode
+  block (different `--brand-l` under `prefers-color-scheme: dark`), which is never
+  checked against dark backgrounds — a colour that passes in light mode could
+  still fail the dark-mode contract `init` never looks at.
+- **M6 — print-only snippet paths are project-root-relative but pasted into `src/`.**
+  When `findWireTarget` returns `null` (ambiguous stylesheets), the printed
+  `@import` snippet uses `relativeImportPath(opts.projectRoot, ...)` — correct if
+  pasted at the project root, but the log tells the user to paste it into "your
+  global stylesheet", which in practice usually lives under `src/` or similar.
+  Pasted there verbatim, the path is wrong by exactly the depth of that directory.
+- **M7 — concurrent runs are unlocked.** Nothing in `init`, `install`, or `update`
+  takes a lock file or otherwise serializes writes to `.jig/` — two concurrent
+  invocations (e.g. two agents, or a script that runs `jig init` in parallel across
+  a monorepo's packages against a shared global install) can interleave reads and
+  writes of `manifest.json`/`init-manifest.json`, corrupting the recorded checksums
+  or dropping one run's file entirely.
+- **M9 — nothing states `.jig/` must be committed.** Neither the README nor `init`
+  itself warns when `.jig/` is gitignored. Since `init` vendors the tokens/rules a
+  teammate's build and a CI `jig check` both depend on, a gitignored `.jig/` means
+  the whole system silently doesn't exist for anyone who didn't run `init`
+  themselves — worth a README line, and an `init`-time warning (e.g. via
+  `git check-ignore`, the same mechanism I5 now uses) when `.jig/` resolves as
+  ignored.
