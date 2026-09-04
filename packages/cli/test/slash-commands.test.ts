@@ -109,6 +109,10 @@ describe('every harness that supports slash commands gets one', () => {
     const command = files.find((f) => f.relPath === '.codex/prompts/jig.md')!;
     expect(command, 'expected .codex/prompts/jig.md').toBeDefined();
     expect(command.content).toContain('$ARGUMENTS');
+    // Both candidate directories, with identical bodies — see the adapter.
+    const alt = files.find((f) => f.relPath === '.codex/commands/jig.md')!;
+    expect(alt, 'expected .codex/commands/jig.md').toBeDefined();
+    expect(alt.content).toBe(command.content);
     // AGENTS.md is still written — the command is in addition to the skill,
     // not instead of it.
     expect(files.map((f) => f.relPath)).toContain('AGENTS.md');

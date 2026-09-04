@@ -235,13 +235,18 @@ fixed in the same pass this section was added in).
   the context of every Codex session. It is not a small change — `AGENTS.md` is
   co-owned with the user's own content, and an existing install has to migrate —
   so it wants its own branch and a real verification pass against the Codex TUI.
-- **M15 — the Codex slash command is unverified end to end.** `.codex/prompts/jig.md`
-  with `$ARGUMENTS` is supported by two independent sources: the Codex binary
-  contains "No command template body was found." next to `$ARGUMENTS` and
-  `migrated-command-skills`, and impeccable's cross-harness documentation names
-  `.codex/prompts/` as Codex's command mechanism. What could not be confirmed is a
-  live expansion: `codex exec` is non-interactive and did not expand a prompt file,
-  and a second probe against the interactive path hit an account usage limit before
-  producing output. Slash commands are a TUI affordance, so the `codex exec` result
-  is not evidence against — but someone should type `/jig check` into the Codex TUI
-  once and confirm.
+- **M15 — which directory Codex reads command templates from.** The mechanism is
+  settled: the binary handles custom prompts in `tui/src/bottom_pane/custom_prompt_view.rs`
+  and `prompt_args.rs`, and carries "No command template body was found." beside
+  `$ARGUMENTS`. Two things follow. First, custom prompts are a **TUI feature** —
+  the code lives in the `tui` crate, so `codex exec` cannot expand one at any
+  quota, and the earlier "unverified" note was wrong to blame the usage limit for
+  that. Second, the directory is genuinely ambiguous: impeccable's cross-harness
+  documentation names `.codex/prompts/`, while the binary also carries a bare
+  `commands` directory string, and no literal sits near the loader symbols to
+  settle it.
+  `install` therefore writes the identical body to BOTH `.codex/prompts/jig.md`
+  and `.codex/commands/jig.md`. They are ~1KB each, whichever Codex globs will
+  work, and an unread file costs nothing. To close this: open the Codex TUI in a
+  project with Jig installed, type `/jig`, and see which name appears in the
+  command popup — then delete the loser from the adapter.

@@ -27,10 +27,26 @@ export const codex: Adapter = {
     // at both scopes — under the project root for a project install, under
     // $HOME for a global one — matching where its reference bundle already goes.
     if (ctx.commandBody) {
-      files.push({
-        relPath: '.codex/prompts/jig.md',
-        content: `${ctx.commandBody}\n`,
-      });
+      // Written to BOTH candidate directories, deliberately.
+      //
+      // The mechanism is confirmed — the binary carries "No command template
+      // body was found." beside `$ARGUMENTS`, and handles custom prompts in
+      // `tui/src/bottom_pane/custom_prompt_view.rs` and `prompt_args.rs`. What
+      // could not be pinned down is the directory: impeccable's cross-harness
+      // documentation names `.codex/prompts/`, while the binary also carries a
+      // bare `commands` directory string, and the account available for testing
+      // was over its usage limit so no live expansion could be observed.
+      //
+      // These are ~1KB markdown files. Writing both costs nothing and removes
+      // the risk of shipping the feature into a directory nothing reads;
+      // whichever Codex globs, `/jig init` works. Collapse to one once someone
+      // has confirmed it in the TUI (M15).
+      for (const dir of ['prompts', 'commands']) {
+        files.push({
+          relPath: `.codex/${dir}/jig.md`,
+          content: `${ctx.commandBody}\n`,
+        });
+      }
     }
     return files;
   },
