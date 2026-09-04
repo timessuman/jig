@@ -243,15 +243,16 @@ describe('install', () => {
   });
 });
 
-describe('install — codex reference material lives under .codex/', () => {
-  it('codex (project scope) puts rules in .codex/.jig/, not the project .jig/', () => {
+describe('install — codex reference material lives beside its skill', () => {
+  it('codex (project scope) puts rules beside its skill, not in the project .jig/', () => {
     // codex has no skill directory of its own — AGENTS.md is a plain file — so
     // its bundle needs somewhere to live. It used to be a bare `.jig`, the one
     // directory 0.4.0 reserves for the project's own material; it now mirrors
     // codex's own global path. See codex-project-dir.test.ts for why.
     install({ ...opts(), agent: 'codex' });
-    expect(existsSync(join(project, '.codex', '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
-    expect(existsSync(join(project, '.codex', '.jig', 'rules.index.json'))).toBe(true);
+    expect(existsSync(join(project, '.agents', 'skills', 'jig', 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(project, '.agents', 'skills', 'jig', 'rules.index.json'))).toBe(true);
+    expect(existsSync(join(project, '.agents', 'skills', 'jig', 'SKILL.md'))).toBe(true);
     expect(existsSync(join(project, 'AGENTS.md'))).toBe(true);
     // install writes no project-state file — those come only from `init` — and
     // now touches the project's `.jig/` not at all.
@@ -319,9 +320,10 @@ describe('install — scope resolution (Fix 1)', () => {
     install({ ...opts(), agent: 'codex', scope: 'global' });
     expect(existsSync(join(home, '.codex', 'AGENTS.md'))).toBe(true);
     expect(existsSync(join(home, 'AGENTS.md'))).toBe(false);
-    // The global codex reference bundle lives beside .codex/AGENTS.md, in
-    // .codex/.jig — not the bare ~/.jig this project no longer uses.
-    expect(existsSync(join(home, '.codex', '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
+    // The global bundle lives beside the skill, under the same `.agents/`
+    // convention — not the bare ~/.jig this project no longer uses.
+    expect(existsSync(join(home, '.agents', 'skills', 'jig', 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(home, '.agents', 'skills', 'jig', 'SKILL.md'))).toBe(true);
   });
 
   it('opencode writes .opencode/skills for project scope and .config/opencode/skills for global scope', () => {

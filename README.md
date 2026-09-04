@@ -52,16 +52,16 @@ Every agent supports both scopes.
 | Agent | Project scope | Global scope |
 | --- | --- | --- |
 | Claude Code | `.claude/skills/jig/SKILL.md` | `~/.claude/skills/jig/SKILL.md` |
-| Codex | `AGENTS.md` | `~/.codex/AGENTS.md` |
+| Codex | `.agents/skills/jig/SKILL.md` | `~/.agents/skills/jig/SKILL.md` |
 | Cursor | `.cursor/skills/jig/SKILL.md` | `~/.cursor/skills/jig/SKILL.md` |
 | opencode | `.opencode/skills/jig/SKILL.md` | `~/.config/opencode/skills/jig/SKILL.md` |
 | Gemini CLI | `.gemini/skills/jig/SKILL.md` | `~/.gemini/skills/jig/SKILL.md` |
 | Generic | `.agents/skills/jig/SKILL.md` | `~/.agents/skills/jig/SKILL.md` |
 
-Every agent except Codex reads `<harness>/skills/jig/SKILL.md`, so adding a new
-harness is a config change rather than a new code path. Codex keeps `AGENTS.md`,
-which really is a different mechanism, and its reference bundle goes under
-`.codex/.jig/`.
+Every agent reads a `skills/jig/SKILL.md`, so adding a new harness is a config
+change rather than a new code path. Codex uses the cross-agent `.agents/`
+directory and additionally gets a short pointer block in `AGENTS.md` — that file
+is read into every session, so it names the skill rather than restating it.
 
 Install writes the skill file **and its rules** to one place only — beside the
 skill file itself. Nothing of Jig's is vendored into your repo; your agent reads

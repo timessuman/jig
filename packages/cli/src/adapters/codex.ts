@@ -1,14 +1,31 @@
 import type { Adapter, AdapterContext, RenderedFile } from './types.js';
-import { agentsBlock } from './types.js';
+import { agentsPointer } from './types.js';
 
 export const codex: Adapter = {
   name: 'codex',
   displayName: 'Codex',
   skillFiles(ctx: AdapterContext): RenderedFile[] {
-    // A bare AGENTS.md at $HOME is not how codex discovers global instructions;
-    // global scope needs the agent-specific config directory instead.
-    const relPath = ctx.scope === 'global' ? '.codex/AGENTS.md' : 'AGENTS.md';
-    const files: RenderedFile[] = [{ relPath, content: agentsBlock(ctx.skillBody) }];
+    // Codex has a skills system, and until now Jig did not use it: its binary
+    // instructs the model that "after deciding to use a skill, the main agent
+    // must read its SKILL.md completely", and warns at startup about a "skills
+    // context budget". The skill therefore goes in a skill directory like every
+    // other harness's, under the cross-agent `.agents/` convention — which is
+    // where impeccable installs its own Codex support.
+    //
+    // What this buys is the thing the convention exists for. `AGENTS.md` is
+    // read into the context of EVERY session, so inlining the whole rule
+    // summary there taxed every Codex task — a database migration, a shell
+    // script — with a design system it would never use. A skill loads on
+    // demand instead.
+    const skillPath = '.agents/skills/jig/SKILL.md';
+    const files: RenderedFile[] = [{ relPath: skillPath, content: ctx.skillBody }];
+
+    // `AGENTS.md` keeps a short pointer rather than the full body. Codex
+    // definitely reads AGENTS.md; exactly which skill directories it globs is
+    // less certain, so the pointer guarantees an agent can still find the rules
+    // either way. It is a few lines, not the whole system.
+    const agentsPath = ctx.scope === 'global' ? '.codex/AGENTS.md' : 'AGENTS.md';
+    files.push({ relPath: agentsPath, content: agentsPointer(skillPath) });
 
     // Codex's command templates live in `.codex/prompts/<name>.md` and
     // substitute `$ARGUMENTS`, so `/jig init` reaches the same dispatching body
@@ -70,6 +87,12 @@ export const codex: Adapter = {
    * Mirroring the global path keeps codex's own convention and leaves `.jig/`
    * unambiguously the project's.
    */
-  referenceDir: () => '.codex/.jig',
+  /**
+   * Beside the skill, like every other harness — the rules are what `SKILL.md`
+   * tells the agent to read, so they belong next to it. This used to be
+   * `.codex/.jig`, and before that a bare `.jig`, which put Jig's property in
+   * the one directory the project owns.
+   */
+  referenceDir: () => '.agents/skills/jig',
   argsPlaceholder: '$ARGUMENTS',
 };

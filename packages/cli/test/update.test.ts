@@ -204,7 +204,7 @@ describe('update — skill file refresh', () => {
     expect(m.files[`${claudeDir}/SKILL.md`]).toBe(checksum(readFileSync(skillPath, 'utf8')));
   });
 
-  it('always upserts the block in a codex AGENTS.md, preserving edited user content above it', () => {
+  it('always upserts the pointer block in a codex AGENTS.md, preserving edited user content above it', () => {
     const codexOpts = (version: string) => ({ ...opts(version), agent: 'codex' });
     install(codexOpts('0.1.0'));
     const agentsPath = join(project, 'AGENTS.md');
@@ -218,14 +218,21 @@ describe('update — skill file refresh', () => {
     writeFileSync(agentsPath, withUserContent.replace('Always use tabs.', 'Always use tabs. Edited again.'));
 
     writeFileSync(join(pkg, 'templates', 'SKILL.md.tmpl'),
-      '{{command_prefix}}{{config_file}}{{available_commands}}{{ask_instruction}}{{scripts_path}} REVISED-SKILL-BODY');
+      '{{command_prefix}}{{config_file}}{{available_commands}}{{ask_instruction}}{{scripts_path}}{{update_path}} REVISED-SKILL-BODY');
 
     const result = update(codexOpts('0.2.0'));
 
     const after = readFileSync(agentsPath, 'utf8');
     expect(after).toContain('# My house rules');
     expect(after).toContain('Always use tabs. Edited again.');
-    expect(after).toContain('REVISED-SKILL-BODY');
+    // The revised body lands in the skill file; AGENTS.md keeps its pointer.
+    expect(
+      readFileSync(join(project, '.agents', 'skills', 'jig', 'SKILL.md'), 'utf8'),
+    ).toContain('REVISED-SKILL-BODY');
+    expect(after).toContain('.agents/skills/jig/SKILL.md');
+    // The body itself is NOT in AGENTS.md any more — that is the point of the
+    // move: AGENTS.md is read into every session, so it carries a pointer.
+    expect(after).not.toContain('REVISED-SKILL-BODY');
     expect(after.match(/<!-- jig:start -->/g)).toHaveLength(1);
     expect(after.match(/<!-- jig:end -->/g)).toHaveLength(1);
     expect(result.updated).toContain('AGENTS.md');

@@ -220,21 +220,6 @@ fixed in the same pass this section was added in).
   no border-width namespace, so there is no token to reference." Two independent
   hits on the same missing namespace. Adding `--border-width-*` and focus-ring
   geometry is a token-architecture decision, not a mid-release patch.
-- **M14 — Codex has a native skills system Jig does not use.** Its binary carries
-  `.codex/skills`, `.agents`, `SKILL.md`, and an instruction reading "After
-  deciding to use a skill, the main agent must read its `SKILL.md` completely",
-  plus a startup warning about a "skills context budget". impeccable installs its
-  Codex support as a skill under `.agents/skills/impeccable/SKILL.md` rather than
-  as instructions in `AGENTS.md`, and builds its `/impeccable audit` UX on top of
-  that skill.
-  Jig still treats Codex as the one marker-based harness: a block in `AGENTS.md`
-  plus a reference bundle in `.codex/.jig/`. That predates Codex having skills.
-  Moving it onto the skill-directory table would make it the sixth ordinary row
-  rather than a bespoke adapter, and would let its description do the same
-  just-in-time loading every other harness gets instead of sitting permanently in
-  the context of every Codex session. It is not a small change — `AGENTS.md` is
-  co-owned with the user's own content, and an existing install has to migrate —
-  so it wants its own branch and a real verification pass against the Codex TUI.
 - **M15 — which directory Codex reads command templates from.** The mechanism is
   settled: the binary handles custom prompts in `tui/src/bottom_pane/custom_prompt_view.rs`
   and `prompt_args.rs`, and carries "No command template body was found." beside

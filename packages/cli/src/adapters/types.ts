@@ -110,3 +110,31 @@ export const BLOCK_END = '<!-- jig:end -->';
 export function agentsBlock(skillBody: string): string {
   return [BLOCK_START, '', '# Jig — UI rules', '', skillBody, '', BLOCK_END, ''].join('\n');
 }
+
+/**
+ * A short pointer for `AGENTS.md`, naming the skill rather than inlining it.
+ *
+ * `AGENTS.md` is read into the context of every session, so the full rule
+ * summary sat there permanently whether the task touched UI or not — the one
+ * cost the skill-directory convention exists to avoid, and the reason Codex
+ * was the only harness still paying it. The skill itself now lives at
+ * `skillPath`, where Codex loads it on demand.
+ *
+ * The pointer stays because project-scope skill discovery is unproven (only
+ * `$CODEX_HOME/skills` is documented in the binary), so this guarantees an
+ * agent can still find the rules by reading a file it definitely loads.
+ */
+export function agentsPointer(skillPath: string): string {
+  return [
+    BLOCK_START,
+    '',
+    '# Jig — UI rules',
+    '',
+    `This project uses Jig, a design system for generating and reviewing UI.`,
+    `Before building or reviewing any interface, read \`${skillPath}\` and follow it.`,
+    'It is short, and it tells you which rule files to load for the task at hand.',
+    '',
+    BLOCK_END,
+    '',
+  ].join('\n');
+}
