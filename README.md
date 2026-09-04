@@ -221,6 +221,7 @@ It reads CSS wherever it lives:
 | --- | --- |
 | Stylesheets | `.css`, `.scss`, `.less` |
 | `<style>` blocks | HTML, Astro, Vue, Svelte, PHP, ERB, Twig, Handlebars, MDX, ASP/ASP.NET, Razor, JSP, Phoenix, EJS, Nunjucks, Liquid, Jinja, Velocity, FreeMarker |
+| Indented style blocks | Pug (`style.`), Haml (`:css`), Slim (`css:`) |
 | Style attributes | `style="color: #777"`, `style={{ color: '#777' }}` |
 | CSS-in-JS | `styled.button\`…\``, `styled(Link)\`…\``, `css\`…\``, `createGlobalStyle`, `keyframes` |
 | Tailwind arbitrary values | `className="bg-[#6D28D9] p-[13px]"` |
@@ -241,9 +242,8 @@ scale, which is what a scale is for, and the scale is your project's decision.
 And a colour outside the framework's default palette is not resolved rather than
 guessed at.
 
-The indentation-based templates — Pug, Haml, Slim — are not read: they write
-`div(style="…")` rather than markup, so they need a real extractor. `check`
-names them as unscanned rather than implying coverage it does not have.
+Anything the suite still cannot read is named in the report, so a narrow pass
+never reads as a broad one.
 
 ## Upgrading
 

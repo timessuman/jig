@@ -167,8 +167,9 @@ them its own.
 
   Now covered: `<style>` blocks (HTML, Astro, Vue, Svelte, PHP, ERB, Twig,
   Handlebars, MDX, ASP and ASP.NET, Razor, JSP, Phoenix, EJS, Nunjucks, Liquid,
-  Jinja, Velocity, FreeMarker), `style="…"` and `style={{ }}`, CSS-in-JS tagged
-  templates
+  Jinja, Velocity, FreeMarker), the indentation-delimited templates (Pug's
+  `style.`, Haml's `:css`, Slim's `css:`, each with its own attribute syntax),
+  `style="…"` and `style={{ }}`, CSS-in-JS tagged templates
   (`styled.button`, `styled(Link)`, `css`, `createGlobalStyle`, `keyframes`),
   Tailwind arbitrary values, and Tailwind default-palette contrast pairs.
   `@theme` counts as the token layer, so a v4 project that has adopted Jig is

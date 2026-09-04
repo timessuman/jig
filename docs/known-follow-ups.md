@@ -121,12 +121,16 @@ fixed in the same pass this section was added in).
   silently do not evaluate an entire class of real values. There is no `:root` scan of
   the consumer's own CSS to build a fuller map; adding one is a scope decision (how far
   to walk imports/scoping) rather than a small fix.
-- **M2, M3, M4, M5, M6, M9** — flagged in the whole-branch review of `check` but their
-  specifics were not included in the handoff that produced this fix pass. Recorded here
-  as open items so they aren't lost; recovering the concrete finding for each requires
-  the original review output (`packages/cli/src/check/**`, review commit range
-  `6ee3ae6..34d298a` per `.superpowers/sdd/2026-08-31-jig-foundation-install/
-  review-6ee3ae6..34d298a.diff`, is the diff they were reviewed against).
+_Resolved. This entry recorded six findings from the whole-branch review of
+`check` as open, on the grounds that their specifics were lost in a handoff. The
+specifics were not lost: commit `34d298a`, the end of the very range the entry
+cites, is titled "fix: address the whole-branch review of check" and its message
+enumerates all six. Each was verified closed in the current source rather than
+taken on the title's word — `check` scans the project rather than the install
+root; `maskComments` walks characters and skips strings; a repository with no
+commits falls back instead of crashing; the inverted media-query mask is gone;
+`contrast-floor` relaxes to 3:1 for large text; and the detectors no longer
+require a trailing semicolon._
 
 ## Open questions raised by the source, not yet acted on
 

@@ -32,6 +32,84 @@ export const MARKUP_HOSTS = [
   '.jinja', '.jinja2', '.j2',
 ];
 
+
+/**
+ * Templating languages that delimit blocks by INDENTATION rather than closing
+ * tags: Pug, Haml, Slim. They carry CSS in two places, and neither needs a full
+ * parser to find.
+ *
+ * `blockMarker` matches a line that opens a style region — `style.` in Pug,
+ * `:css` in Haml, `css:` in Slim — capturing its leading whitespace. The region
+ * runs to the first following line that is non-blank and indented no further
+ * than the marker.
+ *
+ * `attr` matches an inline style attribute in that language's own syntax. Pug
+ * and Slim use HTML-ish `style="…"`; Haml uses a Ruby hash, in either the
+ * modern `style: "…"` or the legacy `:style => "…"` form.
+ */
+interface IndentedSyntax {
+  blockMarker: RegExp;
+  attr: RegExp;
+}
+
+const INDENTED_SYNTAXES: Record<string, IndentedSyntax> = {
+  '.pug': { blockMarker: /^(\s*)style\.?\s*$/, attr: /\bstyle\s*=\s*(["'])([\s\S]*?)\1/g },
+  '.jade': { blockMarker: /^(\s*)style\.?\s*$/, attr: /\bstyle\s*=\s*(["'])([\s\S]*?)\1/g },
+  '.haml': {
+    blockMarker: /^(\s*)(?::css|%style)\s*$/,
+    attr: /(?::style\s*=>|\bstyle\s*:)\s*(["'])([\s\S]*?)\1/g,
+  },
+  '.slim': {
+    blockMarker: /^(\s*)(?:css:|style:)\s*$/,
+    attr: /\bstyle\s*=\s*(["'])([\s\S]*?)\1/g,
+  },
+};
+
+function indentedSyntaxFor(file: string): IndentedSyntax | undefined {
+  const lower = file.toLowerCase();
+  const ext = Object.keys(INDENTED_SYNTAXES).find((e) => lower.endsWith(e));
+  return ext ? INDENTED_SYNTAXES[ext] : undefined;
+}
+
+/**
+ * Spans of `source` holding CSS, for an indentation-delimited template.
+ *
+ * A blank line does NOT end a block — a stylesheet with a blank line between
+ * two rules is ordinary — so the scan continues past blanks and stops only at
+ * the first line with real content at or below the marker's indentation.
+ */
+function indentedSpans(source: string, syntax: IndentedSyntax): Span[] {
+  const spans: Span[] = [];
+  const lines = source.split('\n');
+  const offsets: number[] = [];
+  let at = 0;
+  for (const line of lines) {
+    offsets.push(at);
+    at += line.length + 1;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const marker = syntax.blockMarker.exec(lines[i]);
+    if (!marker) continue;
+    const markerIndent = marker[1].length;
+
+    let end = i;
+    for (let j = i + 1; j < lines.length; j++) {
+      if (lines[j].trim() === '') { end = j; continue; }
+      const indent = lines[j].length - lines[j].trimStart().length;
+      if (indent <= markerIndent) break;
+      end = j;
+    }
+    if (end === i) continue; // marker with nothing indented under it
+
+    const start = offsets[i + 1];
+    const last = offsets[end] + lines[end].length;
+    spans.push({ start, end: last });
+    i = end;
+  }
+  return spans;
+}
+
 /**
  * A [start, end) span of `source` that holds CSS.
  *
@@ -169,6 +247,18 @@ export function maskNonStyleRegions(source: string, file: string): string {
 
   const spans: (Span & { transform?: (s: string) => string })[] = [];
 
+  // Indentation-delimited templates have their own block and attribute syntax,
+  // and none of the HTML-shaped constructs below.
+  const indented = indentedSyntaxFor(file);
+  if (indented) {
+    spans.push(...indentedSpans(source, indented));
+    for (const m of source.matchAll(indented.attr)) {
+      const valueStart = m.index! + m[0].indexOf(m[1]) + 1;
+      spans.push({ start: valueStart, end: valueStart + m[2].length, braced: true });
+    }
+    return applySpans(source, spans);
+  }
+
   if (hasExtension(file, MARKUP_HOSTS)) {
     for (const m of source.matchAll(STYLE_BLOCK)) {
       const bodyStart = m.index! + m[0].indexOf('>') + 1;
@@ -190,6 +280,13 @@ export function maskNonStyleRegions(source: string, file: string): string {
     if (span) spans.push({ ...span, transform: styleObjectToCss, braced: true });
   }
 
+  return applySpans(source, spans);
+}
+
+function applySpans(
+  source: string,
+  spans: (Span & { transform?: (s: string) => string })[],
+): string {
   if (spans.length === 0) return blank(source);
 
   const out = blank(source).split('');
