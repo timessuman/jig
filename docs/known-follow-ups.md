@@ -193,19 +193,6 @@ fixed in the same pass this section was added in).
   themselves — worth a README line, and an `init`-time warning (e.g. via
   `git check-ignore`, the same mechanism I5 now uses) when `.jig/` resolves as
   ignored.
-- **M10 — the pattern and mode specs have no index.** `rules.index.json` covers
-  the `### X-NN` rules — the ones with a ❌/✅ pair, which is what a bucket, a
-  severity and a detector describe. The `## P-NN` pattern specs and `## M-NN`
-  mode specs are outside it by design; adding them makes `loadRules` throw,
-  correctly, because it checks both directions and `parseRules` does not emit
-  them.
-  **Partly addressed:** `explain` resolves them, via `rules/specs.ts`, so a
-  citation of `P-06` is no longer a dead end — it prints the spec and says it is
-  a specification rather than a rule. What remains is `check`'s summary line,
-  which counts 104 indexed rules and so understates what an agent can cite, and
-  the absence of any validator that would accept `P-06` as a legitimate
-  citation. A separate spec index, or a citation validator aware of both kinds,
-  is still the fix.
 - **M11 — the token contract has no width namespace.** `--color-focus` exists;
   nothing names a border width, an outline width or a focus-ring offset. Every
   rule that requires a visible border or focus ring (`E-28`, `E-29`, `P-02`'s

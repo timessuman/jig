@@ -140,7 +140,7 @@ describe('init — writing', () => {
   it('runs a baseline check and reports a finding count', async () => {
     const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
     expect(typeof result.baseline.findingsCount).toBe('number');
-    expect(result.baseline.report).toContain('rules,');
+    expect(result.baseline.report).toMatch(/\d+ rules(?: \(\+ \d+ pattern and mode specs\))?,/);
   });
 
   it('falls back to the directory name for the brand slug when there is no package.json', async () => {

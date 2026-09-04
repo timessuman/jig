@@ -13,6 +13,12 @@ export interface ReportMeta {
    *  emitting a differently-shaped record under the same label. */
   mode?: string;
   /**
+   * The `P-`/`M-` specs, which sit outside `rules.index.json` by design and so
+   * are not part of `totalRules`. Named in the summary because "104 rules"
+   * otherwise reads as the whole system, implying a cited `P-06` is not real.
+   */
+  totalSpecs?: number;
+  /**
    * Files carrying styling that the detector suite does not read — `.tsx`,
    * `.vue`, `.astro`, and friends. The scope is deliberate (separating style
    * text from application code needs real parsing), but silence about it turns
@@ -102,7 +108,10 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
   if (notes > 0) summaryParts.push(plural(notes, 'note'));
 
   const rulesFired = new Set(findings.map((f) => f.ruleId)).size;
-  lines.push(`  ${summaryParts.join(', ')} · ${meta.totalRules} rules, ${rulesFired} fired`);
+  const scope = meta.totalSpecs
+    ? `${meta.totalRules} rules (+ ${meta.totalSpecs} pattern and mode specs)`
+    : `${meta.totalRules} rules`;
+  lines.push(`  ${summaryParts.join(', ')} · ${scope}, ${rulesFired} fired`);
 
   if (meta.unscanned && meta.unscanned.count > 0) {
     const exts = meta.unscanned.extensions.join(', ');

@@ -5,6 +5,7 @@ import { validateIndex, type IndexEntry } from '../rules/schema.js';
 import { selectFiles } from '../check/files.js';
 import { formatReport } from '../check/report.js';
 import { participatesInTokenLayer } from '../check/token-layer.js';
+import { loadSpecs } from '../rules/specs.js';
 import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
@@ -109,6 +110,14 @@ function summariseUnscanned(files: string[]): { count: number; extensions: strin
   return { count: hit.length, extensions };
 }
 
+function countSpecs(): number {
+  try {
+    return loadSpecs(join(assetRoot(), 'rules')).length;
+  } catch {
+    return 0;
+  }
+}
+
 export function check(opts: CheckOptions): CheckResult {
   const indexPath = resolveIndexPath(opts.projectRoot);
   const index: IndexEntry[] = validateIndex(JSON.parse(readFileSync(indexPath, 'utf8')));
@@ -164,6 +173,10 @@ export function check(opts: CheckOptions): CheckResult {
 
   const report = formatReport(findings, {
     totalRules: index.length,
+    // From the CLI's own bundle, like `explain` — the spec count describes the
+    // system, not whatever a project happens to have vendored. A legacy project
+    // copy may have no `rules/` directory at all.
+    totalSpecs: countSpecs(),
     version: opts.version,
     noTokenLayer,
     mode: resolveMode(opts.projectRoot),
