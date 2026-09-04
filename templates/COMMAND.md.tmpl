@@ -51,6 +51,18 @@ Report where the skill landed and at which scope. If it warned that a global
 install already exists, do not work around it — that warning is the system
 refusing to leave two contradictory skills for one harness.
 
+## explain
+
+Print the CLI's output as it stands. It is already the rule's full text — do not
+summarise it, and do not paraphrase the correction into your own words: the
+wording is the rule.
+
+If the id is a `P-` or `M-` spec, the output says it is a specification rather
+than a rule, with no ❌/✅ pair and no detector. That is correct, not a gap.
+
+If the id does not exist, the error names every id in that section. Offer the
+nearest one rather than guessing what the user meant.
+
 ## update
 
 Report what moved and what was left alone. Files reported as skipped were edited

@@ -193,19 +193,19 @@ fixed in the same pass this section was added in).
   themselves — worth a README line, and an `init`-time warning (e.g. via
   `git check-ignore`, the same mechanism I5 now uses) when `.jig/` resolves as
   ignored.
-- **M10 — the pattern and mode specs have no index.** `rules.index.json` covers the
-  `### X-NN` rules — the ones with a ❌/✅ pair, which is what a bucket, a severity
-  and a detector describe. The `## P-NN · Name` pattern specs in `03-patterns.md`
-  (11 of them) and the `## M-NN` mode specs in `01-modes.md` (3) are outside it, and
-  `parseRules` does not emit them. That is coherent — they are specifications, not
-  checkable rules — but agents cite them as rule ids: two baseline reviews cited
-  P-02, P-05, P-06, P-08 and M-02, all real and none confirmable against any index.
-  Consequences worth deciding on: `check`'s "104 rules" is the indexed count, not
-  the number of things an agent can cite; and any future validation of an agent's
-  citations would reject a correct P-06. Adding them to `rules.index.json` is not
-  the fix — `loadRules` checks both directions and throws, which is it correctly
-  refusing to hold two different kinds of thing in one list. A separate spec index,
-  or a citation validator that knows about both, would be.
+- **M10 — the pattern and mode specs have no index.** `rules.index.json` covers
+  the `### X-NN` rules — the ones with a ❌/✅ pair, which is what a bucket, a
+  severity and a detector describe. The `## P-NN` pattern specs and `## M-NN`
+  mode specs are outside it by design; adding them makes `loadRules` throw,
+  correctly, because it checks both directions and `parseRules` does not emit
+  them.
+  **Partly addressed:** `explain` resolves them, via `rules/specs.ts`, so a
+  citation of `P-06` is no longer a dead end — it prints the spec and says it is
+  a specification rather than a rule. What remains is `check`'s summary line,
+  which counts 104 indexed rules and so understates what an agent can cite, and
+  the absence of any validator that would accept `P-06` as a legitimate
+  citation. A separate spec index, or a citation validator aware of both kinds,
+  is still the fix.
 - **M11 — the token contract has no width namespace.** `--color-focus` exists;
   nothing names a border width, an outline width or a focus-ring offset. Every
   rule that requires a visible border or focus ring (`E-28`, `E-29`, `P-02`'s

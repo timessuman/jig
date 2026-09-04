@@ -20,8 +20,8 @@
     "status": "available"
   },
   "explain": {
-    "description": "Print a rule's full text, its correction, and the version it was introduced in.",
+    "description": "Print a rule's full text, its correction, the version it arrived in, and who checks it. Also resolves the P-/M- pattern and mode specs, which no rule index contains.",
     "argumentHint": "<rule-id>",
-    "status": "planned"
+    "status": "available"
   }
 }

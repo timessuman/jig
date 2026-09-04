@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { assetRoot, findProjectRoot, getPackageRoot, isPublishedBuild } from './paths.js';
 import { install } from './commands/install.js';
 import { update } from './commands/update.js';
+import { explain } from './commands/explain.js';
 import { check } from './commands/check.js';
 import { init } from './commands/init.js';
 import { adapterNames } from './adapters/registry.js';
@@ -57,6 +58,19 @@ program
       warnIfUnpublishedPin();
       for (const f of result.written) console.log(`  + ${f}`);
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('explain')
+  .description("Print a rule's full text, its correction, and the version it was introduced in.")
+  .argument('<rule-id>', "a rule id, e.g. 'C-19' or 'P-02'")
+  .action((ruleId: string) => {
+    try {
+      console.log(explain({ ruleId, version }));
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);

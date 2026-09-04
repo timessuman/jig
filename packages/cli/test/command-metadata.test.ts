@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { repoRoot } from './helpers/registered-commands.js';
 import { commandMetadata as metadata, registeredCommands } from './helpers/registered-commands.js';
 
 /**
@@ -43,6 +46,24 @@ describe('command-metadata.json agrees with the CLI', () => {
       expect(entry.description, `'${name}' description`).toBeTruthy();
       expect(typeof entry.argumentHint, `'${name}' argumentHint`).toBe('string');
       expect(['available', 'planned'], `'${name}' status`).toContain(entry.status);
+    }
+  });
+});
+
+describe('the slash-command body covers every available command', () => {
+  it('gives each one its own section', () => {
+    // The body lists the subcommands from the metadata and then tells the agent
+    // to "do the work below for that subcommand". `explain` was listed in the
+    // header and the argument hint while having no section at all, so an agent
+    // reaching that instruction found nothing.
+    const tmpl = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
+    const sections = [...tmpl.matchAll(/^## ([a-z-]+)$/gm)].map((m) => m[1]);
+    const available = Object.entries(metadata())
+      .filter(([, v]) => v.status === 'available')
+      .map(([k]) => k);
+    expect(available.length).toBeGreaterThan(3);
+    for (const name of available) {
+      expect(sections, `no '## ${name}' section in COMMAND.md.tmpl`).toContain(name);
     }
   });
 });
