@@ -91,6 +91,9 @@ describe('every harness that supports slash commands gets one', () => {
       cursor: '.cursor/commands/jig.md',
       opencode: '.opencode/command/jig.md',
       gemini: '.gemini/commands/jig.toml',
+      // Codex's command templates are `.codex/prompts/<name>.md`, substituting
+      // `$ARGUMENTS` — the same dispatching body, so `/jig init` works there too.
+      codex: '.codex/prompts/jig.md',
     };
     for (const [agent, relPath] of Object.entries(expected)) {
       const files = skillFilesFor(getAdapter(agent), ctx('project'));
@@ -99,6 +102,26 @@ describe('every harness that supports slash commands gets one', () => {
         `${agent} command path`,
       ).toContain(relPath);
     }
+  });
+
+  it('gives codex the same dispatching body, not a second mechanism', () => {
+    const files = skillFilesFor(getAdapter('codex'), ctx('project'));
+    const command = files.find((f) => f.relPath === '.codex/prompts/jig.md')!;
+    expect(command, 'expected .codex/prompts/jig.md').toBeDefined();
+    expect(command.content).toContain('$ARGUMENTS');
+    // AGENTS.md is still written — the command is in addition to the skill,
+    // not instead of it.
+    expect(files.map((f) => f.relPath)).toContain('AGENTS.md');
+  });
+
+  it('gives codex the same dispatching body, not a second mechanism', () => {
+    const files = skillFilesFor(getAdapter('codex'), ctx('project'));
+    const command = files.find((f) => f.relPath === '.codex/prompts/jig.md')!;
+    expect(command, 'expected .codex/prompts/jig.md').toBeDefined();
+    expect(command.content).toContain('$ARGUMENTS');
+    // AGENTS.md is still written — the command is in addition to the skill,
+    // not instead of it.
+    expect(files.map((f) => f.relPath)).toContain('AGENTS.md');
   });
 
   it('follows each harness to its own global location', () => {

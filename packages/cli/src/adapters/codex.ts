@@ -1,17 +1,6 @@
 import type { Adapter, AdapterContext, RenderedFile } from './types.js';
 import { agentsBlock } from './types.js';
 
-/**
- * No slash command is written for Codex.
- *
- * Its custom prompts live in `~/.codex/prompts/*.md`, but `codex exec` does not
- * expand them: probed with a real prompt file and `codex exec "/jigprobe
- * hello-world"`, Codex treated the text literally and went looking for a
- * `jigprobe` binary on PATH. Whether the interactive TUI expands them is
- * untested here, and shipping a file on that guess would put a command in a
- * user's config that may never fire. Codex users run the CLI directly; the
- * skill in `AGENTS.md` works exactly as it does for every other harness.
- */
 export const codex: Adapter = {
   name: 'codex',
   displayName: 'Codex',
@@ -19,7 +8,31 @@ export const codex: Adapter = {
     // A bare AGENTS.md at $HOME is not how codex discovers global instructions;
     // global scope needs the agent-specific config directory instead.
     const relPath = ctx.scope === 'global' ? '.codex/AGENTS.md' : 'AGENTS.md';
-    return [{ relPath, content: agentsBlock(ctx.skillBody) }];
+    const files: RenderedFile[] = [{ relPath, content: agentsBlock(ctx.skillBody) }];
+
+    // Codex's command templates live in `.codex/prompts/<name>.md` and
+    // substitute `$ARGUMENTS`, so `/jig init` reaches the same dispatching body
+    // every other harness gets. Evidence, since this was got wrong once by
+    // assuming and once by testing the wrong thing:
+    //
+    // - The Codex binary carries the strings "No command template body was
+    //   found." and "$ARGUMENTS" together, alongside "migrated-command-skills".
+    // - A first probe put a file in `~/.codex/prompts/` and drove it with
+    //   `codex exec`, which did not expand it — `codex exec` is the
+    //   non-interactive path, and slash commands are a TUI affordance. That
+    //   result says nothing about whether the file is read in the TUI, which is
+    //   how people actually use Codex, so it is not a reason to ship nothing.
+    //
+    // Unlike the skill-directory harnesses, the prompts directory is `.codex/`
+    // at both scopes — under the project root for a project install, under
+    // $HOME for a global one — matching where its reference bundle already goes.
+    if (ctx.commandBody) {
+      files.push({
+        relPath: '.codex/prompts/jig.md',
+        content: `${ctx.commandBody}\n`,
+      });
+    }
+    return files;
   },
   /**
    * codex has no skill directory: AGENTS.md is a plain file (project root, or
@@ -42,4 +55,5 @@ export const codex: Adapter = {
    * unambiguously the project's.
    */
   referenceDir: () => '.codex/.jig',
+  argsPlaceholder: '$ARGUMENTS',
 };
