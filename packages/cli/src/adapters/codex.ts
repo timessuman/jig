@@ -27,44 +27,31 @@ export const codex: Adapter = {
     const agentsPath = ctx.scope === 'global' ? '.codex/AGENTS.md' : 'AGENTS.md';
     files.push({ relPath: agentsPath, content: agentsPointer(skillPath) });
 
-    // Codex's command templates live in `.codex/prompts/<name>.md` and
-    // substitute `$ARGUMENTS`, so `/jig init` reaches the same dispatching body
-    // every other harness gets. Evidence, since this was got wrong once by
-    // assuming and once by testing the wrong thing:
+    // Codex's custom prompts are GLOBAL ONLY. OpenAI's documentation is
+    // explicit: they load from `~/.codex/prompts` (or `$CODEX_HOME/prompts`),
+    // it "scans only the top-level Markdown files in that folder", and there is
+    // no project-scoped `.codex/prompts`. The filename without `.md` becomes
+    // the slash entry, so `jig.md` gives `/jig`.
     //
-    // - The Codex binary carries the strings "No command template body was
-    //   found." and "$ARGUMENTS" together, alongside "migrated-command-skills".
-    // - A first probe put a file in `~/.codex/prompts/` and drove it with
-    //   `codex exec`, which did not expand it — `codex exec` is the
-    //   non-interactive path, and slash commands are a TUI affordance. That
-    //   result says nothing about whether the file is read in the TUI, which is
-    //   how people actually use Codex, so it is not a reason to ship nothing.
+    // Two earlier guesses here were wrong and are worth recording, because both
+    // looked reasonable:
     //
-    // Unlike the skill-directory harnesses, the prompts directory is `.codex/`
-    // at both scopes — under the project root for a project install, under
-    // $HOME for a global one — matching where its reference bundle already goes.
-    if (ctx.commandBody) {
-      // Written to BOTH candidate directories, deliberately.
-      //
-      // The mechanism is confirmed — the binary carries "No command template
-      // body was found." beside `$ARGUMENTS`, and handles custom prompts in
-      // `tui/src/bottom_pane/custom_prompt_view.rs` and `prompt_args.rs`. What
-      // could not be pinned down is the directory: impeccable's cross-harness
-      // documentation names `.codex/prompts/`, while the binary also carries a
-      // bare `commands` directory string, and the account available for testing
-      // was over its usage limit so no live expansion could be observed.
-      //
-      // These are ~1KB markdown files. Writing both costs nothing and removes
-      // the risk of shipping the feature into a directory nothing reads;
-      // whichever Codex globs, `/jig init` works. Collapse to one once someone
-      // has confirmed it in the TUI (M15).
-      for (const dir of ['prompts', 'commands']) {
-        files.push({
-          relPath: `.codex/${dir}/jig.md`,
-          content: `${ctx.commandBody}\n`,
-        });
-      }
+    // - `.codex/commands/` does not exist as a mechanism. The bare string
+    //   `commands` in the binary belongs to the import-from-another-agent
+    //   feature ("Migrate commands from .. to .."), not to prompt loading.
+    // - Writing the file at project scope reads to Codex as nothing at all.
+    //   A `~/.codex/prompts` directory on this machine looked like evidence for
+    //   it until `stat` showed the birth time matched an earlier probe of my
+    //   own — it was my artifact, not Codex's.
+    //
+    // For a project-scope install there is therefore no prompt file to write.
+    // That is not a gap: OpenAI deprecates custom prompts in favour of skills
+    // precisely because "skills can be shared through your repository" while
+    // prompts stay local — and the skill above is exactly that.
+    if (ctx.commandBody && ctx.scope === 'global') {
+      files.push({ relPath: '.codex/prompts/jig.md', content: `${ctx.commandBody}\n` });
     }
+
     return files;
   },
   /**

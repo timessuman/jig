@@ -91,9 +91,6 @@ describe('every harness that supports slash commands gets one', () => {
       cursor: '.cursor/commands/jig.md',
       opencode: '.opencode/command/jig.md',
       gemini: '.gemini/commands/jig.toml',
-      // Codex's command templates are `.codex/prompts/<name>.md`, substituting
-      // `$ARGUMENTS` — the same dispatching body, so `/jig init` works there too.
-      codex: '.codex/prompts/jig.md',
     };
     for (const [agent, relPath] of Object.entries(expected)) {
       const files = skillFilesFor(getAdapter(agent), ctx('project'));
@@ -104,28 +101,37 @@ describe('every harness that supports slash commands gets one', () => {
     }
   });
 
-  it('gives codex the same dispatching body, not a second mechanism', () => {
-    const files = skillFilesFor(getAdapter('codex'), ctx('project'));
-    const command = files.find((f) => f.relPath === '.codex/prompts/jig.md')!;
-    expect(command, 'expected .codex/prompts/jig.md').toBeDefined();
+  it("gives codex a command at global scope, where its prompts actually live", () => {
+    // OpenAI documents custom prompts as loading from `~/.codex/prompts` only —
+    // top-level Markdown, no project-scoped equivalent — so the file is written
+    // for a global install and nothing is written for a project one.
+    const global = skillFilesFor(getAdapter('codex'), ctx('global'));
+    const command = global.find((f) => f.relPath === '.codex/prompts/jig.md')!;
+    expect(command, 'expected .codex/prompts/jig.md at global scope').toBeDefined();
     expect(command.content).toContain('$ARGUMENTS');
-    // Both candidate directories, with identical bodies — see the adapter.
-    const alt = files.find((f) => f.relPath === '.codex/commands/jig.md')!;
-    expect(alt, 'expected .codex/commands/jig.md').toBeDefined();
-    expect(alt.content).toBe(command.content);
-    // AGENTS.md is still written — the command is in addition to the skill,
-    // not instead of it.
-    expect(files.map((f) => f.relPath)).toContain('AGENTS.md');
+
+    const project = skillFilesFor(getAdapter('codex'), ctx('project'));
+    expect(
+      project.map((f) => f.relPath).filter((p) => p.includes('prompts')),
+      'a project-scope prompt file is read by nothing',
+    ).toEqual([]);
   });
 
-  it('gives codex the same dispatching body, not a second mechanism', () => {
-    const files = skillFilesFor(getAdapter('codex'), ctx('project'));
-    const command = files.find((f) => f.relPath === '.codex/prompts/jig.md')!;
-    expect(command, 'expected .codex/prompts/jig.md').toBeDefined();
-    expect(command.content).toContain('$ARGUMENTS');
-    // AGENTS.md is still written — the command is in addition to the skill,
-    // not instead of it.
-    expect(files.map((f) => f.relPath)).toContain('AGENTS.md');
+  it('never writes a .codex/commands file — that mechanism does not exist', () => {
+    // The bare `commands` string in the Codex binary belongs to its
+    // import-from-another-agent feature, not to prompt loading.
+    for (const scope of ['project', 'global'] as const) {
+      const paths = skillFilesFor(getAdapter('codex'), ctx(scope)).map((f) => f.relPath);
+      expect(paths.filter((p) => p.includes('commands'))).toEqual([]);
+    }
+  });
+
+  it('still gives codex its skill and AGENTS.md pointer at both scopes', () => {
+    for (const scope of ['project', 'global'] as const) {
+      const paths = skillFilesFor(getAdapter('codex'), ctx(scope)).map((f) => f.relPath);
+      expect(paths).toContain('.agents/skills/jig/SKILL.md');
+      expect(paths.some((p) => p.endsWith('AGENTS.md'))).toBe(true);
+    }
   });
 
   it('follows each harness to its own global location', () => {

@@ -220,18 +220,3 @@ fixed in the same pass this section was added in).
   no border-width namespace, so there is no token to reference." Two independent
   hits on the same missing namespace. Adding `--border-width-*` and focus-ring
   geometry is a token-architecture decision, not a mid-release patch.
-- **M15 — which directory Codex reads command templates from.** The mechanism is
-  settled: the binary handles custom prompts in `tui/src/bottom_pane/custom_prompt_view.rs`
-  and `prompt_args.rs`, and carries "No command template body was found." beside
-  `$ARGUMENTS`. Two things follow. First, custom prompts are a **TUI feature** —
-  the code lives in the `tui` crate, so `codex exec` cannot expand one at any
-  quota, and the earlier "unverified" note was wrong to blame the usage limit for
-  that. Second, the directory is genuinely ambiguous: impeccable's cross-harness
-  documentation names `.codex/prompts/`, while the binary also carries a bare
-  `commands` directory string, and no literal sits near the loader symbols to
-  settle it.
-  `install` therefore writes the identical body to BOTH `.codex/prompts/jig.md`
-  and `.codex/commands/jig.md`. They are ~1KB each, whichever Codex globs will
-  work, and an unread file costs nothing. To close this: open the Codex TUI in a
-  project with Jig installed, type `/jig`, and see which name appears in the
-  command popup — then delete the loser from the adapter.
