@@ -99,6 +99,23 @@
 
   --color-focus: var(--color-text-strong);
 
+  /* ---- Stroke widths. Options; modes select. ----
+     Every rule requiring a visible border or focus ring — E-28, E-29, P-02's
+     3:1 shape floor — used to end at a call site writing `1px` or `2px` by
+     hand, which H-47 forbids. Two agents building different components hit
+     that independently and reported the same gap: no semantic name existed to
+     consume. These are it. */
+  --border-width-hairline: 1px;   /* control and surface borders */
+  --border-width-strong:   2px;   /* emphasis, selected states  */
+
+  /* Focus ring geometry. NOT mode-negotiable, for the same reason
+     --size-touch-target is not: WCAG 2.4.11 wants a perimeter at least 2px
+     thick, and density is never a reason to go under an accessibility floor.
+     The offset keeps the ring off the control's own border so both stay
+     legible. */
+  --focus-ring-width:  2px;
+  --focus-ring-offset: 2px;
+
   /* ================= TYPE ================= */
   --font-text:    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-text);

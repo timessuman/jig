@@ -50,7 +50,9 @@
         <p style="color:var(--color-text-strong);margin:0 0 var(--spacing-2xs)">Text strong — primary content</p>
         <p style="color:var(--color-text-weak);margin:0;font-size:var(--text-caption)">Text weak — supporting detail</p>
         <hr style="border:0;border-top:1px solid var(--color-stroke-weak);margin:var(--spacing-s) 0">
-        <div style="border:1px solid var(--color-stroke-strong);border-radius:var(--radius-control);padding:var(--spacing-xs)">Stroke strong — an input border</div>
+        <div style="border:var(--border-width-control) solid var(--color-stroke-strong);border-radius:var(--radius-control);padding:var(--spacing-xs)">Stroke strong — an input border, at --border-width-control</div>
+        <div style="border:var(--border-width-strong) solid var(--color-stroke-strong);border-radius:var(--radius-control);padding:var(--spacing-xs);margin-top:var(--spacing-2xs)">--border-width-strong — emphasis and selected states</div>
+        <button style="margin-top:var(--spacing-xs);border:var(--border-width-hairline) solid var(--color-stroke-strong);border-radius:var(--radius-control);padding:var(--spacing-2xs) var(--spacing-xs);background:transparent;color:var(--color-text-strong);outline:var(--focus-ring-width) solid var(--color-focus);outline-offset:var(--focus-ring-offset)">Focus ring — --focus-ring-width and --focus-ring-offset, shown always so it can be judged</button>
       </div>
       <div class="onfill" style="flex:1;min-width:16rem">
         <p style="color:var(--color-text-strong);margin:0 0 var(--spacing-2xs)">Same ramp, on fill</p>

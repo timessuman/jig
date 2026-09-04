@@ -59,6 +59,7 @@
   --size-row: 36px;  --size-row-compact: 32px;
   --size-touch-target: 48px;  --size-icon: 16px;
 
+  --border-width-control: var(--border-width-hairline);
   --radius-control: var(--radius-sm);  --radius-surface: var(--radius-sm);
   --shadow-surface: var(--shadow-none);
 
