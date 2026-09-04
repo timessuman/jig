@@ -4,6 +4,7 @@ import { checksum, isModified, writeManifest, type Manifest, type Scope } from '
 import { resolveAllInstalled, type ResolvedTarget } from '../install/target.js';
 import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
 import { referenceFiles } from '../install/references.js';
+import { matchLineEndings } from '../install/line-endings.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
 import { buildCommandBody, buildSkillBody, relKey, rulesPathFor, type InstallOptions } from './install.js';
@@ -123,8 +124,11 @@ function updateTarget(
   const write = (key: string, content: string) => {
     const abs = join(installRoot, ...key.split('/'));
     mkdirSync(dirname(abs), { recursive: true });
-    writeFileSync(abs, content, 'utf8');
-    files[key] = checksum(content);
+    // Preserve whatever endings the file already uses — see install/line-endings.ts.
+    const existing = existsSync(abs) ? readFileSync(abs, 'utf8') : undefined;
+    const toWrite = matchLineEndings(content, existing);
+    writeFileSync(abs, toWrite, 'utf8');
+    files[key] = checksum(toWrite);
     updated.push(key);
   };
 

@@ -13,6 +13,7 @@ import {
 } from '../install/manifest.js';
 import { render, renderCommandTable, type CommandMetadata } from '../template/render.js';
 import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
+import { matchLineEndings } from '../install/line-endings.js';
 
 export { upsertBlock, vendorHeader };
 
@@ -61,8 +62,14 @@ export function relKey(...parts: string[]): string {
 function writeFile(root: string, key: string, content: string, files: Record<string, string>) {
   const abs = join(root, ...key.split('/'));
   mkdirSync(dirname(abs), { recursive: true });
-  writeFileSync(abs, content, 'utf8');
-  files[key] = checksum(content);
+  // Match the line endings already on disk. `checksum` normalises CRLF, so a
+  // file checked out under `core.autocrlf` matches its recorded checksum — but
+  // writing LF over it, or splicing an LF block into it, left mixed endings
+  // that the checksum could not see. See install/line-endings.ts.
+  const existing = existsSync(abs) ? readFileSync(abs, 'utf8') : undefined;
+  const toWrite = matchLineEndings(content, existing);
+  writeFileSync(abs, toWrite, 'utf8');
+  files[key] = checksum(toWrite);
 }
 
 /**

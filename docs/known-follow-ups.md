@@ -157,12 +157,6 @@ fixed in the same pass this section was added in).
   but it means `init` derives nothing for what is likely the most common stack in
   new projects going forward. Highest-value follow-up from this review: add an
   `oklch()` branch to `extractColorComponents`.
-- **M2 — CRLF gets mixed endings.** `checksum()` (`install/manifest.ts`) normalizes
-  `\r\n` → `\n` before hashing, but the actual file writes throughout `init`/
-  `install`/`update` do not — a file written on Windows (or checked out with
-  `core.autocrlf`) can end up with LF-written new content appended after a CRLF
-  header/body, or vice versa on a subsequent refresh, producing a file with mixed
-  line endings even though its checksum "matches".
 - **M7 — concurrent runs are unlocked.** Nothing in `init`, `install`, or `update`
   takes a lock file or otherwise serializes writes to `.jig/` — two concurrent
   invocations (e.g. two agents, or a script that runs `jig init` in parallel across
