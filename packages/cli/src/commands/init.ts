@@ -82,14 +82,20 @@ function validateRounded(p: { h: number; s: number; l: number }): ValidationResu
 
 export function describeValidation(v: ValidationResult): string[] {
   const lines: string[] = [];
+  // Both modes are reported, always. The brand file ships a dark block, so a
+  // colour that clears the floor in light and fails in dark is a colour that
+  // fails — and printing only the light number is how that went unnoticed.
+  const modes = `light ${v.lightWorstRatio.toFixed(2)}:1, dark ${v.darkWorstRatio.toFixed(2)}:1`;
   if (v.passesContrast) {
     lines.push(
-      `  contrast OK — ${v.ratioVsRaised.toFixed(2)}:1 vs --color-bg-raised, ${v.ratioVsFill.toFixed(2)}:1 vs --color-fill (floor 4.5:1)`,
+      `  contrast OK — ${modes} (floor 4.5:1; light is ${v.ratioVsRaised.toFixed(2)} vs ` +
+        `--color-bg-raised and ${v.ratioVsFill.toFixed(2)} vs --color-fill)`,
     );
   } else {
+    const failing = v.lightWorstRatio < v.darkWorstRatio ? 'light' : 'dark';
     lines.push(
-      `  contrast FAILS — worst is ${v.worstRatio.toFixed(2)}:1 against the 4.5:1 floor ` +
-        `(${v.ratioVsRaised.toFixed(2)}:1 vs --color-bg-raised, ${v.ratioVsFill.toFixed(2)}:1 vs --color-fill)`,
+      `  contrast FAILS in ${failing} mode — worst is ${v.worstRatio.toFixed(2)}:1 ` +
+        `against the 4.5:1 floor (${modes})`,
     );
     if (v.nearestPassingLightness !== undefined) {
       lines.push(`  nearest passing lightness at the same hue/saturation: ${v.nearestPassingLightness}%`);

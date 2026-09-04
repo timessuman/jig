@@ -52,6 +52,29 @@ function worstRatio(h: number, s: number, l: number): { vsRaised: number; vsFill
 }
 
 /**
+ * The dark-mode contract from `brand.default.css`: the brand keeps its hue and
+ * saturation, lightness is overridden to `DARK_BRAND_L`, and the surfaces
+ * become `hsl(h 6% 15%)` raised over `hsl(h 6% 10%)` base. The backgrounds
+ * track the brand hue, so they are computed rather than constant.
+ */
+const DARK_BRAND_L = 88;
+const DARK_SURFACE_S = 6;
+const DARK_RAISED_L = 15;
+const DARK_BASE_L = 10;
+/** `--color-fill: rgb(255 255 255 / 6%)` in the dark block. */
+const DARK_FILL_ALPHA = 0.06;
+
+function darkWorstRatio(h: number, s: number): { vsRaised: number; vsFill: number; worst: number } {
+  const brand = toRgb(h, s, DARK_BRAND_L);
+  const raised = toRgb(h, DARK_SURFACE_S, DARK_RAISED_L);
+  const base = toRgb(h, DARK_SURFACE_S, DARK_BASE_L);
+  const fill = compositeOver({ r: 255, g: 255, b: 255 }, DARK_FILL_ALPHA, base);
+  const vsRaised = contrastRatio(brand, raised);
+  const vsFill = contrastRatio(brand, fill);
+  return { vsRaised, vsFill, worst: Math.min(vsRaised, vsFill) };
+}
+
+/**
  * Searches lightness only (h and s fixed) for the nearest value that clears
  * the contrast floor, checking outward from `l` one step at a time so the
  * first hit is the nearest in either direction. `null` if nothing in
@@ -104,8 +127,24 @@ function systemCollision(h: number, s: number, l: number): 'red' | 'amber' | 'gr
 }
 
 export interface ValidationResult {
+  /** Light mode, kept under the original names so existing callers still work. */
   ratioVsRaised: number;
   ratioVsFill: number;
+  /** Explicit aliases, so a reader does not have to know which mode is implied. */
+  lightRatioVsRaised: number;
+  lightRatioVsFill: number;
+  lightWorstRatio: number;
+  /**
+   * Dark mode. `brand.default.css` ships a dark block that keeps the brand's
+   * hue and saturation but overrides lightness to 88% against a
+   * `hsl(h 6% 15%)` surface — values validation never looked at, so a colour
+   * could be accepted and then fail the contract the generated brand file
+   * itself states, in a mode the user finds by switching their OS theme.
+   */
+  darkRatioVsRaised: number;
+  darkRatioVsFill: number;
+  darkWorstRatio: number;
+  /** The worse of the two modes. A brand has to work in both. */
   worstRatio: number;
   passesContrast: boolean;
   /** Only set when `passesContrast` is false and a passing lightness exists. */
@@ -117,11 +156,19 @@ export interface ValidationResult {
 }
 
 export function validateBrandColor(h: number, s: number, l: number): ValidationResult {
-  const { vsRaised, vsFill, worst } = worstRatio(h, s, l);
+  const light = worstRatio(h, s, l);
+  const dark = darkWorstRatio(h, s);
+  const worst = Math.min(light.worst, dark.worst);
   const passesContrast = worst >= CONTRAST_FLOOR;
   return {
-    ratioVsRaised: vsRaised,
-    ratioVsFill: vsFill,
+    ratioVsRaised: light.vsRaised,
+    ratioVsFill: light.vsFill,
+    lightRatioVsRaised: light.vsRaised,
+    lightRatioVsFill: light.vsFill,
+    lightWorstRatio: light.worst,
+    darkRatioVsRaised: dark.vsRaised,
+    darkRatioVsFill: dark.vsFill,
+    darkWorstRatio: dark.worst,
     worstRatio: worst,
     passesContrast,
     nearestPassingLightness: passesContrast ? undefined : (nearestPassingLightness(h, s, l) ?? undefined),

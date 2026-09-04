@@ -168,12 +168,6 @@ fixed in the same pass this section was added in).
   `core.autocrlf`) can end up with LF-written new content appended after a CRLF
   header/body, or vice versa on a subsequent refresh, producing a file with mixed
   line endings even though its checksum "matches".
-- **M5 — dark mode is never validated.** `validate.ts` checks the proposed brand
-  colour's contrast only against light-mode `--color-bg-raised`/`--color-fill`
-  (`BG_RAISED`, `BG_BASE_APPROX`). `brand.default.css` also defines a dark-mode
-  block (different `--brand-l` under `prefers-color-scheme: dark`), which is never
-  checked against dark backgrounds — a colour that passes in light mode could
-  still fail the dark-mode contract `init` never looks at.
 - **M6 — print-only snippet paths are project-root-relative but pasted into `src/`.**
   When `findWireTarget` returns `null` (ambiguous stylesheets), the printed
   `@import` snippet uses `relativeImportPath(opts.projectRoot, ...)` — correct if
