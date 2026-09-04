@@ -34,11 +34,23 @@ describe('AGENTS.md adapters', () => {
   // codex is the one adapter left writing AGENTS.md — generic moved onto
   // the shared <harness>/skills/<name>/ convention (`.agents/skills/jig/`)
   // along with every other harness in SKILL_DIR_HARNESSES.
-  it('codex wraps content in jig markers', () => {
-    const [file] = getAdapter('codex').skillFiles(ctx);
-    expect(file.relPath).toBe('AGENTS.md');
-    expect(file.content).toContain('<!-- jig:start -->');
-    expect(file.content).toContain('<!-- jig:end -->');
+  it('puts the codex skill in a skill directory, and a pointer in AGENTS.md', () => {
+    const files = getAdapter('codex').skillFiles(ctx);
+
+    // The skill itself, where Codex discovers it on demand.
+    const skill = files.find((f) => f.relPath === '.agents/skills/jig/SKILL.md')!;
+    expect(skill, 'expected .agents/skills/jig/SKILL.md').toBeDefined();
+
+    // AGENTS.md is read into every session, so it carries a pointer rather
+    // than the whole rule summary — still marker-wrapped, since the file is
+    // co-owned with the user's own content.
+    const agents = files.find((f) => f.relPath === 'AGENTS.md')!;
+    expect(agents, 'expected AGENTS.md').toBeDefined();
+    expect(agents.content).toContain('<!-- jig:start -->');
+    expect(agents.content).toContain('<!-- jig:end -->');
+    expect(agents.content).toContain('.agents/skills/jig/SKILL.md');
+    // A pointer names the skill; it does not restate it.
+    expect(agents.content).not.toContain(ctx.skillBody);
   });
 });
 

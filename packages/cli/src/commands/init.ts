@@ -10,6 +10,7 @@ import {
   removeLegacyFiles,
   type LegacyReport,
 } from '../init/migrate.js';
+import { isIgnored } from '../init/gitignore.js';
 import { deriveBrandColor, type ColorProposal } from '../init/derive.js';
 import { validateBrandColor, type ValidationResult } from '../init/validate.js';
 import { renderBrandFile, brandFileName } from '../init/brand-file.js';
@@ -82,14 +83,20 @@ function validateRounded(p: { h: number; s: number; l: number }): ValidationResu
 
 export function describeValidation(v: ValidationResult): string[] {
   const lines: string[] = [];
+  // Both modes are reported, always. The brand file ships a dark block, so a
+  // colour that clears the floor in light and fails in dark is a colour that
+  // fails — and printing only the light number is how that went unnoticed.
+  const modes = `light ${v.lightWorstRatio.toFixed(2)}:1, dark ${v.darkWorstRatio.toFixed(2)}:1`;
   if (v.passesContrast) {
     lines.push(
-      `  contrast OK — ${v.ratioVsRaised.toFixed(2)}:1 vs --color-bg-raised, ${v.ratioVsFill.toFixed(2)}:1 vs --color-fill (floor 4.5:1)`,
+      `  contrast OK — ${modes} (floor 4.5:1; light is ${v.ratioVsRaised.toFixed(2)} vs ` +
+        `--color-bg-raised and ${v.ratioVsFill.toFixed(2)} vs --color-fill)`,
     );
   } else {
+    const failing = v.lightWorstRatio < v.darkWorstRatio ? 'light' : 'dark';
     lines.push(
-      `  contrast FAILS — worst is ${v.worstRatio.toFixed(2)}:1 against the 4.5:1 floor ` +
-        `(${v.ratioVsRaised.toFixed(2)}:1 vs --color-bg-raised, ${v.ratioVsFill.toFixed(2)}:1 vs --color-fill)`,
+      `  contrast FAILS in ${failing} mode — worst is ${v.worstRatio.toFixed(2)}:1 ` +
+        `against the 4.5:1 floor (${modes})`,
     );
     if (v.nearestPassingLightness !== undefined) {
       lines.push(`  nearest passing lightness at the same hue/saturation: ${v.nearestPassingLightness}%`);
@@ -575,11 +582,47 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     const modeImport = relativeImportPath(opts.projectRoot, modeAbsPath);
     const snippet = `@import "${brandImport}";\n@import "${modeImport}";`;
     wiring = { target: null, status: 'print-only', snippet };
+    log('\nCould not find a single unambiguous stylesheet to wire the import into.');
+
+    // A CSS `@import` resolves relative to the file it sits in, so a snippet
+    // written from the project root is wrong by exactly the depth of wherever
+    // it gets pasted — and "adjust the path" left the user to work that out.
+    // The candidate stylesheets are already known here, so print a
+    // ready-to-paste block for each rather than one that is right nowhere in
+    // particular.
+    const pasteTargets = detection.cssFiles.filter((f) => !isCssModule(f));
+    if (pasteTargets.length > 0) {
+      log('Paste the block for whichever of these is your global stylesheet:');
+      for (const target of pasteTargets) {
+        const dir = dirname(join(opts.projectRoot, target));
+        const forTarget =
+          `@import "${relativeImportPath(dir, wiringBrandAbsPath)}";\n` +
+          `@import "${relativeImportPath(dir, modeAbsPath)}";`;
+        log(`\n  ${target}:`);
+        log(`    ${forTarget.split('\n').join('\n    ')}`);
+      }
+    } else {
+      log(
+        'Add this near the top of your global stylesheet. A CSS @import resolves ' +
+          'relative to the file it sits in, so these project-root paths need a ../ ' +
+          'per directory of depth:',
+      );
+      log(`  ${snippet.split('\n').join('\n  ')}`);
+    }
+  }
+
+  // `.jig/` holds the token files a teammate's build and a CI `jig check` both
+  // depend on. Gitignored, the system silently does not exist for anyone who
+  // did not run `init` themselves — the stylesheet `@import`s dangle, and the
+  // first sign is a broken build on someone else's machine. Say so here, where
+  // the files have just been written and the fix is one line in .gitignore.
+  if (isIgnored(opts.projectRoot, '.jig')) {
     log(
-      `\nCould not find a single unambiguous stylesheet to wire the import into. Add this near the top of your ` +
-        `global stylesheet (paths shown relative to the project root — adjust to wherever you paste them):`,
+      '\n  WARNING: .jig/ is gitignored, but it holds this project\'s tokens — ' +
+        'the files your stylesheet @imports. Committed, teammates and CI get the ' +
+        'same design system; ignored, their builds break on a missing import. ' +
+        'Remove the .jig/ rule from .gitignore, or commit the directory explicitly.',
     );
-    log(`  ${snippet.split('\n').join('\n  ')}`);
   }
 
   // ---- 6. Baseline ----

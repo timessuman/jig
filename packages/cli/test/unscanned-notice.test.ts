@@ -37,3 +37,26 @@ describe('the check report names what it could not scan', () => {
     expect(report).not.toMatch(/not scanned/i);
   });
 });
+
+describe('the summary line does not understate the system', () => {
+  it('names the specs alongside the indexed rule count', () => {
+    // "104 rules, 1 fired" is the INDEXED rule count, and reads as the whole
+    // system. It is not: 14 pattern and mode specs are citable too, and sit
+    // outside the index by design. Saying so costs a clause and stops the
+    // report implying that `P-06` is not a real rule.
+    const report = formatReport([], {
+      totalRules: 104,
+      totalSpecs: 14,
+      version: '0.4.0',
+      mode: 'product',
+    });
+    expect(report).toContain('104 rules');
+    expect(report).toMatch(/14 (pattern and mode )?specs/);
+  });
+
+  it('says only the rule count when there are no specs to mention', () => {
+    const report = formatReport([], { totalRules: 104, version: '0.4.0', mode: 'product' });
+    expect(report).toContain('104 rules');
+    expect(report).not.toMatch(/specs/);
+  });
+});

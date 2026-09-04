@@ -121,12 +121,16 @@ fixed in the same pass this section was added in).
   silently do not evaluate an entire class of real values. There is no `:root` scan of
   the consumer's own CSS to build a fuller map; adding one is a scope decision (how far
   to walk imports/scoping) rather than a small fix.
-- **M2, M3, M4, M5, M6, M9** — flagged in the whole-branch review of `check` but their
-  specifics were not included in the handoff that produced this fix pass. Recorded here
-  as open items so they aren't lost; recovering the concrete finding for each requires
-  the original review output (`packages/cli/src/check/**`, review commit range
-  `6ee3ae6..34d298a` per `.superpowers/sdd/2026-08-31-jig-foundation-install/
-  review-6ee3ae6..34d298a.diff`, is the diff they were reviewed against).
+_Resolved. This entry recorded six findings from the whole-branch review of
+`check` as open, on the grounds that their specifics were lost in a handoff. The
+specifics were not lost: commit `34d298a`, the end of the very range the entry
+cites, is titled "fix: address the whole-branch review of check" and its message
+enumerates all six. Each was verified closed in the current source rather than
+taken on the title's word — `check` scans the project rather than the install
+root; `maskComments` walks characters and skips strings; a repository with no
+commits falls back instead of crashing; the inverted media-query mask is gone;
+`contrast-floor` relaxes to 3:1 for large text; and the detectors no longer
+require a trailing semicolon._
 
 ## Open questions raised by the source, not yet acted on
 
@@ -157,66 +161,3 @@ fixed in the same pass this section was added in).
   but it means `init` derives nothing for what is likely the most common stack in
   new projects going forward. Highest-value follow-up from this review: add an
   `oklch()` branch to `extractColorComponents`.
-- **M1 — symlinked stylesheets are invisible.** `wholeRepoFiles`'s walk
-  (`check/files.ts`) uses `readdirSync(..., { withFileTypes: true })` and only
-  recurses/collects on `isDirectory()`/`isFile()`; a symlinked `.css` file or
-  directory is neither, so it's silently skipped — a monorepo with a shared
-  `styles/` symlinked into an app package derives and checks nothing from it.
-- **M2 — CRLF gets mixed endings.** `checksum()` (`install/manifest.ts`) normalizes
-  `\r\n` → `\n` before hashing, but the actual file writes throughout `init`/
-  `install`/`update` do not — a file written on Windows (or checked out with
-  `core.autocrlf`) can end up with LF-written new content appended after a CRLF
-  header/body, or vice versa on a subsequent refresh, producing a file with mixed
-  line endings even though its checksum "matches".
-- **M5 — dark mode is never validated.** `validate.ts` checks the proposed brand
-  colour's contrast only against light-mode `--color-bg-raised`/`--color-fill`
-  (`BG_RAISED`, `BG_BASE_APPROX`). `brand.default.css` also defines a dark-mode
-  block (different `--brand-l` under `prefers-color-scheme: dark`), which is never
-  checked against dark backgrounds — a colour that passes in light mode could
-  still fail the dark-mode contract `init` never looks at.
-- **M6 — print-only snippet paths are project-root-relative but pasted into `src/`.**
-  When `findWireTarget` returns `null` (ambiguous stylesheets), the printed
-  `@import` snippet uses `relativeImportPath(opts.projectRoot, ...)` — correct if
-  pasted at the project root, but the log tells the user to paste it into "your
-  global stylesheet", which in practice usually lives under `src/` or similar.
-  Pasted there verbatim, the path is wrong by exactly the depth of that directory.
-- **M7 — concurrent runs are unlocked.** Nothing in `init`, `install`, or `update`
-  takes a lock file or otherwise serializes writes to `.jig/` — two concurrent
-  invocations (e.g. two agents, or a script that runs `jig init` in parallel across
-  a monorepo's packages against a shared global install) can interleave reads and
-  writes of `manifest.json`/`init-manifest.json`, corrupting the recorded checksums
-  or dropping one run's file entirely.
-- **M9 — nothing states `.jig/` must be committed.** Neither the README nor `init`
-  itself warns when `.jig/` is gitignored. Since `init` vendors the tokens/rules a
-  teammate's build and a CI `jig check` both depend on, a gitignored `.jig/` means
-  the whole system silently doesn't exist for anyone who didn't run `init`
-  themselves — worth a README line, and an `init`-time warning (e.g. via
-  `git check-ignore`, the same mechanism I5 now uses) when `.jig/` resolves as
-  ignored.
-- **M10 — the pattern and mode specs have no index.** `rules.index.json` covers the
-  `### X-NN` rules — the ones with a ❌/✅ pair, which is what a bucket, a severity
-  and a detector describe. The `## P-NN · Name` pattern specs in `03-patterns.md`
-  (11 of them) and the `## M-NN` mode specs in `01-modes.md` (3) are outside it, and
-  `parseRules` does not emit them. That is coherent — they are specifications, not
-  checkable rules — but agents cite them as rule ids: two baseline reviews cited
-  P-02, P-05, P-06, P-08 and M-02, all real and none confirmable against any index.
-  Consequences worth deciding on: `check`'s "104 rules" is the indexed count, not
-  the number of things an agent can cite; and any future validation of an agent's
-  citations would reject a correct P-06. Adding them to `rules.index.json` is not
-  the fix — `loadRules` checks both directions and throws, which is it correctly
-  refusing to hold two different kinds of thing in one list. A separate spec index,
-  or a citation validator that knows about both, would be.
-- **M11 — the token contract has no width namespace.** `--color-focus` exists;
-  nothing names a border width, an outline width or a focus-ring offset. Every
-  rule that requires a visible border or focus ring (`E-28`, `E-29`, `P-02`'s
-  3:1 shape floor) therefore ends at a call site writing `2px` by hand, which
-  `H-47` forbids. A GREEN run of the invented-tokens fix hit this and reported it
-  rather than inventing a value — "the token contract has no border/outline-width
-  namespace, so these two widths have no semantic name to consume" — which is the
-  instruction working, and also the clearest evidence the gap is real. A second
-  agent, building a different component on a different fixture, hit it
-  independently and reported it in the same terms: "stroke widths (`1px` borders,
-  `2px` focus outline) are literals — the token contract in `02-tokens.md` defines
-  no border-width namespace, so there is no token to reference." Two independent
-  hits on the same missing namespace. Adding `--border-width-*` and focus-ring
-  geometry is a token-architecture decision, not a mid-release patch.

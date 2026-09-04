@@ -5,6 +5,7 @@ import { validateIndex, type IndexEntry } from '../rules/schema.js';
 import { selectFiles } from '../check/files.js';
 import { formatReport } from '../check/report.js';
 import { participatesInTokenLayer } from '../check/token-layer.js';
+import { loadSpecs } from '../rules/specs.js';
 import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
@@ -94,19 +95,31 @@ function resolveMode(projectRoot: string): string {
  * Only templating languages plausibly carrying styles are counted. A `.json` or
  * `.md` file is not an omission worth reporting, and listing it turns a useful
  * caveat into noise people learn to skip.
+ *
+ * Pug, Haml and Slim used to be here. They are read now: their style regions
+ * are delimited by indentation rather than closing tags, which needs its own
+ * scan but not a full parser.
  */
 // Indentation-based templates, which do not write `<style>` or `style="..."`
 // at all — `div(style="…")` in Pug, `%div{style: "…"}` in Haml. Reading them as
 // markup would find nothing while implying coverage, so they are reported as
 // unscanned until someone writes a real extractor. Everything HTML-shaped now
 // lives in STYLE_HOST_EXTENSIONS instead.
-const UNSUPPORTED_STYLE_HOSTS = ['.pug', '.jade', '.haml', '.slim', '.elm'];
+const UNSUPPORTED_STYLE_HOSTS = ['.elm', '.rs', '.templ', '.gohtml'];
 
 function summariseUnscanned(files: string[]): { count: number; extensions: string[] } | undefined {
   const hit = files.filter((f) => !isStyleBearing(f) && hasExtension(f, UNSUPPORTED_STYLE_HOSTS));
   if (hit.length === 0) return undefined;
   const extensions = [...new Set(hit.map((f) => f.slice(f.lastIndexOf('.')).toLowerCase()))].sort();
   return { count: hit.length, extensions };
+}
+
+function countSpecs(): number {
+  try {
+    return loadSpecs(join(assetRoot(), 'rules')).length;
+  } catch {
+    return 0;
+  }
 }
 
 export function check(opts: CheckOptions): CheckResult {
@@ -164,6 +177,10 @@ export function check(opts: CheckOptions): CheckResult {
 
   const report = formatReport(findings, {
     totalRules: index.length,
+    // From the CLI's own bundle, like `explain` — the spec count describes the
+    // system, not whatever a project happens to have vendored. A legacy project
+    // copy may have no `rules/` directory at all.
+    totalSpecs: countSpecs(),
     version: opts.version,
     noTokenLayer,
     mode: resolveMode(opts.projectRoot),

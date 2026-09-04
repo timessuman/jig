@@ -60,10 +60,14 @@ describe("no harness claims the project's own .jig/", () => {
     }
   });
 
-  it('mirrors codex global scope at project scope', () => {
+  it('puts the codex bundle beside its skill, at both scopes', () => {
+    // Codex now uses a skill directory under the cross-agent `.agents/`
+    // convention, so its rules sit next to the SKILL.md that names them —
+    // the same shape every other harness has. Previously `.codex/.jig`, and
+    // before that a bare `.jig`.
     const codex = getAdapter('codex');
-    expect(codex.referenceDir('global')).toBe('.codex/.jig');
-    expect(codex.referenceDir('project')).toBe('.codex/.jig');
+    expect(codex.referenceDir('global')).toBe('.agents/skills/jig');
+    expect(codex.referenceDir('project')).toBe('.agents/skills/jig');
   });
 
   it('writes nothing into .jig/ on a codex project install', () => {
@@ -81,7 +85,7 @@ describe("no harness claims the project's own .jig/", () => {
       existsSync(join(project, '.jig')),
       `.jig/ contains ${existsSync(join(project, '.jig')) ? readdirSync(join(project, '.jig')).join(', ') : ''}`,
     ).toBe(false);
-    expect(existsSync(join(project, '.codex', '.jig', 'rules', '00-anti-patterns.md'))).toBe(true);
+    expect(existsSync(join(project, '.agents', 'skills', 'jig', 'rules', '00-anti-patterns.md'))).toBe(true);
   });
 
   it('does not let the legacy scanner mistake a live install for legacy files', () => {

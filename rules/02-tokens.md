@@ -119,6 +119,8 @@ Names align to Tailwind v4's theme namespaces. This is free for other frameworks
 | `--tracking-*` | Letter spacing | mode |
 | `--spacing-*` | Spacing values | mode |
 | `--radius-*` | Corner radii | brand scale, mode selection |
+| `--border-width-*` | Stroke widths | brand options, mode selection |
+| `--focus-ring-*` | Focus indicator geometry | brand — an accessibility floor, so not mode-negotiable |
 | `--shadow-*` | Elevation | brand |
 | `--duration-*`, `--ease-*` | Motion | mode |
 | `--size-*` | Control and row heights | mode |

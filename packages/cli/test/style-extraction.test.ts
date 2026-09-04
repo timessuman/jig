@@ -122,11 +122,17 @@ describe('maskNonStyleRegions', () => {
     }
   });
 
-  it('still does not pretend to read indentation-based templates', () => {
-    // Pug/Haml/Slim do not write `<style>`; treating them as markup would find
-    // nothing and imply coverage that is not there. They are reported as
-    // unscanned instead.
-    const src = 'div(style="color: #123456")\n';
+  it('reads indentation-based templates through their own syntax', () => {
+    // Pug/Haml/Slim do not write `<style>` or HTML attributes, so the
+    // markup-shaped extraction above finds nothing in them. They have their own
+    // block markers and attribute forms — see indented-templates.test.ts.
+    expect(maskNonStyleRegions('div(style="color: #123456")\n', 'page.pug')).toContain('#123456');
+    expect(maskNonStyleRegions('%div{style: "color: #123456"}\n', 'page.haml')).toContain('#123456');
+  });
+
+  it('does not apply markup extraction to an indented template', () => {
+    // A `<style>` inside a Pug file is text in a template, not a stylesheet.
+    const src = 'p Some prose mentioning <style>.x{color:#ffffff}</style>\n';
     expect(maskNonStyleRegions(src, 'page.pug').trim()).toBe('');
   });
 });

@@ -104,6 +104,21 @@ them its own.
   silently, until an agent tried to run it. `install` and `update` now say so
   when the running CLI is not an npm-installed package.
 
+- **Concurrent runs lost each other's manifest entries.** Two runs against one
+  install — two agents, or a script running `jig init` across a monorepo against
+  a shared global install — both read the manifest and both wrote it, and the
+  last writer's copy dropped the other's records of "Jig owns this file".
+  Losing one makes a later `update` treat that file as the user's and stop
+  refreshing it: the safe direction, but silent.
+
+  Fixed without a lock. The `files` map is additive and per-file — a run only
+  records entries for files it actually wrote — so merging against whatever is
+  on disk at write time is correct, and needs none of the stale-lock recovery a
+  mutex would after a process is killed mid-run. Writes are atomic
+  (temp + rename), and verified-and-retried to close the window between the read
+  and the rename. Ten parallel processes writing fifty entries now keep all
+  fifty; without the merge, one survives.
+
 - **An asset could be staged at prepack and left out of the tarball** — correct
   code reading an asset that never shipped. Both lists must now agree, verified
   against the real `npm pack` output.
@@ -127,6 +142,23 @@ them its own.
 
 ### Added
 
+- **`/jig` slash commands.** `install` writes a command file for every harness
+  that has a slash-command mechanism, so `/jig init`, `/jig check --all` and
+  `/jig update` work without leaving the session. One file named `jig`
+  dispatching on its arguments, which is what gives `/jig init` with a space
+  rather than a separate `/jig-init` per subcommand.
+
+  The command is not a thin wrapper: `/jig check` runs the CLI for the seven
+  mechanical rules, then applies the 97 judgment rules to the same files and
+  merges both halves into one report keyed by rule id — the half a CLI cannot
+  do, which is the reason the command exists at all.
+
+  Claude Code, Cursor, opencode and Gemini CLI (which gets its own TOML shape).
+  Not Codex: its custom prompts are not expanded by `codex exec` — probed
+  directly — so a file there could sit and never fire. Only subcommands the CLI
+  actually registers are offered, since a slash command that errors out is worse
+  than one that does not exist.
+
 - **`check` reads CSS wherever it lives.** It read `.css`/`.scss`/`.less` only,
   which for most projects meant it examined almost nothing — and said nothing
   about that. A Tailwind v4 fixture with `bg-[#6D28D9] p-[13px] rounded-[12px]
@@ -135,8 +167,9 @@ them its own.
 
   Now covered: `<style>` blocks (HTML, Astro, Vue, Svelte, PHP, ERB, Twig,
   Handlebars, MDX, ASP and ASP.NET, Razor, JSP, Phoenix, EJS, Nunjucks, Liquid,
-  Jinja, Velocity, FreeMarker), `style="…"` and `style={{ }}`, CSS-in-JS tagged
-  templates
+  Jinja, Velocity, FreeMarker), the indentation-delimited templates (Pug's
+  `style.`, Haml's `:css`, Slim's `css:`, each with its own attribute syntax),
+  `style="…"` and `style={{ }}`, CSS-in-JS tagged templates
   (`styled.button`, `styled(Link)`, `css`, `createGlobalStyle`, `keyframes`),
   Tailwind arbitrary values, and Tailwind default-palette contrast pairs.
   `@theme` counts as the token layer, so a v4 project that has adopted Jig is

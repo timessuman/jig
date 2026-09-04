@@ -29,6 +29,10 @@ export const STYLE_HOST_EXTENSIONS = [
   '.ejs', '.njk', '.liquid', '.mustache',    // Node/Jinja-family engines
   '.vm', '.ftl',                             // Velocity, FreeMarker
   '.jinja', '.jinja2', '.j2',                // Jinja
+  // Indentation-delimited templates. These carry no HTML-shaped constructs at
+  // all — their style regions are found by their own block markers and
+  // attribute syntax instead. See `INDENTED_SYNTAXES` in styles.ts.
+  '.pug', '.jade', '.haml', '.slim',
 ];
 
 export function isStyleBearing(file: string): boolean {

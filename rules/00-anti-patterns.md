@@ -260,7 +260,7 @@ Agents render the happy path. This section exists because that is the single mos
 
 ### E-29 Focus removed without replacement
 ❌ `outline: none` with nothing in its place
-✅ A `:focus-visible` rule with a visible indicator built on `--color-focus`. Never remove the outline without replacing it. This locks out every keyboard user, and it is the most common accessibility failure in generated code.
+✅ A `:focus-visible` rule with a visible indicator built on `--color-focus`, at `--focus-ring-width` with `--focus-ring-offset`. Never remove the outline without replacing it. This locks out every keyboard user, and it is the most common accessibility failure in generated code.
 
 ### E-30 Empty states omitted
 ❌ A table that renders an empty `<tbody>` when there is no data

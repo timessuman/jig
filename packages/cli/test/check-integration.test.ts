@@ -43,7 +43,7 @@ describe('check — end to end', () => {
   it('works on a project with no .jig/ at all — no install, no init', () => {
     expect(existsSync(join(project, '.jig'))).toBe(false);
     const result = check({ projectRoot: project, homeDir: home, version: '0.1.0', all: true, ci: false });
-    expect(result.report).toContain('rules,');
+    expect(result.report).toMatch(/\d+ rules(?: \(\+ \d+ pattern and mode specs\))?,/);
   });
 
   it('--ci restricts to the mechanical bucket and is what a caller checks for a non-zero exit', () => {
@@ -74,6 +74,9 @@ describe('check — legacy .jig/rules.index.json compatibility', () => {
     // Only the one legacy-index rule could have fired — this proves the
     // legacy index (not the bundled ~104-rule one) is what got read.
     expect(result.findings.every((f) => f.ruleId === 'E-29')).toBe(true);
-    expect(result.report).toMatch(/1 rules?, 1 fired/);
+    // The rule COUNT is the legacy index's; the spec count beside it comes from
+    // the CLI's own bundle, since specs describe the system rather than
+    // whatever a project vendored.
+    expect(result.report).toMatch(/1 rules(?: \(\+ \d+ pattern and mode specs\))?, 1 fired/);
   });
 });

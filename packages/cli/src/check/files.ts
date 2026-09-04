@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readdirSync, type Dirent } from 'node:fs';
+import { readdirSync, realpathSync, statSync, type Dirent } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 // I5: a build/output directory scanned like source pollutes both detection
@@ -99,7 +99,7 @@ function isExcluded(relPath: string): boolean {
   return relPath.split('/').some((segment) => EXCLUDE_DIRS.has(segment));
 }
 
-function walk(root: string, dir: string, out: string[]): void {
+function walk(root: string, dir: string, out: string[], seen: Set<string>): void {
   let entries: Dirent[];
   try {
     entries = readdirSync(dir, { withFileTypes: true });
@@ -113,9 +113,37 @@ function walk(root: string, dir: string, out: string[]): void {
   for (const entry of entries) {
     if (EXCLUDE_DIRS.has(entry.name)) continue;
     const abs = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walk(root, abs, out);
-    } else if (entry.isFile()) {
+
+    // A symlink is neither `isDirectory()` nor `isFile()`, so it used to be
+    // skipped in silence — a monorepo with a shared `styles/` symlinked into an
+    // app package had that whole tree checked as nothing at all. Resolve the
+    // link and classify what it points at.
+    let isDir = entry.isDirectory();
+    let isFile = entry.isFile();
+    if (entry.isSymbolicLink()) {
+      try {
+        const target = statSync(abs);
+        isDir = target.isDirectory();
+        isFile = target.isFile();
+      } catch {
+        continue; // dangling link — nothing to read
+      }
+    }
+
+    if (isDir) {
+      // Cycle guard. A link pointing at an ancestor makes the walk infinite,
+      // and even without a cycle, following the same real directory twice
+      // would report every finding in it twice.
+      let real: string;
+      try {
+        real = realpathSync(abs);
+      } catch {
+        continue;
+      }
+      if (seen.has(real)) continue;
+      seen.add(real);
+      walk(root, abs, out, seen);
+    } else if (isFile) {
       out.push(relative(root, abs).split(sep).join('/'));
     }
   }
@@ -155,9 +183,18 @@ function filterGitIgnored(root: string, files: string[]): string[] {
   }
 }
 
+/** `realpathSync`, falling back to the path itself for anything unresolvable. */
+function safeRealpath(p: string): string {
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
 export function wholeRepoFiles(root: string): string[] {
   const out: string[] = [];
-  walk(root, root, out);
+  walk(root, root, out, new Set([safeRealpath(root)]));
   return isGitRepo(root) ? filterGitIgnored(root, out) : out;
 }
 

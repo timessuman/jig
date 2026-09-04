@@ -52,16 +52,16 @@ Every agent supports both scopes.
 | Agent | Project scope | Global scope |
 | --- | --- | --- |
 | Claude Code | `.claude/skills/jig/SKILL.md` | `~/.claude/skills/jig/SKILL.md` |
-| Codex | `AGENTS.md` | `~/.codex/AGENTS.md` |
+| Codex | `.agents/skills/jig/SKILL.md` | `~/.agents/skills/jig/SKILL.md` |
 | Cursor | `.cursor/skills/jig/SKILL.md` | `~/.cursor/skills/jig/SKILL.md` |
 | opencode | `.opencode/skills/jig/SKILL.md` | `~/.config/opencode/skills/jig/SKILL.md` |
 | Gemini CLI | `.gemini/skills/jig/SKILL.md` | `~/.gemini/skills/jig/SKILL.md` |
 | Generic | `.agents/skills/jig/SKILL.md` | `~/.agents/skills/jig/SKILL.md` |
 
-Every agent except Codex reads `<harness>/skills/jig/SKILL.md`, so adding a new
-harness is a config change rather than a new code path. Codex keeps `AGENTS.md`,
-which really is a different mechanism, and its reference bundle goes under
-`.codex/.jig/`.
+Every agent reads a `skills/jig/SKILL.md`, so adding a new harness is a config
+change rather than a new code path. Codex uses the cross-agent `.agents/`
+directory and additionally gets a short pointer block in `AGENTS.md` — that file
+is read into every session, so it names the skill rather than restating it.
 
 Install writes the skill file **and its rules** to one place only — beside the
 skill file itself. Nothing of Jig's is vendored into your repo; your agent reads
@@ -98,6 +98,11 @@ jig.config.json             route → mode map
 The mode file is the one thing genuinely copied: a stylesheet `@import` is an
 edge in a build graph and has to resolve locally, on every machine that builds.
 
+**Commit `.jig/`.** It holds the token files your stylesheet imports, so a
+gitignored `.jig/` means the design system does not exist for anyone who did not
+run `init` themselves — their build breaks on a missing import, and CI's `jig
+check` sees no token layer at all. `init` warns if it finds `.jig/` ignored.
+
 Add `--yes` to accept every derived default non-interactively — the mode CI and
 agents run in. It states the mode it chose and where to change it, because
 `jig.config.json` outranks an agent's own inference. Re-running `init` never
@@ -111,6 +116,7 @@ overwrites a config or brand file you have edited.
 | `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. The only command that writes into your repo. |
 | `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
+| `explain <rule-id>` | Prints a rule in full — what it forbids, what to do instead, the version it arrived in, and who checks it. Also resolves the `P-` pattern and `M-` mode specs, which no rule index contains. |
 
 Flags worth knowing:
 
@@ -127,6 +133,44 @@ command to the version that wrote it, so the CLI and the rules always agree;
 `update` is the one command whose job is to move that pin, so pinning it would
 mean it could never move.
 
+### As slash commands
+
+Every command is also a slash command in your agent, installed alongside the
+skill. `/jig check --all` does what `npx jig-ui check --all` does, and then acts
+on the result — the CLI reports, the agent applies the judgment half.
+
+| Slash command | Equivalent |
+| --- | --- |
+| `/jig init` | `jig init` — then states the mode it chose and what it wired |
+| `/jig check` | `jig check` — then applies the 97 judgment rules and reports both halves |
+| `/jig explain C-19` | `jig explain C-19` — prints the rule as-is, without paraphrasing it |
+| `/jig install --agent cursor` | `jig install --agent cursor` |
+| `/jig update` | `jig update` |
+
+Where each lands:
+
+| Agent | Slash command file | Scope |
+| --- | --- | --- |
+| Claude Code | `.claude/commands/jig.md` | project or global |
+| Cursor | `.cursor/commands/jig.md` | project or global |
+| opencode | `.opencode/command/jig.md` | project or global |
+| Gemini CLI | `.gemini/commands/jig.toml` | project or global |
+| Codex | `~/.codex/prompts/jig.md` | **global only** |
+| Generic | — | none |
+
+Two exceptions, both deliberate.
+
+**Codex** takes its command globally only: OpenAI documents custom prompts as
+loading from `~/.codex/prompts` with no project-scoped equivalent, so a project
+install writes no prompt file. Its skill works either way — and OpenAI
+deprecates custom prompts in favour of skills for exactly that reason, since a
+skill can be shared through your repository while a prompt stays on one machine.
+
+**Generic** gets no slash command at all. `.agents/skills/` is a cross-agent
+convention for *skills*, not a harness with a command system of its own, so
+there is no file to write and nothing that would read one. Ask in plain language
+instead; the skill still loads.
+
 ## Using it with a coding agent
 
 `install` puts a skill file where your agent looks, and the rules beside it. From
@@ -134,6 +178,32 @@ then on the agent loads the anti-patterns and the mode profile before building
 any UI, takes the mode from `jig.config.json`, loads the pattern section for
 whatever it is building, consumes tokens by name, and cites any rule it
 deliberately breaks.
+
+### Slash commands
+
+`install` also writes a `/jig` command, so the CLI is reachable without leaving
+your session:
+
+```
+/jig init          /jig check --all          /jig update
+```
+
+It runs the CLI and then does the part the CLI cannot — for `/jig check` that
+means applying the 97 judgment rules to the same files and merging both halves
+into one report keyed by rule id.
+
+| Harness | Command file |
+| --- | --- |
+| Claude Code | `.claude/commands/jig.md` |
+| Cursor | `.cursor/commands/jig.md` |
+| opencode | `.opencode/command/jig.md` |
+| Gemini CLI | `.gemini/commands/jig.toml` |
+| Codex | — run the CLI directly; see below |
+| Generic | — no harness to register with |
+
+Codex's custom prompts are not written: `codex exec` does not expand them, so a
+command file could sit there and never fire. Codex users run
+`npx jig-ui@latest check` directly — the skill in `AGENTS.md` is unaffected.
 
 **You still prompt normally.** Ask for a settings page, a data table, an empty
 state — whatever you were going to ask for. What you no longer have to say is
@@ -189,6 +259,7 @@ It reads CSS wherever it lives:
 | --- | --- |
 | Stylesheets | `.css`, `.scss`, `.less` |
 | `<style>` blocks | HTML, Astro, Vue, Svelte, PHP, ERB, Twig, Handlebars, MDX, ASP/ASP.NET, Razor, JSP, Phoenix, EJS, Nunjucks, Liquid, Jinja, Velocity, FreeMarker |
+| Indented style blocks | Pug (`style.`), Haml (`:css`), Slim (`css:`) |
 | Style attributes | `style="color: #777"`, `style={{ color: '#777' }}` |
 | CSS-in-JS | `styled.button\`…\``, `styled(Link)\`…\``, `css\`…\``, `createGlobalStyle`, `keyframes` |
 | Tailwind arbitrary values | `className="bg-[#6D28D9] p-[13px]"` |
@@ -209,9 +280,8 @@ scale, which is what a scale is for, and the scale is your project's decision.
 And a colour outside the framework's default palette is not resolved rather than
 guessed at.
 
-The indentation-based templates — Pug, Haml, Slim — are not read: they write
-`div(style="…")` rather than markup, so they need a real extractor. `check`
-names them as unscanned rather than implying coverage it does not have.
+Anything the suite still cannot read is named in the report, so a narrow pass
+never reads as a broad one.
 
 ## Upgrading
 

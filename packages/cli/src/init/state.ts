@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { checksum, isModified, type Manifest } from '../install/manifest.js';
+import { writeFileAtomic } from '../install/atomic.js';
 
 /**
  * `init` writes two files that are always project-local — the brand file
@@ -54,10 +55,31 @@ export function readInitManifest(projectRoot: string): InitManifest | null {
   }
 }
 
+/**
+ * Same merge-on-write as the reference manifest, for the same reason: two runs
+ * against one project (a monorepo script, two agents) would otherwise drop each
+ * other's `files` entries, and a dropped entry makes `update` treat that file
+ * as the user's and stop refreshing it. `modes` is unioned rather than
+ * overwritten, since a run that declared one mode has no opinion about
+ * another's.
+ */
+const MERGE_ATTEMPTS = 5;
+
 export function writeInitManifest(projectRoot: string, m: InitManifest): void {
   const path = join(projectRoot, INIT_MANIFEST_REL);
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(m, null, 2)}\n`, 'utf8');
+
+  for (let attempt = 0; attempt < MERGE_ATTEMPTS; attempt++) {
+    const onDisk = readInitManifest(projectRoot);
+    const merged: InitManifest = {
+      ...m,
+      modes: [...new Set([...(onDisk?.modes ?? []), ...(m.modes ?? [])])],
+      files: { ...(onDisk?.files ?? {}), ...m.files },
+    };
+    writeFileAtomic(path, `${JSON.stringify(merged, null, 2)}\n`);
+    const after = readInitManifest(projectRoot);
+    if (after && Object.keys(merged.files).every((k) => k in after.files)) return;
+  }
 }
 
 /**

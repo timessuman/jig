@@ -13,6 +13,7 @@ import {
 } from '../install/manifest.js';
 import { render, renderCommandTable, type CommandMetadata } from '../template/render.js';
 import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
+import { matchLineEndings } from '../install/line-endings.js';
 
 export { upsertBlock, vendorHeader };
 
@@ -61,8 +62,14 @@ export function relKey(...parts: string[]): string {
 function writeFile(root: string, key: string, content: string, files: Record<string, string>) {
   const abs = join(root, ...key.split('/'));
   mkdirSync(dirname(abs), { recursive: true });
-  writeFileSync(abs, content, 'utf8');
-  files[key] = checksum(content);
+  // Match the line endings already on disk. `checksum` normalises CRLF, so a
+  // file checked out under `core.autocrlf` matches its recorded checksum — but
+  // writing LF over it, or splicing an LF block into it, left mixed endings
+  // that the checksum could not see. See install/line-endings.ts.
+  const existing = existsSync(abs) ? readFileSync(abs, 'utf8') : undefined;
+  const toWrite = matchLineEndings(content, existing);
+  writeFileSync(abs, toWrite, 'utf8');
+  files[key] = checksum(toWrite);
 }
 
 /**
@@ -105,6 +112,47 @@ export function buildSkillBody(
     config_file: 'jig.config.json',
     rules_path: rulesPath,
   });
+}
+
+/**
+ * The slash-command body, plus the subcommands it offers.
+ *
+ * Only commands the CLI actually registers are offered: a `/jig explain` that
+ * errors out is worse than no `/jig explain` at all, which is the same reason
+ * the skill's own command table marks planned entries rather than hiding them.
+ *
+ * `argsPlaceholder` is the harness's own — `$ARGUMENTS` for the markdown
+ * harnesses, `{{args}}` for Gemini's TOML — so the body is rendered per
+ * harness rather than once and patched.
+ */
+export function buildCommandBody(
+  packageRoot: string,
+  rulesPath: string,
+  version: string,
+  argsPlaceholder: string,
+): { body: string; subcommands: string[] } {
+  const metadata = JSON.parse(
+    readFileSync(join(packageRoot, 'templates', 'command-metadata.json'), 'utf8'),
+  ) as CommandMetadata;
+  const subcommands = Object.entries(metadata)
+    .filter(([, meta]) => meta.status === 'available')
+    .map(([name]) => name)
+    .sort();
+  // A build without the template writes no slash commands rather than failing
+  // the whole install. That the shipped package HAS it is asserted at pack
+  // time instead (see tarball.test.ts) — the same split the reference tree
+  // uses, so a packaging defect surfaces where it is caused rather than in a
+  // user's terminal.
+  const templatePath = join(packageRoot, 'templates', 'COMMAND.md.tmpl');
+  if (!existsSync(templatePath)) return { body: '', subcommands };
+  const template = readFileSync(templatePath, 'utf8');
+  const body = template
+    .replace(/\{\{command_prefix\}\}/g, '/jig ')
+    .replace(/\{\{args_placeholder\}\}/g, argsPlaceholder)
+    .replace(/\{\{subcommand_list\}\}/g, subcommands.join(', '))
+    .replace(/\{\{scripts_path\}\}/g, `npx jig-ui@${version}`)
+    .replace(/\{\{rules_path\}\}/g, rulesPath);
+  return { body, subcommands };
 }
 
 /**
@@ -241,11 +289,19 @@ export function install(opts: InstallOptions): InstallResult {
 
   const rulesPath = rulesPathFor(referenceDir, opts.scope);
   const skillBody = buildSkillBody(opts.packageRoot, rulesPath, opts.version);
+  const { body: commandBody, subcommands } = buildCommandBody(
+    opts.packageRoot,
+    rulesPath,
+    opts.version,
+    adapter.argsPlaceholder ?? '$ARGUMENTS',
+  );
+  const command = { commandBody, subcommands };
   const skillFiles = skillFilesFor(adapter, {
     version: opts.version,
     scope: opts.scope,
     skillBody,
     commandPrefix: '/jig ',
+    ...command,
   });
   for (const file of skillFiles) {
     const key = file.relPath;
