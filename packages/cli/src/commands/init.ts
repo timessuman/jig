@@ -582,11 +582,33 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     const modeImport = relativeImportPath(opts.projectRoot, modeAbsPath);
     const snippet = `@import "${brandImport}";\n@import "${modeImport}";`;
     wiring = { target: null, status: 'print-only', snippet };
-    log(
-      `\nCould not find a single unambiguous stylesheet to wire the import into. Add this near the top of your ` +
-        `global stylesheet (paths shown relative to the project root — adjust to wherever you paste them):`,
-    );
-    log(`  ${snippet.split('\n').join('\n  ')}`);
+    log('\nCould not find a single unambiguous stylesheet to wire the import into.');
+
+    // A CSS `@import` resolves relative to the file it sits in, so a snippet
+    // written from the project root is wrong by exactly the depth of wherever
+    // it gets pasted — and "adjust the path" left the user to work that out.
+    // The candidate stylesheets are already known here, so print a
+    // ready-to-paste block for each rather than one that is right nowhere in
+    // particular.
+    const pasteTargets = detection.cssFiles.filter((f) => !isCssModule(f));
+    if (pasteTargets.length > 0) {
+      log('Paste the block for whichever of these is your global stylesheet:');
+      for (const target of pasteTargets) {
+        const dir = dirname(join(opts.projectRoot, target));
+        const forTarget =
+          `@import "${relativeImportPath(dir, wiringBrandAbsPath)}";\n` +
+          `@import "${relativeImportPath(dir, modeAbsPath)}";`;
+        log(`\n  ${target}:`);
+        log(`    ${forTarget.split('\n').join('\n    ')}`);
+      }
+    } else {
+      log(
+        'Add this near the top of your global stylesheet. A CSS @import resolves ' +
+          'relative to the file it sits in, so these project-root paths need a ../ ' +
+          'per directory of depth:',
+      );
+      log(`  ${snippet.split('\n').join('\n  ')}`);
+    }
   }
 
   // `.jig/` holds the token files a teammate's build and a CI `jig check` both

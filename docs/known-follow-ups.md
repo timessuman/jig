@@ -163,12 +163,6 @@ fixed in the same pass this section was added in).
   `core.autocrlf`) can end up with LF-written new content appended after a CRLF
   header/body, or vice versa on a subsequent refresh, producing a file with mixed
   line endings even though its checksum "matches".
-- **M6 — print-only snippet paths are project-root-relative but pasted into `src/`.**
-  When `findWireTarget` returns `null` (ambiguous stylesheets), the printed
-  `@import` snippet uses `relativeImportPath(opts.projectRoot, ...)` — correct if
-  pasted at the project root, but the log tells the user to paste it into "your
-  global stylesheet", which in practice usually lives under `src/` or similar.
-  Pasted there verbatim, the path is wrong by exactly the depth of that directory.
 - **M7 — concurrent runs are unlocked.** Nothing in `init`, `install`, or `update`
   takes a lock file or otherwise serializes writes to `.jig/` — two concurrent
   invocations (e.g. two agents, or a script that runs `jig init` in parallel across
