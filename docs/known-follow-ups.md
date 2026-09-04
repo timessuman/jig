@@ -157,9 +157,16 @@ fixed in the same pass this section was added in).
   but it means `init` derives nothing for what is likely the most common stack in
   new projects going forward. Highest-value follow-up from this review: add an
   `oklch()` branch to `extractColorComponents`.
-- **M7 — concurrent runs are unlocked.** Nothing in `init`, `install`, or `update`
-  takes a lock file or otherwise serializes writes to `.jig/` — two concurrent
-  invocations (e.g. two agents, or a script that runs `jig init` in parallel across
-  a monorepo's packages against a shared global install) can interleave reads and
-  writes of `manifest.json`/`init-manifest.json`, corrupting the recorded checksums
-  or dropping one run's file entirely.
+- **M7 — concurrent runs are not serialised.** Nothing in `init`, `install` or
+  `update` takes a lock, so two runs against the same install (two agents, or a
+  script running `jig init` in parallel across a monorepo against one global
+  install) can both read a manifest and both write it, and the last writer wins.
+  **Narrowed:** manifest writes are now atomic (temp file + rename within the
+  same directory), which removes the worse half — a reader seeing a half-written
+  manifest, which makes `readManifest` throw, which is treated as "no manifest",
+  which makes a re-install lose every "I own this file" record it should have
+  honoured. What remains is the lost update, and its failure direction is the
+  safe one: the missing entries make `update` treat those files as user-edited
+  and leave them alone. Closing it properly means a lock protocol with
+  stale-lock recovery after a crash, which is a real new failure mode and wants
+  its own change rather than a release-day patch.

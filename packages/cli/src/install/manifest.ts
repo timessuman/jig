@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { writeFileAtomic } from './atomic.js';
 
 export type Scope = 'project' | 'global';
 
@@ -94,7 +95,7 @@ export function readManifest(root: string, manifestDir = '.jig'): Manifest | nul
 export function writeManifest(root: string, m: Manifest, manifestDir = '.jig'): void {
   const path = manifestPath(root, manifestDir);
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(m, null, 2)}\n`, 'utf8');
+  writeFileAtomic(path, `${JSON.stringify(m, null, 2)}\n`);
 }
 
 export function isModified(projectRoot: string, relPath: string, m: Manifest): boolean {

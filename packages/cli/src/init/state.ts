@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { checksum, isModified, type Manifest } from '../install/manifest.js';
+import { writeFileAtomic } from '../install/atomic.js';
 
 /**
  * `init` writes two files that are always project-local — the brand file
@@ -57,7 +58,7 @@ export function readInitManifest(projectRoot: string): InitManifest | null {
 export function writeInitManifest(projectRoot: string, m: InitManifest): void {
   const path = join(projectRoot, INIT_MANIFEST_REL);
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(m, null, 2)}\n`, 'utf8');
+  writeFileAtomic(path, `${JSON.stringify(m, null, 2)}\n`);
 }
 
 /**
