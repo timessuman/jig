@@ -10,6 +10,7 @@ import {
   removeLegacyFiles,
   type LegacyReport,
 } from '../init/migrate.js';
+import { isIgnored } from '../init/gitignore.js';
 import { deriveBrandColor, type ColorProposal } from '../init/derive.js';
 import { validateBrandColor, type ValidationResult } from '../init/validate.js';
 import { renderBrandFile, brandFileName } from '../init/brand-file.js';
@@ -586,6 +587,20 @@ export async function init(opts: InitOptions): Promise<InitResult> {
         `global stylesheet (paths shown relative to the project root — adjust to wherever you paste them):`,
     );
     log(`  ${snippet.split('\n').join('\n  ')}`);
+  }
+
+  // `.jig/` holds the token files a teammate's build and a CI `jig check` both
+  // depend on. Gitignored, the system silently does not exist for anyone who
+  // did not run `init` themselves — the stylesheet `@import`s dangle, and the
+  // first sign is a broken build on someone else's machine. Say so here, where
+  // the files have just been written and the fix is one line in .gitignore.
+  if (isIgnored(opts.projectRoot, '.jig')) {
+    log(
+      '\n  WARNING: .jig/ is gitignored, but it holds this project\'s tokens — ' +
+        'the files your stylesheet @imports. Committed, teammates and CI get the ' +
+        'same design system; ignored, their builds break on a missing import. ' +
+        'Remove the .jig/ rule from .gitignore, or commit the directory explicitly.',
+    );
   }
 
   // ---- 6. Baseline ----

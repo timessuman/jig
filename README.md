@@ -98,6 +98,11 @@ jig.config.json             route → mode map
 The mode file is the one thing genuinely copied: a stylesheet `@import` is an
 edge in a build graph and has to resolve locally, on every machine that builds.
 
+**Commit `.jig/`.** It holds the token files your stylesheet imports, so a
+gitignored `.jig/` means the design system does not exist for anyone who did not
+run `init` themselves — their build breaks on a missing import, and CI's `jig
+check` sees no token layer at all. `init` warns if it finds `.jig/` ignored.
+
 Add `--yes` to accept every derived default non-interactively — the mode CI and
 agents run in. It states the mode it chose and where to change it, because
 `jig.config.json` outranks an agent's own inference. Re-running `init` never

@@ -157,11 +157,6 @@ fixed in the same pass this section was added in).
   but it means `init` derives nothing for what is likely the most common stack in
   new projects going forward. Highest-value follow-up from this review: add an
   `oklch()` branch to `extractColorComponents`.
-- **M1 — symlinked stylesheets are invisible.** `wholeRepoFiles`'s walk
-  (`check/files.ts`) uses `readdirSync(..., { withFileTypes: true })` and only
-  recurses/collects on `isDirectory()`/`isFile()`; a symlinked `.css` file or
-  directory is neither, so it's silently skipped — a monorepo with a shared
-  `styles/` symlinked into an app package derives and checks nothing from it.
 - **M2 — CRLF gets mixed endings.** `checksum()` (`install/manifest.ts`) normalizes
   `\r\n` → `\n` before hashing, but the actual file writes throughout `init`/
   `install`/`update` do not — a file written on Windows (or checked out with
@@ -180,10 +175,3 @@ fixed in the same pass this section was added in).
   a monorepo's packages against a shared global install) can interleave reads and
   writes of `manifest.json`/`init-manifest.json`, corrupting the recorded checksums
   or dropping one run's file entirely.
-- **M9 — nothing states `.jig/` must be committed.** Neither the README nor `init`
-  itself warns when `.jig/` is gitignored. Since `init` vendors the tokens/rules a
-  teammate's build and a CI `jig check` both depend on, a gitignored `.jig/` means
-  the whole system silently doesn't exist for anyone who didn't run `init`
-  themselves — worth a README line, and an `init`-time warning (e.g. via
-  `git check-ignore`, the same mechanism I5 now uses) when `.jig/` resolves as
-  ignored.
