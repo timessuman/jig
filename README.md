@@ -133,6 +133,44 @@ command to the version that wrote it, so the CLI and the rules always agree;
 `update` is the one command whose job is to move that pin, so pinning it would
 mean it could never move.
 
+### As slash commands
+
+Every command is also a slash command in your agent, installed alongside the
+skill. `/jig check --all` does what `npx jig-ui check --all` does, and then acts
+on the result — the CLI reports, the agent applies the judgment half.
+
+| Slash command | Equivalent |
+| --- | --- |
+| `/jig init` | `jig init` — then states the mode it chose and what it wired |
+| `/jig check` | `jig check` — then applies the 97 judgment rules and reports both halves |
+| `/jig explain C-19` | `jig explain C-19` — prints the rule as-is, without paraphrasing it |
+| `/jig install --agent cursor` | `jig install --agent cursor` |
+| `/jig update` | `jig update` |
+
+Where each lands:
+
+| Agent | Slash command file | Scope |
+| --- | --- | --- |
+| Claude Code | `.claude/commands/jig.md` | project or global |
+| Cursor | `.cursor/commands/jig.md` | project or global |
+| opencode | `.opencode/command/jig.md` | project or global |
+| Gemini CLI | `.gemini/commands/jig.toml` | project or global |
+| Codex | `~/.codex/prompts/jig.md` | **global only** |
+| Generic | — | none |
+
+Two exceptions, both deliberate.
+
+**Codex** takes its command globally only: OpenAI documents custom prompts as
+loading from `~/.codex/prompts` with no project-scoped equivalent, so a project
+install writes no prompt file. Its skill works either way — and OpenAI
+deprecates custom prompts in favour of skills for exactly that reason, since a
+skill can be shared through your repository while a prompt stays on one machine.
+
+**Generic** gets no slash command at all. `.agents/skills/` is a cross-agent
+convention for *skills*, not a harness with a command system of its own, so
+there is no file to write and nothing that would read one. Ask in plain language
+instead; the skill still loads.
+
 ## Using it with a coding agent
 
 `install` puts a skill file where your agent looks, and the rules beside it. From
