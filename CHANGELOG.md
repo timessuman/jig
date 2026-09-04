@@ -104,6 +104,21 @@ them its own.
   silently, until an agent tried to run it. `install` and `update` now say so
   when the running CLI is not an npm-installed package.
 
+- **Concurrent runs lost each other's manifest entries.** Two runs against one
+  install — two agents, or a script running `jig init` across a monorepo against
+  a shared global install — both read the manifest and both wrote it, and the
+  last writer's copy dropped the other's records of "Jig owns this file".
+  Losing one makes a later `update` treat that file as the user's and stop
+  refreshing it: the safe direction, but silent.
+
+  Fixed without a lock. The `files` map is additive and per-file — a run only
+  records entries for files it actually wrote — so merging against whatever is
+  on disk at write time is correct, and needs none of the stale-lock recovery a
+  mutex would after a process is killed mid-run. Writes are atomic
+  (temp + rename), and verified-and-retried to close the window between the read
+  and the rename. Ten parallel processes writing fifty entries now keep all
+  fifty; without the merge, one survives.
+
 - **An asset could be staged at prepack and left out of the tarball** — correct
   code reading an asset that never shipped. Both lists must now agree, verified
   against the real `npm pack` output.

@@ -92,10 +92,61 @@ export function readManifest(root: string, manifestDir = '.jig'): Manifest | nul
   return validateManifest(raw, path);
 }
 
+/**
+ * Writes the manifest, merging `files` over whatever is on disk at THIS moment
+ * rather than over the copy the caller read when it started.
+ *
+ * Two runs against one install — two agents, or a script running `jig init`
+ * across a monorepo against a shared global install — both read the manifest
+ * and both write it. Last-writer-wins dropped the other's entries, and those
+ * entries are records of "Jig owns this file": losing one makes a later
+ * `update` treat that file as the user's and leave it alone. The safe
+ * direction, but silent data loss.
+ *
+ * A merge is correct here rather than merely convenient, because the `files`
+ * map is additive and per-file: a run only records entries for files it
+ * actually wrote, so its own entries are authoritative for those keys and it
+ * has no opinion about any other. That is also why this needs no lock — and a
+ * lock is what it would otherwise take, along with stale-lock recovery for a
+ * process killed mid-run, which is a new way to leave an install wedged.
+ *
+ * The remaining window is between this read and the rename below. It is closed
+ * by verifying afterwards and retrying: if another writer landed in between,
+ * its entries are visible on the re-read and the merge is redone.
+ */
+const MERGE_ATTEMPTS = 5;
+
 export function writeManifest(root: string, m: Manifest, manifestDir = '.jig'): void {
   const path = manifestPath(root, manifestDir);
   mkdirSync(dirname(path), { recursive: true });
-  writeFileAtomic(path, `${JSON.stringify(m, null, 2)}\n`);
+
+  for (let attempt = 0; attempt < MERGE_ATTEMPTS; attempt++) {
+    const onDisk = readManifestQuietly(path);
+    const merged: Manifest = { ...m, files: { ...(onDisk?.files ?? {}), ...m.files } };
+    writeFileAtomic(path, `${JSON.stringify(merged, null, 2)}\n`);
+
+    // Did anything land between the read and the rename? If every key we
+    // merged is still present, no.
+    const after = readManifestQuietly(path);
+    if (after && Object.keys(merged.files).every((k) => k in after.files)) return;
+  }
+}
+
+/**
+ * The manifest at `path`, or null if it is absent, unreadable, or malformed.
+ *
+ * Unlike `readManifest` this never throws: a corrupt manifest must not stop a
+ * write that is about to replace it, and a torn read from a concurrent writer
+ * is a retry rather than an error.
+ */
+function readManifestQuietly(path: string): Manifest | null {
+  try {
+    const parsed = JSON.parse(readFileSync(path, 'utf8')) as unknown;
+    if (!isPlainObject(parsed) || !isPlainObject(parsed.files)) return null;
+    return parsed as unknown as Manifest;
+  } catch {
+    return null;
+  }
 }
 
 export function isModified(projectRoot: string, relPath: string, m: Manifest): boolean {
