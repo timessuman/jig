@@ -1,5 +1,99 @@
 # Changelog
 
+## 0.5.0
+
+Four things shipped in 0.4.0 were broken in ways that reported success. `/jig
+update` refreshed to the version already installed and said "Updated Jig →
+0.4.0". Dark mode could not be reached by choosing it. `check` skipped nearly
+every colour in a project that had not run `init`. And the reconciliation of
+every numeric default against an external reference is finished — 0 rows open —
+which is where most of the rest of this release came from.
+
+**If you are on 0.4.0, run `npx jig-ui@latest update` from a terminal.** The
+`/jig update` fix cannot deliver itself: your command file is the broken one, so
+the slash command will keep reporting a successful no-op until the CLI replaces
+it. Once, from the terminal, and the slash command works from then on.
+
+### Fixed
+
+- **`/jig update` could never upgrade anyone.** Every subcommand is invoked at
+  the installed pin so the CLI and the vendored rules agree; `update` is the one
+  exception, because its job is to move that pin. The skill file knew that and
+  the slash command did not, so it ran `npx jig-ui@<installed> update` — a no-op
+  that reports success, which is worse than an error.
+- **Dark mode was unreachable by explicit choice.** `brand.default.css` had one
+  dark block, inside `@media (prefers-color-scheme: dark)`. A selector inside a
+  media query cannot match when the query is false, so `data-theme="dark"` on a
+  light-mode system produced no dark tokens at all. A second, unmediated block
+  now carries the same declarations, and a check keeps the two identical.
+- **`check` did not resolve the project's own tokens.** The token map held only
+  Jig's vendored `.jig/tokens/*.css`, so any `var(--your-token)` was
+  unresolvable and skipped. On a project that had never run `jig init`,
+  `contrast-floor` and `violet-band-hue` evaluated very nearly nothing. A name
+  declared in two places with different values is still skipped — which value a
+  browser uses depends on import order, and a wrong guess reports a finding
+  against a value the page never renders.
+- **`operator` prose text was 16px** against the 18px floor `B-75` states and
+  `02-tokens.md` repeats. It is the mode most likely to be read for hours.
+- **Rules cited tokens that do not exist** — the `--color-danger` family,
+  `--color-surface`, `--leading-heading`, `--leading-display`,
+  `--font-weight-body`, `--spacing-unit`. An agent following those wrote a
+  `var()` resolving to nothing, with no error anywhere.
+- **`C-19` named the same token twice**, once "for large text only".
+  `--color-text-weak` clears 4.5:1 at any size, and there is no lighter grey.
+- **The error message in `P-03` moved above the input**, where autofill menus
+  and on-screen keyboards do not cover it.
+- **CSS nesting and line endings.** `install` and `update` had three near-copies
+  of one write helper and one had lost its line-ending handling, so `update`
+  flattened a CRLF token file to LF while leaving the rule files beside it
+  alone. All three now share `install/writer.ts`, and writes are atomic.
+
+### Added
+
+- **`P-13 · Ambient motion`** — a third category of motion the system lacked.
+  Interaction and transition motion are milliseconds; ambient motion is slow,
+  looping and decorative, and must never be noticed. `G-44` forbade all of it by
+  stating a 300ms ceiling it had never scoped, so an agent asked for a slow
+  decorative loop would have refused, citing a rule about something else.
+- **`--duration-ambient-fast/base/slow`** (3s / 4.7s / 7.1s), `editorial` only.
+  The values are mutually prime in tenths of a second so layered loops do not
+  re-align into one visible pulse.
+- **Fluid headings.** `--text-h1` and `--text-h2` are `clamp()` in `editorial`
+  and `product`, reaching their minimum at a 360px viewport and their maximum at
+  1024px. Every term is `rem`-based: a `px` or bare-`vw` bound ignores a
+  reader's font-size preference, which is a WCAG 1.4.4 failure.
+- **`explain` finds rules you cannot name.** A word searches every title and
+  body; one match prints in full. `--list` prints every id, or one section's.
+- **Easing direction** — `--ease-out` on entry, `--ease-in-out` on exit, never
+  linear for anything that moves. Both tokens shipped with no rule for choosing.
+
+### Changed
+
+- **`--text-h1` resolves to 32px on a phone**, not 48px. This is the change most
+  likely to be visible in an existing project, and it is the point: at a fixed
+  48px, a 45-character headline set as four lines and 211px of headline on a
+  360px screen.
+- **Line heights are documented per mode.** They always were per mode; the docs
+  quoted one mode's values as though they were everyone's, and were wrong for
+  two modes out of three.
+- **The README covers installing and using Jig, and nothing else.** How to
+  change a rule and how to test that a rule earns its context cost moved to
+  `AGENTS.md`, where an agent working on this repository will read them.
+
+### Reconciliation
+
+`RECONCILE.md` is at **0 open rows**. Every numeric default is either adopted
+from the reference or deliberately kept with its argument stated in one line.
+The motion rows are the exception worth knowing: that reference has no motion
+chapter, so those values were settled against separate sources, and where no
+source gave a number they are kept as ours on stated reasoning rather than
+adopted.
+
+`check-tokens` grew from 5 rules to 12, each mutation-tested. Two of the new
+ones exist because a guard had been passing vacuously: rule 6's regex was
+line-anchored and so covered 103 of 133 tokens while claiming to cover all of
+them, and nothing at all checked that a token cited in the rules exists.
+
 ## 0.4.0
 
 Jig stops copying itself into your project. It is a skill an agent reads, and
