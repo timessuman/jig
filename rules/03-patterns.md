@@ -523,4 +523,4 @@ Each entry states: anatomy in order, complete state list, rules that are decidab
 
 **Deliberately absent.** Navigation, cards, tabs, and toasts-as-a-component. Navigation and cards vary too much by project to have decidable rules yet — they would produce prose, not constraints. Add them once you have built enough to see the invariant.
 
-**Worth testing before extending.** These eight cover most of what generated UI gets wrong. Point an agent at a form and a table with `00`, `01`, `02` and `03` loaded, and compare against the same task with nothing loaded. If `P-03` and `P-05` do not visibly change the output, the rules are not decidable enough and the fix is more specificity, not more patterns.
+**Worth testing before extending.** These 12 cover most of what generated UI gets wrong. Point an agent at a form and a table with `00`, `01`, `02` and `03` loaded, and compare against the same task with nothing loaded. If `P-03` and `P-05` do not visibly change the output, the rules are not decidable enough and the fix is more specificity, not more patterns.
