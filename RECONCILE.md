@@ -18,7 +18,8 @@ Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 
 The reconciliation source is supplied one chapter at a time, as a PDF that is
 replaced in place. Chapters read so far on 2026-09-10: **Colour** (book pages 78–152),
-**Typography** (229–257) and **Layout and spacing** (164–218). It has no text layer, so it can only be
+**Layout and spacing** (164–218), **Typography** (229–257) and **Buttons**
+(295–322). It has no text layer, so it can only be
 read as rendered images — see `scripts/render-reference.mjs`, which also records
 the two approaches that do not work.
 
@@ -27,6 +28,12 @@ Typography answered `T4`, `T5`, `T6` directly rather than by entailment, and
 produced `T18`–`T21`. Layout and spacing confirmed `S1`, `S8` and `S10` to the
 number, and settled `S4`, `S5`, `F1` and `F6` the other way — as ours, because
 it covers none of them and it was the chapter most likely to.
+
+Buttons confirmed thirteen of the fifteen `B` rows against the source, most of
+them verbatim, and reopened `B14`: the extract stops at book page 322 mid-topic,
+so "red only at the confirmation step" was never read. It also settled `F1` — no
+chapter states a visual control height — while raising the one live tension in
+this whole pass, recorded in that row.
 
 **This reference has no motion chapter** — confirmed by its owner after four
 chapters had turned up no duration anywhere. `M1` and `M2` are therefore waiting
@@ -189,7 +196,7 @@ records its removal.
 
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
-| F1 | Control heights 48 / 40 / 32px. **The floor is the reference's; the heights are ours.** Three chapters now give the same minimum target — "at least 48pt by 48pt is a safe size" — which `--size-touch-target` meets in every mode (`F7`). None of them gives a visual control height in px or pt at all, so 48/40/32 is a density decision of ours, and no reading of the reference will confirm or contradict it. | `mode.*.css` |  | ➖ |
+| F1 | Control heights 48 / 40 / 32px. **Four chapters give no visual control height — but the Buttons chapter creates a real tension.** It states the target minimum twice, once as "make buttons at least 48pt by 48pt in size… slightly larger than the WCAG recommendation of 44pt by 44pt", and illustrates it with a stepper marked bad at 32pt × 24pt against good at 48pt × 48pt. Read as *rendered size*, that fails our `operator` (32px) and `product` (40px) controls. Read as *target area*, all three pass, because `--size-touch-target` is 48px in every mode and `P-02` requires the hit area to reach it regardless of visual height. We take the second reading, and it is a genuine interpretation rather than a match: the reference never separates the two the way we do. Worth revisiting if a later chapter distinguishes them. | `mode.*.css` |  | ➖ |
 | F7 | Touch target **48px** all modes (was 44px) | `mode.*.css` |  | ✅ |
 | F8 | Stepper over select for small numeric ranges | `P-03` |  | ✅ |
 | F9 | Split forms beyond ~3 question groups into steps | `P-04` |  | ✅ |
@@ -250,18 +257,18 @@ So: those values, expressed unitless, floor held. The 4pt-grid objection disappe
 | --- | --- | --- | --- | --- |
 | B1 | **Tertiary must be underlined** — corrects my earlier "no edge, no underline" | `P-02` |  | ✅ |
 | B2 | Secondary = brand outline + brand text; never grey, never a second solid fill | `P-02`, `E-92` |  | ✅ |
-| B3 | Button shape 3:1, text 4.5:1, 3:1 between same-styled buttons | `P-02`, `E-91` |  | ✅ |
+| B3 | Button shape 3:1, text 4.5:1, 3:1 between same-styled buttons. **Confirmed verbatim** (p.302): "the contrast ratio of the button shape must be at least 3:1… the button text contrast ratio must be at least 4.5:1… if buttons have identical styles, the contrast ratio between them must be at least 3:1." | `P-02`, `E-91` |  | ✅ |
 | B4 | Hierarchy through structure, not hue | `E-91` |  | ✅ |
 | B5 | Equal importance → equal prominence (both secondary) | `P-02` |  | ✅ |
-| B6 | One shape across all weights | `E-93` |  | ✅ |
+| B6 | One shape across all weights. **Confirmed for primary and secondary** — "elements that function the same should look the same. Avoid inconsistent button shapes as they can cause confusion." Tertiary is outside it by construction: in this system a tertiary button is underlined text with no rectangle, so it has no corner radius to match. | `E-93` |  | ✅ |
 | B7 | Label is verb + noun | `P-02` |  | ✅ |
-| B8 | 16px minimum between adjacent buttons | `P-02` |  | ✅ |
+| B8 | 16px minimum between adjacent buttons. **The reference gives two numbers and we took the stricter.** Its stated guideline is "separate buttons by at least 8pt" (p.318); its author's own habit is "I usually use 16pt to be safe" (p.302). `P-02` calls 16px a minimum, which is stricter than the reference's minimum rather than equal to it — fine as a house floor, but the row should not imply the reference sets it there. | `P-02` |  | ✅ |
 | B9 | Start-aligned, most→least important; mobile stacks full-width | `P-02`, `E-95` |  | ✅ |
 | B10 | Multi-step "Back" is tertiary, top left | `P-02`, `E-95` |  | ✅ |
 | B11 | Single-field forms may attach the button to the field | `P-02` |  | ✅ |
 | B12 | Three alternatives to disabling, in order | `E-32`, `P-02` |  | ✅ |
 | B13 | Disabled buttons stay keyboard-focusable | `E-32` |  | ✅ |
-| B14 | **Destructive is tertiary at rest, red only on confirm** | `E-94`, `P-02` |  | ✅ |
+| B14 | **Destructive is tertiary at rest, red only on confirm.** **Half verified.** "Tertiary buttons are especially good for… destructive actions that you want to make less prominent" and "don't colour the action red, as this makes it more prominent" both hold. The second half — red *at the confirmation step* — is not in the pages supplied: the extract stops at book page 322 mid-topic, with only the first friction level shown. Not contradicted, just unread. | `E-94`, `P-02` |  | ⬜ |
 | B15 | Icon/text balance via weight, size, then contrast | `D-96` |  | ✅ |
 
 ## Forms
