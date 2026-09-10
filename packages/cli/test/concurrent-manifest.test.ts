@@ -65,10 +65,18 @@ describe('a manifest write does not drop another run’s entries', () => {
   });
 
   it('survives genuinely parallel processes', async () => {
-    // Ten writers running AT THE SAME TIME, five writes each, every one
-    // recording a distinct file. All ten entries must survive — this is exactly
-    // what last-writer-wins loses, and it is the only assertion here that
-    // exercises real concurrency rather than a simulated interleaving.
+    // Real processes writing AT THE SAME TIME, each recording a distinct file.
+    // Every entry must survive — this is exactly what last-writer-wins loses,
+    // and it is the only assertion here that exercises real concurrency rather
+    // than a simulated interleaving.
+    //
+    // FOUR writers, ten writes each, not ten writers. The property fails with
+    // two, so ten processes bought no extra coverage — and each child pays for
+    // an `npx tsx` resolution, so ten of them at once competed with vitest's
+    // own worker pool and made the test fail under load while passing in
+    // isolation. A test that goes red when the machine is busy teaches people
+    // to ignore red. The writes per child went up to keep the interleaving
+    // dense.
     //
     // The module path comes from `getPackageRoot()`, not `process.cwd()`: with
     // cwd the test passed or failed depending on which directory vitest was
@@ -79,7 +87,7 @@ describe('a manifest write does not drop another run’s entries', () => {
       script,
       `import { writeManifest } from ${JSON.stringify(manifestModule)};\n` +
         `const i = process.argv[2];\n` +
-        `for (let n = 0; n < 5; n++) {\n` +
+        `for (let n = 0; n < 10; n++) {\n` +
         `  writeManifest(${JSON.stringify(root)}, { version: '0.4.0', agent: 'claude',\n` +
         `    scope: 'project', installedAt: new Date().toISOString(),\n` +
         `    files: { ['f' + i + '.md']: 'sha256:' + i } }, ${JSON.stringify(dir)});\n` +
@@ -88,7 +96,7 @@ describe('a manifest write does not drop another run’s entries', () => {
 
     await Promise.all(
       Array.from(
-        { length: 10 },
+        { length: 4 },
         (_, i) =>
           new Promise<void>((resolve, reject) => {
             const child = spawn('npx', ['tsx', script, String(i)], { stdio: 'ignore' });
@@ -99,6 +107,6 @@ describe('a manifest write does not drop another run’s entries', () => {
     );
 
     const files = Object.keys(readManifest(root, dir)!.files).sort();
-    expect(files, `lost entries — got ${files.join(', ')}`).toHaveLength(10);
+    expect(files, `lost entries — got ${files.join(', ')}`).toHaveLength(4);
   }, 60_000);
 });

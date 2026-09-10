@@ -128,9 +128,11 @@
   --radius-lg:   32px;   /* large surfaces, hero media          */
   --radius-full: 9999px;
 
-  /* ================= ELEVATION — two shadows =================
+  /* ================= ELEVATION — two shadows, plus none =================
      Shadow colour is derived from the text colour, not pure black, so it sits in
-     the palette. Light from above: y-offset positive, blur grows with elevation. */
+     the palette. Light from above: y-offset positive, blur grows with elevation.
+     `--shadow-none` is the explicit absence a mode selects when its elevation is
+     stroke-led; every mode currently does, via `--shadow-surface`. */
   --shadow-none:    none;
   --shadow-raised:  0 1px 2px rgb(0 0 0 / 6%), 0 2px 4px -2px rgb(0 0 0 / 8%);
   --shadow-overlay: 0 4px 16px -4px rgb(0 0 0 / 14%), 0 1px 3px rgb(0 0 0 / 8%);

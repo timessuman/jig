@@ -28,9 +28,27 @@
   --text-body:    16px;  --leading-body:    1.5;    /* UI text: labels, controls */
   --text-prose:   18px;  --leading-prose:   1.6;    /* LONG-FORM text. Never below 18. */
   --text-lead:    20px;  --leading-lead:    1.5;
+
+  /* H1 and H2 are FLUID: they interpolate with viewport width instead of
+     switching at a breakpoint, which is why this system defines no breakpoint
+     token. Each clamp is the line through (360px viewport, min) and (1024px,
+     max); outside that range it saturates at the bounds.
+
+     The `rem` term is not decoration. `clamp(32px, 8vw, 48px)` would ignore a
+     reader who has set a larger default font size — page zoom scales `vw`, a
+     font-size preference does not — which fails WCAG 1.4.4. Keeping every term
+     in `rem` plus `vw` means the whole curve moves with the user's setting.
+
+     Only headings. Body and prose stay fixed: readability is absolute, set by
+     the eye and viewing distance, while heading size is relative — it exists to
+     contrast with body, and that contrast can compress on a narrow screen. A
+     fluid `--text-prose` would also breach the 18px floor (B-75, T20).
+
+     The minimums land on rungs the ladder already has rather than on new
+     values. Line heights are unitless, so they follow the size for free. */
   --text-h3:      24px;  --leading-h3:      1.333;
-  --text-h2:      32px;  --leading-h2:      1.25;
-  --text-h1:      48px;  --leading-h1:      1.1;
+  --text-h2:      clamp(1.5rem, 1.229rem + 1.205vw, 2rem);  --leading-h2: 1.25;   /* 24 → 32 */
+  --text-h1:      clamp(2rem, 1.458rem + 2.41vw, 3rem);     --leading-h1: 1.1;    /* 32 → 48 */
 
   /* Two weights only. More adds noise and is hard to apply consistently. */
   --font-weight-regular: 400;
@@ -66,8 +84,32 @@
   --duration-fast: 150ms;  --duration-base: 250ms;  --duration-slow: 300ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Ambient motion (P-13). Decorative looping movement, editorial only —
+     `product` and `operator` define none of these, deliberately.
+
+     THE THREE VALUES ARE NOT A LADDER, THEY ARE A CHORD. Ambient motion is
+     layered: several small movements running at once. If their periods share a
+     factor they re-align, and the whole composition pulses in unison — the one
+     thing ambient motion must never do. So the periods are mutually prime in
+     tenths of a second (30, 47, 71), which puts the first full re-alignment of
+     all three past two hours. Round numbers like 3/4/6s would re-align every
+     twelve seconds. That is why these look arbitrary; they are not.
+
+     Pick a different one per layer. Which is which carries no meaning beyond
+     speed — unlike the interaction durations above, there is no "this is the
+     one for a state change". */
+  --duration-ambient-fast: 3s;
+  --duration-ambient-base: 4.7s;
+  --duration-ambient-slow: 7.1s;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* The ambient periods are deliberately NOT collapsed to 1ms here. These drive
+     infinite loops, so 1ms would spin them at a thousand cycles a second rather
+     than stop them — the opposite of what was asked for. P-13 requires the whole
+     ambient declaration to sit inside `prefers-reduced-motion: no-preference`,
+     so under a reduce preference the animation never starts and there is nothing
+     to shorten. Absence, not speed. */
   :root { --duration-fast: 1ms; --duration-base: 1ms; --duration-slow: 1ms; }
 }

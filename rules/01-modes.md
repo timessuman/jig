@@ -74,12 +74,12 @@ At a seam between modes:
 | Control height | `--size-control` — the tallest of the three |
 | Radius | `--radius-control` (sm) · `--radius-surface` (md) |
 | Elevation | `--shadow-none`; `--shadow-raised` for sticky nav only |
-| Motion | `--duration-base`; entrance animation **once**, first viewport only |
+| Motion | `--duration-base`; entrance animation **once per visitor**, first viewport only, skippable (`G-42`); ambient motion permitted (`P-13`) |
 | Colour usage | Neutral-dominant. `--color-brand` for links and primary CTA only. |
 | Imagery | Central. Real photography or commissioned illustration. |
 | Keyboard | Standard tab order; no shortcuts expected |
 
-Resolved values: `02-tokens.md`.
+Resolved values: `02-tokens.md` — the option sets for type, spacing, radius and shadow, and "Sizes and motion, by mode" for control heights, row heights, durations and measure.
 
 **Mode-specific rules**
 - One hero maximum, at the top. A second full-viewport section is a second hero.
@@ -114,7 +114,7 @@ Resolved values: `02-tokens.md`.
 | Imagery | Sparse. Illustration permitted in empty states only. |
 | Keyboard | Shortcuts for frequent actions; documented in-app |
 
-Resolved values: `02-tokens.md`.
+Resolved values: `02-tokens.md` — the option sets for type, spacing, radius and shadow, and "Sizes and motion, by mode" for control heights, row heights, durations and measure.
 
 **Mode-specific rules**
 - One primary action per view. Everything else is secondary or tertiary.
@@ -150,7 +150,7 @@ Resolved values: `02-tokens.md`.
 | Keyboard | Full keyboard operation mandatory. Shortcut reference required. |
 | Numerals | Tabular figures mandatory on all numeric columns |
 
-Resolved values: `02-tokens.md`.
+Resolved values: `02-tokens.md` — the option sets for type, spacing, radius and shadow, and "Sizes and motion, by mode" for control heights, row heights, durations and measure.
 
 **Mode-specific rules**
 - Density is the feature. More rows visible beats more comfortable rows.
@@ -175,7 +175,8 @@ Useful when a decision straddles two modes.
 | Section rhythm | `--spacing-xxl` | `--spacing-xl` | `--spacing-m` |
 | Card padding | `--spacing-m` | `--spacing-m` | `--spacing-s` |
 | Motion | slowest | mid | fastest |
-| Entrance animation | once, first viewport | none | none |
+| Entrance animation | once per visitor, first viewport | none | none |
+| Ambient motion | permitted (`P-13`) | none | none |
 | Decorative colour | accent only | primary action | none |
 | Imagery | central | empty states | none |
 | Optimises for | first use | both | thousandth use |

@@ -4,6 +4,9 @@ const $ = (s) => document.querySelector(s);
 // time, which is what the system requires of any real surface.
 document.querySelectorAll('[data-mode]').forEach((b) =>
   b.addEventListener('click', () => {
+    // Listener first: the new stylesheet loads asynchronously, so reading the
+    // computed values before `load` fires would report the outgoing mode.
+    $('#mode').addEventListener('load', renderDiagnostics, { once: true });
     $('#mode').href = `../../tokens/mode.${b.dataset.mode}.css`;
     document.querySelectorAll('[data-mode]').forEach((o) =>
       o.setAttribute('aria-pressed', String(o === b)));
@@ -14,6 +17,7 @@ document.querySelectorAll('[data-theme]').forEach((b) =>
     document.documentElement.dataset.theme = b.dataset.theme;
     document.querySelectorAll('[data-theme]').forEach((o) =>
       o.setAttribute('aria-pressed', String(o === b)));
+    renderDiagnostics();
   }));
 
 // Specimens generated from the token names, so a renamed or removed token
@@ -134,6 +138,18 @@ el('motion').innerHTML = [
     <code>${d.replace('--duration-', '')}</code><br><code style="font-size:var(--text-caption)">${e}</code>
   </div>`).join('');
 
+// Ambient motion (P-13). Three layers, each on a different period, so the
+// composition never re-aligns into one pulse. Deliberately understated: if you
+// notice a layer while reading the note above it, the value is wrong.
+el('ambient').innerHTML = [
+  ['--duration-ambient-fast', 'drift'],
+  ['--duration-ambient-base', 'sway'],
+  ['--duration-ambient-slow', 'breathe'],
+].map(([d, name]) => `
+  <div class="ambient-layer ambient-${name}" style="animation-duration:var(${d})">
+    <code>${d.replace('--duration-', '')}</code>
+  </div>`).join('');
+
 el('roles').innerHTML = [
   '--spacing-section', '--spacing-section-sm', '--spacing-card', '--spacing-stack',
   '--spacing-group', '--spacing-label', '--spacing-inline',
@@ -150,13 +166,21 @@ el('touch').innerHTML = `
   </span>
   <p class="note">Dashed box is <code>--size-touch-target</code>; the button is <code>--size-control</code>.</p>`;
 
-const cs = getComputedStyle(document.documentElement);
-el('diag').innerHTML = `
+// Re-rendered on every mode and theme switch, not once at load. It used to be
+// written a single time, so after switching mode the table still reported the
+// mode the page had opened with — a diagnostics panel that states the wrong
+// mode is worse than none, because the values beside it are then read as
+// belonging to a mode they do not.
+function renderDiagnostics() {
+  const cs = getComputedStyle(document.documentElement);
+  el('diag').innerHTML = `
   <table><tbody>${[
     '--mode', '--brand-h', '--brand-s', '--brand-l',
     '--error-h', '--warning-h', '--success-h', '--info-h',
     '--tracking-body', '--measure-prose', '--size-row',
   ].map((t) => `<tr><td><code>${t}</code></td><td class="num">${cs.getPropertyValue(t).trim() || '—'}</td></tr>`).join('')}</tbody></table>`;
+}
+renderDiagnostics();
 
 
 // Render Lucide icons after all sections exist. If the CDN did not load, the

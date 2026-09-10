@@ -159,8 +159,12 @@
 
   <section>
     <h2>Motion</h2>
-    <p class="note">Hover a swatch. Durations and easings are mode-selected; all resolve to 1ms under <code>prefers-reduced-motion</code>.</p>
+    <p class="note">Hover a swatch. Interaction durations and easings are mode-selected; all resolve to 1ms under <code>prefers-reduced-motion</code>.</p>
     <div class="row" id="motion"></div>
+
+    <h3>Ambient motion <code>P-13</code></h3>
+    <p class="note">Three layers running at once, each on a different period. Nothing should pull your eye while you read this sentence — that is the test. <strong>Editorial mode only:</strong> switch to product or operator and the layers stop dead, because those modes define no ambient tokens at all. Under <code>prefers-reduced-motion</code> the animation does not run rather than running fast.</p>
+    <div class="ambient-demo" id="ambient"></div>
   </section>
 
   <section>

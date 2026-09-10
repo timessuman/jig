@@ -31,8 +31,12 @@ const TYPE_COLUMNS = [
 ];
 
 const tokensDoc = read('rules/02-tokens.md');
+// Anchored to the start of a line, because the type table is the one where a
+// mode name is the FIRST cell. The sizes-and-motion tables below it put the
+// mode names in their HEADER row instead, and an unanchored match picked those
+// up too — five "mode rows" where there are three.
 const rows = [...tokensDoc.matchAll(
-  /\|\s*`(editorial|product|operator)`\s*\|[^|]*\|\s*\|([^\n]*)/g,
+  /^\|\s*`(editorial|product|operator)`\s*\|[^|]*\|\s*\|([^\n]*)/gm,
 )];
 
 if (rows.length !== 3) {
@@ -42,14 +46,57 @@ if (rows.length !== 3) {
 
 for (const [, mode, cells] of rows) {
   const css = read(`tokens/mode.${mode}.css`);
-  const sizes = cells.match(/\d+/g) ?? [];
-  if (sizes.length !== TYPE_COLUMNS.length) {
-    fail(`${mode}: type table has ${sizes.length} sizes, expected ${TYPE_COLUMNS.length}`);
+  const values = cells.split('|').map((c) => c.trim()).filter(Boolean);
+  if (values.length !== TYPE_COLUMNS.length) {
+    fail(`${mode}: type table has ${values.length} sizes, expected ${TYPE_COLUMNS.length}`);
     continue;
   }
+
   TYPE_COLUMNS.forEach((token, i) => {
-    if (!new RegExp(`${token}:\\s*${sizes[i]}px`).test(css)) {
-      fail(`${token} is not ${sizes[i]}px in mode.${mode}.css, but 02-tokens.md says it is`);
+    const cell = values[i];
+
+    // A plain number is a fixed size.
+    if (/^\d+$/.test(cell)) {
+      if (!new RegExp(`${token}:\\s*${cell}px`).test(css)) {
+        fail(`${token} is not ${cell}px in mode.${mode}.css, but 02-tokens.md says it is`);
+      }
+      return;
+    }
+
+    // `32–48` is a fluid size: a clamp whose bounds are those two values.
+    const range = /^(\d+)[–-](\d+)$/.exec(cell);
+    if (!range) {
+      fail(`${mode}: "${cell}" in the type table is neither a size nor a range like 32–48`);
+      return;
+    }
+    const [, minPx, maxPx] = range.map(Number);
+
+    const decl = new RegExp(
+      `${token}:\\s*clamp\\(\\s*([\\d.]+)rem\\s*,\\s*([\\d.]+)rem\\s*\\+\\s*([\\d.]+)vw\\s*,\\s*([\\d.]+)rem\\s*\\)`,
+    ).exec(css);
+    if (!decl) {
+      fail(`02-tokens.md says ${token} is fluid (${cell}) in ${mode}, but mode.${mode}.css ` +
+           `does not declare it as clamp(<rem>, <rem> + <vw>, <rem>). ` +
+           `Every term must be rem-based — a px or bare vw bound ignores the reader's font-size setting (WCAG 1.4.4).`);
+      return;
+    }
+    const [, lo, intercept, slope, hi] = decl.map(Number);
+
+    if (lo * 16 !== minPx || hi * 16 !== maxPx) {
+      fail(`${token} in ${mode} clamps to ${lo * 16}–${hi * 16}px, but 02-tokens.md says ${cell}`);
+      return;
+    }
+
+    // The bounds can be right while the curve between them is wrong. The doc
+    // states the range is reached at a 360px viewport and at 1024px, so check
+    // the preferred term actually passes through those two points — otherwise
+    // the heading saturates somewhere else entirely and the doc is fiction.
+    for (const [vw, expected] of [[360, minPx], [1024, maxPx]]) {
+      const actual = intercept * 16 + (slope / 100) * vw;
+      if (Math.abs(actual - expected) > 0.5) {
+        fail(`${token} in ${mode}: at a ${vw}px viewport the clamp computes ` +
+             `${actual.toFixed(2)}px, but the stated range wants ${expected}px there.`);
+      }
     }
   });
 }
@@ -212,6 +259,109 @@ const LIGHT_BACKGROUNDS = {
     fail(`${unrendered.length} token(s) defined but never rendered by packages/preview:`);
     for (const t of unrendered) console.error(`      ${t}`);
     console.error('      Add them to the preview — a token nobody has looked at is a value nobody has checked.');
+  }
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Rule 7 — the sizes-and-motion tables match the mode files.
+ *
+ * `01-modes.md` names these tokens and points at 02-tokens.md for resolved
+ * values. The values were only ever in `tokens/mode.*.css`, so the pointer led
+ * nowhere; now that the doc states them, they can drift from the CSS instead —
+ * which is worse than absent, because a wrong number reads as authoritative.
+ *
+ * A `—` cell asserts the token is genuinely ABSENT from that mode, so the
+ * table cannot quietly hide one that was added later.
+ * ------------------------------------------------------------------ */
+{
+  const MODES = ['editorial', 'product', 'operator'];
+  const cssFor = Object.fromEntries(MODES.map((m) => [m, read(`tokens/mode.${m}.css`)]));
+
+  // Every `| \`--token\` | a | b | c |` row in the sizes/motion section.
+  const rows = [...tokensDoc.matchAll(
+    /^\|\s*`(--[a-z0-9-]+)`\s*\|([^\n]*)\|\s*$/gm,
+  )];
+  const checked = rows.filter(([, token]) =>
+    /^--(size|duration|measure|spacing|ease|leading)-/.test(token),
+  );
+
+  if (checked.length < 9) {
+    fail(`Rule 7 found only ${checked.length} size/motion rows in 02-tokens.md; ` +
+         `the table shape changed — update this check.`);
+  }
+
+  for (const [, token, cells] of checked) {
+    const values = cells.split('|').map((c) => c.trim().replace(/`/g, ''));
+    if (values.length !== MODES.length) {
+      fail(`Rule 7: ${token} has ${values.length} cells, expected ${MODES.length}`);
+      continue;
+    }
+    MODES.forEach((mode, i) => {
+      const claimed = values[i];
+      const actual = new RegExp(`${token}\\s*:\\s*([^;]+);`).exec(cssFor[mode]);
+      if (claimed === '—') {
+        if (actual) {
+          fail(`02-tokens.md says ${token} is undefined in ${mode}, but mode.${mode}.css sets it to ${actual[1].trim()}`);
+        }
+        return;
+      }
+      if (!actual) {
+        fail(`02-tokens.md says ${token} is ${claimed} in ${mode}, but mode.${mode}.css does not define it`);
+        return;
+      }
+      // A selection is written `var(--spacing-m)` in CSS and `--spacing-m` in
+      // the doc — the same value, and the doc form is the readable one.
+      const resolved = actual[1].trim().replace(/^var\((--[a-z0-9-]+)\)$/, '$1');
+      if (resolved !== claimed) {
+        fail(`${token} is ${resolved} in mode.${mode}.css, but 02-tokens.md says ${claimed}`);
+      }
+    });
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Rule 8 — leading holds its shape within each mode.
+ *
+ * Rule 7 checks the doc against the CSS, which catches drift between the
+ * two but not a value that is wrong in both. This checks the relationship
+ * the doc actually claims: within a mode, line height never INCREASES as
+ * type gets bigger, because a large heading needs proportionally less
+ * leading to sit at the same optical rhythm.
+ *
+ * Prose is the deliberate exception and is excluded. It is larger than body
+ * AND looser (1.6 against 1.5) because sustained reading wants that; it is a
+ * different role, not a bigger body.
+ * ------------------------------------------------------------------ */
+{
+  // Ascending by font size, so leading must be non-increasing along it.
+  const ASCENDING = ['--leading-body', '--leading-h3', '--leading-h2', '--leading-h1'];
+
+  for (const mode of ['editorial', 'product', 'operator']) {
+    const css = read(`tokens/mode.${mode}.css`);
+    const val = (t) => {
+      const m = new RegExp(`${t}\\s*:\\s*([\\d.]+)`).exec(css);
+      if (!m) fail(`Rule 8: ${t} is not defined in mode.${mode}.css`);
+      return m ? Number(m[1]) : NaN;
+    };
+    const leads = ASCENDING.map(val);
+    if (leads.some(Number.isNaN)) continue;
+
+    for (let i = 1; i < leads.length; i++) {
+      if (leads[i] > leads[i - 1]) {
+        fail(`${mode}: ${ASCENDING[i]} (${leads[i]}) is looser than ${ASCENDING[i - 1]} ` +
+             `(${leads[i - 1]}), but it is on larger type. Leading tightens as size grows.`);
+      }
+    }
+
+    const floor = Math.min(val('--leading-body'), val('--leading-caption'));
+    if (floor < 1.5) {
+      fail(`${mode}: body/caption leading is ${floor}, below the 1.5 floor.`);
+    }
+    if (val('--leading-prose') < 1.5 || val('--leading-prose') > 2) {
+      fail(`${mode}: --leading-prose is ${val('--leading-prose')}, outside the 1.5–2 band ` +
+           `that long-form reading wants.`);
+    }
   }
 }
 

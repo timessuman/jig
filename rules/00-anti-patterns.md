@@ -35,7 +35,7 @@ These are the strongest defaults in a model's training data and the fastest way 
 
 ### A-04 Trend styles that fight legibility
 ❌ Glassmorphism (translucent fill + `backdrop-filter: blur()`), neumorphism (soft inset/outset shadows on a matching background), and their successors
-✅ Opaque `--color-surface` with a `--color-stroke-weak` edge. Use translucency only over media, and only when legibility is verified against the worst frame.
+✅ Opaque `--color-bg-raised` with a `--color-stroke-weak` edge. Use translucency only over media, and only when legibility is verified against the worst frame.
 Both styles make sufficient contrast and clear hierarchy structurally difficult — neumorphism in particular defines every element with shadow alone, which fails at 3:1 almost by construction. Trend styles also age badly: the more of them a product carries, the more precisely it is dated. Minimal styling that foregrounds content lasts longer.
 Experiment freely — but not where it costs legibility or excludes people.
 
@@ -169,7 +169,7 @@ Also: shadow colour derives from the text colour, never pure black, so it sits i
 
 ### C-22 Semantic colours invented inline
 ❌ Two different reds in two places, both meaning "error"
-✅ One token per meaning — `--color-danger`, `--color-danger-subtle`, `--color-danger-stroke` — referenced everywhere.
+✅ One token per meaning — `--color-text-error`, `--color-fill-error`, `--color-stroke-error-strong` — referenced everywhere.
 
 ### C-49 Link treatment
 The default for a link **inside running text** is colour **and** underline. Colour-blind users cannot separate a coloured link from surrounding prose; the underline is what makes it a link for them.
@@ -346,7 +346,17 @@ This also means a button's fill or border is not decorative: it is the thing ide
 ### E-94 Destructive actions coloured red at rest
 ❌ A red "Delete" sitting in a list of rows
 ✅ At rest a destructive action is **tertiary** — less prominent, further from the primary, or disclosed. Red makes it *more* prominent, which is backwards: the goal is friction, not attention.
-`--color-danger` styling belongs on the **confirming** button inside the confirmation step, where the user has already chosen and needs to feel the weight of it.
+Red belongs on the **confirming** button inside the confirmation step — `--color-text-error` and the `--color-fill-error` / `--color-stroke-error-strong` set — where the user has already chosen and needs to feel the weight of it.
+
+**But not at every confirmation.** The reference grades the friction, and so should you:
+
+| Friction | When | Treatment |
+| --- | --- | --- |
+| Light | A less serious action | Ask for confirmation. The confirming button stays **brand-coloured, not red** |
+| Moderate | Genuinely destructive, recoverable with effort | Red confirming button, red accent on the dialog |
+| Heavy | Irreversible — deleting an account, purging data | Red, **plus a checkbox that must be ticked** before the action can fire |
+
+Reaching for red at every confirmation spends it, and a red button on "delete this draft" leaves nothing louder for "delete your account". Whichever level you pick, prefer making the action **undoable** over making it frightening (`04-principles.md`, Tiebreaker 3) — friction protects nobody who has already clicked.
 
 ### E-95 Primary action parked at the right
 ❌ A right-aligned "Next" with "Back" beside it at the bottom of a multi-step form
@@ -425,13 +435,19 @@ Where people must *browse* to decide, split the list into two dependent fields �
 ❌ Every section fading and rising on scroll
 ✅ Motion earns its place by explaining a change of state or spatial relationship. Decoration on a page the user will visit twice a day becomes friction.
 
+**"Once" means once per visitor, not once per page load.** A welcome or hero animation that replays on every arrival stops being an introduction after the first one and becomes a toll. Persist the fact that it has played and skip it thereafter. Where one does run, give it a visible one-click skip — a user who wants the content now must not have to wait out a brand moment to reach it.
+
 ### G-43 `prefers-reduced-motion` ignored
 ❌ Animation with no reduced-motion path
 ✅ Always provide the reduced path. Non-negotiable — this is a vestibular safety issue, not a preference.
 
+**A consequence worth stating: motion is never the sole signal, for the same reason colour is not (`C-20`).** Honouring the reduced-motion path removes the animation, so any state that was communicated by movement alone is communicated to that user by nothing at all. A field that only shakes on a bad password has no error state under reduced motion. Pair the motion with text, an icon, or a colour change that survives without it.
+
 ### G-44 Durations too long
 ❌ 500ms+ on UI feedback
 ✅ 100–200ms for state change, up to 300ms for larger transitions. If it can be perceived as waiting, it is too slow.
+
+**Scope: this is about motion that answers an input or carries a state change.** It is not a ceiling on every animation on the page. Slow decorative looping motion — see `P-13` — runs for seconds by design, and is not covered here. The reason the two differ is the reason the numbers differ: interaction motion sits between the user and their task, so it must get out of the way; ambient motion is never in the way, so speed would only make it noticeable.
 
 ---
 

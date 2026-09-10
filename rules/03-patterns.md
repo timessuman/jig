@@ -112,7 +112,7 @@ If you must disable: put a message beside the button explaining what is needed, 
 Friction scales with severity, and the first lever is prominence.
 
 - **At rest, a destructive action is tertiary.** Less prominent, further from the primary action, or disclosed behind something.
-- **Do not colour it red at rest.** Red makes it *more* prominent — the opposite of what friction means. `--color-danger` styling belongs on the **confirming** button inside a confirmation step, where the user has already chosen and needs to understand the weight of it.
+- **Do not colour it red at rest.** Red makes it *more* prominent — the opposite of what friction means. `--color-text-error` styling belongs on the **confirming** button inside a confirmation step, where the user has already chosen and needs to understand the weight of it.
 - Destructive actions sit at least `--spacing-stack` from their nearest common neighbour, and confirm. In `operator`, confirmation is typed (`01-modes.md`).
 
 ---
@@ -123,8 +123,8 @@ Friction scales with severity, and the first lever is prominence.
 1. `<label>` — always visible, **stacked above** the input (`F-98`)
 2. Required or optional marker, in the label (`F-97`)
 3. Hint text — **above** the input, below the label
-4. Input
-5. Error message — after the input, `role="alert"`
+4. Error message — **also above the input**, after the hint, `role="alert"`
+5. Input
 
 **States:** `default`, `focus`, `filled`, `invalid`, `disabled`, `read-only`.
 
@@ -155,6 +155,10 @@ You may leave required fields unmarked only when: the product has no optional fi
 Above the input, not below. Two reasons: a rule about a password's minimum length is useful **before** typing, not after failing; and the space below an input gets covered by autofill menus and on-screen keyboards, so a hint placed there may never be seen.
 
 Do not hide a hint in a tooltip if it is needed to complete the field.
+
+**The error message goes above the input too, and for the second of those reasons.** The space below a field is covered by autofill menus and on-screen keyboards at exactly the moment an error appears — so an error placed there is hidden from the person who most needs to see it. Putting the hint above and the error below would have taken half of one argument and ignored the other half.
+
+Order between them: hint first, then error. The hint is standing guidance about the field; the error is a transient response to what was just typed, so it sits closest to the input it is about.
 
 ### Placeholders
 
@@ -223,6 +227,12 @@ The control determines the interaction cost before a single pixel is styled. Cho
 ### Validation timing (`F-38`)
 
 On blur first; on change once a field has already errored, so recovery is immediate; everything on submit, with a summary that receives focus and links to each failed field.
+
+The reference sets out three approaches — on submit, on blur, on every keystroke — and prescribes none of them, because each has a cost: on-submit leaves people guessing until the end and then confronts them with everything at once; on-blur interrupts; keystroke validation fires before someone has finished typing, and people type at different speeds. What it does pair explicitly is on-blur with keystroke validation *for recovery only* — "remove the error message once the error has been resolved" — which is the combination above, and the reason the keystroke half is scoped to fields that have already failed.
+
+**The summary states the count** — "2 errors were found" — and each entry links to the field it names. Do not disable the submit button to prevent an invalid submission (`E-32`): a disabled control cannot be focused, so it cannot explain itself.
+
+**An invalid field is marked by border, background tint, icon and text together** — never by colour alone (`C-20`), and never by one channel that a magnifier or a colour-blind user might miss.
 
 ### Multi-step
 
@@ -367,6 +377,63 @@ Reveal information as it is needed rather than all at once. Costs an interaction
 - **Never hide with it what `E-63` requires visible.** Progressive disclosure is for depth, not for labels, selected states or primary actions.
 
 **Mode variance:** `operator` discloses least. For daily users, one dense visible view beats a tidy one that hides what they came for.
+
+---
+
+## P-13 · Ambient motion
+
+A third category of motion, alongside the two this system already had. **Interaction
+motion** answers an input; **transition motion** carries the user between states or
+views. Both are measured in milliseconds and both are covered by `G-44`. **Ambient
+motion** is neither: slow, looping, decorative movement that gives a surface
+atmosphere without ever asking to be looked at — smoke drifting, a sway, a slow
+colour shift. It is passive, it runs without input, and it never ends.
+
+The distinction matters because the two categories pull in opposite directions.
+Interaction motion must finish before the user perceives a wait, so it is fast.
+Ambient motion must never be noticed, so it is **slow** — fast ambient motion reads
+as a glitch or a demand for attention, which is the one thing it must not be.
+
+**Mode variance is total, not a matter of degree.** Ambient motion is `editorial`
+only. `product` and `operator` have none, and this is not a density setting to be
+turned down — a surface someone works in all day must not have anything moving on
+it that they did not cause. Motion in those modes always means something changed.
+
+**Rules**
+- **Seconds, not milliseconds.** 3–6s per cycle is the working range. `G-44`'s
+  100–300ms ceiling does not apply here and says so.
+- **Use the tokens: `--duration-ambient-fast` (3s), `--duration-ambient-base`
+  (4.7s), `--duration-ambient-slow` (7.1s).** `H-47` applies here like everywhere
+  else — a raw `6s` in a keyframe rule is a hard-coded value past the token layer.
+  Give each layer a *different* one. The three periods are mutually prime by
+  construction so that layered loops never re-align into one visible pulse, which
+  is the whole failure mode of layered ambient motion; picking the same token for
+  every layer throws that away and is the one way to misuse them.
+- **Keyframe percentages and `animation-delay` offsets stay literal.** Those are
+  composition, not design decisions reused across the system, and tokenising them
+  would mean a token per animation.
+- **Loop seamlessly.** Match the first and last keyframe, or use
+  `animation-direction: alternate`. A hard reset is a flicker, and a flicker is
+  noticed.
+- **Layer several small movements rather than one large one.** Varied periods and
+  delays read as alive. One movement reads as a widget.
+- **Test it by not looking at it.** If your eye is pulled to it while you read the
+  page, it is too strong. Reduce until you would only catch it if you were looking
+  for it.
+- **`aria-hidden="true"`** on purely decorative animated elements. They carry no
+  information, so they are clutter in the accessibility tree.
+- **Wrap it in `@media (prefers-reduced-motion: no-preference)`** — the whole
+  declaration, so the reduced path is absence rather than a shortened loop (`G-43`).
+  Ambient motion is the easiest case there is: it means nothing, so removing it
+  costs nothing.
+- **Animate `transform` and `opacity`.** These run on the compositor. A loop that
+  runs forever on every frame the page is open cannot afford animated `blur`,
+  `box-shadow`, or anything that triggers layout — the cost is not paid once, it is
+  paid continuously, on whatever device the reader has.
+
+**Anti-pattern:** ambient motion used to direct attention. It is atmosphere, not a
+signal. The moment it points at something it has become interaction motion badly
+done, and `G-42` applies instead.
 
 ---
 

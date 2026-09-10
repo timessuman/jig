@@ -4,3 +4,8 @@ dist/
 
 # Reference copy of the upstream source files. Not part of the package.
 /ui-system/
+
+# The reference PDF — a licensed book, kept locally for reconciliation work.
+# Never committed: it is not ours to redistribute, and it is 29MB.
+nooon.pdf
+*.pdf

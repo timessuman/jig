@@ -60,11 +60,65 @@ Modes **select** from these; they never define their own values. `--spacing-card
 
 | Mode | Ratio | | Caption | Body (UI) | Prose | H3 | H2 | H1 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `editorial` | 1.250 Major Third | | 14 | 16 | 18 | 24 | 32 | 48 |
-| `product` | 1.200 Minor Third | | 14 | 16 | 18 | 20 | 24 | 32 |
-| `operator` | 1.125 Major Second | | 12 | 14 | 16 | 16 | 18 | 22 |
+| `editorial` | 1.250 Major Third | | 14 | 16 | 18 | 24 | 24–32 | 32–48 |
+| `product` | 1.200 Minor Third | | 14 | 16 | 18 | 20 | 20–24 | 24–32 |
+| `operator` | 1.125 Major Second | | 12 | 14 | 18 | 16 | 18 | 22 |
+
+**A range means the heading is fluid.** `32–48` is not two values to choose
+between: `--text-h1` interpolates continuously with viewport width, reaching its
+minimum at a 360px viewport and its maximum at 1024px, saturating outside that
+range. There is no breakpoint here and none anywhere else in the system — a
+`clamp()` has no threshold to place, which is exactly why it was chosen over a
+second `-sm` scale.
+
+Editorial `--text-h1` at a fixed 48px gives **13 characters per line** on a
+360px screen, so a 45-character headline sets as four lines and 211px of
+headline. At the 32px minimum the same headline is three lines and half the
+height. `operator` has no fluid headings because its largest is 22px, which
+already fits about 28 characters — the mechanism is absent because the problem
+is.
+
+**The bounds are in `rem`, and that is load-bearing.** `clamp(32px, 8vw, 48px)`
+ignores a reader who has raised their default font size: page zoom scales `vw`,
+a font-size preference does not. Every term stays `rem`-based so the whole curve
+moves with the user's setting, which WCAG 1.4.4 requires.
+
+**Only headings are fluid.** Body and prose are fixed at every width on purpose.
+Readability is absolute — set by the eye and viewing distance, not by screen
+width — while heading size is relative, existing to contrast with body, and that
+contrast can compress when less content competes for the view. A fluid
+`--text-prose` would also breach the 18px floor at narrow widths (`B-75`,
+`T20`). What responds for body text is the **measure**, via the container.
 
 `editorial` omits the rung the ratio would put between H2 and H1 (a step near 40); the ratio names the ladder, not every adjacent step — its H2→H1 jump (32→48) is 1.5, not 1.25.
+
+The columns are `--text-caption`, `--text-body`, `--text-prose`, `--text-h3`,
+`--text-h2` and `--text-h1` in that order.
+
+**Line heights are per-mode too**, which this section used to obscure by quoting
+one mode's values as though they were everyone's:
+
+| Token | `editorial` | `product` | `operator` |
+| --- | --- | --- | --- |
+| `--leading-caption` | 1.5 | 1.5 | 1.5 |
+| `--leading-body` | 1.5 | 1.5 | 1.5 |
+| `--leading-prose` | 1.6 | 1.6 | 1.6 |
+| `--leading-lead` | 1.5 | 1.5 | 1.5 |
+| `--leading-h3` | 1.333 | 1.4 | 1.5 |
+| `--leading-h2` | 1.25 | 1.333 | 1.4 |
+| `--leading-h1` | 1.1 | 1.25 | 1.333 |
+
+**The heading rows are one ladder, read through a sliding window.** The ladder is
+1.1 · 1.25 · 1.333 · 1.4 · 1.5, and each mode takes three consecutive rungs,
+starting one lower as the mode gets denser. `editorial` opens at 1.1 because its
+H1 is 48px and a large heading needs proportionally less leading to sit at the
+same optical rhythm; `operator`'s H1 is 22px, near body size, so it takes the
+body-ish end of the same ladder. That is why `product`'s H1 leading equals
+`editorial`'s H2 — they are the same rung, not a coincidence.
+
+Body and reading roles do not vary: the floor is 1.5 everywhere, and prose sits
+at 1.6, inside the 1.5–2 band long-form reading wants. Within any mode, leading
+never increases as size increases.
 
 **`--text-body` and `--text-prose` are different roles, not two sizes of the same thing.** Body is UI text — labels, controls, table cells, short strings read in glances. Prose is sustained reading, and never drops below 18px on a page anyone is expected to actually read (`B-75`).
 
@@ -72,17 +126,118 @@ Line heights are unitless and floor at **1.5** for body and prose, easing down a
 
 **Measure: 40–80 characters.** Below 40 the eye returns too often; above 80 it loses the line. `--measure-prose` sits mid-range in every mode.
 
+**The lower bound is a target, not a floor, and on a small phone it is
+unreachable.** `--measure-prose` caps the upper end; nothing can raise the lower
+one on a narrow screen, because the only two levers both give out. Measured in
+the preview at 16px body — the size `B-75` and WCAG 1.4.4 forbid going under:
+
+| viewport | with the 16px gutter | with a 12px gutter | with no gutter at all |
+| --- | --- | --- | --- |
+| 320px | 34 | 35 | 38 |
+| 360px | 39 | 40 | 43 |
+| 375px | 41 | 42 | 44 |
+| 414px | 45 | 46 | 49 |
+
+At 375px and up the target is met as the gutters already stand. At 320px it
+cannot be met at **any** gutter, since 40 characters of 16px text need about
+335px of width before margins exist. The two constraints are geometrically
+incompatible there, and the resolution is not to argue: **the 16px body floor
+wins, and the measure target yields.** Shrinking body text to buy characters is
+the one move that is never available.
+
+So do not narrow the gutter chasing this number. It costs layout at every small
+width and buys one character at 360px, while changing nothing at 320px.
+
 **Weights: two.** Regular (400) and bold (600). See `B-77`.
 
 **Letter spacing** tightens as size grows — most text typefaces are spaced for small sizes and look loose when scaled up. `--tracking-h1` is the most negative; body is 0.
 
 **Typeface.** One sans serif by default: most legible small, neutral across brands, least likely to be the wrong choice. When picking one — prefer a popular face with many weights, a tall x-height and generous default spacing, with OpenType features and the language coverage the product needs. When in doubt, the platform system font is tried, tested and free to load. A second face is permitted for headings only (`B-76`).
 
-**Radius — four options**, by element size: 8px small (buttons, inputs), 16px medium (cards, panels), 32px large (hero media and full-bleed surfaces), and a full/pill radius for pills, badges, avatars and chips (`--radius-full`).
+**Radius — four options**, by element size: `--radius-sm` 8px (buttons, inputs), `--radius-md` 16px (cards, panels), `--radius-lg` 32px (hero media and full-bleed surfaces), and `--radius-full` for pills, badges, avatars and chips.
 
 `--radius-control` selects `sm` in all three modes. `--radius-surface` selects `md` in `editorial` and `product`, but `sm` in `operator` — the selection is per-mode, not a fixed derivation. `--radius-lg` and `--radius-full` are brand-scale options; no mode currently selects either.
 
-**Shadow — two options** with stated meanings: `raised` sits above the page, `overlay` floats over it. `A-08` still prefers a stroke; these exist for when depth is the point.
+**Shadow — three, two of which do anything**: `--shadow-raised` sits above the page, `--shadow-overlay` floats over it, and `--shadow-none` is the explicit absence a mode selects when its elevation is stroke-led rather than shadow-led (every mode currently does, via `--shadow-surface`). `A-08` still prefers a stroke; the other two exist for when depth is the point.
+
+## Sizes and motion, by mode
+
+`01-modes.md` names these tokens in each mode's profile and points here for the
+resolved values. They were not here: the option sets above cover type, spacing,
+radius and shadow, while control heights, row heights and durations lived only
+in `tokens/mode.*.css`. A reader following the pointer found nothing.
+
+Unlike the option sets, these are not selections from a shared ladder — each
+mode states its own value, because density is the thing a mode *is*.
+
+| Token | `editorial` | `product` | `operator` |
+| --- | --- | --- | --- |
+| `--size-control` | 48px | 40px | 32px |
+| `--size-control-sm` | 40px | 32px | 28px |
+| `--size-row` | — | 48px | 36px |
+| `--size-row-compact` | — | — | 32px |
+| `--size-icon` | 20px | 18px | 16px |
+| `--duration-fast` | 150ms | 100ms | 75ms |
+| `--duration-base` | 250ms | 150ms | 100ms |
+| `--duration-slow` | 300ms | 200ms | 120ms |
+| `--duration-ambient-fast` | 3s | — | — |
+| `--duration-ambient-base` | 4.7s | — | — |
+| `--duration-ambient-slow` | 7.1s | — | — |
+| `--measure-prose` | 68ch | 60ch | 72ch |
+| `--ease-out` | cubic-bezier(0.16, 1, 0.3, 1) | cubic-bezier(0.16, 1, 0.3, 1) | cubic-bezier(0.2, 0, 0, 1) |
+| `--ease-in-out` | cubic-bezier(0.65, 0, 0.35, 1) | cubic-bezier(0.65, 0, 0.35, 1) | cubic-bezier(0.4, 0, 0.2, 1) |
+
+A `—` means the mode does not define that token: `editorial` has no row
+heights because it has no dense record views, and `product` selects a single
+row height rather than a compact variant. A pattern that needs one in those
+modes is using the wrong mode, or the mode file needs the token added
+deliberately.
+
+**The ambient periods are a chord, not a ladder.** The three interaction
+durations are a scale — fast, base, slow, pick by weight of change. The three
+ambient ones (`P-13`) are not: they exist so that several looping animations
+running at once can each take a *different* period. Their values are mutually
+prime in tenths of a second, so the layers do not re-align into a single visible
+pulse — 3 / 4.7 / 7.1s first coincide past the two-hour mark, where 3 / 4 / 6s
+would coincide every twelve seconds. Pick a different one per layer; which one
+carries no meaning beyond speed.
+
+They are `editorial` only, and the `—` in the other two columns is an assertion:
+`product` and `operator` define nothing here, because a surface someone works in
+all day must not have anything moving on it that they did not cause.
+
+**Easing has a direction, and it is not a matter of taste.** Motion in the
+physical world starts and stops under acceleration, so an element that arrives
+at rest should decelerate into place and an element leaving should accelerate
+away. That maps onto the tokens:
+
+- **Entering, or gaining attention** — use `--ease-out`. The element decelerates
+  into its resting position, which is what makes it read as arriving rather than
+  as being drawn.
+- **Leaving, or losing attention** — use `--ease-in-out`. A pure ease-in would be
+  the closer analogue, and we do not ship one: exits in this system fade or
+  collapse in place rather than fly off screen, and a third easing token bought
+  only that one case.
+- **Never linear** for anything that moves. Linear reads as mechanical because
+  nothing physical moves that way. Colour and opacity are the exception — a
+  simple curve is enough there, and often linear is fine.
+
+The `operator` curves are tighter than the other two modes for the same reason
+its durations are shorter: a curve with a long tail makes a 100ms animation feel
+slower than it is.
+
+**`--size-touch-target` is 48px in every mode and is not a density decision.**
+It is an accessibility floor, so it is excluded from the table above — there is
+nothing per-mode about it to resolve. The same is true of `--focus-ring-width`
+and `--focus-ring-offset`, which live in the brand file for that reason.
+
+**Spacing selections.** `--spacing-card` and `--spacing-section` pick from the
+shared ladder rather than stating their own values:
+
+| Token | `editorial` | `product` | `operator` |
+| --- | --- | --- | --- |
+| `--spacing-card` | `--spacing-m` | `--spacing-m` | `--spacing-s` |
+| `--spacing-section` | `--spacing-xxl` | `--spacing-xl` | `--spacing-m` |
 
 ## Colour naming
 
@@ -184,7 +339,18 @@ WCAG 2's algorithm has known failures — it will pass black text on orange and 
 
 Guidance: **for commercial work, comply with WCAG 2.1 AA**, because that is what is legally referenced. Check APCA as well, particularly on dark surfaces. Aim to pass both.
 
-APCA reference values: **90** preferred for body text · **75** minimum body at 18px+ · **60** other text · **45** large text and UI elements · **30** absolute floor for placeholder and disabled text · **15** non-text.
+APCA reference values, with the sizes they apply at — a score means nothing without one, since APCA takes size and weight into account and thin or small text scores lower for the same colours:
+
+| Score | Applies to |
+| --- | --- |
+| **90** | Preferred for body text, 14px regular and above |
+| **75** | Minimum for body text, 18px regular and above |
+| **60** | Minimum for other text, 24px regular or 16px bold and above |
+| **45** | Minimum for large text — 36px regular or 24px bold and above — and for interface elements |
+| **30** | Absolute minimum for text: placeholders, disabled button text |
+| **15** | Minimum for non-text elements |
+
+These thresholds are APCA's own and do not line up with WCAG's large-text definition (`C-17`, 24px regular / 18.66px bold) — the two systems measure differently, and each is right inside its own frame.
 
 ## Dark mode
 
@@ -200,7 +366,7 @@ In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation s
 @import ".jig/tokens/mode.product.css";
 
 .card {
-  background: var(--color-surface);
+  background: var(--color-bg-raised);
   border: 1px solid var(--color-stroke-weak);
   border-radius: var(--radius-surface);
   padding: var(--spacing-card);
