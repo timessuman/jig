@@ -126,6 +126,28 @@ Line heights are unitless and floor at **1.5** for body and prose, easing down a
 
 **Measure: 40–80 characters.** Below 40 the eye returns too often; above 80 it loses the line. `--measure-prose` sits mid-range in every mode.
 
+**The lower bound is a target, not a floor, and on a small phone it is
+unreachable.** `--measure-prose` caps the upper end; nothing can raise the lower
+one on a narrow screen, because the only two levers both give out. Measured in
+the preview at 16px body — the size `B-75` and WCAG 1.4.4 forbid going under:
+
+| viewport | with the 16px gutter | with a 12px gutter | with no gutter at all |
+| --- | --- | --- | --- |
+| 320px | 34 | 35 | 38 |
+| 360px | 39 | 40 | 43 |
+| 375px | 41 | 42 | 44 |
+| 414px | 45 | 46 | 49 |
+
+At 375px and up the target is met as the gutters already stand. At 320px it
+cannot be met at **any** gutter, since 40 characters of 16px text need about
+335px of width before margins exist. The two constraints are geometrically
+incompatible there, and the resolution is not to argue: **the 16px body floor
+wins, and the measure target yields.** Shrinking body text to buy characters is
+the one move that is never available.
+
+So do not narrow the gutter chasing this number. It costs layout at every small
+width and buys one character at 360px, while changing nothing at 320px.
+
 **Weights: two.** Regular (400) and bold (600). See `B-77`.
 
 **Letter spacing** tightens as size grows — most text typefaces are spaced for small sizes and look loose when scaled up. `--tracking-h1` is the most negative; body is 0.
