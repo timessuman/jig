@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { repoRoot } from './helpers/registered-commands.js';
-import { commandMetadata as metadata, registeredCommands } from './helpers/registered-commands.js';
+import { commandMetadata as metadata, registeredCommands, registeredFlags, repoRoot } from './helpers/registered-commands.js';
 
 /**
  * `templates/command-metadata.json` is what the skill file tells the agent it
@@ -65,5 +64,42 @@ describe('the slash-command body covers every available command', () => {
     for (const name of available) {
       expect(sections, `no '## ${name}' section in COMMAND.md.tmpl`).toContain(name);
     }
+  });
+});
+
+/**
+ * The harness must know what the CLI can do.
+ *
+ * `explain` gained a search mode and `--list`, and the CLI, the README and the
+ * command metadata were all updated while `templates/COMMAND.md.tmpl` — the
+ * file that actually tells an agent how to use the command — kept describing
+ * only the id lookup. The feature worked (flags pass through unchanged) and no
+ * agent would ever have reached for it, which is the same as not shipping it.
+ *
+ * Nothing caught that, because every existing guard checks the command NAMES.
+ * This checks the flags.
+ */
+describe('every flag the CLI declares reaches the harness', () => {
+  const harnessText = () =>
+    readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8') +
+    readFileSync(join(repoRoot, 'templates/SKILL.md.tmpl'), 'utf8') +
+    JSON.stringify(metadata());
+
+  it('finds flags at all (guards the parser itself)', () => {
+    const flags = registeredFlags();
+    expect(flags.check, 'no flags parsed for check — the parser broke').toContain('--all');
+    expect(flags.explain).toContain('--list');
+  });
+
+  it('mentions each one somewhere an agent will read', () => {
+    const text = harnessText();
+    const missing: string[] = [];
+    for (const [command, flags] of Object.entries(registeredFlags())) {
+      for (const flag of flags) {
+        if (!text.includes(flag)) missing.push(`${command} ${flag}`);
+      }
+    }
+    expect(missing, `flags the CLI accepts that no harness file mentions: ${missing.join(', ')}`)
+      .toEqual([]);
   });
 });
