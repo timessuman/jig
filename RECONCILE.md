@@ -230,6 +230,16 @@ assistive technology — a screen reader must have time to announce a notificati
 before it leaves the screen, which is a floor on duration rather than the ceiling
 `G-44` states.
 
+**Rejected candidates.** A 2025 journal paper on motion design in digital media
+(Journal of Ecohumanism 4(2), DOI `10.62754/joe.v4i2.6434`) was read in full and
+supplies nothing: no duration, curve or threshold anywhere in it, findings asserted
+without a reported method, sample or comparison condition, and about a third of its
+length is unrelated material on brand logos and visual identity. Its two claims that
+touch this system — motion overuse distracts, poor timing hurts comprehension — are
+`G-42` and `G-44`, which already state them with numbers it does not have. It also
+argues from the wrong domain: attention capture in advertising, which is the effect
+the `operator` mode deliberately suppresses. Recorded here so it is not read twice.
+
 ---
 
 ## Not up for reconciliation
