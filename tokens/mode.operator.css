@@ -27,7 +27,14 @@
      Line heights UNITLESS. FLOOR: 1.5 holds even here. */
   --text-caption: 12px;  --leading-caption: 1.5;
   --text-body:    14px;  --leading-body:    1.5;
-  --text-prose:   16px;  --leading-prose:   1.6;    /* LONG-FORM text only */
+  /* 18px, not 16px, and not negotiable by density. `B-75` names 18px as the
+     floor for sustained reading, and the reference agrees — "make long body
+     text at least 18px". This token sat at 16px, which made our own rule false
+     in the one mode most likely to be read for long stretches by someone who
+     has been at it all day. Sustained readability is an accessibility floor
+     like `--size-touch-target`, not a density dial. Long prose is rare in an
+     operator surface; when it appears, it is legible. */
+  --text-prose:   18px;  --leading-prose:   1.6;    /* LONG-FORM text only */
   --text-lead:    16px;  --leading-lead:    1.5;
   --text-h3:      16px;  --leading-h3:      1.5;
   --text-h2:      18px;  --leading-h2:      1.4;

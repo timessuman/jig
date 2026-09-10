@@ -16,16 +16,22 @@ Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 
 ## What the reference extract covers
 
-The reconciliation source available on 2026-09-10 is a **single-chapter
-extract**: Colour, book pages 78–152. It has no text layer, so it can only be
+The reconciliation source is supplied one chapter at a time, as a PDF that is
+replaced in place. Chapters read so far on 2026-09-10: **Colour** (book pages
+78–152) and **Typography** (229–257). It has no text layer, so it can only be
 read as rendered images — see `scripts/render-reference.mjs`, which also records
 the two approaches that do not work.
 
-That extract answers `C2`, `C3` and `C5`, and confirms the APCA table now in
-`02-tokens.md`. It contains no Typography, Spacing, Layout, Motion or
-component-sizing chapter, so `S4`, `S5`, `M1`, `M2`, `F1`'s per-mode heights and
-`F6`'s row heights cannot be settled from it — verified by reading all 75 pages,
-not by sampling.
+Colour answered `C2`, `C3` and `C5`, and confirmed the APCA table now in
+`02-tokens.md`. Typography answered `T4`, `T5`, `T6` directly rather than by
+entailment, and produced `T18`–`T21`. Neither chapter covers heading spacing,
+optical alignment, motion durations or component sizing, so `S4`, `S5`, `M1`,
+`M2`, `F1`'s per-mode heights and `F6`'s row heights remain open — verified by
+reading every page of both, not by sampling.
+
+**Because the PDF is replaced rather than added to, evidence has to be written
+into this file as it is found.** `C1` and `C4` still need Colour, which is no
+longer available; what `C4` did get is recorded in its row.
 
 One near-miss worth recording as method. A subagent's summary of the APCA scale
 quoted five thresholds where the book lists six, having elided one; our own doc
@@ -74,15 +80,19 @@ records its removal.
 | T15 | Justified text prohibited outright | `B-12` | `01-modes.md` | ✅ |
 | T16 | Four treatments for text on photos | `B-78` | `01-modes.md` | ✅ |
 | T17 | Letter spacing tightens as size grows | `mode.*.css` | `01-modes.md` | ✅ |
+| T18 | **Scale ratio tracks interface complexity** — the reference ties ratio choice to exactly this: "small type scales are generally more suitable for complex website applications, tools, and dashboards where more detail is needed", against large scales "for less complex interfaces, like marketing websites". That is the mode architecture, arrived at independently: `editorial` 1.250, `product` 1.200, `operator` 1.125. | `mode.*.css`, `02-tokens.md` |  | ✅ |
+| T19 | **Line height decreases as size increases** (p.247), and long body sits between 1.5 and 2 (p.245). Ours: `--leading-h1` 1.25 → `h2` 1.333 → `h3` 1.4 → `body` 1.5 → `prose` 1.6, monotonic in the right direction, with prose inside the band. | `mode.*.css`, `02-tokens.md` |  | ✅ |
+| T20 | **Long body text at least 18px** (p.244). `operator` had `--text-prose` at 16px, contradicting both this and our own `B-75`, which names 18px in its correction. Raised to 18px: sustained readability is a floor like `--size-touch-target`, not a density dial, and `operator` is the mode most likely to be read for hours. | `mode.operator.css`, `B-75` |  | ✅ |
+| T21 | **Responsive type scales** — the reference recommends dropping to a smaller scale on mobile to avoid wrapping. We have no mechanism for this: a mode picks one ratio for all viewports. Not a divergence yet, because it was never considered. | `mode.*.css` |  | ⬜ |
 | --- | --- | --- | --- | --- |
 | T1 | Body **16 / 16 / 14px**. Editorial dropped 18→16 | `mode.*.css` | `01-modes.md` | ✅ |
 | T2 | **One scale, ratio 1.200**, all modes: 14/16/20/24/32/40 | `mode.*.css` | `01-modes.md` | ✅ |
 | T3 | Line height 1.65 body → 1.05 display. **Floor 1.5 on body/secondary, all modes** | `mode.*.css` | `01-modes.md` | ✅ |
-| T4 | Measure 68 / 60 / 72ch. **Settled by `T12`.** The reference gives a range — 40–80 characters — not per-mode values, and `T12` reconciled that range. All three of ours sit inside it (68, 60, 72), verified against `mode.*.css`. The split between modes is our own choice within a reconciled rule, not a divergence from one. | `mode.*.css` | `01-modes.md` | ✅ |
+| T4 | Measure 68 / 60 / 72ch. **Confirmed directly** (p.248): "ensure text is 40–80 characters per line (including spaces)", with a diagram marking 40–80 as the ideal span. Our three values sit inside it. The reference gives one range and no per-mode split, so the split is ours within a settled rule. | `mode.*.css` | `01-modes.md` | ✅ |
 | T7 | Line height = size + 8, on 4pt grid | `mode.*.css` | `01-modes.md` | ✅ |
 | T8 | **Line heights unitless, not px.** 1.5 floor on body/secondary | `mode.*.css` | `01-modes.md` | ✅ |
-| T5 | Weight 400 body minimum, 600 headings. **Same claim as `T11`, in numbers.** `T11` reconciled "two weights only, regular + bold"; 400 and 600 are those two weights, and `mode.*.css` defines exactly those and no others in all three modes. | `mode.*.css`, `B-14` | `01-modes.md` | ✅ |
-| T6 | Negative tracking on headings only. **Consistent with `T17`**, which reconciled "letter spacing tightens as size grows". Verified: `--tracking-body` is 0 in every mode, and only `--tracking-h1`/`h2` go negative. Two things the row never said, now recorded — `operator` sets both headings to 0, since a 1.125 ratio barely grows and there is nothing to tighten; and `--tracking-caps` is *positive* (0.06em, 0.07em in `operator`), which is a different job and not a counter-example. | `mode.*.css` | `01-modes.md` | ✅ |
+| T5 | Weight 400 body minimum, 600 headings. **Confirmed directly** (p.239): "use regular and bold font weights only", with thin, light *and semi-bold* crossed out in the diagram — and the carve-out that "some typefaces have a semi-bold font option that you can use instead of bold if bold is too heavy", which is what our 600 is. The reference gives **no numeric weights anywhere**, so 400/600 are ours. It adds a rule we should hold: "reserve very thin or thick font weights for headings and larger text, as they can be difficult to read at smaller sizes". | `mode.*.css`, `B-14` | `01-modes.md` | ✅ |
+| T6 | Negative tracking on headings only. **Confirmed in substance, and the row overstates it** (p.253): the reference says "decrease letter spacing for large text… decrease letter spacing more as text gets bigger". It frames this by *size*, not by *headings* — and notes text-type faces, used for long body, generally do not need it. Our headings are our large text, so the effect is the same, but "headings only" is a stronger claim than the source makes. No numeric values are given anywhere, so ours are ours. **`--tracking-caps` (positive, 0.06em / 0.07em) is not covered at all** — the chapter says nothing about all-caps tracking, so that token is unreconciled rather than adopted. | `mode.*.css` | `01-modes.md` | ✅ |
 
 ## Simplification
 
