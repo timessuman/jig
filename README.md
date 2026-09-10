@@ -251,6 +251,19 @@ contrast below the floor (`C-19`), removed focus rings (`E-29`), gradient text
 (`A-02`), backdrop blur (`A-04`), pure black and white (`C-18`), and the
 violet-band hue check (`A-01`, which asks rather than fails).
 
+**It also reads the token layer itself.** `.jig/tokens/*.css` is not application
+code, so no detector scans it — but it is where a mistake costs most, since every
+call site inherits it. `check` reads back what is declared there and holds it to
+the floors the token layer claims: 4.5:1 for text roles, 3:1 for interface
+strokes, **in both light and dark**, plus `--text-prose` at 18px and
+`--size-touch-target` at 48px. Only floors, never density: `--size-control` at
+28px is a deliberate `operator` choice, and reporting it would teach you to
+ignore the ones that matter.
+
+This is what makes a hand-written or agent-written token layer safe to have.
+`init` validates a colour once, when it writes it; without this, anything edited
+afterwards was never looked at again.
+
 Two deliberate limits. A bare `p-4` is **not** a finding — it resolves through a
 scale, which is what a scale is for, and the scale is your project's decision.
 And a colour outside the framework's default palette is not resolved rather than

@@ -9,6 +9,7 @@ import { loadSpecs } from '../rules/specs.js';
 import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
+import { auditTokenLayer } from '../check/token-audit.js';
 import type { Finding } from '../check/types.js';
 
 export interface CheckOptions {
@@ -164,6 +165,33 @@ export function check(opts: CheckOptions): CheckResult {
   });
 
   const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates);
+
+  // The token layer's OWN declarations, which no detector reads: `.jig/tokens/`
+  // is not in the scanned set, so until this ran, a brand file edited after
+  // `init` wrote it went unexamined for good. Not a per-file detector, because
+  // it is not a property of any one scanned file — it is a property of the
+  // project's token layer, and it holds whether or not the diff touched it.
+  //
+  // Findings cite `C-19` for a contrast failure and `B-75` for prose type,
+  // because those are the rules being broken; the token layer is where they are
+  // broken most consequentially, since every call site inherits it.
+  const TOKEN_RULE: Record<string, string> = {
+    '--text-prose': 'B-75',
+    '--size-touch-target': 'E-51',
+  };
+  for (const problem of auditTokenLayer(opts.projectRoot)) {
+    const ruleId = TOKEN_RULE[problem.token] ?? 'C-19';
+    const entry = index.find((e) => e.id === ruleId);
+    findings.push({
+      ruleId,
+      detector: 'token-layer',
+      bucket: entry?.bucket ?? 'mechanical',
+      severity: entry?.severity ?? 'error',
+      file: problem.file,
+      line: problem.line,
+      message: problem.message,
+    });
+  }
 
   const hasError = findings.some((f) => f.bucket === 'mechanical' && f.severity === 'error');
   // H-47 skips files that have not adopted the token layer. When NO scanned
