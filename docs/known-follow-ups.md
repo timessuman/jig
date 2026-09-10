@@ -34,6 +34,25 @@ moved.
 
 ## Deferred findings, verbatim from the run ledger
 
+_Triaged 2026-09-10. These are the implementer/reviewer notes as written at the
+time; most are test-quality observations about code that has since been
+rewritten, and they are kept verbatim rather than edited because their value is
+as a record of what was noticed and waved through. Three were checked because
+they had real consequences:_
+
+- _**"rules-real.test.ts resolves the real file via process.cwd()"** — was still
+  true, and worse than the note suggests. Run from the repo root it failed with
+  ENOENT against `$HOME/rules/`; it only passed because `npm test` happens to
+  run with cwd = `packages/cli`. The same bug was in `init-migrate.test.ts`
+  (seven sites) and `init-command.test.ts`. All now derive from the package
+  location, and the suite passes from either directory._
+- _**"skillFilesFor has NO caller — install MUST route through it or the
+  path-escape guard is dead code"** — resolved. Both `install.ts` and
+  `update.ts` call it._
+- _**"SKILL_DESCRIPTION is interpolated unquoted into YAML frontmatter"** —
+  resolved. Both descriptions go through `quoteYamlString`._
+
+
 - Task 1: minor (deferred): packages/cli/.gitignore added on implementer initiative — reviewer verified pattern semantics correct (nested .gitignore anchors to its own subtree; repo-root rules/tokens/LICENSE/NOTICE remain tracked). No action needed.
 - Task 1: minor (deferred): npm audit reports 5 transitive dev-only vulns via vitest/esbuild/vite. Not in shipped package.
 - Task 2: minor (deferred): multi-marker guard (first ❌/✅ wins) verified by trace but has no regression test — no real rule has two markers.

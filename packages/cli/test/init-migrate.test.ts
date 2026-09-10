@@ -12,6 +12,9 @@ import {
 } from '../src/init/migrate.js';
 import { checksum } from '../src/install/manifest.js';
 import { init } from '../src/commands/init.js';
+// `repoRoot` comes from the package location, never `process.cwd()` — these
+// resolved to `$HOME` when vitest was invoked from the repo root.
+import { repoRoot } from './helpers/registered-commands.js';
 
 let project: string;
 let home: string;
@@ -263,7 +266,7 @@ describe('init — migration integration', () => {
     seedLegacyInstall();
     const lines: string[] = [];
     const prompt = async (q: string) => (q.includes('Remove these') ? 'y' : '');
-    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
 
     expect(lines.some((l) => l.includes('pre-0.4.0 Jig install'))).toBe(true);
     expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(false);
@@ -273,7 +276,7 @@ describe('init — migration integration', () => {
   it('leaves legacy files in place when consent is withheld', async () => {
     seedLegacyInstall();
     const prompt = async (q: string) => (q.includes('Remove these') ? 'n' : '');
-    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: false, prompt, log: NOOP_LOG });
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: NOOP_LOG });
 
     expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(true);
   });
@@ -282,7 +285,7 @@ describe('init — migration integration', () => {
     seedLegacyInstall({ editRule: true });
     const lines: string[] = [];
     const prompt = async (q: string) => (q.includes('Remove these') ? 'y' : '');
-    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
 
     expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(true);
     expect(readFileSync(join(project, '.jig', '00-anti-patterns.md'), 'utf8')).toContain('A-99 mine');
@@ -293,7 +296,7 @@ describe('init — migration integration', () => {
   it('--yes never deletes anything automatically, but still reports', async () => {
     seedLegacyInstall();
     const lines: string[] = [];
-    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: true, log: (l) => lines.push(l) });
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: (l) => lines.push(l) });
 
     expect(existsSync(join(project, '.jig', '00-anti-patterns.md'))).toBe(true);
     expect(lines.some((l) => l.includes('pre-0.4.0 Jig install'))).toBe(true);
@@ -307,7 +310,7 @@ describe('init — migration integration', () => {
     seedLegacyCursorInstall();
     const lines: string[] = [];
     const prompt = async (q: string) => (q.includes('Remove these') ? 'y' : '');
-    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
 
     expect(lines.some((l) => l.includes('legacy Cursor install'))).toBe(true);
     expect(existsSync(join(project, '.cursor', 'rules', 'jig.mdc'))).toBe(false);
@@ -317,7 +320,7 @@ describe('init — migration integration', () => {
   it('leaves the legacy Cursor .mdc in place when consent is withheld', async () => {
     seedLegacyCursorInstall();
     const prompt = async (q: string) => (q.includes('Remove these') ? 'n' : '');
-    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: false, prompt, log: NOOP_LOG });
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: NOOP_LOG });
 
     expect(existsSync(join(project, '.cursor', 'rules', 'jig.mdc'))).toBe(true);
   });
@@ -326,7 +329,7 @@ describe('init — migration integration', () => {
     seedLegacyCursorInstall({ editMdc: true });
     const lines: string[] = [];
     const prompt = async (q: string) => (q.includes('Remove these') ? 'y' : '');
-    await init({ projectRoot: project, packageRoot: join(process.cwd(), '..', '..'), homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: (l) => lines.push(l) });
 
     expect(existsSync(join(project, '.cursor', 'rules', 'jig.mdc'))).toBe(true);
     expect(readFileSync(join(project, '.cursor', 'rules', 'jig.mdc'), 'utf8')).toContain('my own notes');
