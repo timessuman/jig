@@ -116,13 +116,14 @@ overwrites a config or brand file you have edited.
 | `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. The only command that writes into your repo. |
 | `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
-| `explain <rule-id>` | Prints a rule in full — what it forbids, what to do instead, the version it arrived in, and who checks it. Also resolves the `P-` pattern and `M-` mode specs, which no rule index contains. |
+| `explain <rule-id \| word> [--list]` | Given an id, prints a rule in full — what it forbids, what to do instead, the version it arrived in, and who checks it. Also resolves the `P-` pattern and `M-` mode specs, which no rule index contains. Given a **word**, searches every title and body and lists what matches, so you can find a rule you cannot name. `--list` prints every id, or one section's. |
 
 Flags worth knowing:
 
 | Flag | Effect |
 | --- | --- |
 | `check --all` | Scan the whole repo instead of just changed files. Use on a first run. |
+| `explain --list` | Every rule id and title. Add a section letter (`explain G --list`) for one section. |
 | `check --ci` | Mechanical bucket only — deterministic, and exits non-zero on any error. |
 | `check --json` | Machine-readable findings, for tooling or for reading every finding when the terminal output elides repeats. |
 | `init --yes` | Non-interactive; accept every derived default. |
@@ -144,6 +145,7 @@ on the result — the CLI reports, the agent applies the judgment half.
 | `/jig init` | `jig init` — then states the mode it chose and what it wired |
 | `/jig check` | `jig check` — then applies the 97 judgment rules and reports both halves |
 | `/jig explain C-19` | `jig explain C-19` — prints the rule as-is, without paraphrasing it |
+| `/jig explain contrast` | `jig explain contrast` — every rule matching a word, when you do not have an id |
 | `/jig install --agent cursor` | `jig install --agent cursor` |
 | `/jig update` | `jig update` |
 
