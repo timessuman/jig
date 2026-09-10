@@ -60,9 +60,35 @@ Modes **select** from these; they never define their own values. `--spacing-card
 
 | Mode | Ratio | | Caption | Body (UI) | Prose | H3 | H2 | H1 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `editorial` | 1.250 Major Third | | 14 | 16 | 18 | 24 | 32 | 48 |
-| `product` | 1.200 Minor Third | | 14 | 16 | 18 | 20 | 24 | 32 |
+| `editorial` | 1.250 Major Third | | 14 | 16 | 18 | 24 | 24–32 | 32–48 |
+| `product` | 1.200 Minor Third | | 14 | 16 | 18 | 20 | 20–24 | 24–32 |
 | `operator` | 1.125 Major Second | | 12 | 14 | 18 | 16 | 18 | 22 |
+
+**A range means the heading is fluid.** `32–48` is not two values to choose
+between: `--text-h1` interpolates continuously with viewport width, reaching its
+minimum at a 360px viewport and its maximum at 1024px, saturating outside that
+range. There is no breakpoint here and none anywhere else in the system — a
+`clamp()` has no threshold to place, which is exactly why it was chosen over a
+second `-sm` scale.
+
+Editorial `--text-h1` at a fixed 48px gives **13 characters per line** on a
+360px screen, so a 45-character headline sets as four lines and 211px of
+headline. At the 32px minimum the same headline is three lines and half the
+height. `operator` has no fluid headings because its largest is 22px, which
+already fits about 28 characters — the mechanism is absent because the problem
+is.
+
+**The bounds are in `rem`, and that is load-bearing.** `clamp(32px, 8vw, 48px)`
+ignores a reader who has raised their default font size: page zoom scales `vw`,
+a font-size preference does not. Every term stays `rem`-based so the whole curve
+moves with the user's setting, which WCAG 1.4.4 requires.
+
+**Only headings are fluid.** Body and prose are fixed at every width on purpose.
+Readability is absolute — set by the eye and viewing distance, not by screen
+width — while heading size is relative, existing to contrast with body, and that
+contrast can compress when less content competes for the view. A fluid
+`--text-prose` would also breach the 18px floor at narrow widths (`B-75`,
+`T20`). What responds for body text is the **measure**, via the container.
 
 `editorial` omits the rung the ratio would put between H2 and H1 (a step near 40); the ratio names the ladder, not every adjacent step — its H2→H1 jump (32→48) is 1.5, not 1.25.
 

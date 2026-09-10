@@ -28,9 +28,27 @@
   --text-body:    16px;  --leading-body:    1.5;    /* UI text: labels, controls */
   --text-prose:   18px;  --leading-prose:   1.6;    /* LONG-FORM text. Never below 18. */
   --text-lead:    20px;  --leading-lead:    1.5;
+
+  /* H1 and H2 are FLUID: they interpolate with viewport width instead of
+     switching at a breakpoint, which is why this system defines no breakpoint
+     token. Each clamp is the line through (360px viewport, min) and (1024px,
+     max); outside that range it saturates at the bounds.
+
+     The `rem` term is not decoration. `clamp(32px, 8vw, 48px)` would ignore a
+     reader who has set a larger default font size — page zoom scales `vw`, a
+     font-size preference does not — which fails WCAG 1.4.4. Keeping every term
+     in `rem` plus `vw` means the whole curve moves with the user's setting.
+
+     Only headings. Body and prose stay fixed: readability is absolute, set by
+     the eye and viewing distance, while heading size is relative — it exists to
+     contrast with body, and that contrast can compress on a narrow screen. A
+     fluid `--text-prose` would also breach the 18px floor (B-75, T20).
+
+     The minimums land on rungs the ladder already has rather than on new
+     values. Line heights are unitless, so they follow the size for free. */
   --text-h3:      24px;  --leading-h3:      1.333;
-  --text-h2:      32px;  --leading-h2:      1.25;
-  --text-h1:      48px;  --leading-h1:      1.1;
+  --text-h2:      clamp(1.5rem, 1.229rem + 1.205vw, 2rem);  --leading-h2: 1.25;   /* 24 → 32 */
+  --text-h1:      clamp(2rem, 1.458rem + 2.41vw, 3rem);     --leading-h1: 1.1;    /* 32 → 48 */
 
   /* Two weights only. More adds noise and is hard to apply consistently. */
   --font-weight-regular: 400;

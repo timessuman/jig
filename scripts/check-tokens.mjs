@@ -46,14 +46,57 @@ if (rows.length !== 3) {
 
 for (const [, mode, cells] of rows) {
   const css = read(`tokens/mode.${mode}.css`);
-  const sizes = cells.match(/\d+/g) ?? [];
-  if (sizes.length !== TYPE_COLUMNS.length) {
-    fail(`${mode}: type table has ${sizes.length} sizes, expected ${TYPE_COLUMNS.length}`);
+  const values = cells.split('|').map((c) => c.trim()).filter(Boolean);
+  if (values.length !== TYPE_COLUMNS.length) {
+    fail(`${mode}: type table has ${values.length} sizes, expected ${TYPE_COLUMNS.length}`);
     continue;
   }
+
   TYPE_COLUMNS.forEach((token, i) => {
-    if (!new RegExp(`${token}:\\s*${sizes[i]}px`).test(css)) {
-      fail(`${token} is not ${sizes[i]}px in mode.${mode}.css, but 02-tokens.md says it is`);
+    const cell = values[i];
+
+    // A plain number is a fixed size.
+    if (/^\d+$/.test(cell)) {
+      if (!new RegExp(`${token}:\\s*${cell}px`).test(css)) {
+        fail(`${token} is not ${cell}px in mode.${mode}.css, but 02-tokens.md says it is`);
+      }
+      return;
+    }
+
+    // `32–48` is a fluid size: a clamp whose bounds are those two values.
+    const range = /^(\d+)[–-](\d+)$/.exec(cell);
+    if (!range) {
+      fail(`${mode}: "${cell}" in the type table is neither a size nor a range like 32–48`);
+      return;
+    }
+    const [, minPx, maxPx] = range.map(Number);
+
+    const decl = new RegExp(
+      `${token}:\\s*clamp\\(\\s*([\\d.]+)rem\\s*,\\s*([\\d.]+)rem\\s*\\+\\s*([\\d.]+)vw\\s*,\\s*([\\d.]+)rem\\s*\\)`,
+    ).exec(css);
+    if (!decl) {
+      fail(`02-tokens.md says ${token} is fluid (${cell}) in ${mode}, but mode.${mode}.css ` +
+           `does not declare it as clamp(<rem>, <rem> + <vw>, <rem>). ` +
+           `Every term must be rem-based — a px or bare vw bound ignores the reader's font-size setting (WCAG 1.4.4).`);
+      return;
+    }
+    const [, lo, intercept, slope, hi] = decl.map(Number);
+
+    if (lo * 16 !== minPx || hi * 16 !== maxPx) {
+      fail(`${token} in ${mode} clamps to ${lo * 16}–${hi * 16}px, but 02-tokens.md says ${cell}`);
+      return;
+    }
+
+    // The bounds can be right while the curve between them is wrong. The doc
+    // states the range is reached at a 360px viewport and at 1024px, so check
+    // the preferred term actually passes through those two points — otherwise
+    // the heading saturates somewhere else entirely and the doc is fiction.
+    for (const [vw, expected] of [[360, minPx], [1024, maxPx]]) {
+      const actual = intercept * 16 + (slope / 100) * vw;
+      if (Math.abs(actual - expected) > 0.5) {
+        fail(`${token} in ${mode}: at a ${vw}px viewport the clamp computes ` +
+             `${actual.toFixed(2)}px, but the stated range wants ${expected}px there.`);
+      }
     }
   });
 }

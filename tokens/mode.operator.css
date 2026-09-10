@@ -36,6 +36,10 @@
      operator surface; when it appears, it is legible. */
   --text-prose:   18px;  --leading-prose:   1.6;    /* LONG-FORM text only */
   --text-lead:    16px;  --leading-lead:    1.5;
+  /* No fluid headings here, unlike editorial and product. This mode's largest
+     heading is 22px, which already fits ~28 characters per line on a 360px
+     screen — fluid sizing would have nothing to do. The mechanism is absent
+     because the problem is, not by oversight. */
   --text-h3:      16px;  --leading-h3:      1.5;
   --text-h2:      18px;  --leading-h2:      1.4;
   --text-h1:      22px;  --leading-h1:      1.333;
