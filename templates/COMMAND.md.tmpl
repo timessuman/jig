@@ -57,11 +57,23 @@ Print the CLI's output as it stands. It is already the rule's full text — do n
 summarise it, and do not paraphrase the correction into your own words: the
 wording is the rule.
 
+**It takes a word as well as an id.** `explain contrast` searches every title
+and body and lists what matches; one match prints in full. Use it whenever you
+are about to reason about an area of the system rather than a specific finding
+— before reviewing colour, before writing motion — instead of guessing which
+rules apply or reading a whole rule file to find out. `explain <letter> --list`
+prints one section, `explain --list` prints every id.
+
+Reach for this before paraphrasing the rules from memory. A rule you half-recall
+is the failure mode this command exists to prevent.
+
 If the id is a `P-` or `M-` spec, the output says it is a specification rather
 than a rule, with no ❌/✅ pair and no detector. That is correct, not a gap.
 
-If the id does not exist, the error names every id in that section. Offer the
-nearest one rather than guessing what the user meant.
+A well-formed id that does not exist errors, naming every id in that section —
+offer the nearest one rather than guessing what the user meant. A word that
+matches nothing errors differently, suggesting `--list`; that is a search with
+no hits, not a typo, so widen the word rather than inventing an id.
 
 ## update
 

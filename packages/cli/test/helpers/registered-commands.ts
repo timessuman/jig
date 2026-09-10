@@ -29,3 +29,30 @@ export function commandMetadata(): Record<
 > {
   return JSON.parse(readFileSync(join(repoRoot, 'templates/command-metadata.json'), 'utf8'));
 }
+
+/**
+ * Every long flag each command registers, read out of `src/index.ts` the same
+ * way and for the same reason.
+ *
+ * `.option('--list', ...)` lines are attributed to the nearest preceding
+ * `.command('x')`, which is exactly how commander scopes them.
+ */
+export function registeredFlags(): Record<string, string[]> {
+  const src = readFileSync(join(repoRoot, 'packages/cli/src/index.ts'), 'utf8');
+  const out: Record<string, string[]> = {};
+  let current: string | null = null;
+  for (const line of src.split('\n')) {
+    const cmd = /^\s*\.command\('([a-z-]+)'\)/.exec(line);
+    if (cmd) {
+      current = cmd[1];
+      out[current] ??= [];
+      continue;
+    }
+    if (!current) continue;
+    const opt = /^\s*\.option\(\s*'([^']*)'/.exec(line);
+    if (opt) {
+      for (const m of opt[1].matchAll(/--[a-z][a-z-]*/g)) out[current].push(m[0]);
+    }
+  }
+  return out;
+}
