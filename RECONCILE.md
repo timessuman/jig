@@ -215,6 +215,7 @@ records its removal.
 | M1 | 250 / 150 / 100ms base per mode. **This reference has no motion chapter**, confirmed by its owner. Four chapters read — Colour, Typography, Layout and spacing, Buttons — gave no duration in ms or seconds anywhere; the closest is "make sure the animation is quick and subtle, so it doesn't get in the way of the user completing their task". **A second source was read in full and gives no number either** (see "The second source, on motion" below): it names duration as one of four building blocks of motion and says timing should differ by context — "consistency doesn't mean everything we do should move with the same timing for the same duration through every screen" — which is an argument for varying duration per mode, but never states a value. The numbers stay ours, now on the second source's reasoning rather than for want of one. | `mode.*.css` |  | ➖ |
 | M2 | Entrance animation: editorial first viewport only. Neither the primary reference nor the first motion source covers scroll- or load-triggered entrance animation. **A third source sharpened it rather than sourcing it**: an agency article on motion in UX (see below) makes the repeat-visitor argument outright — "some users may visit your page multiple times, there's no need to reintroduce yourself every single time" — plus a one-click skip. Our rule said "once" without saying once per *what*, which a reader could satisfy by replaying on every page load. `G-42` and both mode tables now say once per visitor, skippable. The first-viewport scope stays ours. | `01-modes.md`, `G-42` |  | ✅ |
 | M3 | **Easing direction is now stated.** We shipped `--ease-out` and `--ease-in-out` in every mode with no rule for choosing between them — a token pair with no usage guidance, which is the same failure as a pointer that leads nowhere. The second source gives the rule directly: "ease-out objects that are entering or gaining attention, and ease-in objects that are leaving and losing attention", because natural forces accelerate and only lightning appears instantly. Adopted in `02-tokens.md`, with one deliberate difference: we ship no pure `--ease-in`, so exits take `--ease-in-out`. Exits here fade or collapse in place rather than fly off screen, and a third easing token bought only that case. | `02-tokens.md` | `mode.*.css` | ✅ |
+| M4 | **A third category of motion, which we did not have.** Our whole motion model was interaction and transition motion — `--duration-fast/base/slow` at 75–300ms, `G-44` capping at 300ms. A Smashing Magazine article by Andy Clarke on ambient animation (<https://www.smashingmagazine.com/2025/09/ambient-animations-web-design-principles-implementation/>) names and demonstrates a category that runs at 3–6s per loop, forever, and must never be noticed. **Our rules would have answered a request for one by refusing it**: `G-44` said 500ms+ is too long, full stop, with no scope on the claim. That is a rule overreaching past the case it was written for. `G-44` is now scoped to motion that answers an input or carries a state change, and `P-13` states the ambient category — seconds not milliseconds, seamless loop, layered varied periods, `aria-hidden`, reduced-motion wrapper, compositor-only properties, `editorial` only. | `P-13`, `G-44` | `01-modes.md` | ✅ |
 
 
 ### The second source, on motion
@@ -249,6 +250,22 @@ wrong password shakes the field *and* vibrates the phone — exposed that `G-43`
 stated the reduced-motion obligation without stating its consequence: honouring
 the reduced path deletes any signal carried by motion alone, exactly as `C-20`
 describes for colour. `G-43` now says so.
+
+**A fourth source, the one that changed the model.** Andy Clarke's article on
+ambient animation is the only motion source read for these rows that contains
+working values — 3s and 6s loops, `ease-in-out`, `alternate`, keyframe sets — and
+the only one that found something structurally missing rather than a wording
+looseness. It is worth saying plainly what went wrong on our side: `G-44` was
+written about interaction feedback and then stated as though it governed all
+motion. Nothing in it was false; it simply never said what it was about, so it
+answered a question it had never considered. Two rules added this session had the
+same shape (`G-42`'s "once", `G-43`'s missing consequence), which suggests the
+review to run next is not "is this rule right" but "does this rule say what it is
+about".
+
+Part 2 of that article was not published when this was written. Worth reading for
+`M4` when it appears — it covers ambient motion in client work rather than in an
+illustration, which is the harder case.
 
 ---
 

@@ -380,6 +380,59 @@ Reveal information as it is needed rather than all at once. Costs an interaction
 
 ---
 
+## P-13 · Ambient motion
+
+A third category of motion, alongside the two this system already had. **Interaction
+motion** answers an input; **transition motion** carries the user between states or
+views. Both are measured in milliseconds and both are covered by `G-44`. **Ambient
+motion** is neither: slow, looping, decorative movement that gives a surface
+atmosphere without ever asking to be looked at — smoke drifting, a sway, a slow
+colour shift. It is passive, it runs without input, and it never ends.
+
+The distinction matters because the two categories pull in opposite directions.
+Interaction motion must finish before the user perceives a wait, so it is fast.
+Ambient motion must never be noticed, so it is **slow** — fast ambient motion reads
+as a glitch or a demand for attention, which is the one thing it must not be.
+
+**Mode variance is total, not a matter of degree.** Ambient motion is `editorial`
+only. `product` and `operator` have none, and this is not a density setting to be
+turned down — a surface someone works in all day must not have anything moving on
+it that they did not cause. Motion in those modes always means something changed.
+
+**Rules**
+- **Seconds, not milliseconds.** 3–6s per cycle is the working range. `G-44`'s
+  100–300ms ceiling does not apply here and says so.
+- **Not tokenised, deliberately.** Ambient durations are composition values, like
+  keyframe percentages, not design decisions reused across a system. Layered ambient
+  motion depends on its parts having *different* periods — a single shared token
+  would synchronise them into one visible pulse, which is the failure mode. This is
+  the narrow exception to `H-47`, and it is narrow: only the durations and offsets
+  inside a decorative loop.
+- **Loop seamlessly.** Match the first and last keyframe, or use
+  `animation-direction: alternate`. A hard reset is a flicker, and a flicker is
+  noticed.
+- **Layer several small movements rather than one large one.** Varied periods and
+  delays read as alive. One movement reads as a widget.
+- **Test it by not looking at it.** If your eye is pulled to it while you read the
+  page, it is too strong. Reduce until you would only catch it if you were looking
+  for it.
+- **`aria-hidden="true"`** on purely decorative animated elements. They carry no
+  information, so they are clutter in the accessibility tree.
+- **Wrap it in `@media (prefers-reduced-motion: no-preference)`** — the whole
+  declaration, so the reduced path is absence rather than a shortened loop (`G-43`).
+  Ambient motion is the easiest case there is: it means nothing, so removing it
+  costs nothing.
+- **Animate `transform` and `opacity`.** These run on the compositor. A loop that
+  runs forever on every frame the page is open cannot afford animated `blur`,
+  `box-shadow`, or anything that triggers layout — the cost is not paid once, it is
+  paid continuously, on whatever device the reader has.
+
+**Anti-pattern:** ambient motion used to direct attention. It is atmosphere, not a
+signal. The moment it points at something it has become interaction motion badly
+done, and `G-42` applies instead.
+
+---
+
 ## Layout method
 
 Not a component. The procedure for structuring any screen, before styling anything.

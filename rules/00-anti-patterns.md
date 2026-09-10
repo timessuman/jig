@@ -447,6 +447,8 @@ Where people must *browse* to decide, split the list into two dependent fields �
 ❌ 500ms+ on UI feedback
 ✅ 100–200ms for state change, up to 300ms for larger transitions. If it can be perceived as waiting, it is too slow.
 
+**Scope: this is about motion that answers an input or carries a state change.** It is not a ceiling on every animation on the page. Slow decorative looping motion — see `P-13` — runs for seconds by design, and is not covered here. The reason the two differ is the reason the numbers differ: interaction motion sits between the user and their task, so it must get out of the way; ambient motion is never in the way, so speed would only make it noticeable.
+
 ---
 
 ## H. Code-level
