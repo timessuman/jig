@@ -6,7 +6,7 @@ document.querySelectorAll('[data-mode]').forEach((b) =>
   b.addEventListener('click', () => {
     // Listener first: the new stylesheet loads asynchronously, so reading the
     // computed values before `load` fires would report the outgoing mode.
-    $('#mode').addEventListener('load', renderDiagnostics, { once: true });
+    $('#mode').addEventListener('load', () => { renderDiagnostics(); annotateType(); }, { once: true });
     $('#mode').href = `../../tokens/mode.${b.dataset.mode}.css`;
     document.querySelectorAll('[data-mode]').forEach((o) =>
       o.setAttribute('aria-pressed', String(o === b)));
@@ -52,10 +52,31 @@ const TYPE = [
   ['--text-h3', '--leading-h3'], ['--text-h2', '--leading-h2'], ['--text-h1', '--leading-h1'],
 ];
 $('#type').innerHTML = TYPE.map(([size, leading]) => `
-  <p style="font-size:var(${size});line-height:var(${leading});margin-block:var(--spacing-xs)">
+  <p data-token="${size}" style="font-size:var(${size});line-height:var(${leading});margin-block:var(--spacing-xs)">
     ${size.replace('--text-', '')} — the quick brown fox jumps over the lazy dog
     <code style="color:var(--color-text-weak);font-size:var(--text-caption)">${size}</code>
+    <code class="computed"></code>
   </p>`).join('');
+
+// --text-h1 and --text-h2 are clamp() in editorial and product, so the specimen
+// alone cannot tell you whether a fluid size is behaving — at any one width it
+// looks like a fixed number. Print what each token ACTUALLY computes to at the
+// current viewport, name the range for the fluid ones, and re-read on resize.
+// Without this the preview renders every token and still shows nothing about
+// the one property most likely to break.
+function annotateType() {
+  const root = getComputedStyle(document.documentElement);
+  document.querySelectorAll('#type p[data-token]').forEach((p) => {
+    const declared = root.getPropertyValue(p.dataset.token).trim();
+    const px = Math.round(parseFloat(getComputedStyle(p).fontSize) * 10) / 10;
+    const rems = [...declared.matchAll(/([\d.]+)rem/g)].map((m) => Number(m[1]) * 16);
+    p.querySelector('.computed').textContent = declared.startsWith('clamp(')
+      ? `${px}px — fluid ${rems[0]}–${rems[rems.length - 1]} @ ${window.innerWidth}px wide`
+      : `${px}px — fixed`;
+  });
+}
+annotateType();
+addEventListener('resize', annotateType);
 
 const SPACE = ['--spacing-2xs', '--spacing-xs', '--spacing-s', '--spacing-m',
                '--spacing-l', '--spacing-xl', '--spacing-xxl'];
