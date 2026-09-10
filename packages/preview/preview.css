@@ -121,6 +121,45 @@ tbody tr { height: var(--size-row); }
 .motion-chip:hover { transform: translateY(calc(-1 * var(--spacing-2xs))); background: var(--color-fill-brand); }
 @media (prefers-reduced-motion: reduce) { .motion-chip { transition-duration: 1ms; } }
 
+/* Ambient motion (P-13). The whole animation sits inside a no-preference query
+   rather than being shortened under reduce — an infinite loop at 1ms is faster,
+   not calmer. The harness has to obey the rule it is demonstrating. In product and operator the duration tokens are undefined, so
+   `animation-duration` is invalid and the layers simply hold still. That is the
+   mode rule demonstrating itself, not a broken demo. */
+.ambient-demo {
+  position: relative; height: 7rem; overflow: hidden;
+  background: var(--color-fill); border: 1px solid var(--color-stroke-weak);
+  border-radius: var(--radius-surface); margin-top: var(--spacing-s);
+}
+.ambient-layer {
+  position: absolute; bottom: var(--spacing-s);
+  padding: var(--spacing-2xs) var(--spacing-xs);
+  border-radius: var(--radius-control);
+  background: var(--color-fill-brand); color: var(--color-text);
+}
+.ambient-drift   { left: 6%; }
+.ambient-sway    { left: 38%; }
+.ambient-breathe { left: 70%; }
+
+/* P-13: the whole ambient declaration, not just its duration. Under a reduce
+   preference no animation-name is ever set, so nothing starts — there is no
+   shortened loop to fall back to, which is the point. */
+@media (prefers-reduced-motion: no-preference) {
+  .ambient-layer {
+    animation-timing-function: var(--ease-in-out);
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+  }
+  .ambient-drift   { animation-name: ambient-drift; }
+  .ambient-sway    { animation-name: ambient-sway; }
+  .ambient-breathe { animation-name: ambient-breathe; }
+}
+
+@keyframes ambient-drift   { from { transform: translateY(0); }            to { transform: translateY(-1.5rem); } }
+@keyframes ambient-sway    { from { transform: translateX(0) rotate(-2deg); } to { transform: translateX(0.75rem) rotate(2deg); } }
+@keyframes ambient-breathe { from { opacity: 0.55; transform: scale(0.97); } to { opacity: 1; transform: scale(1.03); } }
+
+
 /* Lucide renders inline SVG that inherits currentColor, so an icon takes the
    colour of whatever it sits in — which is how --color-icon is meant to work. */
 [data-lucide] { width: var(--size-icon); height: var(--size-icon); flex: none; vertical-align: middle; }

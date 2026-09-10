@@ -402,12 +402,16 @@ it that they did not cause. Motion in those modes always means something changed
 **Rules**
 - **Seconds, not milliseconds.** 3–6s per cycle is the working range. `G-44`'s
   100–300ms ceiling does not apply here and says so.
-- **Not tokenised, deliberately.** Ambient durations are composition values, like
-  keyframe percentages, not design decisions reused across a system. Layered ambient
-  motion depends on its parts having *different* periods — a single shared token
-  would synchronise them into one visible pulse, which is the failure mode. This is
-  the narrow exception to `H-47`, and it is narrow: only the durations and offsets
-  inside a decorative loop.
+- **Use the tokens: `--duration-ambient-fast` (3s), `--duration-ambient-base`
+  (4.7s), `--duration-ambient-slow` (7.1s).** `H-47` applies here like everywhere
+  else — a raw `6s` in a keyframe rule is a hard-coded value past the token layer.
+  Give each layer a *different* one. The three periods are mutually prime by
+  construction so that layered loops never re-align into one visible pulse, which
+  is the whole failure mode of layered ambient motion; picking the same token for
+  every layer throws that away and is the one way to misuse them.
+- **Keyframe percentages and `animation-delay` offsets stay literal.** Those are
+  composition, not design decisions reused across the system, and tokenising them
+  would mean a token per animation.
 - **Loop seamlessly.** Match the first and last keyframe, or use
   `animation-direction: alternate`. A hard reset is a flicker, and a flicker is
   noticed.

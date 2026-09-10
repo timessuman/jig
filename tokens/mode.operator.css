@@ -74,6 +74,10 @@
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
+  /* No ambient duration tokens here, deliberately. Ambient motion is
+     editorial only (P-13) — a surface someone works in all day must not
+     have anything moving on it that they did not cause. */
+
   --font-numeric: var(--font-numeric-features);
 }
 

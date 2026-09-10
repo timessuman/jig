@@ -112,6 +112,9 @@ mode states its own value, because density is the thing a mode *is*.
 | `--duration-fast` | 150ms | 100ms | 75ms |
 | `--duration-base` | 250ms | 150ms | 100ms |
 | `--duration-slow` | 300ms | 200ms | 120ms |
+| `--duration-ambient-fast` | 3s | — | — |
+| `--duration-ambient-base` | 4.7s | — | — |
+| `--duration-ambient-slow` | 7.1s | — | — |
 | `--measure-prose` | 68ch | 60ch | 72ch |
 | `--ease-out` | cubic-bezier(0.16, 1, 0.3, 1) | cubic-bezier(0.16, 1, 0.3, 1) | cubic-bezier(0.2, 0, 0, 1) |
 | `--ease-in-out` | cubic-bezier(0.65, 0, 0.35, 1) | cubic-bezier(0.65, 0, 0.35, 1) | cubic-bezier(0.4, 0, 0.2, 1) |
@@ -121,6 +124,19 @@ heights because it has no dense record views, and `product` selects a single
 row height rather than a compact variant. A pattern that needs one in those
 modes is using the wrong mode, or the mode file needs the token added
 deliberately.
+
+**The ambient periods are a chord, not a ladder.** The three interaction
+durations are a scale — fast, base, slow, pick by weight of change. The three
+ambient ones (`P-13`) are not: they exist so that several looping animations
+running at once can each take a *different* period. Their values are mutually
+prime in tenths of a second, so the layers do not re-align into a single visible
+pulse — 3 / 4.7 / 7.1s first coincide past the two-hour mark, where 3 / 4 / 6s
+would coincide every twelve seconds. Pick a different one per layer; which one
+carries no meaning beyond speed.
+
+They are `editorial` only, and the `—` in the other two columns is an assertion:
+`product` and `operator` define nothing here, because a surface someone works in
+all day must not have anything moving on it that they did not cause.
 
 **Easing has a direction, and it is not a matter of taste.** Motion in the
 physical world starts and stops under acceleration, so an element that arrives
