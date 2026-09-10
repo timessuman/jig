@@ -370,11 +370,16 @@ Re-run after any significant edit to `00` or `03`.
 
 Written from general UI and accessibility practice, plus the constraints specific to agent-generated output — which is where most of the structure comes from: the anti-patterns-first ordering, the mode split, the brand × mode token architecture, and the decidability test applied to every rule.
 
-**The numeric defaults are being reconciled.** Type scale, spacing steps, control sizes
-and motion durations started as internally consistent guesses and are being checked, row by
-row, against an external reference on interface design. `RECONCILE.md` tracks the status of
-each: adopted, deliberately kept different, or still open. The accessibility floors are
-outside that process — contrast ratios and target sizes come from WCAG 2.1 AA and are not
+**The numeric defaults have been reconciled.** Type scale, spacing steps, control sizes
+and motion durations started as internally consistent guesses and were checked, row by row,
+against an external reference on interface design. `RECONCILE.md` records every row and its
+outcome — adopted, or deliberately kept different with the reason stated in one line. **0
+rows are open.** A divergence that is not argued is drift, so each one names its argument.
+
+The motion rows are the exception worth knowing about: that reference has no motion chapter,
+so those values were settled against separate sources and, where no source gave a number,
+kept as ours on stated reasoning rather than adopted. The accessibility floors were never
+part of the process — contrast ratios and target sizes come from WCAG 2.1 AA and are not
 adjustable.
 
 principles.design informed the rules-versus-principles split, and the standard

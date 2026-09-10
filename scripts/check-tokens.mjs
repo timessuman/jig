@@ -519,6 +519,50 @@ const LIGHT_BACKGROUNDS = {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Rule 12 — counts stated in prose match what is actually there.
+ *
+ * "These eight cover most of what generated UI gets wrong" sat in
+ * 03-patterns.md while the file held twelve pattern specs. It had been
+ * wrong since P-12 and got wronger with P-13, and nothing noticed because
+ * a number written as a word in a sentence is invisible to every other
+ * check here.
+ *
+ * These are the numbers a reader uses to decide whether they have the
+ * whole picture, which is exactly the kind that must not quietly drift.
+ * ------------------------------------------------------------------ */
+{
+  const index = JSON.parse(read('rules.index.json'));
+  const readme = read('README.md');
+  const patterns = read('rules/03-patterns.md');
+  const antiPatterns = read('rules/00-anti-patterns.md');
+
+  const claim = (label, source, re, actual) => {
+    const m = re.exec(source);
+    if (!m) {
+      fail(`Rule 12 could not find the ${label} claim — its wording changed, so ` +
+           `the number is no longer checked. Update this rule or restore the phrasing.`);
+    } else if (Number(m[1]) !== actual) {
+      fail(`${label} says ${m[1]}, but there are ${actual}.`);
+    }
+  };
+
+  claim('README rule count', readme, /(\d+) rules\b/, index.length);
+  claim('README judgment count', readme, /(\d+) judgment\b/, index.filter((r) => r.bucket === 'judgment').length);
+  claim("README's 00-anti-patterns row", readme, /\| (\d+) universal rules/,
+        (antiPatterns.match(/^### [A-Z]-\d+/gm) ?? []).length);
+  claim('03-patterns.md pattern count', patterns, /These (\d+) cover/,
+        (patterns.match(/^## P-\d+/gm) ?? []).length);
+
+  // The README states how many reconciliation rows are open. It went on saying
+  // the work was in progress, with rows "still open", for a while after the
+  // last one closed — a status claim nobody owns is a status claim that rots.
+  const openRows = read('RECONCILE.md')
+    .split('\n')
+    .filter((l) => /^\|\s*[A-Z]+\d+\s*\|/.test(l) && l.includes('\u2b1c')).length;
+  claim('README open-row count', readme, /\*\*(\d+)\s*\n?rows are open/, openRows);
+}
+
 if (failed) {
   console.error('\ntoken/doc check failed');
   process.exit(1);
