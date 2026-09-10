@@ -30,8 +30,16 @@ optical alignment, motion durations or component sizing, so `S4`, `S5`, `M1`,
 reading every page of both, not by sampling.
 
 **Because the PDF is replaced rather than added to, evidence has to be written
-into this file as it is found.** `C1` and `C4` still need Colour, which is no
-longer available; what `C4` did get is recorded in its row.
+into this file as it is found.**
+
+`C1` and `C4` were nearly lost to that. The brief for the Colour pass was
+written from memory and asked about three open rows while omitting those two,
+and the chapter was replaced before the omission surfaced. They were recovered
+from the illustration assets extracted out of that PDF — which had been
+dismissed as decorative, because the first one out was a background grid, when
+in a colour chapter the diagrams are exactly where the values live. Run
+`scripts/open-rows.mjs` before writing any brief; it prints the questions this
+one should have contained.
 
 One near-miss worth recording as method. A subagent's summary of the APCA scale
 quoted five thresholds where the book lists six, having elided one; our own doc
@@ -115,9 +123,9 @@ records its removal.
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
 | C12 | **Transparent foregrounds over solid elevation backgrounds** | `brand.default.css` |  | ✅ |
-| C13 | Opacity ladder 90/60/45/10/4 light · 100/78/60/12/6 dark | `brand.default.css` |  | ✅ |
-| C14 | Brand + system colours: 4 variations at 100/80/20/5 | `brand.default.css` |  | ✅ |
-| C15 | Three elevation backgrounds, consistent across modes | `brand.default.css` |  | ✅ |
+| C13 | Opacity ladder 90/60/45/10/4 light · 100/78/60/12/6 dark. **The light ladder is the reference's, to the number**: its neutral ramp is Text strong 90, Text weak 60, Stroke strong 45, Stroke weak 10, Fill 4. The dark ladder is ours — it raises every step, which the reference asks for in principle ("increase the contrast well above the minimum") without giving figures. | `brand.default.css` |  | ✅ |
+| C14 | Brand + system colours: 4 variations at 100/80/20/5. **Confirmed**: the reference's tonal ramp for each semantic colour is 100% Text, 80% Stroke strong, 20% Stroke weak, 5% Fill. | `brand.default.css` |  | ✅ |
+| C15 | Three elevation backgrounds, consistent across modes. **Confirmed to the number**: the reference's dark surfaces are Base 10, Raised 15, Overlay 20, which is exactly ours. | `brand.default.css` |  | ✅ |
 | C16 | Dark-mode depth from background, not shadow | `C-66` |  | ✅ |
 | C17 | Large text = 24px regular / 18px bold (was 20px bold) | `02-tokens.md` |  | ✅ |
 | C18 | Test contrast against `fill`, and `bg-overlay` in dark | `02-tokens.md` |  | ✅ |
@@ -136,13 +144,13 @@ records its removal.
 
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
-| C1 | Neutrals tinted with the brand hue, not independent greys. **Half true, and the row said otherwise.** Dark backgrounds are `hsl(var(--brand-h) 6% …)` and are tinted; light backgrounds are `oklch(0.980 0.004 95)` — a fixed warm hue independent of the brand — and every foreground in both modes is black or white at an opacity, so untinted by construction. The row also named `--brand-hue`, which does not exist; the token is `--brand-h`. Decide: extend the tint to light mode, or narrow the claim to dark. | `brand.default.css` |  | ⬜ |
+| C1 | Neutrals tinted with the brand hue. **The row misread the reference, which offers both and mandates neither.** It sets "Neutral greys" — `HSB(0, 0, B)`, zero saturation — beside "Monochromatic greys" tinted with the brand hue, presented as two techniques rather than a default and a mistake. We use one in each mode: light foregrounds are black at an opacity, so neutral; dark surfaces are `hsl(var(--brand-h) 6% …)`, so tinted, though at 6% against the reference's 20–30% — a fainter tint than it draws. That is a choice inside what the reference offers, not a divergence from it. | `brand.default.css` |  | ✅ |
 | C9 | Five neutral roles: text strong/weak, stroke strong/weak, fill | `brand.default.css` |  | ✅ |
 | C10 | Brand colour marks **all** interactive elements, nothing else | `I-56` |  | ✅ |
 | C11 | **Control borders need 3:1** (WCAG 1.4.11) | `02-tokens.md` |  | ✅ |
 | C2 | Near-black on off-white. **Resolved, and the reference's position is asymmetric.** It argues against pure black — "avoid pure black as it has a high contrast against white… opt for a dark grey instead", worked at `#1A1A1A` — which `--color-text-strong` at 90% black adopts. It does **not** argue against pure white: it recommends "use white backgrounds for light mode" outright. So the off-white half is ours, not the reference's, and `C-18` already says so in as many words — "this is a house preference and it is deliberate". Narrower than the row implied, too: only `--color-bg-base` is off-white; `--color-bg-raised` is pure white. | `C-18` |  | ➖ |
 | C3 | Text floor at ramp step `-700`; `-500` never text. **Confirmed, and the premise objection was half wrong.** The reference does state the floor as contrast ratios first — 4.5:1 for both text roles, 3:1 for strokes, with fills called "a decorative colour, so it doesn't need to be high contrast" — but it *also* defines a 0–1000 numbered primitive ramp, where higher means more contrast. In its own worked palette `grey.light.1000` (90%) is text-strong, `grey.light.700` (65%) is text-weak, and `grey.light.500` is stroke-strong at 3:1, non-text. So 700 is the lightest step used for text and 500 is never text — exactly this row, in the reference's ascending notation rather than our negative one. One value differs: its text-weak is 65% black, ours is 60%, which is lighter. Both clear 4.5:1 (enforced by `check-tokens` rule 5), so this is a choice inside the rule, not a breach of it. | `02-tokens.md` contrast contract |  | ✅ |
-| C4 | Semantic hues **0 / 42 / 162 / 220** (error / warning / success / info). This row previously read 25 / 75 / 150 / 240, which matched no token — the hues moved and the row did not. **Partial evidence found.** The Colour extract shows the reference working in HSB and mapping `HSB(162, 95, 48)` → `green.light.1000` → `text.success`; our `--success-h` is 162, an exact match on the one hue that could be checked before the extract was replaced. The other three were not verified. Note for whoever resumes: the claim that the reference gives no HSB values for system colours is **wrong** — it does, and this page is the counter-example. | `brand.default.css` | `02-tokens.md` | ⬜ |
+| C4 | Semantic hues **0 / 42 / 162 / 220** (error / warning / success / info). **Confirmed exactly on the three the reference defines.** It gives red `HSB(0, 71, 78)`, amber `HSB(42, 82, 56)`, green `HSB(162, 95, 48)` — hues 0, 42 and 162, matching ours to the number. It defines **no fourth** semantic colour: its component sheet shows Error, Warning and Success only, and its hue-230 token is labelled Brand, not Info. So `--info-h: 220` is ours, which `C25` already records as a deliberate fourth. Only the hues are comparable: the reference works in HSB and we work in HSL, so its saturation and brightness figures do not map onto our S and L directly. | `brand.default.css` | `02-tokens.md` | ✅ |
 | C5 | Dark mode: surfaces lighten, no inversion. **Confirmed directly.** The reference builds exactly our three levels — "Base, the darkest colour for the main background… Raised, slightly brighter than the base… Overlay, slightly brighter than the raised" — matching `C15` and verified at 10% → 15% → 20% lightness. On shadows: "shadows can be difficult to see in dark interfaces, so you mostly need to rely on colour to indicate depth", which is `C16`. It also prescribes transparent foregrounds so a colour stays legible across those surfaces, which is `C12`. **The "no inversion" half is an inference, not a quotation** — the reference never warns against flipping a light palette; it constructs the two independently and requires dark to be contrast-checked on its own ("increase the contrast well above the minimum WCAG requirements for dark interfaces"), which our separate dark ladder in `C13` satisfies. | `C-21`, `brand.default.css` |  | ✅ |
 
 ## Spacing and layout
