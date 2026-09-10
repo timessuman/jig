@@ -166,19 +166,34 @@ word, which is how the stale I2 entry was caught._
   inside `createGlobalStyle` is one brace deep while being conditional on
   nothing.
 
-## Open questions raised by the source, not yet acted on
+## Open questions raised by the source — all three closed
 
-- **Shadow colour.** The source suggests using the "text strong" palette variation
-  rather than black for shadows, so they sit with the rest of the interface. Ours
-  use `rgb(0 0 0 / N%)`. In practice `--color-text-strong` is `rgb(0 0 0 / 90%)`,
-  so the difference is small — but it is a stated divergence.
-- **Disabled opacity.** The source suggests 20% for disabled states; ours is 38%.
-  Note the source's own APCA table sets 30 as the absolute minimum for disabled
-  button text, which 20% opacity would not reach. The two positions in the source
-  are in tension; 38% is closer to satisfying its APCA guidance.
-- **APCA.** The source says to check both WCAG 2 and APCA, and gives the full
-  threshold table. `02-tokens.md` references APCA; `00-anti-patterns.md` does not.
-  A second check rule computing APCA alongside WCAG would close this.
+_Recorded as `F11`, `F12` and `F13` in `RECONCILE.md`._
+
+- **Shadow colour** — kept black (`F11`). The reference suggests tinting shadows
+  with the foreground colour; in this system that instruction resolves to the
+  value it already has, because foregrounds here are achromatic opacities by
+  construction rather than hues. The counter-argument is recorded rather than
+  dismissed: a pure-black shadow on a warm off-white reads very slightly cold.
+- **Disabled opacity** — kept 0.38 (`F12`), and the reference's own table is why.
+  The divergence sat recorded for two releases without anyone computing it. At
+  16px on white, 0.20 gives **Lc 27.3** — below the **Lc 30** the reference's own
+  APCA table sets as the absolute minimum for disabled button text — while 0.38
+  gives **Lc 52.1**. Lc 30 is not reached until 0.218. The reference holds two
+  positions that contradict each other, and only one of them has a number in it.
+  `check-tokens` rule 11 now rejects 0.20 by name.
+- **APCA** — `00-anti-patterns.md` now references it (`F13`). It is the file an
+  agent reads while writing colour, and every ratio in it read as the whole
+  picture. It now says its ratios are WCAG 2.1 by policy, points at the
+  threshold table, and names the two places the systems diverge — including that
+  WCAG 2.1 exempts disabled controls entirely, so APCA is the only standard
+  constraining that value at all.
+
+  **No APCA detector was added, deliberately.** `check` fails builds on WCAG 2.1
+  AA because that is what is legally referenced; a mechanical rule failing a
+  build against a *draft* standard would assert more than the draft does. The
+  algorithm ships as `scripts/apca.mjs` and holds the token set's own values to
+  it, which is where the two systems' disagreement actually mattered.
 
 ## From the init review
 
