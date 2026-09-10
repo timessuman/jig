@@ -54,46 +54,71 @@ what made the C2 fix need applying in two places.
 
 ## From the token/doc drift review
 
-- `01-modes.md`'s "Resolved values: `02-tokens.md`" pointer is only partly true: `02-tokens.md` holds the type scale and spacing ladder but NOT control heights, motion durations, row heights, per-mode measure, or which spacing option `--spacing-section` selects. Either add a "Sizes and motion, by mode" table to `02-tokens.md`, or point at `tokens/mode.*.css`.
-- Operator `--text-prose` is 16px, but B-75 forbids 16px for sustained reading and `02-tokens.md` says prose "never drops below 18px". Needs an operator carve-out in B-75 or a token change.
-- `RECONCILE.md` T2 ("one scale, ratio 1.200, all modes") and T3 ("line height 1.65 body → 1.05 display") are both marked ✅ but describe values that no longer exist — T2 is reversed by T9, and no mode has 1.65 or 1.05.
-- Other cited-but-undefined tokens, same class as `--color-brand`: `--spacing-unit`, `--color-surface`, `--font-weight-body`, `--leading-heading`, `--leading-display`, `--color-danger` and its variants (the system colour is `error`, not `danger`).
-- `--text-lead` / `--leading-lead` exist in all three mode files and are documented nowhere.
-- `01-modes.md` cites `#fafaf7` but `--color-bg-base` is `oklch(0.980 0.004 95)` ≈ `#f9f8f5`.
-- `01-modes.md` says "Change them in this file, never at the call site" — the numbers now live in `tokens/mode.*.css`.
-- `02-tokens.md` says brand files supply a dark block under both `prefers-color-scheme` and `[data-theme="dark"]`; `brand.default.css` has only the media query.
+_All resolved. Verified item by item on 2026-09-10 rather than taken on the list's
+word, and the audit that closed them found four more the list had not recorded._
+
+- `01-modes.md`'s "Resolved values" pointer — **fixed**: `02-tokens.md` now holds
+  "Sizes and motion, by mode".
+- Operator `--text-prose` at 16px — **fixed** (`T20`), raised to 18px.
+- `RECONCILE.md` `T2` and `T3` marked ✅ against values that no longer exist —
+  **fixed**, both restated as superseded. A third, `T7` ("line height = size + 8"),
+  was not on this list and had the same defect: it held for three of seven steps.
+- Cited-but-undefined tokens — **fixed**. `--color-surface`, `--color-danger` and
+  its variants, `--leading-heading`, `--leading-display`, `--font-weight-body` and
+  `--spacing-unit` are all gone from the rules. **`check-tokens` rule 9 now fails
+  the build on any recurrence**, with an allowlist for `--color-neutral-900` and
+  `--button-bg`, which rules name deliberately as things not to consume.
+- `--text-lead` / `--leading-lead` documented nowhere — **fixed**: `--text-lead` is
+  a seventh column in the type table (checked by rule 1) and `--leading-lead` a row
+  in the leading table (checked by rule 7).
+- `01-modes.md` citing `#fafaf7` — **fixed**, now names `--color-bg-base` and its
+  actual value.
+- "Change them in this file" — **fixed**, now points at `tokens/mode.*.css`.
+- `02-tokens.md` claiming brand files supply a dark block under both
+  `prefers-color-scheme` and `[data-theme="dark"]` — **this was not doc drift. The
+  doc was right and the CSS was wrong.** `brand.default.css` had only the media
+  query, so a user who chose dark on a light-mode system got no dark tokens at all
+  and the preview's own dark toggle did nothing. Fixed by adding the second block,
+  with rule 10 asserting the two stay identical; CSS cannot share one declaration
+  body across a media-query boundary, so the duplication is forced and the guard is
+  the answer to it.
 
 ## Drift guard
 
-`scripts/check-tokens.mjs` runs as part of the root `npm test`. Three rules:
+`scripts/check-tokens.mjs` runs as part of the root `npm test`. **Ten rules.** This
+section used to open by saying "three rules" and then list five, which is the same
+class of error the rules themselves catch.
 
-1. Every size in `rules/02-tokens.md`'s type table matches the specific token in
-   `tokens/mode.*.css`. Checks the named token, not merely that the number appears
-   somewhere in the file — a substring check passes when `--text-h3` drifts 24→26,
-   because `--spacing-m` is also 24px.
-2. No unanchored literal in a prose table. A number beside a token name is fine;
-   a bare number in a table is a call site. Explanatory prose outside tables keeps
-   literals where the number is the point.
-3. No chosen colour literal repeated inside a token file. Achromatic anchors
-   (pure black and white at varying alphas) are exempt — those are constants,
-   not values that can desynchronise.
+1. Every size in `02-tokens.md`'s type table matches the named token, per mode. A
+   `32–48` cell means a fluid `clamp()`: the bounds must match, every term must be
+   `rem`-based (a `px` bound ignores the reader's font-size setting — WCAG 1.4.4),
+   and the curve must pass through the endpoints the doc claims.
+2. No unanchored literal in a prose table.
+3. No chosen colour literal repeated inside a token file.
+4. Every token `@import` in the rules uses the canonical path.
+5. Semantic colours meet their contrast floors — text 4.5:1, stroke-strong 3:1.
+6. Every token is rendered by the preview harness. **The regex was line-anchored
+   until 2026-09-10 and so saw only the first token on each line — 30 of 133 were
+   invisible to it, and 17 of those were genuinely unrendered.** A coverage rule
+   that silently covers 77% of what it claims is worse than none, because it is
+   trusted.
+7. The sizes, motion, easing and leading tables match the mode files. A `—` cell
+   asserts the token is genuinely absent from that mode.
+8. Leading holds its shape within a mode: never looser on larger type, body and
+   caption floor at 1.5, prose stays inside 1.5–2. This is the half rule 7 cannot
+   reach — a value wrong in the doc *and* the CSS agrees with itself.
+9. Every token the rules cite exists in a token file, with an allowlist for the two
+   named as counter-examples.
+10. The two dark blocks in each brand file declare the same tokens with the same
+    values.
 
-All three are mutation-tested: each was verified to fail when the thing it guards
-is broken, then restored.
+Every rule is mutation-tested: each was verified to fail when the thing it guards is
+broken, then restored. For rules 1, 8 and 10 the mutation includes the case the
+neighbouring rule cannot see, since that is the only evidence the rule earns its
+place.
 
-What it does NOT guard: values that live only in the mode CSS with no prose home
-(control heights, motion durations, row heights, per-mode measure). See the
-"Resolved values" pointer item above.
-
-4. Every token `@import` in the rules uses the canonical `.jig/tokens/` path.
-   The rule markdown is both the source of truth and the artefact vendored into a
-   consumer's repo, so a path correct in one context and wrong in the other is a
-   dual truth that drifts. There is one location; `init` must wire to it rather
-   than relocate.
-
-5. Semantic colours meet their contrast floors — text 4.5:1, stroke-strong 3:1,
-   against both light backgrounds. The source states this directly for system
-   colours. `--color-text-warning` shipped at 3.64:1 in 0.1.0 and 0.2.0.
+What it does NOT guard: that a rule's *prose* is true. Rule 9 checks that a cited
+token exists, not that the sentence around it is correct.
 
 ## From the check review
 

@@ -58,11 +58,11 @@ Modes **select** from these; they never define their own values. `--spacing-card
 
 **Type — the scale ratio varies by mode**, because scale size should track interface complexity. A large ratio gives dramatic steps that suit content-led pages; a small ratio gives fine gradations that suit dense tools needing many levels in little space.
 
-| Mode | Ratio | | Caption | Body (UI) | Prose | H3 | H2 | H1 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `editorial` | 1.250 Major Third | | 14 | 16 | 18 | 24 | 24–32 | 32–48 |
-| `product` | 1.200 Minor Third | | 14 | 16 | 18 | 20 | 20–24 | 24–32 |
-| `operator` | 1.125 Major Second | | 12 | 14 | 18 | 16 | 18 | 22 |
+| Mode | Ratio | | Caption | Body (UI) | Prose | Lead | H3 | H2 | H1 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `editorial` | 1.250 Major Third | | 14 | 16 | 18 | 20 | 24 | 24–32 | 32–48 |
+| `product` | 1.200 Minor Third | | 14 | 16 | 18 | 20 | 20 | 20–24 | 24–32 |
+| `operator` | 1.125 Major Second | | 12 | 14 | 18 | 16 | 16 | 18 | 22 |
 
 **A range means the heading is fluid.** `32–48` is not two values to choose
 between: `--text-h1` interpolates continuously with viewport width, reaching its
@@ -92,8 +92,15 @@ contrast can compress when less content competes for the view. A fluid
 
 `editorial` omits the rung the ratio would put between H2 and H1 (a step near 40); the ratio names the ladder, not every adjacent step — its H2→H1 jump (32→48) is 1.5, not 1.25.
 
-The columns are `--text-caption`, `--text-body`, `--text-prose`, `--text-h3`,
-`--text-h2` and `--text-h1` in that order.
+The columns are `--text-caption`, `--text-body`, `--text-prose`, `--text-lead`,
+`--text-h3`, `--text-h2` and `--text-h1` in that order.
+
+**`--text-lead`** is the standfirst role — the one paragraph that introduces a
+page or section, set larger than body. It existed in all three mode files and
+was documented nowhere, which is how a token becomes invisible: present, usable,
+and never chosen because no one knows it is there. In `operator` it is 16px,
+*below* `--text-prose`, because that mode has no editorial standfirst — it is the
+size of a slightly emphasised label.
 
 **Line heights are per-mode too**, which this section used to obscure by quoting
 one mode's values as though they were everyone's:

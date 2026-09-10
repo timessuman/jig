@@ -99,11 +99,11 @@ In `operator`, `--radius-surface` also selects `sm`, so cards, buttons and input
 
 ### B-13 One line-height for everything
 ❌ One line-height value applied to both a 48px heading and 16px body
-✅ `--leading-body` for prose, `--leading-heading` for headings, `--leading-display` for the largest tier. Line height decreases as size increases.
+✅ `--leading-body` for UI text, `--leading-prose` for sustained reading, and `--leading-h3` / `--leading-h2` / `--leading-h1` as the heading tier rises. Line height decreases as size increases, and the heading values are per-mode — see the table in `02-tokens.md`.
 
 ### B-14 Thin weights for body text
 ❌ Weight 300 or lighter for paragraphs
-✅ `--font-weight-body` (400) minimum. Thin weights fail on low-density screens and in bright light — both of which describe most of your users' actual conditions.
+✅ `--font-weight-regular` (400) minimum. Thin weights fail on low-density screens and in bright light — both of which describe most of your users' actual conditions.
 
 ### B-15 Ad-hoc type sizes
 ❌ A one-off `font-size` because something looked slightly wrong
@@ -201,7 +201,7 @@ The converse also holds: two elements that do the same job should look the same.
 
 ### D-23 Spacing off the scale
 ❌ An arbitrary margin or gap (13px, 7px) written at the call site
-✅ Every spacing value comes from a `--spacing-*` token, all multiples of `--spacing-unit` (4px). An arbitrary value signals a missing token, not an exception.
+✅ Every spacing value comes from a `--spacing-*` token. The ladder is built on 4px, the value of its smallest rung `--spacing-2xs`; there is no separate base token, and nothing should reference one. An arbitrary value signals a missing token, not an exception.
 
 ### D-24 Symmetric spacing around headings
 ❌ Equal margin above and below a section heading

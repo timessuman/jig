@@ -138,8 +138,23 @@
   --shadow-overlay: 0 4px 16px -4px rgb(0 0 0 / 14%), 0 1px 3px rgb(0 0 0 / 8%);
 }
 
+/* Dark mode has THREE states, and this file needs two blocks to serve them.
+   The media query below covers "the OS says dark", guarded by
+   :not([data-theme="light"]) so an explicit light choice still wins. It does
+   NOT cover "the OS says light and the user chose dark" — a selector inside a
+   media query cannot match when the query is false, so before this second
+   block existed, setting data-theme="dark" on a light-mode system produced no
+   dark tokens at all. The preview's own dark toggle did nothing there, which is
+   why this went unnoticed: dark mode was only ever seen by people whose OS was
+   already in it.
+
+   The two bodies are identical and MUST stay so; check-tokens rule 10 fails the
+   build if they diverge. CSS gives no way to share them — a selector list cannot
+   straddle a media-query boundary — so the duplication is required and the guard
+   is the answer to it. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+
     /* Three solid levels. In dark, DEPTH COMES FROM BACKGROUND, NOT SHADOW —
        shadows are nearly invisible on a dark surface. Never pure black. */
     --color-bg-base:    hsl(var(--brand-h) 6% 10%);
@@ -168,4 +183,35 @@
     --shadow-raised:  none;
     --shadow-overlay: 0 8px 24px -8px rgb(0 0 0 / 60%);
   }
+}
+
+:root[data-theme="dark"] {
+
+    /* Three solid levels. In dark, DEPTH COMES FROM BACKGROUND, NOT SHADOW —
+       shadows are nearly invisible on a dark surface. Never pure black. */
+    --color-bg-base:    hsl(var(--brand-h) 6% 10%);
+    --color-bg-raised:  hsl(var(--brand-h) 6% 15%);
+    --color-bg-overlay: hsl(var(--brand-h) 6% 20%);
+
+    /* Foregrounds become opacities of white. Higher than the light-mode values,
+       because dark interfaces lose detail faster. */
+    --color-text-strong:   rgb(255 255 255 / 100%);
+    --color-text-weak:     rgb(255 255 255 / 78%);
+    --color-stroke-strong: rgb(255 255 255 / 60%);
+    --color-stroke-weak:   rgb(255 255 255 / 12%);
+    --color-fill:          rgb(255 255 255 / 6%);
+
+    --brand-l: 88%;      /* lighten and desaturate the brand for dark surfaces */
+    --color-on-brand: hsl(var(--brand-h) 6% 10%);
+
+    /* System colours lighten and desaturate in dark mode. Only the h/s/l and
+       fill-alpha vars need overriding here — the four hsl() declarations
+       above pick the new values up automatically. */
+    --error-h:   0;   --error-s:   60%; --error-l:   72%; --error-fill-a:   8%;
+    --warning-h: 42;  --warning-s: 70%; --warning-l:  70%; --warning-fill-a: 8%;
+    --success-h: 162; --success-s: 45%; --success-l: 66%; --success-fill-a: 8%;
+    --info-h:    220; --info-s:    55%; --info-l:    74%; --info-fill-a:    8%;
+
+    --shadow-raised:  none;
+    --shadow-overlay: 0 8px 24px -8px rgb(0 0 0 / 60%);
 }

@@ -6,7 +6,7 @@
  *
  * Run from the repo root:  node scripts/check-tokens.mjs
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 // from anywhere (npm scripts, CI, a subdirectory).
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
+const list = (rel) => readdirSync(join(ROOT, rel));
 
 let failed = false;
 const fail = (msg) => { console.error(`  ✗ ${msg}`); failed = true; };
@@ -26,7 +27,7 @@ const fail = (msg) => { console.error(`  ✗ ${msg}`); failed = true; };
  * because --spacing-m is also 24px.
  * ------------------------------------------------------------------ */
 const TYPE_COLUMNS = [
-  '--text-caption', '--text-body', '--text-prose',
+  '--text-caption', '--text-body', '--text-prose', '--text-lead',
   '--text-h3', '--text-h2', '--text-h1',
 ];
 
@@ -249,7 +250,13 @@ const LIGHT_BACKGROUNDS = {
 {
   const defined = new Set();
   for (const file of ['brand.default.css', 'mode.editorial.css', 'mode.product.css', 'mode.operator.css']) {
-    for (const m of read(`tokens/${file}`).matchAll(/^\s*(--[a-z0-9-]+):/gm)) defined.add(m[1]);
+    // NOT line-anchored. The token files declare two per line —
+    // `--text-caption: 14px;  --leading-caption: 1.5;` — and a `^\s*` anchor
+    // sees only the first. That blind spot hid 30 of 133 tokens from this rule,
+    // 17 of which were genuinely absent from the preview, including every
+    // `--grid-*-sm` value. A coverage rule that silently covers 77% of what it
+    // claims is worse than no rule, because it is trusted.
+    for (const m of read(`tokens/${file}`).matchAll(/(--[a-z0-9-]+)\s*:/g)) defined.add(m[1]);
   }
   const previewSource = ['index.html', 'preview.css', 'preview.js']
     .map((f) => read(`packages/preview/${f}`)).join('\n');
@@ -361,6 +368,107 @@ const LIGHT_BACKGROUNDS = {
     if (val('--leading-prose') < 1.5 || val('--leading-prose') > 2) {
       fail(`${mode}: --leading-prose is ${val('--leading-prose')}, outside the 1.5–2 band ` +
            `that long-form reading wants.`);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Rule 9 — every token the rules cite actually exists.
+ *
+ * The rules are the product. A rule naming a token that no mode defines
+ * sends an agent to write `var(--leading-heading)`, which resolves to
+ * nothing and silently falls back to the browser default — a failure with
+ * no error message anywhere. This has bitten three times: --color-danger,
+ * --color-surface, and --leading-heading, each found by hand.
+ *
+ * Two names are cited deliberately and must NOT be defined: they are
+ * counter-examples, naming the thing the rule tells you not to write. An
+ * allowlist is the honest way to express that — the alternative is a rule
+ * that fires on correct prose, which teaches people to ignore it.
+ * ------------------------------------------------------------------ */
+{
+  // Named as things NOT to consume. If either is ever added to a token file,
+  // the rule citing it becomes wrong and this list must be revisited.
+  const COUNTER_EXAMPLES = new Set(['--color-neutral-900', '--button-bg']);
+
+  const defined = new Set();
+  for (const file of list('tokens').filter((f) => f.endsWith('.css'))) {
+    for (const m of read(`tokens/${file}`).matchAll(/(--[a-z0-9-]+)\s*:/g)) defined.add(m[1]);
+  }
+
+  for (const t of COUNTER_EXAMPLES) {
+    if (defined.has(t)) {
+      fail(`${t} is allowlisted in rule 9 as a counter-example, but a token file now ` +
+           `defines it. The rule citing it is now wrong — fix the prose, then this list.`);
+    }
+  }
+
+  for (const file of list('rules').filter((f) => f.endsWith('.md'))) {
+    read(`rules/${file}`).split('\n').forEach((line, i) => {
+      for (const m of line.matchAll(/`(--[a-z0-9-]+)`/g)) {
+        if (defined.has(m[1]) || COUNTER_EXAMPLES.has(m[1])) continue;
+        fail(`rules/${file}:${i + 1} cites ${m[1]}, which no token file defines. ` +
+             `An agent following this writes a var() that resolves to nothing.`);
+      }
+    });
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Rule 10 — the two dark blocks in a brand file stay identical.
+ *
+ * Dark has three states: OS-dark, explicitly-light, explicitly-dark. A
+ * selector inside `@media (prefers-color-scheme: dark)` cannot match the
+ * third — the query is false — so `data-theme="dark"` on a light-mode
+ * system produced NO dark tokens until a second, unmediated block was
+ * added. That is why the preview's dark toggle did nothing for anyone
+ * whose OS was in light mode.
+ *
+ * CSS cannot share one declaration body across a media-query boundary, so
+ * the duplication is forced. This makes it safe: the two blocks must
+ * declare exactly the same tokens with exactly the same values.
+ * ------------------------------------------------------------------ */
+{
+  const declarations = (body) => {
+    const out = new Map();
+    for (const m of body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
+      out.set(m[1], m[2].trim().replace(/\s+/g, ' '));
+    }
+    return out;
+  };
+
+  for (const file of list('tokens').filter((f) => f.startsWith('brand.'))) {
+    const css = read(`tokens/${file}`);
+
+    const media = /@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{([\s\S]*?)\n  \}\s*\n\}/.exec(css);
+    const explicit = /:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/.exec(css);
+
+    if (!media || !explicit) {
+      fail(`${file}: dark mode needs BOTH a prefers-color-scheme block and a ` +
+           `:root[data-theme="dark"] block. Without the second, a user who chooses ` +
+           `dark on a light-mode system gets no dark tokens at all.`);
+      continue;
+    }
+
+    const a = declarations(media[1]);
+    const b = declarations(explicit[1]);
+
+    for (const [token, value] of a) {
+      if (!b.has(token)) {
+        fail(`${file}: ${token} is set in the prefers-color-scheme dark block but ` +
+             `not in the :root[data-theme="dark"] block — it will not apply to a ` +
+             `user who chose dark explicitly.`);
+      } else if (b.get(token) !== value) {
+        fail(`${file}: ${token} is "${value}" in the media block but ` +
+             `"${b.get(token)}" in the explicit block. The two must match.`);
+      }
+    }
+    for (const token of b.keys()) {
+      if (!a.has(token)) {
+        fail(`${file}: ${token} is set in the :root[data-theme="dark"] block but not ` +
+             `in the prefers-color-scheme block — it will not apply to a user whose ` +
+             `OS is in dark mode.`);
+      }
     }
   }
 }
