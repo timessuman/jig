@@ -260,7 +260,7 @@ In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation s
 @import ".jig/tokens/mode.product.css";
 
 .card {
-  background: var(--color-surface);
+  background: var(--color-bg-raised);
   border: 1px solid var(--color-stroke-weak);
   border-radius: var(--radius-surface);
   padding: var(--spacing-card);

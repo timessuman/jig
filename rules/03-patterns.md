@@ -112,7 +112,7 @@ If you must disable: put a message beside the button explaining what is needed, 
 Friction scales with severity, and the first lever is prominence.
 
 - **At rest, a destructive action is tertiary.** Less prominent, further from the primary action, or disclosed behind something.
-- **Do not colour it red at rest.** Red makes it *more* prominent — the opposite of what friction means. `--color-danger` styling belongs on the **confirming** button inside a confirmation step, where the user has already chosen and needs to understand the weight of it.
+- **Do not colour it red at rest.** Red makes it *more* prominent — the opposite of what friction means. `--color-text-error` styling belongs on the **confirming** button inside a confirmation step, where the user has already chosen and needs to understand the weight of it.
 - Destructive actions sit at least `--spacing-stack` from their nearest common neighbour, and confirm. In `operator`, confirmation is typed (`01-modes.md`).
 
 ---

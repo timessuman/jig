@@ -19,7 +19,7 @@ Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 The reconciliation source is supplied one chapter at a time, as a PDF that is
 replaced in place. Chapters read so far on 2026-09-10: **Colour** (book pages 78–152),
 **Layout and spacing** (164–218), **Typography** (229–257) and **Buttons**
-(295–322). It has no text layer, so it can only be
+(295–324). It has no text layer, so it can only be
 read as rendered images — see `scripts/render-reference.mjs`, which also records
 the two approaches that do not work.
 
@@ -29,9 +29,10 @@ produced `T18`–`T21`. Layout and spacing confirmed `S1`, `S8` and `S10` to the
 number, and settled `S4`, `S5`, `F1` and `F6` the other way — as ours, because
 it covers none of them and it was the chapter most likely to.
 
-Buttons confirmed thirteen of the fifteen `B` rows against the source, most of
-them verbatim, and reopened `B14`: the extract stops at book page 322 mid-topic,
-so "red only at the confirmation step" was never read. It also settled `F1` — no
+Buttons confirmed fourteen of the fifteen `B` rows against the source, most of
+them verbatim. `B14` briefly reopened — the first extract stopped at page 322
+mid-topic — and closed once pages 323–324 arrived, which turned out to grade
+what our row had flattened. It also settled `F1` — no
 chapter states a visual control height — while raising the one live tension in
 this whole pass, recorded in that row.
 
@@ -267,8 +268,10 @@ So: those values, expressed unitless, floor held. The 4pt-grid objection disappe
 | B10 | Multi-step "Back" is tertiary, top left | `P-02`, `E-95` |  | ✅ |
 | B11 | Single-field forms may attach the button to the field | `P-02` |  | ✅ |
 | B12 | Three alternatives to disabling, in order | `E-32`, `P-02` |  | ✅ |
+| B16 | **Undo beats friction for destructive actions** — "even with added friction, mistakes will still be made… consider allowing people to undo or reverse destructive actions. This generally takes more time and effort to implement, but it removes a lot of risk." Tiebreaker 3 ("recoverable beats correct") says the same thing and was written independently. | `04-principles.md` |  | ✅ |
+| B17 | **Heavy friction is a required checkbox**, not a typed confirmation: "use red and include a checkbox. The checkbox must be selected before the destructive action can occur." `04-principles.md` Tiebreaker 3 asks `operator` to "confirm by typing", which is stricter than the reference and stays ours — typing the resource name defeats muscle memory in a way a checkbox does not, which matters most in the mode where the same dialog is met daily. | `04-principles.md` |  | ➖ |
 | B13 | Disabled buttons stay keyboard-focusable | `E-32` |  | ✅ |
-| B14 | **Destructive is tertiary at rest, red only on confirm.** **Half verified.** "Tertiary buttons are especially good for… destructive actions that you want to make less prominent" and "don't colour the action red, as this makes it more prominent" both hold. The second half — red *at the confirmation step* — is not in the pages supplied: the extract stops at book page 322 mid-topic, with only the first friction level shown. Not contradicted, just unread. | `E-94`, `P-02` |  | ⬜ |
+| B14 | **Destructive is tertiary at rest, red only on confirm.** **Confirmed, and the reference grades what our row flattened.** Tertiary at rest and "don't colour the action red" both hold. But red is not simply "on confirm": there are three levels. *Light friction* — "simply ask people to confirm" — keeps the confirming button **brand-coloured, not red**. *Moderate* highlights the confirmation in red. *Heavy*, for very destructive actions, is red **plus a checkbox that must be ticked before the action can occur**. `E-94` now carries the table. It also says "consider allowing people to undo or reverse destructive actions… it removes a lot of risk", which is Tiebreaker 3 arriving from the other direction. | `E-94`, `P-02` |  | ✅ |
 | B15 | Icon/text balance via weight, size, then contrast | `D-96` |  | ✅ |
 
 ## Forms
