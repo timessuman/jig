@@ -28,11 +28,15 @@ produced `T18`–`T21`. Layout and spacing confirmed `S1`, `S8` and `S10` to the
 number, and settled `S4`, `S5`, `F1` and `F6` the other way — as ours, because
 it covers none of them and it was the chapter most likely to.
 
-Only `M1`, `M2` and `T21` are left, and all three need a chapter not yet
-supplied: durations and entrance animation want Motion, if the book has one.
-Across three chapters no page has given an animation duration in ms or seconds,
-so it is worth knowing whether such a chapter exists before assuming the rows
-can close.
+**This reference has no motion chapter** — confirmed by its owner after four
+chapters had turned up no duration anywhere. `M1` and `M2` are therefore waiting
+on a *different* source, not on a further chapter of this one, and they stay ⬜
+to say so. `T21` likewise: responsive type scales came from Typography, and
+nothing since has revisited them.
+
+When a motion source does arrive, run `scripts/open-rows.mjs` and brief against
+its output. The one mistake this process has made twice is asking a source a
+subset of what it could answer.
 
 **Because the PDF is replaced rather than added to, evidence has to be written
 into this file as it is found.**
@@ -200,8 +204,8 @@ records its removal.
 
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
-| M1 | 250 / 150 / 100ms base per mode | `mode.*.css` |  | ⬜ |
-| M2 | Entrance animation: editorial first viewport only | `01-modes.md`, `G-42` |  | ⬜ |
+| M1 | 250 / 150 / 100ms base per mode. **This reference has no motion chapter**, confirmed by its owner. Four chapters read — Colour, Typography, Layout and spacing, Buttons — gave no duration in ms or seconds anywhere; the closest is "make sure the animation is quick and subtle, so it doesn't get in the way of the user completing their task". Our values are therefore ours as far as this reference goes. Left ⬜ rather than ➖ because a second source is being sought: this row is waiting on a different book, not on a chapter of this one. | `mode.*.css` |  | ⬜ |
+| M2 | Entrance animation: editorial first viewport only. **Not in this reference**, same as `M1` — no chapter covers scroll- or load-triggered entrance animation. Waiting on the second source rather than on this one. | `01-modes.md`, `G-42` |  | ⬜ |
 
 ---
 
