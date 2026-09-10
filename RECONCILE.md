@@ -150,7 +150,7 @@ records its removal.
 | F2 | **Three radii: 8 / 16 / 32px** by element size | `brand.default.css` | `01-modes.md`, `00-anti-patterns.md` | ✅ |
 | F3 | **Two shadows: raised, overlay.** Stroke still preferred | `brand.default.css`, `A-08` |  | ✅ |
 | F4 | Help text **before** the control. **Duplicate of `R4`, which reconciled it.** The Forms chapter is explicit: hints go above the field, so a password's length rule arrives before typing rather than after failing, and because autofill menus and on-screen keyboards cover the space below. `P-03` carries both reasons. | `P-03` |  | ✅ |
-| F5 | Validate on blur, revalidate on change. **Not answerable from the Forms chapter as supplied.** It names three approaches — on submit, after leaving a field, instantly as you type — says "you might consider using multiple approaches", and then breaks off before the advantages and disadvantages of each. `F-38` uses all three (blur, then change once errored, then a submit summary), which is consistent with that, but consistent is not confirmed. Needs the two or three pages that follow. | `F-38` |  | ⬜ |
+| F5 | Validate on blur, revalidate on change. **Confirmed.** The reference prescribes none of the three approaches on its own, but pairs blur validation with keystroke validation explicitly and for one purpose — "remove the error message once the error has been resolved... this involves using the third validation approach". That is exactly `F-38`, and it is why the keystroke half is scoped to fields that have already failed rather than applied from the first character. | `F-38`, `P-04` |  | ✅ |
 | F6 | Table row 36px operator / 48px product. **Not a forms topic** — the Forms chapter contains no tables. Either the reference covers data tables elsewhere, or it does not cover them at all, in which case this becomes ➖ kept, deliberately different. | `mode.*.css` |  | ⬜ |
 | F10 | **Unbranded radius default stays 8 / 16 / 32.** Considered 4 / 8 / 16 on the grounds that radius is the loudest carrier of brand character and the default should be as visibly provisional as the near-black accent. Rejected: radius has no null value, so a lower default is a different opinion rather than an absence — 0px reads brutalist, 4px reads technical, none reads as "undecided" the way near-black does. The value that actually asserted character was `--radius-lg` (32px), and no mode selects it. | `brand.default.css` | `01-modes.md`, `00-anti-patterns.md` | ✅ |
 
@@ -227,7 +227,15 @@ worked examples survive — the four-character postcode field, expiry-date and C
 side by side, industry→occupation as two dependent fields, the "Yes," test for
 checkbox phrasing.
 
-**The one divergence found on re-check.** The chapter's spacing diagram pairs a
+**The correction the validation pages produced.** `P-03` placed the hint above
+the input and the error after it — while giving, as the reason for the hint,
+that "the space below an input gets covered by autofill menus and on-screen
+keyboards". The reference applies that same reason to the error, and more
+sharply: an error appears at the moment a keyboard is open. Half an argument had
+been adopted and the other half left on the page. The error now sits above the
+input too, after the hint. See `R23`.
+
+**The one spacing divergence found on re-check.** The chapter's spacing diagram pairs a
 4pt label gap with 32pt between fields. `--spacing-label` is 4px, matching
 exactly; `--spacing-stack` is 16px in `product` and `operator`, 24px in
 `editorial`. The principle the diagram argues — a label must sit visibly closer
@@ -262,6 +270,10 @@ density.
 | R20 | Minimise fields; prefer an opt-in to an optional field | `P-04`, `P-11` |  | ✅ |
 | R21 | Group related fields under `<fieldset>`/`<legend>` headings | `P-04` |  | ✅ |
 | R22 | Conventional field styling; field borders clear 3:1 | `P-03`, `E-52` |  | ✅ |
+| R23 | **Error message above the input, not below** — corrected on 2026-09-10. `P-03` had it after the input while placing the hint above, and cited "autofill menus and on-screen keyboards cover the space below" as the reason for the hint. That reason applies at least as strongly to an error, which appears at the exact moment a keyboard is open. Half an argument had been adopted. | `P-03` |  | ✅ |
+| R24 | Error summary states the **count** and links to each failed field | `P-04` |  | ✅ |
+| R25 | Never disable the submit button to block an invalid submission — a disabled control cannot be focused, so it cannot explain itself | `E-32`, `P-04` |  | ✅ |
+| R26 | An invalid field is marked by border, background tint, icon **and** text together | `P-03`, `C-20` |  | ✅ |
 
 ## Also worth capturing
 

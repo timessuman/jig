@@ -123,8 +123,8 @@ Friction scales with severity, and the first lever is prominence.
 1. `<label>` — always visible, **stacked above** the input (`F-98`)
 2. Required or optional marker, in the label (`F-97`)
 3. Hint text — **above** the input, below the label
-4. Input
-5. Error message — after the input, `role="alert"`
+4. Error message — **also above the input**, after the hint, `role="alert"`
+5. Input
 
 **States:** `default`, `focus`, `filled`, `invalid`, `disabled`, `read-only`.
 
@@ -155,6 +155,10 @@ You may leave required fields unmarked only when: the product has no optional fi
 Above the input, not below. Two reasons: a rule about a password's minimum length is useful **before** typing, not after failing; and the space below an input gets covered by autofill menus and on-screen keyboards, so a hint placed there may never be seen.
 
 Do not hide a hint in a tooltip if it is needed to complete the field.
+
+**The error message goes above the input too, and for the second of those reasons.** The space below a field is covered by autofill menus and on-screen keyboards at exactly the moment an error appears — so an error placed there is hidden from the person who most needs to see it. Putting the hint above and the error below would have taken half of one argument and ignored the other half.
+
+Order between them: hint first, then error. The hint is standing guidance about the field; the error is a transient response to what was just typed, so it sits closest to the input it is about.
 
 ### Placeholders
 
@@ -223,6 +227,12 @@ The control determines the interaction cost before a single pixel is styled. Cho
 ### Validation timing (`F-38`)
 
 On blur first; on change once a field has already errored, so recovery is immediate; everything on submit, with a summary that receives focus and links to each failed field.
+
+The reference sets out three approaches — on submit, on blur, on every keystroke — and prescribes none of them, because each has a cost: on-submit leaves people guessing until the end and then confronts them with everything at once; on-blur interrupts; keystroke validation fires before someone has finished typing, and people type at different speeds. What it does pair explicitly is on-blur with keystroke validation *for recovery only* — "remove the error message once the error has been resolved" — which is the combination above, and the reason the keystroke half is scoped to fields that have already failed.
+
+**The summary states the count** — "2 errors were found" — and each entry links to the field it names. Do not disable the submit button to prevent an invalid submission (`E-32`): a disabled control cannot be focused, so it cannot explain itself.
+
+**An invalid field is marked by border, background tint, icon and text together** — never by colour alone (`C-20`), and never by one channel that a magnifier or a colour-blind user might miss.
 
 ### Multi-step
 
