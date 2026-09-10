@@ -131,7 +131,6 @@ export function check(opts: CheckOptions): CheckResult {
   // global install has no project tokens to speak of; `loadTokenMap`
   // already returns `{}` for a missing directory, which is exactly right
   // for a project Jig has never been `init`-ed in.
-  const tokens = loadTokenMap(opts.projectRoot);
   const selection = selectFiles(opts.projectRoot, opts.all);
   const { files } = selection;
 
@@ -147,6 +146,14 @@ export function check(opts: CheckOptions): CheckResult {
   // is on the token layer is a property of the project, not of the diff.
   const stylesheets =
     selection.mode === 'all' ? files : selectFiles(opts.projectRoot, true).files;
+
+  // Token resolution reads the project's OWN `:root` declarations as well as
+  // Jig's vendored ones (I5). Computed over every stylesheet in the project,
+  // not the selected files, for the same reason `projectParticipates` is: on a
+  // changed-files run the diff rarely contains the file that declares the
+  // tokens, and resolving against a map built from the diff would silently
+  // stop evaluating the values under review.
+  const tokens = loadTokenMap(opts.projectRoot, stylesheets);
   const projectParticipates = stylesheets.some((f) => {
     if (!hasExtension(f, CSS_EXTENSIONS)) return false;
     try {

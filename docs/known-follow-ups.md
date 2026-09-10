@@ -8,20 +8,50 @@ whole-branch review triaged them; nothing here blocks merge.
 
 _Resolved: rule `C-49` now carries its `✅`, and `I-80` (found while verifying C-49) now carries its `❌`. All 104 rules have both markers._
 
-- **Installing a second agent orphans the first agent's skill file.** `install --agent claude`
-  then `install --agent cursor` leaves `.claude/skills/jig/SKILL.md` on disk, absent from the
-  manifest, frozen forever. The live trigger is a shared repo where teammates use different
-  agents — which a single-`agent` manifest cannot express at all.
+- **Installing a second agent orphans the first agent's skill file.** _Resolved,
+  and it had been for some time — the skill-first rearchitecture removed the
+  premise. The entry assumed one manifest per project, which could name only one
+  agent; each harness now keeps its own reference directory with its own
+  manifest beside it, so there is nothing shared to overwrite. Verified end to
+  end against a real project, then locked down in `install.test.ts`: each
+  harness owns its own files, installing the second changes neither the first's
+  bytes nor its manifest, and no installed file is left unowned by any manifest.
+  The last is mutation-tested — with a planted orphan the suite fails._
 
-## Shared-logic drift (do before a sixth adapter or a third command)
+## Shared-logic drift — resolved
 
-`install.ts` and `update.ts` independently implement install-root resolution, the write+checksum
-helper, rule-file enumeration, and the adapter render context. `update` already imports
-`buildSkillBody` and `relKey` from `install`, so the seam was recognised but not finished. This
-duplication is what let the C3 root-resolution bug diverge from `install`'s guarded version, and
-what made the C2 fix need applying in two places.
+_`install/writer.ts` now holds the one writer and the one bundle enumerator, and
+all three call sites go through it._
+
+The entry was right that this had already cost something, and understated it.
+The three copies were not identical: `updateInitFiles` had lost
+`matchLineEndings`, so a token file checked out under `core.autocrlf` came back
+LF-only from `jig update` while the rule files beside it kept their CRLF. Nobody
+chose that. Two things improved on the way in: writes are atomic (a truncated
+file reads as user-edited, so `update` would skip it silently forever), and
+`relKey` moved beside the writes it describes, re-exported so no call site
+moved.
 
 ## Deferred findings, verbatim from the run ledger
+
+_Triaged 2026-09-10. These are the implementer/reviewer notes as written at the
+time; most are test-quality observations about code that has since been
+rewritten, and they are kept verbatim rather than edited because their value is
+as a record of what was noticed and waved through. Three were checked because
+they had real consequences:_
+
+- _**"rules-real.test.ts resolves the real file via process.cwd()"** — was still
+  true, and worse than the note suggests. Run from the repo root it failed with
+  ENOENT against `$HOME/rules/`; it only passed because `npm test` happens to
+  run with cwd = `packages/cli`. The same bug was in `init-migrate.test.ts`
+  (seven sites) and `init-command.test.ts`. All now derive from the package
+  location, and the suite passes from either directory._
+- _**"skillFilesFor has NO caller — install MUST route through it or the
+  path-escape guard is dead code"** — resolved. Both `install.ts` and
+  `update.ts` call it._
+- _**"SKILL_DESCRIPTION is interpolated unquoted into YAML frontmatter"** —
+  resolved. Both descriptions go through `quoteYamlString`._
+
 
 - Task 1: minor (deferred): packages/cli/.gitignore added on implementer initiative — reviewer verified pattern semantics correct (nested .gitignore anchors to its own subtree; repo-root rules/tokens/LICENSE/NOTICE remain tracked). No action needed.
 - Task 1: minor (deferred): npm audit reports 5 transitive dev-only vulns via vitest/esbuild/vite. Not in shipped package.
@@ -122,54 +152,67 @@ token exists, not that the sentence around it is correct.
 
 ## From the check review
 
-Findings from the whole-branch review of `check` that were triaged as non-blocking
-and deliberately deferred past this fix pass (C1/C2/C3/I1/I3/I4/I6/M1/M7/M8 were
-fixed in the same pass this section was added in).
+_Both resolved. Verified in the current source rather than taken on the list's
+word, which is how the stale I2 entry was caught._
 
-- **I2 — CSS nesting silently loses the parent block's declarations.** `splitRuleBlocks`
-  (`packages/cli/src/check/css.ts`) treats any block containing a nested `{` as a
-  wrapper and excludes it from `leafBlocks` — correct for `@media`/`@supports`/
-  `@keyframes`, where the outer block carries no declarations of its own, but wrong
-  for native CSS nesting (`.card { color: red; &:hover { color: blue; } }`), where the
-  outer block's OWN declarations (`color: red` here) are real and currently invisible
-  to every detector that reads `leafBlocks`. Fixing this is its own piece of work: the
-  block splitter needs to distinguish "this block is purely a wrapper" from "this block
-  has both its own declarations and a nested rule," which changes what a "leaf" means
-  and likely changes `bodyStartLine`/line-number accounting for the split declarations.
-- **I5 — consumer-declared custom properties are invisible to token-aware detectors.**
-  `tokens` (passed through `DetectorContext`) is only ever the vendored Jig token map
-  loaded from `.jig/tokens/*.css` (`packages/cli/src/check/tokens.ts`) — a `var(--x)`
-  the consumer declares themselves (in their own `:root`, a component-scoped custom
-  property, a CSS-in-JS theme object, ...) is never in that map. `resolveOpaqueColor`/
-  `extractColorComponents` then treat such a reference as unresolved and skip it, which
-  is the safe default (no guessing) but means `contrast-floor` and `violet-band-hue`
-  silently do not evaluate an entire class of real values. There is no `:root` scan of
-  the consumer's own CSS to build a fuller map; adding one is a scope decision (how far
-  to walk imports/scoping) rather than a small fix.
-_Resolved. This entry recorded six findings from the whole-branch review of
-`check` as open, on the grounds that their specifics were lost in a handoff. The
-specifics were not lost: commit `34d298a`, the end of the very range the entry
-cites, is titled "fix: address the whole-branch review of check" and its message
-enumerates all six. Each was verified closed in the current source rather than
-taken on the title's word — `check` scans the project rather than the install
-root; `maskComments` walks characters and skips strings; a repository with no
-commits falls back instead of crashing; the inverted media-query mask is gone;
-`contrast-floor` relaxes to 3:1 for large text; and the detectors no longer
-require a trailing semicolon._
+- **I2 — CSS nesting.** Already fixed and tested when this entry was written;
+  nobody had closed it. `leafBlocks` runs every block through `blankNested`
+  rather than discarding any block containing braces, so a nested rule's parent
+  declarations are scanned, its child is not scanned twice, and line numbers
+  survive the blanking. `check-css.test.ts` covers all four properties plus the
+  pure-wrapper case.
+- **I5 — consumer-declared custom properties.** Real, and now fixed.
+  `loadTokenMap` reads the project's own unconditional `:root` declarations
+  alongside Jig's vendored ones, from every stylesheet in the project (including
+  style regions inside host languages, so a `createGlobalStyle` counts). Until
+  this, a project that had never run `jig init` had every `var(--x)` treated as
+  unresolvable, so `contrast-floor` and `violet-band-hue` reported nothing on
+  very nearly all of its colours.
 
-## Open questions raised by the source, not yet acted on
+  Two decisions inside it. **A name declared in two places with different values
+  is dropped, not resolved either way** — which value a browser uses depends on
+  import order, and a wrong guess does not cost a missed finding but a *reported*
+  one against a value the page never renders. And scope stays shallow: no
+  `@import` following, no theme or breakpoint overrides.
 
-- **Shadow colour.** The source suggests using the "text strong" palette variation
-  rather than black for shadows, so they sit with the rest of the interface. Ours
-  use `rgb(0 0 0 / N%)`. In practice `--color-text-strong` is `rgb(0 0 0 / 90%)`,
-  so the difference is small — but it is a stated divergence.
-- **Disabled opacity.** The source suggests 20% for disabled states; ours is 38%.
-  Note the source's own APCA table sets 30 as the absolute minimum for disabled
-  button text, which 20% opacity would not reach. The two positions in the source
-  are in tension; 38% is closer to satisfying its APCA guidance.
-- **APCA.** The source says to check both WCAG 2 and APCA, and gives the full
-  threshold table. `02-tokens.md` references APCA; `00-anti-patterns.md` does not.
-  A second check rule computing APCA alongside WCAG would close this.
+  That second decision needed a fix underneath it. The old comment claimed
+  media-query overrides were excluded because Jig's dark block uses
+  `:root:not(...)` — true of Jig's own files and of nothing else, so a consumer's
+  plain `:root` inside `@media (prefers-color-scheme: dark)` was read as an
+  ordinary `:root` and its dark values overwrote the light ones. `CssBlock` now
+  carries `atRuleDepth`, counting enclosing at-rules rather than braces: the
+  style-region mask rewrites a tagged template's backticks as braces, so a rule
+  inside `createGlobalStyle` is one brace deep while being conditional on
+  nothing.
+
+## Open questions raised by the source — all three closed
+
+_Recorded as `F11`, `F12` and `F13` in `RECONCILE.md`._
+
+- **Shadow colour** — kept black (`F11`). The reference suggests tinting shadows
+  with the foreground colour; in this system that instruction resolves to the
+  value it already has, because foregrounds here are achromatic opacities by
+  construction rather than hues. The counter-argument is recorded rather than
+  dismissed: a pure-black shadow on a warm off-white reads very slightly cold.
+- **Disabled opacity** — kept 0.38 (`F12`), and the reference's own table is why.
+  The divergence sat recorded for two releases without anyone computing it. At
+  16px on white, 0.20 gives **Lc 27.3** — below the **Lc 30** the reference's own
+  APCA table sets as the absolute minimum for disabled button text — while 0.38
+  gives **Lc 52.1**. Lc 30 is not reached until 0.218. The reference holds two
+  positions that contradict each other, and only one of them has a number in it.
+  `check-tokens` rule 11 now rejects 0.20 by name.
+- **APCA** — `00-anti-patterns.md` now references it (`F13`). It is the file an
+  agent reads while writing colour, and every ratio in it read as the whole
+  picture. It now says its ratios are WCAG 2.1 by policy, points at the
+  threshold table, and names the two places the systems diverge — including that
+  WCAG 2.1 exempts disabled controls entirely, so APCA is the only standard
+  constraining that value at all.
+
+  **No APCA detector was added, deliberately.** `check` fails builds on WCAG 2.1
+  AA because that is what is legally referenced; a mechanical rule failing a
+  build against a *draft* standard would assert more than the draft does. The
+  algorithm ships as `scripts/apca.mjs` and holds the token set's own values to
+  it, which is where the two systems' disagreement actually mattered.
 
 ## From the init review
 

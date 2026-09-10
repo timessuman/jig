@@ -10,6 +10,21 @@ export interface CssBlock {
   selector: string;
   body: string;
   bodyStartLine: number;
+  /** How many enclosing at-rules (`@media`, `@layer`, `@supports`) this block
+   *  sits inside. 0 means its declarations apply unconditionally.
+   *
+   *  Added because `loadTokenMap` must read ONLY an unconditional `:root`. Its
+   *  comment had claimed media-query overrides were excluded because Jig's own
+   *  dark block uses `:root:not(...)` — true of Jig's files and of nothing
+   *  else. A consumer writing a plain `:root` inside
+   *  `@media (prefers-color-scheme: dark)` came back as an ordinary `:root`
+   *  block, and its dark values overwrote the light ones.
+   *
+   *  Counting AT-RULES rather than braces is the distinction that matters, and
+   *  it is not pedantry: the style-region mask rewrites a tagged template's
+   *  backticks as `{` and `}`, so every rule inside a `createGlobalStyle` is
+   *  one brace deep while being conditional on nothing. */
+  atRuleDepth: number;
 }
 
 /**
@@ -74,14 +89,19 @@ export function maskComments(source: string): string {
 export function splitRuleBlocks(source: string): CssBlock[] {
   source = maskComments(source);
   const blocks: CssBlock[] = [];
-  const stack: { selectorStart: number; bodyStart: number; bodyStartLine: number }[] = [];
+  const stack: { selectorStart: number; bodyStart: number; bodyStartLine: number; isAtRule: boolean }[] = [];
   let line = 1;
   let lastBoundary = 0;
   for (let i = 0; i < source.length; i++) {
     const ch = source[i];
     if (ch === '\n') line++;
     if (ch === '{') {
-      stack.push({ selectorStart: lastBoundary, bodyStart: i + 1, bodyStartLine: line });
+      stack.push({
+        selectorStart: lastBoundary,
+        bodyStart: i + 1,
+        bodyStartLine: line,
+        isAtRule: cleanSelector(source.slice(lastBoundary, i)).startsWith('@'),
+      });
       lastBoundary = i + 1;
     } else if (ch === '}') {
       const top = stack.pop();
@@ -90,6 +110,7 @@ export function splitRuleBlocks(source: string): CssBlock[] {
           selector: cleanSelector(source.slice(top.selectorStart, top.bodyStart - 1)),
           body: source.slice(top.bodyStart, i),
           bodyStartLine: top.bodyStartLine,
+          atRuleDepth: stack.filter((f) => f.isAtRule).length,
         });
       }
       lastBoundary = i + 1;

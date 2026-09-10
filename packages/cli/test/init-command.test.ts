@@ -8,6 +8,9 @@ import { readManifest } from '../src/install/manifest.js';
 import { deriveBrandColor } from '../src/init/derive.js';
 import { validateBrandColor } from '../src/init/validate.js';
 import { getAdapter } from '../src/adapters/registry.js';
+// `repoRoot` comes from the package location, never `process.cwd()` — a test
+// whose result depends on which directory you ran it from is worse than none.
+import { repoRoot } from './helpers/registered-commands.js';
 
 const claudeDir = getAdapter('claude').referenceDir('project'); // '.claude/skills/jig'
 
@@ -17,7 +20,6 @@ const claudeDir = getAdapter('claude').referenceDir('project'); // '.claude/skil
 // contrast validation are meaningless against a fake brand.default.css, and
 // the whole point of the safety/integration tests is that they exercise the
 // real contract.
-const repoRoot = join(process.cwd(), '..', '..');
 
 let project: string;
 let home: string;

@@ -9,6 +9,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { apcaContrast, over } from './apca.mjs';
 
 // Resolve against the repo root, not the caller's cwd, so this runs correctly
 // from anywhere (npm scripts, CI, a subdirectory).
@@ -469,6 +470,51 @@ const LIGHT_BACKGROUNDS = {
              `in the prefers-color-scheme block — it will not apply to a user whose ` +
              `OS is in dark mode.`);
       }
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Rule 11 — disabled text stays above APCA's own floor.
+ *
+ * The source this system reconciles against suggests 20% opacity for
+ * disabled states. Ours is 38%, and the divergence was recorded but never
+ * computed. Computing it settles it against the source's OWN APCA table,
+ * which puts Lc 30 as the absolute minimum for disabled button text:
+ *
+ *   opacity 0.20 -> Lc 27.3    below the source's own floor
+ *   opacity 0.38 -> Lc 52.1    clears it, and clears Lc 45 for UI elements
+ *
+ * Lc 30 is not reached until opacity 0.218. The source's two positions
+ * contradict each other and the table is the one with a number in it.
+ *
+ * WCAG 2.1 has nothing to say here — it exempts disabled controls entirely —
+ * so APCA is the only standard that constrains this value at all. That is
+ * exactly the case `02-tokens.md` describes: comply with WCAG 2.1, and check
+ * APCA as well, particularly where WCAG is silent.
+ * ------------------------------------------------------------------ */
+{
+  const DISABLED_LC_FLOOR = 30;
+  const brand = read('tokens/brand.default.css');
+
+  const opacity = /--opacity-disabled:\s*([\d.]+)\s*;/.exec(brand);
+  const textStrong = /--color-text-strong:\s*rgb\(0 0 0 \/ (\d+)%\)/.exec(brand);
+
+  if (!opacity || !textStrong) {
+    fail('Rule 11 could not read --opacity-disabled and --color-text-strong from ' +
+         'brand.default.css. Both moved or changed shape — update this check.');
+  } else {
+    // Disabled styling multiplies the element's opacity by the text colour's
+    // own alpha, so the effective alpha is the product. The background is the
+    // lightest surface, which is the worst case for dark text.
+    const effective = Number(opacity[1]) * (Number(textStrong[1]) / 100);
+    const lc = Math.abs(apcaContrast(over(effective, [0, 0, 0], [255, 255, 255]), [255, 255, 255]));
+
+    if (lc < DISABLED_LC_FLOOR) {
+      fail(`--opacity-disabled is ${opacity[1]}, which puts disabled text at Lc ` +
+           `${lc.toFixed(1)} — below APCA's ${DISABLED_LC_FLOOR} floor for disabled ` +
+           `button text (02-tokens.md). WCAG 2.1 exempts disabled controls, so this ` +
+           `is the only standard holding this value up.`);
     }
   }
 }

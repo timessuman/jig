@@ -171,6 +171,26 @@ Also: shadow colour derives from the text colour, never pure black, so it sits i
 ❌ Two different reds in two places, both meaning "error"
 ✅ One token per meaning — `--color-text-error`, `--color-fill-error`, `--color-stroke-error-strong` — referenced everywhere.
 
+**Every ratio in this section is WCAG 2.1, and that is deliberate — but it is
+not the whole picture.** WCAG 2.1 AA is what these rules enforce and what
+`check` fails a build on, because it is what is legally referenced. APCA (the
+WCAG 3 draft) measures perceptually and scores by size and weight rather than a
+flat ratio; **`02-tokens.md` carries its threshold table**, and it is worth
+checking as well, particularly on dark surfaces where WCAG 2's algorithm is
+weakest.
+
+Two places the difference bites:
+
+- **WCAG 2.1 exempts disabled controls entirely**, so nothing in this section
+  constrains how faint a disabled label may be. APCA does — Lc 30 is its
+  absolute minimum for disabled button text — and it is the only standard that
+  says anything at all here. `--opacity-disabled` is held to it.
+- The two do not agree on what counts as large text. APCA's thresholds are its
+  own and do not line up with `C-17`. Each is right inside its own frame; do not
+  mix a score from one with a size rule from the other.
+
+Aim to pass both. Where only one of them has an opinion, that one decides.
+
 ### C-49 Link treatment
 The default for a link **inside running text** is colour **and** underline. Colour-blind users cannot separate a coloured link from surrounding prose; the underline is what makes it a link for them.
 
