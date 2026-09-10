@@ -230,7 +230,18 @@ WCAG 2's algorithm has known failures — it will pass black text on orange and 
 
 Guidance: **for commercial work, comply with WCAG 2.1 AA**, because that is what is legally referenced. Check APCA as well, particularly on dark surfaces. Aim to pass both.
 
-APCA reference values: **90** preferred for body text · **75** minimum body at 18px+ · **60** other text · **45** large text and UI elements · **30** absolute floor for placeholder and disabled text · **15** non-text.
+APCA reference values, with the sizes they apply at — a score means nothing without one, since APCA takes size and weight into account and thin or small text scores lower for the same colours:
+
+| Score | Applies to |
+| --- | --- |
+| **90** | Preferred for body text, 14px regular and above |
+| **75** | Minimum for body text, 18px regular and above |
+| **60** | Minimum for other text, 24px regular or 16px bold and above |
+| **45** | Minimum for large text — 36px regular or 24px bold and above — and for interface elements |
+| **30** | Absolute minimum for text: placeholders, disabled button text |
+| **15** | Minimum for non-text elements |
+
+These thresholds are APCA's own and do not line up with WCAG's large-text definition (`C-17`, 24px regular / 18.66px bold) — the two systems measure differently, and each is right inside its own frame.
 
 ## Dark mode
 

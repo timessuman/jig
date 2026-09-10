@@ -14,6 +14,25 @@ come from WCAG 2.1 AA and are not adjustable — see "Not up for reconciliation"
 
 Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 
+## What the reference extract covers
+
+The reconciliation source available on 2026-09-10 is a **single-chapter
+extract**: Colour, book pages 78–152. It has no text layer, so it can only be
+read as rendered images — see `scripts/render-reference.mjs`, which also records
+the two approaches that do not work.
+
+That extract answers `C2`, `C3` and `C5`, and confirms the APCA table now in
+`02-tokens.md`. It contains no Typography, Spacing, Layout, Motion or
+component-sizing chapter, so `S4`, `S5`, `M1`, `M2`, `F1`'s per-mode heights and
+`F6`'s row heights cannot be settled from it — verified by reading all 75 pages,
+not by sampling.
+
+One near-miss worth recording as method. A subagent's summary of the APCA scale
+quoted five thresholds where the book lists six, having elided one; our own doc
+listed all six and briefly looked wrong. Reading the page directly showed the
+doc was right. **Check a quotation against the page before correcting a rule
+to match it** — an elision reads exactly like an absence.
+
 ## What has been checked without the reference
 
 A row can be wrong in two independent ways: it can disagree with the reference,
@@ -111,10 +130,10 @@ records its removal.
 | C9 | Five neutral roles: text strong/weak, stroke strong/weak, fill | `brand.default.css` |  | ✅ |
 | C10 | Brand colour marks **all** interactive elements, nothing else | `I-56` |  | ✅ |
 | C11 | **Control borders need 3:1** (WCAG 1.4.11) | `02-tokens.md` |  | ✅ |
-| C2 | Near-black on off-white, not pure. **Half settled.** The near-black half is `C13`, already reconciled: the light opacity ladder starts at 90%, so the strongest text is 90% black rather than pure. The off-white half is not covered by any reconciled row — `--color-bg-base` is `oklch(0.980 0.004 95)`, a fixed warm off-white, and nothing here records the reference's position on it. That half still needs the source. | `C-18` |  | ⬜ |
-| C3 | Text floor at ramp step `-700`; `-500` never text. **The row's premise does not fit this system.** It is phrased for a numbered colour ramp; our neutrals are opacity over a solid background (`C12`, reconciled), so there is no `-700` step to floor anything at. The ramp vocabulary survives in `C-19` only to *describe* the failure — "a mid-grey (ramp step `-500` or lighter)" — not to name one of our tokens. What we actually enforce is a contrast ratio, and contrast ratios are explicitly outside this process. Rewrite the row in our own terms or retire it; either way it is not a question for the reference. | `02-tokens.md` contrast contract |  | ⬜ |
+| C2 | Near-black on off-white. **Resolved, and the reference's position is asymmetric.** It argues against pure black — "avoid pure black as it has a high contrast against white… opt for a dark grey instead", worked at `#1A1A1A` — which `--color-text-strong` at 90% black adopts. It does **not** argue against pure white: it recommends "use white backgrounds for light mode" outright. So the off-white half is ours, not the reference's, and `C-18` already says so in as many words — "this is a house preference and it is deliberate". Narrower than the row implied, too: only `--color-bg-base` is off-white; `--color-bg-raised` is pure white. | `C-18` |  | ➖ |
+| C3 | Text floor at ramp step `-700`; `-500` never text. **Confirmed, and the premise objection was half wrong.** The reference does state the floor as contrast ratios first — 4.5:1 for both text roles, 3:1 for strokes, with fills called "a decorative colour, so it doesn't need to be high contrast" — but it *also* defines a 0–1000 numbered primitive ramp, where higher means more contrast. In its own worked palette `grey.light.1000` (90%) is text-strong, `grey.light.700` (65%) is text-weak, and `grey.light.500` is stroke-strong at 3:1, non-text. So 700 is the lightest step used for text and 500 is never text — exactly this row, in the reference's ascending notation rather than our negative one. One value differs: its text-weak is 65% black, ours is 60%, which is lighter. Both clear 4.5:1 (enforced by `check-tokens` rule 5), so this is a choice inside the rule, not a breach of it. | `02-tokens.md` contrast contract |  | ✅ |
 | C4 | Semantic hues **0 / 42 / 162 / 220** (error / warning / success / info). This row previously read 25 / 75 / 150 / 240, which matched no token — the hues moved and the row did not. | `brand.default.css` | `02-tokens.md` | ⬜ |
-| C5 | Dark mode: surfaces lighten, no inversion. **Settled by `C15` and `C16`.** Verified in `brand.default.css`: dark elevation runs 10% → 15% → 20% lightness, so surfaces lighten as they rise, which is the mechanism `C16` reconciled ("depth from background, not shadow"). Non-inversion is `C13`, also reconciled: dark has its own opacity ladder (100/78/60/12/6) rather than the light one flipped. | `C-21`, `brand.default.css` |  | ✅ |
+| C5 | Dark mode: surfaces lighten, no inversion. **Confirmed directly.** The reference builds exactly our three levels — "Base, the darkest colour for the main background… Raised, slightly brighter than the base… Overlay, slightly brighter than the raised" — matching `C15` and verified at 10% → 15% → 20% lightness. On shadows: "shadows can be difficult to see in dark interfaces, so you mostly need to rely on colour to indicate depth", which is `C16`. It also prescribes transparent foregrounds so a colour stays legible across those surfaces, which is `C12`. **The "no inversion" half is an inference, not a quotation** — the reference never warns against flipping a light palette; it constructs the two independently and requires dark to be contrast-checked on its own ("increase the contrast well above the minimum WCAG requirements for dark interfaces"), which our separate dark ladder in `C13` satisfies. | `C-21`, `brand.default.css` |  | ✅ |
 
 ## Spacing and layout
 
