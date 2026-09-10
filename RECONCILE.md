@@ -59,11 +59,11 @@ records its removal.
 | T1 | Body **16 / 16 / 14px**. Editorial dropped 18→16 | `mode.*.css` | `01-modes.md` | ✅ |
 | T2 | **One scale, ratio 1.200**, all modes: 14/16/20/24/32/40 | `mode.*.css` | `01-modes.md` | ✅ |
 | T3 | Line height 1.65 body → 1.05 display. **Floor 1.5 on body/secondary, all modes** | `mode.*.css` | `01-modes.md` | ✅ |
-| T4 | Measure 68 / 60 / 72ch | `mode.*.css` | `01-modes.md` | ⬜ |
+| T4 | Measure 68 / 60 / 72ch. **Settled by `T12`.** The reference gives a range — 40–80 characters — not per-mode values, and `T12` reconciled that range. All three of ours sit inside it (68, 60, 72), verified against `mode.*.css`. The split between modes is our own choice within a reconciled rule, not a divergence from one. | `mode.*.css` | `01-modes.md` | ✅ |
 | T7 | Line height = size + 8, on 4pt grid | `mode.*.css` | `01-modes.md` | ✅ |
 | T8 | **Line heights unitless, not px.** 1.5 floor on body/secondary | `mode.*.css` | `01-modes.md` | ✅ |
-| T5 | Weight 400 body minimum, 600 headings | `mode.*.css`, `B-14` | `01-modes.md` | ⬜ |
-| T6 | Negative tracking on headings only | `mode.*.css` | `01-modes.md` | ⬜ |
+| T5 | Weight 400 body minimum, 600 headings. **Same claim as `T11`, in numbers.** `T11` reconciled "two weights only, regular + bold"; 400 and 600 are those two weights, and `mode.*.css` defines exactly those and no others in all three modes. | `mode.*.css`, `B-14` | `01-modes.md` | ✅ |
+| T6 | Negative tracking on headings only. **Consistent with `T17`**, which reconciled "letter spacing tightens as size grows". Verified: `--tracking-body` is 0 in every mode, and only `--tracking-h1`/`h2` go negative. Two things the row never said, now recorded — `operator` sets both headings to 0, since a 1.125 ratio barely grows and there is nothing to tighten; and `--tracking-caps` is *positive* (0.06em, 0.07em in `operator`), which is a different job and not a counter-example. | `mode.*.css` | `01-modes.md` | ✅ |
 
 ## Simplification
 
@@ -111,10 +111,10 @@ records its removal.
 | C9 | Five neutral roles: text strong/weak, stroke strong/weak, fill | `brand.default.css` |  | ✅ |
 | C10 | Brand colour marks **all** interactive elements, nothing else | `I-56` |  | ✅ |
 | C11 | **Control borders need 3:1** (WCAG 1.4.11) | `02-tokens.md` |  | ✅ |
-| C2 | Near-black on off-white, not pure | `C-18` |  | ⬜ |
-| C3 | Text floor at ramp step `-700`; `-500` never text | `02-tokens.md` contrast contract |  | ⬜ |
+| C2 | Near-black on off-white, not pure. **Half settled.** The near-black half is `C13`, already reconciled: the light opacity ladder starts at 90%, so the strongest text is 90% black rather than pure. The off-white half is not covered by any reconciled row — `--color-bg-base` is `oklch(0.980 0.004 95)`, a fixed warm off-white, and nothing here records the reference's position on it. That half still needs the source. | `C-18` |  | ⬜ |
+| C3 | Text floor at ramp step `-700`; `-500` never text. **The row's premise does not fit this system.** It is phrased for a numbered colour ramp; our neutrals are opacity over a solid background (`C12`, reconciled), so there is no `-700` step to floor anything at. The ramp vocabulary survives in `C-19` only to *describe* the failure — "a mid-grey (ramp step `-500` or lighter)" — not to name one of our tokens. What we actually enforce is a contrast ratio, and contrast ratios are explicitly outside this process. Rewrite the row in our own terms or retire it; either way it is not a question for the reference. | `02-tokens.md` contrast contract |  | ⬜ |
 | C4 | Semantic hues **0 / 42 / 162 / 220** (error / warning / success / info). This row previously read 25 / 75 / 150 / 240, which matched no token — the hues moved and the row did not. | `brand.default.css` | `02-tokens.md` | ⬜ |
-| C5 | Dark mode: surfaces lighten, no inversion | `C-21`, `brand.default.css` |  | ⬜ |
+| C5 | Dark mode: surfaces lighten, no inversion. **Settled by `C15` and `C16`.** Verified in `brand.default.css`: dark elevation runs 10% → 15% → 20% lightness, so surfaces lighten as they rise, which is the mechanism `C16` reconciled ("depth from background, not shadow"). Non-inversion is `C13`, also reconciled: dark has its own opacity ladder (100/78/60/12/6) rather than the light one flipped. | `C-21`, `brand.default.css` |  | ✅ |
 
 ## Spacing and layout
 
@@ -137,7 +137,7 @@ records its removal.
 | S2 | Section rhythm XXL 80 / XL 48 / M 24 | `mode.*.css` |  | ✅ |
 | S3 | Card padding L 32 / M 24 / S 16 | `mode.*.css` |  | ✅ |
 | S4 | Heading space-before exceeds space-after 2–3× | `D-24` |  | ⬜ |
-| S5 | Optical over mathematical alignment | `D-27` |  | ⬜ |
+| S5 | Optical over mathematical alignment. **Partly instantiated by `S13`**, which reconciled baseline alignment for mixed-size text on one line — baseline alignment *is* the optical choice, against the mathematical one of centring the boxes. Whether the reference states the general principle beyond that one case still needs checking. | `D-27` |  | ⬜ |
 
 ## Form and elevation
 
