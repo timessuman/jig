@@ -31,8 +31,12 @@ const TYPE_COLUMNS = [
 ];
 
 const tokensDoc = read('rules/02-tokens.md');
+// Anchored to the start of a line, because the type table is the one where a
+// mode name is the FIRST cell. The sizes-and-motion tables below it put the
+// mode names in their HEADER row instead, and an unanchored match picked those
+// up too — five "mode rows" where there are three.
 const rows = [...tokensDoc.matchAll(
-  /\|\s*`(editorial|product|operator)`\s*\|[^|]*\|\s*\|([^\n]*)/g,
+  /^\|\s*`(editorial|product|operator)`\s*\|[^|]*\|\s*\|([^\n]*)/gm,
 )];
 
 if (rows.length !== 3) {
@@ -212,6 +216,64 @@ const LIGHT_BACKGROUNDS = {
     fail(`${unrendered.length} token(s) defined but never rendered by packages/preview:`);
     for (const t of unrendered) console.error(`      ${t}`);
     console.error('      Add them to the preview — a token nobody has looked at is a value nobody has checked.');
+  }
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Rule 7 — the sizes-and-motion tables match the mode files.
+ *
+ * `01-modes.md` names these tokens and points at 02-tokens.md for resolved
+ * values. The values were only ever in `tokens/mode.*.css`, so the pointer led
+ * nowhere; now that the doc states them, they can drift from the CSS instead —
+ * which is worse than absent, because a wrong number reads as authoritative.
+ *
+ * A `—` cell asserts the token is genuinely ABSENT from that mode, so the
+ * table cannot quietly hide one that was added later.
+ * ------------------------------------------------------------------ */
+{
+  const MODES = ['editorial', 'product', 'operator'];
+  const cssFor = Object.fromEntries(MODES.map((m) => [m, read(`tokens/mode.${m}.css`)]));
+
+  // Every `| \`--token\` | a | b | c |` row in the sizes/motion section.
+  const rows = [...tokensDoc.matchAll(
+    /^\|\s*`(--[a-z0-9-]+)`\s*\|([^\n]*)\|\s*$/gm,
+  )];
+  const checked = rows.filter(([, token]) =>
+    /^--(size|duration|measure|spacing)-/.test(token),
+  );
+
+  if (checked.length < 9) {
+    fail(`Rule 7 found only ${checked.length} size/motion rows in 02-tokens.md; ` +
+         `the table shape changed — update this check.`);
+  }
+
+  for (const [, token, cells] of checked) {
+    const values = cells.split('|').map((c) => c.trim().replace(/`/g, ''));
+    if (values.length !== MODES.length) {
+      fail(`Rule 7: ${token} has ${values.length} cells, expected ${MODES.length}`);
+      continue;
+    }
+    MODES.forEach((mode, i) => {
+      const claimed = values[i];
+      const actual = new RegExp(`${token}\\s*:\\s*([^;]+);`).exec(cssFor[mode]);
+      if (claimed === '—') {
+        if (actual) {
+          fail(`02-tokens.md says ${token} is undefined in ${mode}, but mode.${mode}.css sets it to ${actual[1].trim()}`);
+        }
+        return;
+      }
+      if (!actual) {
+        fail(`02-tokens.md says ${token} is ${claimed} in ${mode}, but mode.${mode}.css does not define it`);
+        return;
+      }
+      // A selection is written `var(--spacing-m)` in CSS and `--spacing-m` in
+      // the doc — the same value, and the doc form is the readable one.
+      const resolved = actual[1].trim().replace(/^var\((--[a-z0-9-]+)\)$/, '$1');
+      if (resolved !== claimed) {
+        fail(`${token} is ${resolved} in mode.${mode}.css, but 02-tokens.md says ${claimed}`);
+      }
+    });
   }
 }
 

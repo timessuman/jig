@@ -79,7 +79,7 @@ At a seam between modes:
 | Imagery | Central. Real photography or commissioned illustration. |
 | Keyboard | Standard tab order; no shortcuts expected |
 
-Resolved values: `02-tokens.md`.
+Resolved values: `02-tokens.md` — the option sets for type, spacing, radius and shadow, and "Sizes and motion, by mode" for control heights, row heights, durations and measure.
 
 **Mode-specific rules**
 - One hero maximum, at the top. A second full-viewport section is a second hero.
@@ -114,7 +114,7 @@ Resolved values: `02-tokens.md`.
 | Imagery | Sparse. Illustration permitted in empty states only. |
 | Keyboard | Shortcuts for frequent actions; documented in-app |
 
-Resolved values: `02-tokens.md`.
+Resolved values: `02-tokens.md` — the option sets for type, spacing, radius and shadow, and "Sizes and motion, by mode" for control heights, row heights, durations and measure.
 
 **Mode-specific rules**
 - One primary action per view. Everything else is secondary or tertiary.
@@ -150,7 +150,7 @@ Resolved values: `02-tokens.md`.
 | Keyboard | Full keyboard operation mandatory. Shortcut reference required. |
 | Numerals | Tabular figures mandatory on all numeric columns |
 
-Resolved values: `02-tokens.md`.
+Resolved values: `02-tokens.md` — the option sets for type, spacing, radius and shadow, and "Sizes and motion, by mode" for control heights, row heights, durations and measure.
 
 **Mode-specific rules**
 - Density is the feature. More rows visible beats more comfortable rows.

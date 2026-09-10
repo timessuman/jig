@@ -66,6 +66,11 @@ Modes **select** from these; they never define their own values. `--spacing-card
 
 `editorial` omits the rung the ratio would put between H2 and H1 (a step near 40); the ratio names the ladder, not every adjacent step — its H2→H1 jump (32→48) is 1.5, not 1.25.
 
+The columns are `--text-caption`, `--text-body`, `--text-prose`, `--text-h3`,
+`--text-h2` and `--text-h1` in that order. Line heights pair with them:
+`--leading-heading` tightens as size grows, `--leading-body` for UI text, and
+`--leading-prose` (1.6 in every mode) for sustained reading.
+
 **`--text-body` and `--text-prose` are different roles, not two sizes of the same thing.** Body is UI text — labels, controls, table cells, short strings read in glances. Prose is sustained reading, and never drops below 18px on a page anyone is expected to actually read (`B-75`).
 
 Line heights are unitless and floor at **1.5** for body and prose, easing down as size rises. Raise it further when lines are long, when the typeface is heavy or dark, or when it simply looks large for its nominal size. Between 1.5 and 2 is the comfortable band for prose.
@@ -78,11 +83,52 @@ Line heights are unitless and floor at **1.5** for body and prose, easing down a
 
 **Typeface.** One sans serif by default: most legible small, neutral across brands, least likely to be the wrong choice. When picking one — prefer a popular face with many weights, a tall x-height and generous default spacing, with OpenType features and the language coverage the product needs. When in doubt, the platform system font is tried, tested and free to load. A second face is permitted for headings only (`B-76`).
 
-**Radius — four options**, by element size: 8px small (buttons, inputs), 16px medium (cards, panels), 32px large (hero media and full-bleed surfaces), and a full/pill radius for pills, badges, avatars and chips (`--radius-full`).
+**Radius — four options**, by element size: `--radius-sm` 8px (buttons, inputs), `--radius-md` 16px (cards, panels), `--radius-lg` 32px (hero media and full-bleed surfaces), and `--radius-full` for pills, badges, avatars and chips.
 
 `--radius-control` selects `sm` in all three modes. `--radius-surface` selects `md` in `editorial` and `product`, but `sm` in `operator` — the selection is per-mode, not a fixed derivation. `--radius-lg` and `--radius-full` are brand-scale options; no mode currently selects either.
 
-**Shadow — two options** with stated meanings: `raised` sits above the page, `overlay` floats over it. `A-08` still prefers a stroke; these exist for when depth is the point.
+**Shadow — three, two of which do anything**: `--shadow-raised` sits above the page, `--shadow-overlay` floats over it, and `--shadow-none` is the explicit absence a mode selects when its elevation is stroke-led rather than shadow-led (every mode currently does, via `--shadow-surface`). `A-08` still prefers a stroke; the other two exist for when depth is the point.
+
+## Sizes and motion, by mode
+
+`01-modes.md` names these tokens in each mode's profile and points here for the
+resolved values. They were not here: the option sets above cover type, spacing,
+radius and shadow, while control heights, row heights and durations lived only
+in `tokens/mode.*.css`. A reader following the pointer found nothing.
+
+Unlike the option sets, these are not selections from a shared ladder — each
+mode states its own value, because density is the thing a mode *is*.
+
+| Token | `editorial` | `product` | `operator` |
+| --- | --- | --- | --- |
+| `--size-control` | 48px | 40px | 32px |
+| `--size-control-sm` | 40px | 32px | 28px |
+| `--size-row` | — | 48px | 36px |
+| `--size-row-compact` | — | — | 32px |
+| `--size-icon` | 20px | 18px | 16px |
+| `--duration-fast` | 150ms | 100ms | 75ms |
+| `--duration-base` | 250ms | 150ms | 100ms |
+| `--duration-slow` | 300ms | 200ms | 120ms |
+| `--measure-prose` | 68ch | 60ch | 72ch |
+
+A `—` means the mode does not define that token: `editorial` has no row
+heights because it has no dense record views, and `product` selects a single
+row height rather than a compact variant. A pattern that needs one in those
+modes is using the wrong mode, or the mode file needs the token added
+deliberately.
+
+**`--size-touch-target` is 48px in every mode and is not a density decision.**
+It is an accessibility floor, so it is excluded from the table above — there is
+nothing per-mode about it to resolve. The same is true of `--focus-ring-width`
+and `--focus-ring-offset`, which live in the brand file for that reason.
+
+**Spacing selections.** `--spacing-card` and `--spacing-section` pick from the
+shared ladder rather than stating their own values:
+
+| Token | `editorial` | `product` | `operator` |
+| --- | --- | --- | --- |
+| `--spacing-card` | `--spacing-m` | `--spacing-m` | `--spacing-s` |
+| `--spacing-section` | `--spacing-xxl` | `--spacing-xl` | `--spacing-m` |
 
 ## Colour naming
 
