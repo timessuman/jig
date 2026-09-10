@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { install, upsertBlock, vendorHeader } from '../src/commands/install.js';
@@ -411,5 +411,78 @@ describe('install — prepare-then-commit (Fix 2)', () => {
     rmSync(join(pkg, 'LICENSE'));
     expect(() => install(opts())).toThrow();
     expect(readFileSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'), 'utf8')).toBe(before);
+  });
+});
+
+/**
+ * `docs/known-follow-ups.md` carried this as "fix before the next release":
+ * `install --agent claude` then `install --agent cursor` was said to leave the
+ * first agent's skill file on disk, absent from the manifest, frozen forever —
+ * because a single-`agent` manifest cannot express two harnesses at once.
+ *
+ * The skill-first rearchitecture resolved it without the entry being closed:
+ * each harness now keeps its own reference directory AND its own manifest
+ * beside it, so there is no shared manifest to be overwritten. These tests
+ * exist so that stays true — the failure it describes is silent, and the thing
+ * it costs is `update` treating a real install as the user's own files.
+ */
+describe('installing a second agent does not orphan the first', () => {
+  const agents = ['claude', 'cursor'] as const;
+
+  it('leaves each harness with its own manifest that owns its own files', () => {
+    for (const agent of agents) install({ ...opts(), agent, scope: 'project' });
+
+    for (const agent of agents) {
+      const dir = getAdapter(agent).referenceDir('project');
+      const manifest = readManifest(project, dir);
+      expect(manifest, `${agent} has no manifest`).not.toBeNull();
+      expect(manifest!.agent, `${agent} manifest names the wrong agent`).toBe(agent);
+      expect(
+        Object.keys(manifest!.files).some((f) => f.includes(dir)),
+        `${agent} manifest does not own its own skill file`,
+      ).toBe(true);
+    }
+  });
+
+  it('does not touch the first agent’s files when the second installs', () => {
+    install({ ...opts(), agent: 'claude', scope: 'project' });
+    const claudeSkill = join(project, claudeDir, 'SKILL.md');
+    const before = readFileSync(claudeSkill, 'utf8');
+    const manifestBefore = JSON.stringify(readManifest(project, claudeDir));
+
+    install({ ...opts(), agent: 'cursor', scope: 'project' });
+
+    expect(readFileSync(claudeSkill, 'utf8'), 'claude SKILL.md changed').toBe(before);
+    expect(JSON.stringify(readManifest(project, claudeDir)), 'claude manifest changed')
+      .toBe(manifestBefore);
+  });
+
+  it('no installed file is left unowned by any manifest', () => {
+    // The orphan test proper: every file either install wrote must appear in
+    // some manifest. An unowned file is one `update` will never refresh.
+    for (const agent of agents) install({ ...opts(), agent, scope: 'project' });
+
+    const owned = new Set<string>();
+    for (const agent of agents) {
+      const m = readManifest(project, getAdapter(agent).referenceDir('project'))!;
+      for (const f of Object.keys(m.files)) owned.add(f);
+    }
+
+    // Walk the whole project once. Everything install put there must be owned
+    // by some manifest; `manifest.json` itself is the record, not a record.
+    const onDisk: string[] = [];
+    const walk = (rel: string) => {
+      for (const entry of readdirSync(join(project, rel), { withFileTypes: true })) {
+        const next = rel ? `${rel}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) walk(next);
+        else if (entry.name !== 'manifest.json') onDisk.push(next);
+      }
+    };
+    walk('');
+
+    expect(onDisk.length, 'nothing was installed — the test would pass vacuously')
+      .toBeGreaterThan(0);
+    const unowned = onDisk.filter((f) => !owned.has(f));
+    expect(unowned, `files no manifest claims: ${unowned.join(', ')}`).toEqual([]);
   });
 });

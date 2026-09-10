@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { getAdapter, referenceDirFor, skillFilesFor } from '../adapters/registry.js';
 import { referenceFiles } from '../install/references.js';
 import { BLOCK_START } from '../adapters/types.js';
@@ -13,7 +13,10 @@ import {
 } from '../install/manifest.js';
 import { render, renderCommandTable, type CommandMetadata } from '../template/render.js';
 import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
-import { matchLineEndings } from '../install/line-endings.js';
+import { createWriter, bundleFiles, relKey } from '../install/writer.js';
+// Re-exported: `update` and the tests import it from here, and moving the
+// definition should not move every call site.
+export { relKey };
 
 export { upsertBlock, vendorHeader };
 
@@ -55,22 +58,6 @@ const ASK_INSTRUCTION =
  * writes still go through `path.join`, which is platform-correct for disk
  * access.
  */
-export function relKey(...parts: string[]): string {
-  return parts.join('/');
-}
-
-function writeFile(root: string, key: string, content: string, files: Record<string, string>) {
-  const abs = join(root, ...key.split('/'));
-  mkdirSync(dirname(abs), { recursive: true });
-  // Match the line endings already on disk. `checksum` normalises CRLF, so a
-  // file checked out under `core.autocrlf` matches its recorded checksum — but
-  // writing LF over it, or splicing an LF block into it, left mixed endings
-  // that the checksum could not see. See install/line-endings.ts.
-  const existing = existsSync(abs) ? readFileSync(abs, 'utf8') : undefined;
-  const toWrite = matchLineEndings(content, existing);
-  writeFileSync(abs, toWrite, 'utf8');
-  files[key] = checksum(toWrite);
-}
 
 /**
  * Renders the shared body of an adapter's skill/instruction file.
@@ -255,7 +242,7 @@ export function install(opts: InstallOptions): InstallResult {
   // `init` copies only the modes a project actually declares, straight from
   // the package, into the project's own `.jig/tokens/`.
   const rulesDir = join(opts.packageRoot, 'rules');
-  for (const file of readdirSync(rulesDir).filter((f) => f.endsWith('.md')).sort()) {
+  for (const file of bundleFiles(opts.packageRoot, 'rules')) {
     const body = readFileSync(join(rulesDir, file), 'utf8');
     planned.push({
       key: relKey(referenceDir, 'rules', file),
@@ -321,7 +308,8 @@ export function install(opts: InstallOptions): InstallResult {
   // is carried forward unchanged in the new manifest, so it stays flagged
   // as user-modified (and therefore keeps being skipped) until the user's
   // content happens to match a vendored version again. ----
-  const files: Record<string, string> = {};
+  const writer = createWriter(installRoot);
+  const files = writer.files;
   const written: string[] = [];
   const skipped: string[] = [];
   for (const { key, content, checkable } of planned) {
@@ -331,7 +319,7 @@ export function install(opts: InstallOptions): InstallResult {
       if (recorded) files[key] = recorded;
       continue;
     }
-    writeFile(installRoot, key, content, files);
+    writer.write(key, content);
     written.push(key);
   }
 

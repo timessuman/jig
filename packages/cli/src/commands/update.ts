@@ -1,13 +1,13 @@
-import { dirname, join } from 'node:path';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import { checksum, isModified, writeManifest, type Manifest, type Scope } from '../install/manifest.js';
 import { resolveAllInstalled, type ResolvedTarget } from '../install/target.js';
 import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
 import { referenceFiles } from '../install/references.js';
-import { matchLineEndings } from '../install/line-endings.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
-import { buildCommandBody, buildSkillBody, relKey, rulesPathFor, type InstallOptions } from './install.js';
+import { buildCommandBody, buildSkillBody, rulesPathFor, type InstallOptions } from './install.js';
+import { bundleFiles, createWriter, relKey } from '../install/writer.js';
 import { readInitManifest, writeInitManifest, isInitFileModified } from '../init/state.js';
 import { detectLegacyRules } from '../init/migrate.js';
 
@@ -119,24 +119,16 @@ function updateTarget(
 
   const updated: string[] = [];
   const skipped: string[] = [];
-  const files: Record<string, string> = { ...existing.files };
 
-  const write = (key: string, content: string) => {
-    const abs = join(installRoot, ...key.split('/'));
-    mkdirSync(dirname(abs), { recursive: true });
-    // Preserve whatever endings the file already uses — see install/line-endings.ts.
-    const existing = existsSync(abs) ? readFileSync(abs, 'utf8') : undefined;
-    const toWrite = matchLineEndings(content, existing);
-    writeFileSync(abs, toWrite, 'utf8');
-    files[key] = checksum(toWrite);
-    updated.push(key);
-  };
+  const writer = createWriter(installRoot, existing.files);
+  const files = writer.files;
+  const write = (key: string, content: string) => { updated.push(writer.write(key, content)); };
 
   // The reference bundle: rules + the index that describes them. Refreshed
   // in place at `referenceDir` (beside the skill file), skipping anything
   // the user has edited since — the same rule `install` applies.
   const rulesDir = join(opts.packageRoot, 'rules');
-  for (const file of readdirSync(rulesDir).filter((f) => f.endsWith('.md')).sort()) {
+  for (const file of bundleFiles(opts.packageRoot, 'rules')) {
     const key = relKey(referenceDir, 'rules', file);
     if (isModified(installRoot, key, existing)) {
       skipped.push(key);
@@ -265,7 +257,12 @@ function updateInitFiles(opts: InstallOptions): { updated: string[]; skipped: st
   if (initManifest) {
     const initFiles = { ...initManifest.files };
     let initChanged = false;
-    for (const file of readdirSync(tokensDir).filter((f) => f.endsWith('.css')).sort()) {
+    // Through the same writer as everything else. This loop used to write
+    // directly and had lost `matchLineEndings` on the way, so a token file
+    // checked out under core.autocrlf came back LF-only from `update` while
+    // the rule files beside it kept their CRLF.
+    const writer = createWriter(opts.projectRoot, initFiles);
+    for (const file of bundleFiles(opts.packageRoot, 'tokens')) {
       const key = relKey('.jig', 'tokens', file);
       if (!(key in initManifest.files)) continue;
       if (isInitFileModified(opts.projectRoot, key, initManifest)) {
@@ -273,13 +270,10 @@ function updateInitFiles(opts: InstallOptions): { updated: string[]; skipped: st
         continue;
       }
       const content = vendorHeader(file, opts.version, 'css', null) + readFileSync(join(tokensDir, file), 'utf8');
-      const abs = join(opts.projectRoot, ...key.split('/'));
-      mkdirSync(dirname(abs), { recursive: true });
-      writeFileSync(abs, content, 'utf8');
-      initFiles[key] = checksum(content);
+      updated.push(writer.write(key, content));
       initChanged = true;
-      updated.push(key);
     }
+    Object.assign(initFiles, writer.files);
     if (initChanged) writeInitManifest(opts.projectRoot, { ...initManifest, version: opts.version, files: initFiles });
   }
   return { updated, skipped };
