@@ -77,7 +77,85 @@ describe('explain — unknown ids', () => {
     expect(() => explain({ ruleId: 'C-999', version })).toThrow(/C-\d+/);
   });
 
-  it('rejects something that is not a rule id at all', () => {
-    expect(() => explain({ ruleId: 'not-an-id', version })).toThrow(/rule id/i);
+  it('treats a non-id as a search term, and says so when it finds nothing', () => {
+    // This used to throw "is not a rule id". It is a better answer to search
+    // for it and report the empty result: 'not-an-id' is not malformed input,
+    // it is a query with no hits, and the reader needs a way forward either way.
+    expect(() => explain({ ruleId: 'not-an-id', version })).toThrow(/no rule matches/i);
+    expect(() => explain({ ruleId: 'not-an-id', version })).toThrow(/--list/);
+  });
+});
+
+/**
+ * `explain` answered exactly one question: "I have an id, what is it?" That
+ * closes the loop after `check` prints a finding, and nothing else.
+ *
+ * The other direction had no answer at all. An agent told to "review the colour
+ * decisions here" holds no id, and `explain contrast` returned "not a rule id"
+ * — the tool that knows every rule refusing to say which ones exist. For a
+ * system whose whole premise is that an agent reads it, that is the more
+ * important direction of the two.
+ */
+describe('explain — finding a rule you cannot name', () => {
+  it('searches titles when given a word rather than an id', () => {
+    const out = explain({ ruleId: 'contrast', version });
+    expect(out).toContain('C-19');
+    expect(out).toContain('Grey text below contrast floor');
+  });
+
+  it('searches rule bodies too, not just titles', () => {
+    // "placeholder" appears in C-19's correction, not its title.
+    expect(explain({ ruleId: 'placeholder', version })).toContain('C-19');
+  });
+
+  it('prints the whole rule when the search finds exactly one', () => {
+    // One hit is not ambiguous, so answer the question rather than making the
+    // reader run a second command to get the same rule.
+    const out = explain({ ruleId: 'hamburger', version });
+    expect(out).toMatch(/❌/);
+    expect(out).toMatch(/✅/);
+    expect(out).toMatch(/detector:|judgment|mechanical|hybrid/);
+  });
+
+  it('lists matches compactly when there are several', () => {
+    const out = explain({ ruleId: 'colour', version });
+    expect(out.split('\n').length, 'a multi-match result dumped full rule text')
+      .toBeLessThan(60);
+    expect(out).toMatch(/[A-Z]-\d+/);
+  });
+
+  it('finds specs as well as rules', () => {
+    expect(explain({ ruleId: 'ambient', version })).toContain('P-13');
+  });
+
+  it('says so plainly when a search finds nothing', () => {
+    expect(() => explain({ ruleId: 'kubernetes', version })).toThrow(/no rule|nothing/i);
+  });
+});
+
+describe('explain — listing', () => {
+  it('lists every rule when asked for the list', () => {
+    const out = explain({ ruleId: '', version, list: true });
+    expect(out).toContain('C-19');
+    expect(out).toContain('P-13');
+    expect(out).toContain('A-01');
+  });
+
+  it('lists one section when given a section letter', () => {
+    const out = explain({ ruleId: 'G', version, list: true });
+    expect(out).toContain('G-42');
+    expect(out).not.toContain('C-19');
+  });
+});
+
+describe('explain — forgiving input', () => {
+  it('accepts an id with the hyphen missing', () => {
+    // An agent citing "C19" has made a one-character typo with exactly one
+    // possible meaning. Refusing it teaches nothing.
+    expect(explain({ ruleId: 'C19', version })).toContain('Grey text below contrast floor');
+  });
+
+  it('still rejects something that is neither an id nor a match', () => {
+    expect(() => explain({ ruleId: 'zzzz', version })).toThrow();
   });
 });

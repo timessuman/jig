@@ -157,7 +157,7 @@ Also: shadow colour derives from the text colour, never pure black, so it sits i
 
 ### C-19 Grey text below contrast floor
 ❌ A mid-grey (ramp step `-500` or lighter) used for secondary text, placeholders or timestamps
-✅ `--color-text-weak` for secondary text, `--color-text-weak` for large text only. See the contrast contract in `02-tokens.md`: `-500` and lighter are never text on a light background. Check placeholders and disabled states specifically; they are the usual failures.
+✅ `--color-text-weak` for secondary text, at any size — it clears 4.5:1 on every surface in the system, which is why there is no lighter grey to reach for. Those are the only two foreground greys, deliberately: a value that passes only at large sizes is the thing this rule forbids. If `--color-text-weak` looks too heavy, the answer is more space or a smaller size, not a paler grey. See the contrast contract in `02-tokens.md`: `-500` and lighter are never text on a light background. Check placeholders and disabled states specifically; they are the usual failures.
 
 ### C-20 Colour as the sole signal
 ❌ Red border alone to indicate an invalid field

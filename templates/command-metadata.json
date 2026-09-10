@@ -20,8 +20,8 @@
     "status": "available"
   },
   "explain": {
-    "description": "Print a rule's full text, its correction, the version it arrived in, and who checks it. Also resolves the P-/M- pattern and mode specs, which no rule index contains.",
-    "argumentHint": "<rule-id>",
+    "description": "Explain a rule, or find the rules you cannot name. Given an id, prints the rule's full text, its correction, the version it arrived in and who checks it — including the P-/M- pattern and mode specs, which no rule index contains. Given a word instead, searches every title and body and lists what matches. `--list` prints every id, or one section's.",
+    "argumentHint": "<rule-id | search term> [--list]",
     "status": "available"
   }
 }
