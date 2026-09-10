@@ -80,3 +80,51 @@ describe('check — legacy .jig/rules.index.json compatibility', () => {
     expect(result.report).toMatch(/1 rules(?: \(\+ \d+ pattern and mode specs\))?, 1 fired/);
   });
 });
+
+/**
+ * I5, end to end. The unit tests in `consumer-tokens.test.ts` prove the token
+ * map now holds a project's own custom properties; this proves a detector
+ * actually fires on one, which is the part a user sees.
+ *
+ * Before this, a project that declared its greys itself — i.e. any project that
+ * had not run `jig init` — got "no findings" from `contrast-floor` no matter
+ * what those greys were, because every `var(--muted)` was unresolvable and
+ * unresolvable values are skipped.
+ */
+describe('check resolves the project’s own tokens (I5)', () => {
+  it('reports a contrast failure on a grey the project declared itself', () => {
+    mkdirSync(join(project, 'src'), { recursive: true });
+    writeFileSync(
+      join(project, 'src', 'theme.css'),
+      ':root {\n  --muted: #b0b0b0;\n  --page: #ffffff;\n}\n',
+    );
+    writeFileSync(
+      join(project, 'src', 'Caption.css'),
+      '.caption {\n  color: var(--muted);\n  background: var(--page);\n}\n',
+    );
+
+    const result = check({ projectRoot: project, homeDir: home, version: '0.1.0', all: true, ci: false });
+
+    const contrast = result.findings.filter((f) => f.ruleId === 'C-19');
+    expect(contrast.length, 'no contrast finding — the consumer token did not resolve')
+      .toBeGreaterThan(0);
+    expect(contrast.some((f) => f.file === 'src/Caption.css')).toBe(true);
+  });
+
+  it('says nothing when the same token is declared two different ways', () => {
+    // Ambiguous rather than wrong: which value applies depends on import order.
+    // A reported finding against a value the page never renders costs more than
+    // a missed one.
+    mkdirSync(join(project, 'src'), { recursive: true });
+    writeFileSync(join(project, 'src', 'a.css'), ':root { --muted: #b0b0b0; }\n');
+    writeFileSync(join(project, 'src', 'b.css'), ':root { --muted: #595959; }\n');
+    writeFileSync(
+      join(project, 'src', 'Caption.css'),
+      '.caption {\n  color: var(--muted);\n  background: #ffffff;\n}\n',
+    );
+
+    const result = check({ projectRoot: project, homeDir: home, version: '0.1.0', all: true, ci: false });
+    expect(result.findings.filter((f) => f.ruleId === 'C-19' && f.file === 'src/Caption.css'))
+      .toHaveLength(0);
+  });
+});

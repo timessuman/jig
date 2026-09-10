@@ -8,18 +8,29 @@ whole-branch review triaged them; nothing here blocks merge.
 
 _Resolved: rule `C-49` now carries its `✅`, and `I-80` (found while verifying C-49) now carries its `❌`. All 104 rules have both markers._
 
-- **Installing a second agent orphans the first agent's skill file.** `install --agent claude`
-  then `install --agent cursor` leaves `.claude/skills/jig/SKILL.md` on disk, absent from the
-  manifest, frozen forever. The live trigger is a shared repo where teammates use different
-  agents — which a single-`agent` manifest cannot express at all.
+- **Installing a second agent orphans the first agent's skill file.** _Resolved,
+  and it had been for some time — the skill-first rearchitecture removed the
+  premise. The entry assumed one manifest per project, which could name only one
+  agent; each harness now keeps its own reference directory with its own
+  manifest beside it, so there is nothing shared to overwrite. Verified end to
+  end against a real project, then locked down in `install.test.ts`: each
+  harness owns its own files, installing the second changes neither the first's
+  bytes nor its manifest, and no installed file is left unowned by any manifest.
+  The last is mutation-tested — with a planted orphan the suite fails._
 
-## Shared-logic drift (do before a sixth adapter or a third command)
+## Shared-logic drift — resolved
 
-`install.ts` and `update.ts` independently implement install-root resolution, the write+checksum
-helper, rule-file enumeration, and the adapter render context. `update` already imports
-`buildSkillBody` and `relKey` from `install`, so the seam was recognised but not finished. This
-duplication is what let the C3 root-resolution bug diverge from `install`'s guarded version, and
-what made the C2 fix need applying in two places.
+_`install/writer.ts` now holds the one writer and the one bundle enumerator, and
+all three call sites go through it._
+
+The entry was right that this had already cost something, and understated it.
+The three copies were not identical: `updateInitFiles` had lost
+`matchLineEndings`, so a token file checked out under `core.autocrlf` came back
+LF-only from `jig update` while the rule files beside it kept their CRLF. Nobody
+chose that. Two things improved on the way in: writes are atomic (a truncated
+file reads as user-edited, so `update` would skip it silently forever), and
+`relKey` moved beside the writes it describes, re-exported so no call site
+moved.
 
 ## Deferred findings, verbatim from the run ledger
 
@@ -122,40 +133,38 @@ token exists, not that the sentence around it is correct.
 
 ## From the check review
 
-Findings from the whole-branch review of `check` that were triaged as non-blocking
-and deliberately deferred past this fix pass (C1/C2/C3/I1/I3/I4/I6/M1/M7/M8 were
-fixed in the same pass this section was added in).
+_Both resolved. Verified in the current source rather than taken on the list's
+word, which is how the stale I2 entry was caught._
 
-- **I2 — CSS nesting silently loses the parent block's declarations.** `splitRuleBlocks`
-  (`packages/cli/src/check/css.ts`) treats any block containing a nested `{` as a
-  wrapper and excludes it from `leafBlocks` — correct for `@media`/`@supports`/
-  `@keyframes`, where the outer block carries no declarations of its own, but wrong
-  for native CSS nesting (`.card { color: red; &:hover { color: blue; } }`), where the
-  outer block's OWN declarations (`color: red` here) are real and currently invisible
-  to every detector that reads `leafBlocks`. Fixing this is its own piece of work: the
-  block splitter needs to distinguish "this block is purely a wrapper" from "this block
-  has both its own declarations and a nested rule," which changes what a "leaf" means
-  and likely changes `bodyStartLine`/line-number accounting for the split declarations.
-- **I5 — consumer-declared custom properties are invisible to token-aware detectors.**
-  `tokens` (passed through `DetectorContext`) is only ever the vendored Jig token map
-  loaded from `.jig/tokens/*.css` (`packages/cli/src/check/tokens.ts`) — a `var(--x)`
-  the consumer declares themselves (in their own `:root`, a component-scoped custom
-  property, a CSS-in-JS theme object, ...) is never in that map. `resolveOpaqueColor`/
-  `extractColorComponents` then treat such a reference as unresolved and skip it, which
-  is the safe default (no guessing) but means `contrast-floor` and `violet-band-hue`
-  silently do not evaluate an entire class of real values. There is no `:root` scan of
-  the consumer's own CSS to build a fuller map; adding one is a scope decision (how far
-  to walk imports/scoping) rather than a small fix.
-_Resolved. This entry recorded six findings from the whole-branch review of
-`check` as open, on the grounds that their specifics were lost in a handoff. The
-specifics were not lost: commit `34d298a`, the end of the very range the entry
-cites, is titled "fix: address the whole-branch review of check" and its message
-enumerates all six. Each was verified closed in the current source rather than
-taken on the title's word — `check` scans the project rather than the install
-root; `maskComments` walks characters and skips strings; a repository with no
-commits falls back instead of crashing; the inverted media-query mask is gone;
-`contrast-floor` relaxes to 3:1 for large text; and the detectors no longer
-require a trailing semicolon._
+- **I2 — CSS nesting.** Already fixed and tested when this entry was written;
+  nobody had closed it. `leafBlocks` runs every block through `blankNested`
+  rather than discarding any block containing braces, so a nested rule's parent
+  declarations are scanned, its child is not scanned twice, and line numbers
+  survive the blanking. `check-css.test.ts` covers all four properties plus the
+  pure-wrapper case.
+- **I5 — consumer-declared custom properties.** Real, and now fixed.
+  `loadTokenMap` reads the project's own unconditional `:root` declarations
+  alongside Jig's vendored ones, from every stylesheet in the project (including
+  style regions inside host languages, so a `createGlobalStyle` counts). Until
+  this, a project that had never run `jig init` had every `var(--x)` treated as
+  unresolvable, so `contrast-floor` and `violet-band-hue` reported nothing on
+  very nearly all of its colours.
+
+  Two decisions inside it. **A name declared in two places with different values
+  is dropped, not resolved either way** — which value a browser uses depends on
+  import order, and a wrong guess does not cost a missed finding but a *reported*
+  one against a value the page never renders. And scope stays shallow: no
+  `@import` following, no theme or breakpoint overrides.
+
+  That second decision needed a fix underneath it. The old comment claimed
+  media-query overrides were excluded because Jig's dark block uses
+  `:root:not(...)` — true of Jig's own files and of nothing else, so a consumer's
+  plain `:root` inside `@media (prefers-color-scheme: dark)` was read as an
+  ordinary `:root` and its dark values overwrote the light ones. `CssBlock` now
+  carries `atRuleDepth`, counting enclosing at-rules rather than braces: the
+  style-region mask rewrites a tagged template's backticks as braces, so a rule
+  inside `createGlobalStyle` is one brace deep while being conditional on
+  nothing.
 
 ## Open questions raised by the source, not yet acted on
 
