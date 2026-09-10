@@ -17,17 +17,22 @@ Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 ## What the reference extract covers
 
 The reconciliation source is supplied one chapter at a time, as a PDF that is
-replaced in place. Chapters read so far on 2026-09-10: **Colour** (book pages
-78–152) and **Typography** (229–257). It has no text layer, so it can only be
+replaced in place. Chapters read so far on 2026-09-10: **Colour** (book pages 78–152),
+**Typography** (229–257) and **Layout and spacing** (164–218). It has no text layer, so it can only be
 read as rendered images — see `scripts/render-reference.mjs`, which also records
 the two approaches that do not work.
 
-Colour answered `C2`, `C3` and `C5`, and confirmed the APCA table now in
-`02-tokens.md`. Typography answered `T4`, `T5`, `T6` directly rather than by
-entailment, and produced `T18`–`T21`. Neither chapter covers heading spacing,
-optical alignment, motion durations or component sizing, so `S4`, `S5`, `M1`,
-`M2`, `F1`'s per-mode heights and `F6`'s row heights remain open — verified by
-reading every page of both, not by sampling.
+Colour answered `C1`–`C5` and confirmed the APCA table now in `02-tokens.md`.
+Typography answered `T4`, `T5`, `T6` directly rather than by entailment, and
+produced `T18`–`T21`. Layout and spacing confirmed `S1`, `S8` and `S10` to the
+number, and settled `S4`, `S5`, `F1` and `F6` the other way — as ours, because
+it covers none of them and it was the chapter most likely to.
+
+Only `M1`, `M2` and `T21` are left, and all three need a chapter not yet
+supplied: durations and entrance animation want Motion, if the book has one.
+Across three chapters no page has given an animation duration in ms or seconds,
+so it is worth knowing whether such a chapter exists before assuming the rows
+can close.
 
 **Because the PDF is replaced rather than added to, evidence has to be written
 into this file as it is found.**
@@ -158,9 +163,9 @@ records its removal.
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
 | S7 | Four grouping tools; use the weakest that works | `A-67`, `03` |  | ✅ |
-| S8 | Spacing grows outward: XS → M → L → XXL | `D-69` |  | ✅ |
+| S8 | Spacing grows outward: XS → M → L → XXL. **Confirmed as the reference's own worked sequence** (pp.195–200): innermost card text XS 8 → card padding and section content M 24 → nav links and card gutters L 32 → between major page sections XXL 80. It gives no fixed multiplier, mapping relatedness onto the scale instead. | `D-69` |  | ✅ |
 | S9 | Card padding is **M (24)**, was L (32) in editorial | `mode.*.css` |  | ✅ |
-| S10 | 12-column grid; gutters L→S, margins XXL→S | `mode.*.css`, `03` |  | ✅ |
+| S10 | 12-column grid; gutters L→S, margins XXL→S. **Confirmed to the number, and the row describes `editorial`.** The reference gives 12 columns on desktop dropping to 4 on mobile, gutters "large (32pt)… decrease to 16pt on mobile", margins "XXL 80pt… decrease to small 16pt" — which is `editorial` exactly (32→16, 80→16, 12→4). `product` and `operator` step the gutter and margin down one and two rungs for density; the responsive shape is the same. | `mode.*.css`, `03` |  | ✅ |
 | S11 | Six hierarchy variables + 3-step ordering method | `03` |  | ✅ |
 | S12 | One alignment per component; start-aligned | `D-71` |  | ✅ |
 | S13 | Baseline alignment for mixed-size text in a line | `D-72` |  | ✅ |
@@ -169,18 +174,18 @@ records its removal.
 | S16 | Design for long content; crop truncation mid-string | `E-73`, `E-74` |  | ✅ |
 | S17 | Squint test, with an agent-usable analogue | `03` |  | ✅ |
 | --- | --- | --- | --- | --- |
-| S1 | **8pt base, six options** XS 8 · S 16 · M 24 · L 32 · XL 48 · XXL 80 | `mode.*.css` |  | ✅ |
+| S1 | **8pt base, six options** XS 8 · S 16 · M 24 · L 32 · XL 48 · XXL 80. **Confirmed to the number** (p.192): "set simple t-shirt sized spacing options based on increments of 8 points… many popular screen sizes are divisible by 8", with exactly these six values. Our `--spacing-2xs` (4px) is covered too: "for more detailed interfaces, you could use 4 point increments for a bit more control". | `mode.*.css` |  | ✅ |
 | S6 | Modes **select** options; they never define values | `mode.*.css` |  | ✅ |
 | S2 | Section rhythm XXL 80 / XL 48 / M 24 | `mode.*.css` |  | ✅ |
 | S3 | Card padding L 32 / M 24 / S 16 | `mode.*.css` |  | ✅ |
-| S4 | Heading space-before exceeds space-after 2–3× | `D-24` |  | ⬜ |
-| S5 | Optical over mathematical alignment. **Partly instantiated by `S13`**, which reconciled baseline alignment for mixed-size text on one line — baseline alignment *is* the optical choice, against the mathematical one of centring the boxes. Whether the reference states the general principle beyond that one case still needs checking. | `D-27` |  | ⬜ |
+| S4 | Heading space-before exceeds space-after 2–3×. **Not covered by the reference.** Read the whole Layout and spacing chapter (book pages 164–218): it states the proximity principle — "place related elements close together… separate unrelated elements by placing more space between them" — and works it through a nested example, but never gives a multiplier for the space above a heading against the space below. `D-24`'s 2–3× is ours, and it is the kind of rule the reference's own principle supports without stating. | `D-24` |  | ➖ |
+| S5 | Optical over mathematical alignment. **One case covered, the general principle not.** The reference gives baseline alignment for mixed-size text on a line — "align it to the baseline, rather than the vertical centre… the '/month' text is floating on its own when it's vertically centred" (p.209), which is `S13` and `D-72`. It never generalises to icons, buttons or punctuation, and never uses the term. `D-27`'s broader claim is ours. | `D-27` |  | ➖ |
 
 ## Form and elevation
 
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
-| F1 | Control heights 48 / 40 / 32px. **Half settled.** The Forms chapter gives a 48pt minimum for control targets (stated for stepper buttons), which `--size-touch-target` meets in every mode — that half is `F7`. The per-mode *visual* heights are not a forms topic and are not in that chapter; they need whichever chapter covers buttons and component sizing. | `mode.*.css` |  | ⬜ |
+| F1 | Control heights 48 / 40 / 32px. **The floor is the reference's; the heights are ours.** Three chapters now give the same minimum target — "at least 48pt by 48pt is a safe size" — which `--size-touch-target` meets in every mode (`F7`). None of them gives a visual control height in px or pt at all, so 48/40/32 is a density decision of ours, and no reading of the reference will confirm or contradict it. | `mode.*.css` |  | ➖ |
 | F7 | Touch target **48px** all modes (was 44px) | `mode.*.css` |  | ✅ |
 | F8 | Stepper over select for small numeric ranges | `P-03` |  | ✅ |
 | F9 | Split forms beyond ~3 question groups into steps | `P-04` |  | ✅ |
@@ -188,7 +193,7 @@ records its removal.
 | F3 | **Two shadows: raised, overlay.** Stroke still preferred | `brand.default.css`, `A-08` |  | ✅ |
 | F4 | Help text **before** the control. **Duplicate of `R4`, which reconciled it.** The Forms chapter is explicit: hints go above the field, so a password's length rule arrives before typing rather than after failing, and because autofill menus and on-screen keyboards cover the space below. `P-03` carries both reasons. | `P-03` |  | ✅ |
 | F5 | Validate on blur, revalidate on change. **Confirmed.** The reference prescribes none of the three approaches on its own, but pairs blur validation with keystroke validation explicitly and for one purpose — "remove the error message once the error has been resolved... this involves using the third validation approach". That is exactly `F-38`, and it is why the keystroke half is scoped to fields that have already failed rather than applied from the first character. | `F-38`, `P-04` |  | ✅ |
-| F6 | Table row 36px operator / 48px product. **Not a forms topic** — the Forms chapter contains no tables. Either the reference covers data tables elsewhere, or it does not cover them at all, in which case this becomes ➖ kept, deliberately different. | `mode.*.css` |  | ⬜ |
+| F6 | Table row 36px operator / 48px product. **Not covered.** Tables appear in the Layout chapter only as worked examples, with no row height stated anywhere, and the Forms chapter has no tables. Ours. | `mode.*.css` |  | ➖ |
 | F10 | **Unbranded radius default stays 8 / 16 / 32.** Considered 4 / 8 / 16 on the grounds that radius is the loudest carrier of brand character and the default should be as visibly provisional as the near-black accent. Rejected: radius has no null value, so a lower default is a different opinion rather than an absence — 0px reads brutalist, 4px reads technical, none reads as "undecided" the way near-black does. The value that actually asserted character was `--radius-lg` (32px), and no mode selects it. | `brand.default.css` | `01-modes.md`, `00-anti-patterns.md` | ✅ |
 
 ## Motion
