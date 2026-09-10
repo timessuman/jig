@@ -138,6 +138,11 @@ export function buildCommandBody(
     .replace(/\{\{args_placeholder\}\}/g, argsPlaceholder)
     .replace(/\{\{subcommand_list\}\}/g, subcommands.join(', '))
     .replace(/\{\{scripts_path\}\}/g, `npx jig-ui@${version}`)
+    // `update` must NOT carry the pin — its job is to move the pin forward, and
+    // pinned it refreshes to the version already installed and reports success
+    // for a no-op. `buildSkillBody` has always known this; the command body did
+    // not, so `/jig update` could never upgrade anyone and would say it had.
+    .replace(/\{\{update_path\}\}/g, 'npx jig-ui@latest')
     .replace(/\{\{rules_path\}\}/g, rulesPath);
   return { body, subcommands };
 }

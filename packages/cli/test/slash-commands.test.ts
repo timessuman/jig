@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { install } from '../src/commands/install.js';
+import { buildCommandBody, buildSkillBody, install } from '../src/commands/install.js';
 import { ADAPTERS, getAdapter, skillFilesFor } from '../src/adapters/registry.js';
+import { repoRoot } from './helpers/registered-commands.js';
 
 /**
  * Developers drive these harnesses by slash command. `/jig init` and
@@ -174,5 +175,55 @@ describe('install writes the command file', () => {
       readFileSync(join(project, '.claude', 'skills', 'jig', 'manifest.json'), 'utf8'),
     );
     expect(Object.keys(manifest.files)).toContain('.claude/commands/jig.md');
+  });
+});
+
+/**
+ * `update`'s whole job is to move the pinned version forward, so it is the one
+ * command that must NOT be invoked at the pin. Run as `npx jig-ui@<installed>
+ * update` it refreshes to the version already installed and reports success —
+ * "Updated Jig → 0.4.0" — for a no-op.
+ *
+ * `buildSkillBody` knew this and had `update_path` for it. `buildCommandBody`
+ * did not, and the command template told the agent to run every subcommand at
+ * `{{scripts_path}}`, which is pinned. So `/jig update` could never upgrade
+ * anyone, and would say it had.
+ */
+describe('/jig update is not pinned to the version it is meant to replace', () => {
+  const real = () => buildCommandBody(repoRoot, '.claude/skills/jig/rules', '0.4.0', '$ARGUMENTS').body;
+
+  it('tells the agent to run update at @latest', () => {
+    const body = real();
+    const update = body.slice(body.indexOf('## update'));
+    expect(update, 'the update section does not name @latest').toContain('jig-ui@latest');
+  });
+
+  it('still pins every other subcommand to the installed version', () => {
+    expect(real()).toContain('npx jig-ui@0.4.0');
+  });
+
+  it('never tells an agent to run update at a pinned version, in EITHER body', () => {
+    // The invariant, stated once and checked on every agent-facing surface.
+    // It held for the skill body and not for the command body, which is
+    // precisely why the bug lived in one and not the other — two assertions in
+    // two files describing one rule is how a third surface gets it wrong next.
+    const bodies = {
+      skill: buildSkillBody(repoRoot, '.claude/skills/jig/rules', '0.4.0'),
+      command: buildCommandBody(repoRoot, '.claude/skills/jig/rules', '0.4.0', '$ARGUMENTS').body,
+    };
+    for (const [name, body] of Object.entries(bodies)) {
+      const pinned = body
+        .split('\n')
+        .filter((l) => /\bupdate\b/.test(l) && /npx jig-ui@/.test(l) && !l.includes('@latest'));
+      expect(pinned, `${name} body invokes update at a pin: ${pinned.join(' / ')}`).toEqual([]);
+    }
+  });
+
+  it('lands in the file an agent actually reads', () => {
+    install({ agent: 'claude', scope: 'project', projectRoot: project,
+              packageRoot: repoRoot, homeDir: home, version: '0.4.0' });
+    const command = readFileSync(join(project, '.claude', 'commands', 'jig.md'), 'utf8');
+    expect(command).toContain('jig-ui@latest');
+    expect(command).toContain('npx jig-ui@0.4.0');
   });
 });
