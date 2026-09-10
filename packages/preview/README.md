@@ -21,6 +21,12 @@ verifies it by looking at it. Two things it catches that nothing else can:
    how the missing border-width and focus-ring tokens were found.
 2. **Values that pass their check and still look wrong.** Contrast arithmetic
    says a colour is legible; it does not say the interface reads well.
+3. **Values that are right at one width and wrong at another.** `--text-h1` and
+   `--text-h2` are `clamp()` in editorial and product. A fluid size looks like a
+   fixed number at any single width, so each type specimen prints what it
+   actually computes to and names its range — resize the window and watch them
+   move. `check-tokens` rule 1 verifies the clamp arithmetic; only this shows
+   you the result.
 
 ## Not shipped
 

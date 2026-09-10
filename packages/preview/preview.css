@@ -164,3 +164,10 @@ tbody tr { height: var(--size-row); }
    colour of whatever it sits in — which is how --color-icon is meant to work. */
 [data-lucide] { width: var(--size-icon); height: var(--size-icon); flex: none; vertical-align: middle; }
 .err [data-lucide], .tag [data-lucide] { width: var(--text-caption); height: var(--text-caption); }
+
+/* The computed-size readout beside each type specimen. Deliberately quiet: it
+   is instrumentation, not part of the specimen it annotates. */
+#type .computed {
+  color: var(--color-text-weak); font-size: var(--text-caption);
+  margin-inline-start: var(--spacing-2xs);
+}
