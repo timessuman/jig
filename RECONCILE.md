@@ -212,8 +212,23 @@ records its removal.
 
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
-| M1 | 250 / 150 / 100ms base per mode. **This reference has no motion chapter**, confirmed by its owner. Four chapters read — Colour, Typography, Layout and spacing, Buttons — gave no duration in ms or seconds anywhere; the closest is "make sure the animation is quick and subtle, so it doesn't get in the way of the user completing their task". Our values are therefore ours as far as this reference goes. Left ⬜ rather than ➖ because a second source is being sought: this row is waiting on a different book, not on a chapter of this one. | `mode.*.css` |  | ⬜ |
-| M2 | Entrance animation: editorial first viewport only. **Not in this reference**, same as `M1` — no chapter covers scroll- or load-triggered entrance animation. Waiting on the second source rather than on this one. | `01-modes.md`, `G-42` |  | ⬜ |
+| M1 | 250 / 150 / 100ms base per mode. **This reference has no motion chapter**, confirmed by its owner. Four chapters read — Colour, Typography, Layout and spacing, Buttons — gave no duration in ms or seconds anywhere; the closest is "make sure the animation is quick and subtle, so it doesn't get in the way of the user completing their task". **A second source was read in full and gives no number either** (see "The second source, on motion" below): it names duration as one of four building blocks of motion and says timing should differ by context — "consistency doesn't mean everything we do should move with the same timing for the same duration through every screen" — which is an argument for varying duration per mode, but never states a value. The numbers stay ours, now on the second source's reasoning rather than for want of one. | `mode.*.css` |  | ➖ |
+| M2 | Entrance animation: editorial first viewport only. **Not in this reference**, same as `M1`, and the second source has no scroll- or load-triggered entrance policy either. It does argue the underlying principle: motion earns its place by explaining a change of state, and "every animation serves a meaningful purpose" — which is `G-42`'s reasoning, not a viewport rule. The first-viewport scope is ours. | `01-modes.md`, `G-42` |  | ➖ |
+| M3 | **Easing direction is now stated.** We shipped `--ease-out` and `--ease-in-out` in every mode with no rule for choosing between them — a token pair with no usage guidance, which is the same failure as a pointer that leads nowhere. The second source gives the rule directly: "ease-out objects that are entering or gaining attention, and ease-in objects that are leaving and losing attention", because natural forces accelerate and only lightning appears instantly. Adopted in `02-tokens.md`, with one deliberate difference: we ship no pure `--ease-in`, so exits take `--ease-in-out`. Exits here fade or collapse in place rather than fly off screen, and a third easing token bought only that case. | `02-tokens.md` | `mode.*.css` | ✅ |
+
+
+### The second source, on motion
+
+The primary reference has no motion chapter, so a second one was read in full for
+`M1`–`M3`: a freely published handbook on animation in product design, at
+<https://uxlib.net/onlinebooks/animation/index.html>. It is qualitative from end to
+end — **it contains no duration, no frame count and no timing curve anywhere in its
+text**, which is why `M1` closes as ours rather than as adopted. What it does supply
+is reasoning: easing direction (`M3`), duration as one of four named building blocks
+alongside behaviour, easing and sequencing, and a minimum-duration argument from
+assistive technology — a screen reader must have time to announce a notification
+before it leaves the screen, which is a floor on duration rather than the ceiling
+`G-44` states.
 
 ---
 

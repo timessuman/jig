@@ -240,7 +240,7 @@ const LIGHT_BACKGROUNDS = {
     /^\|\s*`(--[a-z0-9-]+)`\s*\|([^\n]*)\|\s*$/gm,
   )];
   const checked = rows.filter(([, token]) =>
-    /^--(size|duration|measure|spacing)-/.test(token),
+    /^--(size|duration|measure|spacing|ease)-/.test(token),
   );
 
   if (checked.length < 9) {

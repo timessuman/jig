@@ -113,12 +113,34 @@ mode states its own value, because density is the thing a mode *is*.
 | `--duration-base` | 250ms | 150ms | 100ms |
 | `--duration-slow` | 300ms | 200ms | 120ms |
 | `--measure-prose` | 68ch | 60ch | 72ch |
+| `--ease-out` | cubic-bezier(0.16, 1, 0.3, 1) | cubic-bezier(0.16, 1, 0.3, 1) | cubic-bezier(0.2, 0, 0, 1) |
+| `--ease-in-out` | cubic-bezier(0.65, 0, 0.35, 1) | cubic-bezier(0.65, 0, 0.35, 1) | cubic-bezier(0.4, 0, 0.2, 1) |
 
 A `—` means the mode does not define that token: `editorial` has no row
 heights because it has no dense record views, and `product` selects a single
 row height rather than a compact variant. A pattern that needs one in those
 modes is using the wrong mode, or the mode file needs the token added
 deliberately.
+
+**Easing has a direction, and it is not a matter of taste.** Motion in the
+physical world starts and stops under acceleration, so an element that arrives
+at rest should decelerate into place and an element leaving should accelerate
+away. That maps onto the tokens:
+
+- **Entering, or gaining attention** — use `--ease-out`. The element decelerates
+  into its resting position, which is what makes it read as arriving rather than
+  as being drawn.
+- **Leaving, or losing attention** — use `--ease-in-out`. A pure ease-in would be
+  the closer analogue, and we do not ship one: exits in this system fade or
+  collapse in place rather than fly off screen, and a third easing token bought
+  only that one case.
+- **Never linear** for anything that moves. Linear reads as mechanical because
+  nothing physical moves that way. Colour and opacity are the exception — a
+  simple curve is enough there, and often linear is fine.
+
+The `operator` curves are tighter than the other two modes for the same reason
+its durations are shorter: a curve with a long tail makes a 100ms animation feel
+slower than it is.
 
 **`--size-touch-target` is 48px in every mode and is not a density decision.**
 It is an accessibility floor, so it is excluded from the table above — there is
