@@ -74,7 +74,7 @@ At a seam between modes:
 | Control height | `--size-control` — the tallest of the three |
 | Radius | `--radius-control` (sm) · `--radius-surface` (md) |
 | Elevation | `--shadow-none`; `--shadow-raised` for sticky nav only |
-| Motion | `--duration-base`; entrance animation **once**, first viewport only |
+| Motion | `--duration-base`; entrance animation **once per visitor**, first viewport only, skippable (`G-42`) |
 | Colour usage | Neutral-dominant. `--color-brand` for links and primary CTA only. |
 | Imagery | Central. Real photography or commissioned illustration. |
 | Keyboard | Standard tab order; no shortcuts expected |
@@ -175,7 +175,7 @@ Useful when a decision straddles two modes.
 | Section rhythm | `--spacing-xxl` | `--spacing-xl` | `--spacing-m` |
 | Card padding | `--spacing-m` | `--spacing-m` | `--spacing-s` |
 | Motion | slowest | mid | fastest |
-| Entrance animation | once, first viewport | none | none |
+| Entrance animation | once per visitor, first viewport | none | none |
 | Decorative colour | accent only | primary action | none |
 | Imagery | central | empty states | none |
 | Optimises for | first use | both | thousandth use |

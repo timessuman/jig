@@ -435,9 +435,13 @@ Where people must *browse* to decide, split the list into two dependent fields �
 ❌ Every section fading and rising on scroll
 ✅ Motion earns its place by explaining a change of state or spatial relationship. Decoration on a page the user will visit twice a day becomes friction.
 
+**"Once" means once per visitor, not once per page load.** A welcome or hero animation that replays on every arrival stops being an introduction after the first one and becomes a toll. Persist the fact that it has played and skip it thereafter. Where one does run, give it a visible one-click skip — a user who wants the content now must not have to wait out a brand moment to reach it.
+
 ### G-43 `prefers-reduced-motion` ignored
 ❌ Animation with no reduced-motion path
 ✅ Always provide the reduced path. Non-negotiable — this is a vestibular safety issue, not a preference.
+
+**A consequence worth stating: motion is never the sole signal, for the same reason colour is not (`C-20`).** Honouring the reduced-motion path removes the animation, so any state that was communicated by movement alone is communicated to that user by nothing at all. A field that only shakes on a bad password has no error state under reduced motion. Pair the motion with text, an icon, or a colour change that survives without it.
 
 ### G-44 Durations too long
 ❌ 500ms+ on UI feedback

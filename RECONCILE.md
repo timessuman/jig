@@ -213,7 +213,7 @@ records its removal.
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
 | M1 | 250 / 150 / 100ms base per mode. **This reference has no motion chapter**, confirmed by its owner. Four chapters read — Colour, Typography, Layout and spacing, Buttons — gave no duration in ms or seconds anywhere; the closest is "make sure the animation is quick and subtle, so it doesn't get in the way of the user completing their task". **A second source was read in full and gives no number either** (see "The second source, on motion" below): it names duration as one of four building blocks of motion and says timing should differ by context — "consistency doesn't mean everything we do should move with the same timing for the same duration through every screen" — which is an argument for varying duration per mode, but never states a value. The numbers stay ours, now on the second source's reasoning rather than for want of one. | `mode.*.css` |  | ➖ |
-| M2 | Entrance animation: editorial first viewport only. **Not in this reference**, same as `M1`, and the second source has no scroll- or load-triggered entrance policy either. It does argue the underlying principle: motion earns its place by explaining a change of state, and "every animation serves a meaningful purpose" — which is `G-42`'s reasoning, not a viewport rule. The first-viewport scope is ours. | `01-modes.md`, `G-42` |  | ➖ |
+| M2 | Entrance animation: editorial first viewport only. Neither the primary reference nor the first motion source covers scroll- or load-triggered entrance animation. **A third source sharpened it rather than sourcing it**: an agency article on motion in UX (see below) makes the repeat-visitor argument outright — "some users may visit your page multiple times, there's no need to reintroduce yourself every single time" — plus a one-click skip. Our rule said "once" without saying once per *what*, which a reader could satisfy by replaying on every page load. `G-42` and both mode tables now say once per visitor, skippable. The first-viewport scope stays ours. | `01-modes.md`, `G-42` |  | ✅ |
 | M3 | **Easing direction is now stated.** We shipped `--ease-out` and `--ease-in-out` in every mode with no rule for choosing between them — a token pair with no usage guidance, which is the same failure as a pointer that leads nowhere. The second source gives the rule directly: "ease-out objects that are entering or gaining attention, and ease-in objects that are leaving and losing attention", because natural forces accelerate and only lightning appears instantly. Adopted in `02-tokens.md`, with one deliberate difference: we ship no pure `--ease-in`, so exits take `--ease-in-out`. Exits here fade or collapse in place rather than fly off screen, and a third easing token bought only that case. | `02-tokens.md` | `mode.*.css` | ✅ |
 
 
@@ -239,6 +239,16 @@ touch this system — motion overuse distracts, poor timing hurts comprehension 
 `G-42` and `G-44`, which already state them with numbers it does not have. It also
 argues from the wrong domain: attention capture in advertising, which is the effect
 the `operator` mode deliberately suppresses. Recorded here so it is not read twice.
+
+**A third source, useful in one place.** An agency article on motion in UX
+(<https://www.herodot.com/blog/enhancing-ux-with-motion-design>) has no numbers
+either — no duration, no curve — and its principles restate what `G-42`, `G-44`
+and `03-patterns.md` already hold. Two things in it were worth taking. Its
+repeat-visitor and skip advice closed `M2`. And its multimodality section — a
+wrong password shakes the field *and* vibrates the phone — exposed that `G-43`
+stated the reduced-motion obligation without stating its consequence: honouring
+the reduced path deletes any signal carried by motion alone, exactly as `C-20`
+describes for colour. `G-43` now says so.
 
 ---
 
