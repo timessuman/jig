@@ -283,7 +283,7 @@ const LIGHT_BACKGROUNDS = {
     /^\|\s*`(--[a-z0-9-]+)`\s*\|([^\n]*)\|\s*$/gm,
   )];
   const checked = rows.filter(([, token]) =>
-    /^--(size|duration|measure|spacing|ease)-/.test(token),
+    /^--(size|duration|measure|spacing|ease|leading)-/.test(token),
   );
 
   if (checked.length < 9) {
@@ -317,6 +317,51 @@ const LIGHT_BACKGROUNDS = {
         fail(`${token} is ${resolved} in mode.${mode}.css, but 02-tokens.md says ${claimed}`);
       }
     });
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Rule 8 — leading holds its shape within each mode.
+ *
+ * Rule 7 checks the doc against the CSS, which catches drift between the
+ * two but not a value that is wrong in both. This checks the relationship
+ * the doc actually claims: within a mode, line height never INCREASES as
+ * type gets bigger, because a large heading needs proportionally less
+ * leading to sit at the same optical rhythm.
+ *
+ * Prose is the deliberate exception and is excluded. It is larger than body
+ * AND looser (1.6 against 1.5) because sustained reading wants that; it is a
+ * different role, not a bigger body.
+ * ------------------------------------------------------------------ */
+{
+  // Ascending by font size, so leading must be non-increasing along it.
+  const ASCENDING = ['--leading-body', '--leading-h3', '--leading-h2', '--leading-h1'];
+
+  for (const mode of ['editorial', 'product', 'operator']) {
+    const css = read(`tokens/mode.${mode}.css`);
+    const val = (t) => {
+      const m = new RegExp(`${t}\\s*:\\s*([\\d.]+)`).exec(css);
+      if (!m) fail(`Rule 8: ${t} is not defined in mode.${mode}.css`);
+      return m ? Number(m[1]) : NaN;
+    };
+    const leads = ASCENDING.map(val);
+    if (leads.some(Number.isNaN)) continue;
+
+    for (let i = 1; i < leads.length; i++) {
+      if (leads[i] > leads[i - 1]) {
+        fail(`${mode}: ${ASCENDING[i]} (${leads[i]}) is looser than ${ASCENDING[i - 1]} ` +
+             `(${leads[i - 1]}), but it is on larger type. Leading tightens as size grows.`);
+      }
+    }
+
+    const floor = Math.min(val('--leading-body'), val('--leading-caption'));
+    if (floor < 1.5) {
+      fail(`${mode}: body/caption leading is ${floor}, below the 1.5 floor.`);
+    }
+    if (val('--leading-prose') < 1.5 || val('--leading-prose') > 2) {
+      fail(`${mode}: --leading-prose is ${val('--leading-prose')}, outside the 1.5–2 band ` +
+           `that long-form reading wants.`);
+    }
   }
 }
 

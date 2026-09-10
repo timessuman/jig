@@ -93,12 +93,32 @@ contrast can compress when less content competes for the view. A fluid
 `editorial` omits the rung the ratio would put between H2 and H1 (a step near 40); the ratio names the ladder, not every adjacent step — its H2→H1 jump (32→48) is 1.5, not 1.25.
 
 The columns are `--text-caption`, `--text-body`, `--text-prose`, `--text-h3`,
-`--text-h2` and `--text-h1` in that order. Line heights pair with them:
-`--leading-h1` (1.25), `--leading-h2` (1.333) and `--leading-h3` (1.4) tighten
-as size grows; `--leading-body` (1.5) is for UI text, `--leading-prose` (1.6) for
-sustained reading. Line height decreases as font size increases — a large
-heading needs proportionally less than body text to sit at the same optical
-rhythm — and prose stays inside the 1.5–2 band that long-form reading wants.
+`--text-h2` and `--text-h1` in that order.
+
+**Line heights are per-mode too**, which this section used to obscure by quoting
+one mode's values as though they were everyone's:
+
+| Token | `editorial` | `product` | `operator` |
+| --- | --- | --- | --- |
+| `--leading-caption` | 1.5 | 1.5 | 1.5 |
+| `--leading-body` | 1.5 | 1.5 | 1.5 |
+| `--leading-prose` | 1.6 | 1.6 | 1.6 |
+| `--leading-lead` | 1.5 | 1.5 | 1.5 |
+| `--leading-h3` | 1.333 | 1.4 | 1.5 |
+| `--leading-h2` | 1.25 | 1.333 | 1.4 |
+| `--leading-h1` | 1.1 | 1.25 | 1.333 |
+
+**The heading rows are one ladder, read through a sliding window.** The ladder is
+1.1 · 1.25 · 1.333 · 1.4 · 1.5, and each mode takes three consecutive rungs,
+starting one lower as the mode gets denser. `editorial` opens at 1.1 because its
+H1 is 48px and a large heading needs proportionally less leading to sit at the
+same optical rhythm; `operator`'s H1 is 22px, near body size, so it takes the
+body-ish end of the same ladder. That is why `product`'s H1 leading equals
+`editorial`'s H2 — they are the same rung, not a coincidence.
+
+Body and reading roles do not vary: the floor is 1.5 everywhere, and prose sits
+at 1.6, inside the 1.5–2 band long-form reading wants. Within any mode, leading
+never increases as size increases.
 
 **`--text-body` and `--text-prose` are different roles, not two sizes of the same thing.** Body is UI text — labels, controls, table cells, short strings read in glances. Prose is sustained reading, and never drops below 18px on a page anyone is expected to actually read (`B-75`).
 
