@@ -77,6 +77,12 @@ no hits, not a typo, so widen the word rather than inventing an id.
 
 ## update
 
+**Run this one as `{{update_path}} update`, not at the pinned version.** Every
+other subcommand uses the pin so the CLI and these rules agree; `update` exists
+to move that pin forward, so pinned it refreshes to the version already
+installed and reports success for a no-op — "Updated Jig → <same version>" —
+and nobody ever upgrades.
+
 Report what moved and what was left alone. Files reported as skipped were edited
 locally and are the user's; never re-apply Jig's version over them.
 
