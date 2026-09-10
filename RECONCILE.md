@@ -143,15 +143,15 @@ records its removal.
 
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
-| F1 | Control heights 48 / 40 / 32px | `mode.*.css` |  | ⬜ |
+| F1 | Control heights 48 / 40 / 32px. **Half settled.** The Forms chapter gives a 48pt minimum for control targets (stated for stepper buttons), which `--size-touch-target` meets in every mode — that half is `F7`. The per-mode *visual* heights are not a forms topic and are not in that chapter; they need whichever chapter covers buttons and component sizing. | `mode.*.css` |  | ⬜ |
 | F7 | Touch target **48px** all modes (was 44px) | `mode.*.css` |  | ✅ |
 | F8 | Stepper over select for small numeric ranges | `P-03` |  | ✅ |
 | F9 | Split forms beyond ~3 question groups into steps | `P-04` |  | ✅ |
 | F2 | **Three radii: 8 / 16 / 32px** by element size | `brand.default.css` | `01-modes.md`, `00-anti-patterns.md` | ✅ |
 | F3 | **Two shadows: raised, overlay.** Stroke still preferred | `brand.default.css`, `A-08` |  | ✅ |
-| F4 | Help text **before** the control | `P-03` |  | ⬜ |
-| F5 | Validate on blur, revalidate on change | `F-38` |  | ⬜ |
-| F6 | Table row 36px operator / 48px product | `mode.*.css` |  | ⬜ |
+| F4 | Help text **before** the control. **Duplicate of `R4`, which reconciled it.** The Forms chapter is explicit: hints go above the field, so a password's length rule arrives before typing rather than after failing, and because autofill menus and on-screen keyboards cover the space below. `P-03` carries both reasons. | `P-03` |  | ✅ |
+| F5 | Validate on blur, revalidate on change. **Not answerable from the Forms chapter as supplied.** It names three approaches — on submit, after leaving a field, instantly as you type — says "you might consider using multiple approaches", and then breaks off before the advantages and disadvantages of each. `F-38` uses all three (blur, then change once errored, then a submit summary), which is consistent with that, but consistent is not confirmed. Needs the two or three pages that follow. | `F-38` |  | ⬜ |
+| F6 | Table row 36px operator / 48px product. **Not a forms topic** — the Forms chapter contains no tables. Either the reference covers data tables elsewhere, or it does not cover them at all, in which case this becomes ➖ kept, deliberately different. | `mode.*.css` |  | ⬜ |
 | F10 | **Unbranded radius default stays 8 / 16 / 32.** Considered 4 / 8 / 16 on the grounds that radius is the loudest carrier of brand character and the default should be as visibly provisional as the near-black accent. Rejected: radius has no null value, so a lower default is a different opinion rather than an absence — 0px reads brutalist, 4px reads technical, none reads as "undecided" the way near-black does. The value that actually asserted character was `--radius-lg` (32px), and no mode selects it. | `brand.default.css` | `01-modes.md`, `00-anti-patterns.md` | ✅ |
 
 ## Motion
@@ -220,6 +220,24 @@ So: those values, expressed unitless, floor held. The 4pt-grid objection disappe
 
 ## Forms
 
+Reconciled against the Forms chapter in full. `R1`–`R17` below were settled in an
+earlier pass; re-checked on 2026-09-10 against the chapter text and every one
+still holds. `P-03`, `P-04` and `P-12` carry the chapter closely enough that the
+worked examples survive — the four-character postcode field, expiry-date and CVC
+side by side, industry→occupation as two dependent fields, the "Yes," test for
+checkbox phrasing.
+
+**The one divergence found on re-check.** The chapter's spacing diagram pairs a
+4pt label gap with 32pt between fields. `--spacing-label` is 4px, matching
+exactly; `--spacing-stack` is 16px in `product` and `operator`, 24px in
+`editorial`. The principle the diagram argues — a label must sit visibly closer
+to its own input than to the field above — holds at every one of those (a 4×
+ratio at the tightest), but the absolute gap is smaller than the reference
+draws. Recorded as ➖ in `R18` rather than adopted: the ladder is shared, and
+widening field spacing to 32px everywhere would push `operator` off its own
+density.
+
+
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
 | R1 | **Mark BOTH required and optional** — reverses my "mark optional only" | `F-97`, `P-03` |  | ✅ |
@@ -239,6 +257,11 @@ So: those values, expressed unitless, floor held. The 4pt-grid objection disappe
 | R15 | Side-by-side fields allowed within the single column | `P-04` |  | ✅ |
 | R16 | Multi-step: few full steps, easiest first, review before submit | `P-04` |  | ✅ |
 | R17 | Placeholder allowed as a format example at 4.5:1 | `P-03` |  | ✅ |
+| R18 | Field-to-field spacing 16px (`product`, `operator`) / 24px (`editorial`), against the reference's 32pt. The label gap matches at 4px, and the closer-to-its-own-input principle holds at every mode. Kept tighter because the spacing ladder is shared across modes and 32px everywhere would cost `operator` the density that defines it. | `mode.*.css`, `P-03` |  | ➖ |
+| R19 | Single-column layout, with all three of the chapter's reasons: no decision about what to fill next, nothing missed, and screen-magnifier users cannot lose a second column | `P-04` |  | ✅ |
+| R20 | Minimise fields; prefer an opt-in to an optional field | `P-04`, `P-11` |  | ✅ |
+| R21 | Group related fields under `<fieldset>`/`<legend>` headings | `P-04` |  | ✅ |
+| R22 | Conventional field styling; field borders clear 3:1 | `P-03`, `E-52` |  | ✅ |
 
 ## Also worth capturing
 
