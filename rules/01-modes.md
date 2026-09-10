@@ -204,13 +204,13 @@ Per project, one file supplying:
 - **Elevation personality** — border-led or shadow-led. Pick one; do not mix within a project.
 - **Voice** — sentence case or title case, contraction policy, error-message tone.
 
-Default when no brand is supplied: warm neutral ramp anchored on `#fafaf7`, no accent, 8px base radius (`--radius-sm`), border-led elevation. Greyscale output plus a stated question beats an invented purple (`A-01`).
+Default when no brand is supplied: warm neutral ramp anchored on `--color-bg-base` (`oklch(0.980 0.004 95)`, a warm off-white), no accent, 8px base radius (`--radius-sm`), border-led elevation. Greyscale output plus a stated question beats an invented purple (`A-01`).
 
 ---
 
 ## Notes for the author (not for the agent)
 
-**Decided, not derived.** These numbers are internally consistent and defensible, but several are judgement calls that should be tuned once you have run real work through them: the operator row height, the three section-rhythm values, and the motion durations. Change them in this file, never at the call site.
+**Decided, not derived.** These numbers are internally consistent and defensible, but several are judgement calls that should be tuned once you have run real work through them: the operator row height, the three section-rhythm values, and the motion durations. Change them in `tokens/mode.*.css`, never at the call site — this file describes them, `02-tokens.md` resolves them, and neither is where they live.
 
 **Where your taste is recorded here:**
 - The zero-JS default in `editorial` — a stronger position than most systems take, and consistent with your writing on JS-dependent forms.

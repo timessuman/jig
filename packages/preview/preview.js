@@ -2,20 +2,27 @@ const $ = (s) => document.querySelector(s);
 
 // Mode and theme switching. One brand file and one mode file are active at a
 // time, which is what the system requires of any real surface.
-document.querySelectorAll('[data-mode]').forEach((b) =>
+document.querySelectorAll('.bar button[data-mode]').forEach((b) =>
   b.addEventListener('click', () => {
     // Listener first: the new stylesheet loads asynchronously, so reading the
     // computed values before `load` fires would report the outgoing mode.
     $('#mode').addEventListener('load', () => { renderDiagnostics(); annotateType(); }, { once: true });
     $('#mode').href = `../../tokens/mode.${b.dataset.mode}.css`;
-    document.querySelectorAll('[data-mode]').forEach((o) =>
+    document.querySelectorAll('.bar button[data-mode]').forEach((o) =>
       o.setAttribute('aria-pressed', String(o === b)));
   }));
 
-document.querySelectorAll('[data-theme]').forEach((b) =>
+// SCOPED TO THE BAR. `<html>` carries data-theme as the theme itself, so a bare
+// `[data-theme]` selector matched three elements, not two: the click listener
+// was attached to <html> as well, which meant clicking ANYWHERE on the page ran
+// the theme handler and reset both buttons to aria-pressed="false". It also made
+// `document.querySelector('[data-theme="dark"]')` return <html> rather than the
+// button once dark was active — the state marker and the controls that set it
+// cannot share a selector.
+document.querySelectorAll('.bar button[data-theme]').forEach((b) =>
   b.addEventListener('click', () => {
     document.documentElement.dataset.theme = b.dataset.theme;
-    document.querySelectorAll('[data-theme]').forEach((o) =>
+    document.querySelectorAll('.bar button[data-theme]').forEach((o) =>
       o.setAttribute('aria-pressed', String(o === b)));
     renderDiagnostics();
   }));
@@ -148,7 +155,12 @@ el('grid-demo').innerHTML = `
   <div style="display:grid;grid-template-columns:repeat(var(--grid-columns),1fr);gap:var(--grid-gutter);padding-inline:var(--grid-margin);background:var(--color-fill);border-radius:var(--radius-surface);padding-block:var(--spacing-s);margin-top:var(--spacing-s)">
     ${Array.from({ length: 12 }, () => '<div style="height:var(--spacing-l);background:var(--color-fill-brand);border:1px solid var(--color-stroke-brand-weak)"></div>').join('')}
   </div>
-  <p class="note"><code>--grid-columns</code> · <code>--grid-gutter</code> · <code>--grid-margin</code></p>`;
+  <p class="note"><code>--grid-columns</code> · <code>--grid-gutter</code> · <code>--grid-margin</code> — the wide-viewport values.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(var(--grid-columns-sm),1fr);gap:var(--grid-gutter-sm);padding-inline:var(--grid-margin-sm);background:var(--color-fill);border-radius:var(--radius-surface);padding-block:var(--spacing-s);margin-top:var(--spacing-s)">
+    ${Array.from({ length: 4 }, () => '<div style="height:var(--spacing-l);background:var(--color-fill-brand);border:1px solid var(--color-stroke-brand-weak)"></div>').join('')}
+  </div>
+  <p class="note"><code>--grid-columns-sm</code> · <code>--grid-gutter-sm</code> · <code>--grid-margin-sm</code> — the small-viewport values, shown here at full width because nothing switches between the two: this system defines no breakpoint. The consuming project chooses where to swap. <code>--grid-margin-sm</code> is the gutter <code>T22</code> examined and kept.</p>`;
 
 el('motion').innerHTML = [
   ['--duration-fast', '--ease-out'],
@@ -185,7 +197,16 @@ el('touch').innerHTML = `
   <span style="display:inline-grid;place-items:center;min-width:var(--size-touch-target);min-height:var(--size-touch-target);outline:1px dashed var(--color-stroke-strong)">
     <button class="btn btn-secondary" style="min-height:var(--size-control)">Control</button>
   </span>
-  <p class="note">Dashed box is <code>--size-touch-target</code>; the button is <code>--size-control</code>.</p>`;
+  <span style="display:inline-grid;place-items:center;min-width:var(--size-touch-target);min-height:var(--size-touch-target);outline:1px dashed var(--color-stroke-strong);margin-inline-start:var(--spacing-s)">
+    <button class="btn btn-secondary" style="min-height:var(--size-control-sm);font-size:var(--text-caption)">Small</button>
+  </span>
+  <p class="note">Dashed boxes are <code>--size-touch-target</code>; the buttons are <code>--size-control</code> and <code>--size-control-sm</code>. The small control still sits inside a full touch target — the target is an accessibility floor and does not shrink with the control.</p>
+
+  <div style="margin-top:var(--spacing-s);border:1px solid var(--color-stroke-weak);border-radius:var(--radius-surface);overflow:hidden">
+    <div style="height:var(--size-row);display:flex;align-items:center;padding-inline:var(--spacing-s);border-bottom:1px solid var(--color-stroke-weak)"><code>--size-row</code></div>
+    <div style="height:var(--size-row-compact);display:flex;align-items:center;padding-inline:var(--spacing-s)"><code>--size-row-compact</code></div>
+  </div>
+  <p class="note">Row heights. Both are undefined in <code>editorial</code> and <code>--size-row-compact</code> only in <code>operator</code>, so these rows collapse to their content in the modes that do not define them — the mode table's <code>—</code> showing itself.</p>`;
 
 // Re-rendered on every mode and theme switch, not once at load. It used to be
 // written a single time, so after switching mode the table still reported the
@@ -197,7 +218,13 @@ function renderDiagnostics() {
   el('diag').innerHTML = `
   <table><tbody>${[
     '--mode', '--brand-h', '--brand-s', '--brand-l',
-    '--error-h', '--warning-h', '--success-h', '--info-h',
+    // The full channel set, not just the hues. These are the raw inputs the
+    // semantic colours are derived from; showing only `-h` meant `-s`, `-l` and
+    // `-fill-a` were defined values nobody had ever looked at.
+    '--error-h', '--error-s', '--error-l', '--error-fill-a',
+    '--warning-h', '--warning-s', '--warning-l', '--warning-fill-a',
+    '--success-h', '--success-s', '--success-l', '--success-fill-a',
+    '--info-h', '--info-s', '--info-l', '--info-fill-a',
     '--tracking-body', '--measure-prose', '--size-row',
   ].map((t) => `<tr><td><code>${t}</code></td><td class="num">${cs.getPropertyValue(t).trim() || '—'}</td></tr>`).join('')}</tbody></table>`;
 }
