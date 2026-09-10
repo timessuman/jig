@@ -554,13 +554,12 @@ const LIGHT_BACKGROUNDS = {
   claim('03-patterns.md pattern count', patterns, /These (\d+) cover/,
         (patterns.match(/^## P-\d+/gm) ?? []).length);
 
-  // The README states how many reconciliation rows are open. It went on saying
-  // the work was in progress, with rows "still open", for a while after the
-  // last one closed — a status claim nobody owns is a status claim that rots.
-  const openRows = read('RECONCILE.md')
-    .split('\n')
-    .filter((l) => /^\|\s*[A-Z]+\d+\s*\|/.test(l) && l.includes('\u2b1c')).length;
-  claim('README open-row count', readme, /\*\*(\d+)\s*\n?rows are open/, openRows);
+  // There was a fifth claim here: the README stated how many reconciliation
+  // rows were open. It is gone because the README no longer carries project
+  // status at all — that is RECONCILE.md's job, and a count duplicated out of
+  // its source is the thing that rots. Removed rather than repointed: a check
+  // aimed at a file it is derived from would assert nothing.
+
 }
 
 if (failed) {

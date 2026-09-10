@@ -181,32 +181,6 @@ any UI, takes the mode from `jig.config.json`, loads the pattern section for
 whatever it is building, consumes tokens by name, and cites any rule it
 deliberately breaks.
 
-### Slash commands
-
-`install` also writes a `/jig` command, so the CLI is reachable without leaving
-your session:
-
-```
-/jig init          /jig check --all          /jig update
-```
-
-It runs the CLI and then does the part the CLI cannot — for `/jig check` that
-means applying the 97 judgment rules to the same files and merging both halves
-into one report keyed by rule id.
-
-| Harness | Command file |
-| --- | --- |
-| Claude Code | `.claude/commands/jig.md` |
-| Cursor | `.cursor/commands/jig.md` |
-| opencode | `.opencode/command/jig.md` |
-| Gemini CLI | `.gemini/commands/jig.toml` |
-| Codex | — run the CLI directly; see below |
-| Generic | — no harness to register with |
-
-Codex's custom prompts are not written: `codex exec` does not expand them, so a
-command file could sit there and never fire. Codex users run
-`npx jig-ui@latest check` directly — the skill in `AGENTS.md` is unaffected.
-
 **You still prompt normally.** Ask for a settings page, a data table, an empty
 state — whatever you were going to ask for. What you no longer have to say is
 *how*: "use the design tokens", "handle the loading state", "don't invent a
@@ -303,21 +277,21 @@ treatment.
 
 ## Files
 
-| File | Contents | Load |
-| --- | --- | --- |
-| `rules/00-anti-patterns.md` | 87 universal rules with corrections | **Always** |
-| `rules/01-modes.md` | `editorial` / `product` / `operator` profiles | **Always** |
-| `rules/02-tokens.md` | Token contract, naming, consumption | On setup, or when adding a token |
-| `rules/03-patterns.md` | Component anatomy and behaviour | When building a covered pattern |
-| `rules/04-principles.md` | Five frames + seven tiebreakers | Novel decisions, or rule conflicts |
-| `rules/05-copy.md` | Interface text rules | Writing any user-facing string |
-| `.jig/tokens/brand.*.css` | Identity. One per project. | Imported by the app |
-| `.jig/tokens/mode.*.css` | Density, scale, rhythm, motion | One per surface |
+| File | Contents |
+| --- | --- |
+| `rules/00-anti-patterns.md` | 87 universal rules with corrections |
+| `rules/01-modes.md` | `editorial` / `product` / `operator` profiles |
+| `rules/02-tokens.md` | Token contract, naming, consumption |
+| `rules/03-patterns.md` | Component anatomy and behaviour |
+| `rules/04-principles.md` | Five frames + seven tiebreakers |
+| `rules/05-copy.md` | Interface text rules |
+| `.jig/tokens/brand.*.css` | Identity. One per project. |
+| `.jig/tokens/mode.*.css` | Density, scale, rhythm, motion |
 
 `rules/*` and `rules.index.json` live beside your installed skill file, not
 in the project — see above.
 
-`00` and `01` are the always-loaded core and are sized to stay cheap in context. `03` is the largest file and should be loaded per-pattern rather than wholesale.
+Which of these an agent loads, and when, is `AGENTS.md`.
 
 ## Per-project declaration
 
@@ -346,41 +320,7 @@ Without this file, follow the selection procedure in `rules/01-modes.md`: infer,
 
 Then `var(--color-text-strong)`, `var(--spacing-card)`, `var(--text-body)` in any framework. For Tailwind v4, wrap both imports in `@theme` to generate utilities. See `rules/02-tokens.md`.
 
-## Testing that the rules work
+---
 
-The system is only worth its context cost if it changes output. Test it rather than assuming.
-
-1. Pick a task with known failure modes — a form with validation, or a data table with an empty state.
-2. Run it twice: once with the system loaded, once without.
-3. Diff the output against the self-check in `00`.
-
-A rule that does not change the output is either already the model's default (delete it) or too vague to act on (make it specific). Both are fixes to this system, not to the prompt.
-
-Re-run after any significant edit to `00` or `03`.
-
-## Changing a rule
-
-- Values change in the token files, never at the call site.
-- Rules change in `00`–`03`, never by exception in a project.
-- A rule that needs an exception in two projects is wrong; fix the rule.
-- Anything mode-dependent belongs in a mode profile, not in `00`.
-- A new pattern earns a place in `03` after being built three times.
-
-## Sources
-
-Written from general UI and accessibility practice, plus the constraints specific to agent-generated output — which is where most of the structure comes from: the anti-patterns-first ordering, the mode split, the brand × mode token architecture, and the decidability test applied to every rule.
-
-**The numeric defaults have been reconciled.** Type scale, spacing steps, control sizes
-and motion durations started as internally consistent guesses and were checked, row by row,
-against an external reference on interface design. `RECONCILE.md` records every row and its
-outcome — adopted, or deliberately kept different with the reason stated in one line. **0
-rows are open.** A divergence that is not argued is drift, so each one names its argument.
-
-The motion rows are the exception worth knowing about: that reference has no motion chapter,
-so those values were settled against separate sources and, where no source gave a number,
-kept as ours on stated reasoning rather than adopted. The accessibility floors were never
-part of the process — contrast ratios and target sizes come from WCAG 2.1 AA and are not
-adjustable.
-
-principles.design informed the rules-versus-principles split, and the standard
-`rules/04-principles.md` is held to.
+Working on Jig itself rather than with it: `AGENTS.md` for how an agent should
+change the rules, `RECONCILE.md` for where each numeric default came from.
