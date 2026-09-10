@@ -14,6 +14,34 @@ come from WCAG 2.1 AA and are not adjustable — see "Not up for reconciliation"
 
 Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 
+## What has been checked without the reference
+
+A row can be wrong in two independent ways: it can disagree with the reference,
+and it can misstate our own current value. Only the first needs the source. The
+second was audited on 2026-09-10 against the code, because `C4` had already
+proved it happens — that row read `25 / 75 / 150 / 240`, hues that matched no
+token in the system.
+
+Audited and correct:
+
+- Every numeric row's stated default matches the token files: `T4` measure
+  (68/60/72ch), `F1` control heights (48/40/32px), `F6` row heights (36/48px),
+  `M1` durations (250/150/100ms), and `C4`'s corrected hues (0/42/162/220).
+- All 69 rule ids cited across this file resolve to a real rule.
+- Every file path cited exists.
+
+Found wrong and corrected:
+
+- **`C1`** claimed neutrals are tinted with the brand hue and was marked
+  reconciled. Dark backgrounds are tinted; light backgrounds use a fixed warm
+  hue independent of the brand, and every foreground is black or white at an
+  opacity. Reopened, with the decision stated in the row.
+- `C1` also named `--brand-hue`, which does not exist. The token is `--brand-h`.
+
+`T11` cites `--font-weight-medium`, which correctly does not exist — that row
+records its removal.
+
+
 ## Type
 
 | # | Current default | Where | Also documented in | Status |
@@ -79,7 +107,7 @@ Status: `⬜ open` · `✅ reconciled` · `➖ kept, deliberately different`
 
 | # | Current default | Where | Also documented in | Status |
 | --- | --- | --- | --- | --- |
-| C1 | Neutrals **tinted with `--brand-hue`**, not independent greys | `brand.default.css` |  | ✅ |
+| C1 | Neutrals tinted with the brand hue, not independent greys. **Half true, and the row said otherwise.** Dark backgrounds are `hsl(var(--brand-h) 6% …)` and are tinted; light backgrounds are `oklch(0.980 0.004 95)` — a fixed warm hue independent of the brand — and every foreground in both modes is black or white at an opacity, so untinted by construction. The row also named `--brand-hue`, which does not exist; the token is `--brand-h`. Decide: extend the tint to light mode, or narrow the claim to dark. | `brand.default.css` |  | ⬜ |
 | C9 | Five neutral roles: text strong/weak, stroke strong/weak, fill | `brand.default.css` |  | ✅ |
 | C10 | Brand colour marks **all** interactive elements, nothing else | `I-56` |  | ✅ |
 | C11 | **Control borders need 3:1** (WCAG 1.4.11) | `02-tokens.md` |  | ✅ |
