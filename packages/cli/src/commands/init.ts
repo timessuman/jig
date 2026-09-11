@@ -315,7 +315,13 @@ function legacyBrandFile(projectRoot: string): string | undefined {
  *  stopped wiring anything. The dotdir was hiding this by being outside the
  *  tree, which is the one thing it was good at. */
 function isTokenLayerFile(f: string): boolean {
-  return /(^|\/)(\.jig\/tokens|jig)\/(brand|mode)\.[\w.-]+\.css$/.test(f);
+  // By DIRECTORY, not by filename shape. It was `(brand|mode)\.…` and adding a
+  // third file — `theme.css` — silently reintroduced the exact bug the
+  // exclusion exists to prevent: the barrel counted as a project stylesheet, so
+  // the second run saw two candidates, called it ambiguous, and stopped wiring.
+  // Jig owns this directory outright, so everything in it is the token layer
+  // and no future file can slip back through.
+  return /(^|\/)(\.jig\/tokens|jig)\/[^/]+\.css$/.test(f);
 }
 
 function findWireTarget(d: DetectionResult): string | null {
@@ -360,6 +366,64 @@ interface WireOutcome {
  * rewritten in place; the brand import and everything else in the file is
  * left untouched.
  */
+/** The barrel for a mode: brand first, then the one mode file.
+ *
+ *  One mode per barrel, never a merge. The three mode files declare the same
+ *  token names with different values, so importing all of them into one
+ *  document leaves only the last — measured, and it yields `operator`
+ *  throughout with editorial and product inert. `01-modes.md` says why that is
+ *  not a loss rather than a limitation: density switches at the route boundary
+ *  and never inside one view.
+ *
+ *  The primary barrel is `theme.css` with no mode in the name. The whole point
+ *  is that changing the mode in `jig.config.json` stops rewriting the user's
+ *  stylesheet — only this file changes. A `theme.product.css` wired into their
+ *  CSS would need rewiring on every mode change, which is the thing it exists
+ *  to prevent. */
+function barrelBody(fileName: string, brandFile: string, mode: string, version: string): string {
+  return (
+    vendorHeader(fileName, version, 'css', null) +
+    `/* The token layer for one surface, in one import.
+` +
+    `   Brand declares the options; the mode selects from them. */
+` +
+    `@import "./${brandFile}";
+` +
+    `@import "./mode.${mode}.css";
+`
+  );
+}
+
+/** The pre-0.6 wiring: a brand import and a mode import as two separate lines.
+ *  Matched so an upgrade can replace the pair with the single barrel line
+ *  rather than leaving a project importing both forms at once. */
+const LEGACY_PAIR_RE = new RegExp(
+  `@import\\s+["'][^"']*brand\\.[\\w.-]+\\.css["'];?\\r?\\n?` +
+    `\\s*@import\\s+["'][^"']*mode\\.(?:${MODES.join('|')})\\.css["'];?\\r?\\n?`,
+);
+
+function wireBarrel(absPath: string, barrelImport: string): WireOutcome {
+  const content = existsSync(absPath) ? readFileSync(absPath, 'utf8') : '';
+  const line = `@import "${barrelImport}";`;
+  if (content.includes(line)) return { status: 'already-present' };
+
+  const legacy = LEGACY_PAIR_RE.exec(content);
+  if (legacy) {
+    const next =
+      content.slice(0, legacy.index) + `${line}\n` + content.slice(legacy.index + legacy[0].length);
+    writeFileSync(absPath, next, 'utf8');
+    return { status: 'rewired', detail: 'replaced the separate brand and mode imports with the barrel' };
+  }
+
+  const tailwind = /@import\s+["']tailwindcss["'];?\r?\n?/.exec(content);
+  const next = tailwind
+    ? content.slice(0, tailwind.index + tailwind[0].length) + `${line}\n` + content.slice(tailwind.index + tailwind[0].length)
+    : insertAfterCharset(content, content ? `${line}\n\n` : `${line}\n`);
+  mkdirSync(dirname(absPath), { recursive: true });
+  writeFileSync(next === content ? absPath : absPath, next, 'utf8');
+  return { status: 'wired' };
+}
+
 function wireImport(absPath: string, brandImport: string, modeImport: string, mode: string): WireOutcome {
   const content = existsSync(absPath) ? readFileSync(absPath, 'utf8') : '';
   const brandImportLine = `@import "${brandImport}";`;
@@ -720,6 +784,34 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   }
   const modeAbsPath = modeAbsPaths[primaryMode]!;
 
+  // ---- Barrels: one per declared mode ----
+  const brandFileOnly = brandRelPath.split('/').pop()!;
+  const barrelFor = (mode: string) => (mode === primaryMode ? 'theme.css' : `theme.${mode}.css`);
+  for (const mode of declaredModes) {
+    const rel = relKey(...tokensRelDir, barrelFor(mode));
+    const abs = join(opts.projectRoot, ...tokensRelDir, barrelFor(mode));
+    const state = fileState(opts.projectRoot, abs, rel, initManifest);
+    if (state.existsOnDisk && (!state.tracked || state.modified)) {
+      log(`  ${rel} exists and is not jig-tracked (or has been edited) — leaving it alone.`);
+      continue;
+    }
+    const content = barrelBody(barrelFor(mode), brandFileOnly, mode, opts.version);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, content, 'utf8');
+    files[rel] = checksum(content);
+  }
+
+  // Which entry point serves `/admin/**` is the project's routing, which init
+  // cannot see — so the extra barrels are named, not wired. Guessing would edit
+  // the wrong file, and `01-modes.md` is explicit that a mode switches at the
+  // route boundary rather than inside a view.
+  if (declaredModes.length > 1) {
+    log('\nOne barrel per surface. Import each at that route\'s entry point:');
+    for (const surface of effectiveConfig.surfaces) {
+      log(`  '${surface.match}' → ${relKey(...tokensRelDir, barrelFor(surface.mode))}`);
+    }
+  }
+
   writeInitManifest(opts.projectRoot, { version: opts.version, modes: declaredModes, files });
 
   // ---- Wire or print the import ----
@@ -728,14 +820,16 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   let wiring: InitResult['wiring'];
   if (wireTarget) {
     const targetAbsDir = dirname(join(opts.projectRoot, wireTarget));
-    const brandImport = relativeImportPath(targetAbsDir, wiringBrandAbsPath);
-    const modeImport = relativeImportPath(targetAbsDir, modeAbsPath);
-    const snippet = `@import "${brandImport}";\n@import "${modeImport}";`;
+    const barrelImport = relativeImportPath(
+      targetAbsDir,
+      join(opts.projectRoot, ...tokensRelDir, 'theme.css'),
+    );
+    const snippet = `@import "${barrelImport}";`;
     // I8: an unwritable stylesheet (permissions, read-only mount, ...) must
     // not abort the run — fall back to the print-only snippet and still run
     // the baseline below, the same as the "ambiguous target" case.
     try {
-      const outcome = wireImport(join(opts.projectRoot, wireTarget), brandImport, modeImport, primaryMode);
+      const outcome = wireBarrel(join(opts.projectRoot, wireTarget), barrelImport);
       wiring = { target: wireTarget, status: outcome.status, snippet };
       const verb = outcome.status === 'wired' ? 'Wired' : outcome.status === 'rewired' ? 'Rewired' : 'Already present in';
       log(`\n${verb} ${wireTarget}:`);

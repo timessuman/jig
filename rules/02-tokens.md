@@ -380,12 +380,11 @@ In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation s
 }
 ```
 
-**Tailwind v4** — wrap the same files, nothing else changes
+**Tailwind v4** — wrap the barrel, nothing else changes
 ```css
 @import "tailwindcss";
 @theme {
-  @import "./jig/brand.default.css";
-  @import "./jig/mode.product.css";
+  @import "./jig/theme.css";
 }
 ```
 Yields `bg-surface`, `rounded-surface`, `p-card`, `text-body` as utilities.
@@ -406,4 +405,18 @@ to use the same ones; the ones that do not are whatever only the shared package
 uses, which tends to be its theme and state handling. Observed in a real
 project as a theme switch that had silently never worked.
 
-**Multiple modes in one app** — scope by route, not by class. Each surface loads its own mode file at the layout or entry level. Do not attempt to nest two modes in one document (`01-modes.md`, seam rules).
+**One import per surface, through a barrel.** `init` writes `jig/theme.css`,
+which imports the brand file and then one mode file, and wires that single line
+into your stylesheet. Your stylesheet then never changes again: switching the
+mode in `jig.config.json` rewrites the barrel, not your CSS.
+
+A barrel holds exactly **one** mode, never a merge. The three mode files declare
+the same token names with different values, so importing all three into one
+document leaves only the last — the other two are inert. That is the mechanical
+reason behind the seam rule below.
+
+**Multiple modes in one app** — scope by route, not by class. Each surface imports its own
+barrel — `jig/theme.css` for the primary surface, `jig/theme.<mode>.css` for the
+others — at that route's layout or entry level. `init` names them and does not
+wire them: which entry point serves `/admin/**` is your routing, which it cannot
+see. Do not attempt to nest two modes in one document (`01-modes.md`, seam rules).
