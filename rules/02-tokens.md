@@ -384,10 +384,26 @@ In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation s
 ```css
 @import "tailwindcss";
 @theme {
-  @import ".jig/tokens/brand.default.css";
-  @import ".jig/tokens/mode.product.css";
+  @import "./jig/brand.default.css";
+  @import "./jig/mode.product.css";
 }
 ```
 Yields `bg-surface`, `rounded-surface`, `p-card`, `text-body` as utilities.
+
+**In a monorepo, add `@source` for every workspace package that uses these
+utilities.** Tailwind v4's content detection does not cross package boundaries:
+a package reached through a `node_modules` symlink is skipped by design, so a
+utility used *only* inside `packages/ui` is never generated.
+
+```css
+@source "../../../../packages/ui/src";
+```
+
+The failure mode is the reason this is worth stating. Nothing errors — the
+class lands on the element and no rule exists to match it, so the style simply
+does not apply. Most utilities survive by coincidence, because the app happens
+to use the same ones; the ones that do not are whatever only the shared package
+uses, which tends to be its theme and state handling. Observed in a real
+project as a theme switch that had silently never worked.
 
 **Multiple modes in one app** — scope by route, not by class. Each surface loads its own mode file at the layout or entry level. Do not attempt to nest two modes in one document (`01-modes.md`, seam rules).
