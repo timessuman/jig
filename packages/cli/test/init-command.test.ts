@@ -100,19 +100,28 @@ describe('init — writing', () => {
 
     expect(result.wiring.target).toBe('src/app.css');
     expect(result.wiring.status).toBe('wired');
+    // One line now: the project imports a barrel Jig owns. What still has to
+    // hold is that the whole chain resolves to real files — the barrel from the
+    // stylesheet, and the brand and mode from the barrel.
     const cssContent = readFileSync(join(project, 'src', 'app.css'), 'utf8');
-    const importMatch = /@import "([^"]+brand\.storefront\.css)";/.exec(cssContent);
-    expect(importMatch).not.toBeNull();
+    const barrelMatch = /@import "([^"]+theme\.css)";/.exec(cssContent);
+    expect(barrelMatch).not.toBeNull();
 
-    const resolved = resolve(dirname(join(project, 'src', 'app.css')), importMatch![1]);
-    expect(resolved).toBe(join(project, 'src', 'jig', 'brand.storefront.css'));
-    expect(existsSync(resolved)).toBe(true);
+    const barrelAbs = resolve(dirname(join(project, 'src', 'app.css')), barrelMatch![1]);
+    expect(barrelAbs).toBe(join(project, 'src', 'jig', 'theme.css'));
+    expect(existsSync(barrelAbs)).toBe(true);
 
-    const modeMatch = /@import "([^"]+mode\.product\.css)";/.exec(cssContent);
-    expect(modeMatch).not.toBeNull();
-    const modeResolved = resolve(dirname(join(project, 'src', 'app.css')), modeMatch![1]);
-    expect(modeResolved).toBe(join(project, 'src', 'jig', 'mode.product.css'));
-    expect(existsSync(modeResolved)).toBe(true);
+    const barrel = readFileSync(barrelAbs, 'utf8');
+    for (const [re, expected] of [
+      [/@import "([^"]+brand\.storefront\.css)";/, join(project, 'src', 'jig', 'brand.storefront.css')],
+      [/@import "([^"]+mode\.product\.css)";/, join(project, 'src', 'jig', 'mode.product.css')],
+    ] as const) {
+      const m = re.exec(barrel);
+      expect(m, `barrel is missing ${expected}`).not.toBeNull();
+      const abs = resolve(dirname(barrelAbs), m![1]);
+      expect(abs).toBe(expected);
+      expect(existsSync(abs)).toBe(true);
+    }
   });
 
   it('does not duplicate the import on a second run', async () => {
@@ -219,17 +228,23 @@ describe('init — writing', () => {
 
     expect(result.config.action).toBe('skipped-untracked');
     expect(result.surfaces).toEqual([{ match: '/', mode: 'editorial' }]);
+    // The stylesheet imports the barrel; the barrel carries what the config
+    // named. Assert through it rather than against the stylesheet, which by
+    // design no longer mentions a brand or a mode at all.
     const cssContent = readFileSync(join(project, 'src', 'app.css'), 'utf8');
-    expect(cssContent).toContain('brand.custom.css');
-    expect(cssContent).toContain('mode.editorial.css');
-    expect(cssContent).not.toContain('mode.product.css');
-    expect(cssContent).not.toContain('brand.storefront.css');
+    const barrelPath = /@import "([^"]+theme\.css)";/.exec(cssContent)![1];
+    const barrel = readFileSync(
+      resolve(dirname(join(project, 'src', 'app.css')), barrelPath), 'utf8');
+    expect(barrel).toContain('brand.custom.css');
+    expect(barrel).toContain('mode.editorial.css');
+    expect(barrel).not.toContain('mode.product.css');
+    expect(barrel).not.toContain('brand.storefront.css');
   });
 
   // C2: changing the config's mode (here: a hand-edit after the first run)
   // used to leave `wireImport` reporting `already-present` forever, because
   // only the brand import was ever checked.
-  it('C2: changing the config mode on a later run rewires the CSS mode import in place', async () => {
+  it('C2: changing the config mode on a later run rewrites the barrel, leaving the stylesheet alone', async () => {
     const first = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
     expect(first.wiring.status).toBe('wired');
 
@@ -241,13 +256,19 @@ describe('init — writing', () => {
     const second = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
 
     expect(second.config.action).toBe('skipped-edited');
-    expect(second.wiring.status).toBe('rewired');
+    // The stylesheet already imports the barrel and does not change — that is
+    // the reason the barrel exists. What changes is Jig's own file.
+    expect(second.wiring.status).toBe('already-present');
     const cssContent = readFileSync(join(project, 'src', 'app.css'), 'utf8');
-    expect(cssContent).toContain('mode.editorial.css');
-    expect(cssContent).not.toContain('mode.product.css');
-    // The brand import itself was left alone — still present exactly once.
-    const brandMatches = cssContent.match(/@import "[^"]*brand\.storefront\.css"/g) ?? [];
-    expect(brandMatches).toHaveLength(1);
+    expect(cssContent, 'the user stylesheet was edited for a mode change')
+      .toContain('@import "./jig/theme.css";');
+    expect(cssContent).not.toContain('mode.');
+
+    const barrel = readFileSync(join(project, 'src', 'jig', 'theme.css'), 'utf8');
+    expect(barrel).toContain('mode.editorial.css');
+    expect(barrel).not.toContain('mode.product.css');
+    // The brand import inside the barrel was left alone — exactly once.
+    expect(barrel.match(/@import "[^"]*brand\.storefront\.css"/g) ?? []).toHaveLength(1);
   });
 
   // I4: a CSS Module is scoped to one component by its own build tooling —
@@ -486,11 +507,19 @@ describe('init — global scope', () => {
 
     expect(result.wiring.status).toBe('wired');
     const cssContent = readFileSync(join(project, 'src', 'app.css'), 'utf8');
-    const modeMatch = /@import "([^"]+mode\.product\.css)";/.exec(cssContent)!;
+    const barrelAbs = resolve(
+      dirname(join(project, 'src', 'app.css')),
+      /@import "([^"]+theme\.css)";/.exec(cssContent)![1],
+    );
+    const modeMatch = /@import "([^"]+mode\.product\.css)";/.exec(readFileSync(barrelAbs, 'utf8'))!;
     // C3: a global install's mode file is copied into the *project's own*
     // .jig/tokens/, and the @import is project-relative — never pointing at
     // $HOME, which would resolve only on the machine that ran `init`.
-    const resolved = resolve(dirname(join(project, 'src', 'app.css')), modeMatch[1]);
+    // The mode import now lives inside the barrel, so resolve through it. The
+    // property being guarded is unchanged and is the point of C3: the path is
+    // project-relative and never reaches into $HOME, which would resolve only
+    // on the machine that ran `init`.
+    const resolved = resolve(dirname(barrelAbs), modeMatch[1]);
     expect(resolved).toBe(join(project, 'src', 'jig', 'mode.product.css'));
     expect(existsSync(resolved)).toBe(true);
     expect(resolved.startsWith(home)).toBe(false);
@@ -535,7 +564,7 @@ function initWrittenFiles(root: string): string[] {
 
 // --- Target: 3 files for a single-mode project (brand.css, <mode>.css,
 // jig.config.json) — state.json is bookkeeping, not one of "your files". ---
-describe('init — file count (target: 3 files for a single-mode project)', () => {
+describe('init — file count (target: 4 files for a single-mode project)', () => {
   beforeEach(() => {
     installProject();
     writeFileSync(join(project, 'package.json'), JSON.stringify({ name: '@acme/storefront' }));
@@ -543,15 +572,16 @@ describe('init — file count (target: 3 files for a single-mode project)', () =
     writeFileSync(join(project, 'src', 'app.css'), ':root { --brand-color: #0F766E; }\n');
   });
 
-  it('writes exactly 3 project-facing files: the brand file, one mode file, and jig.config.json', async () => {
+  it('writes exactly 4 project-facing files: brand, one mode, the barrel, and jig.config.json', async () => {
     await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
 
     const files = initWrittenFiles(project);
     const withoutState = files.filter((f) => f !== '.jig/state.json');
     expect(withoutState.sort()).toEqual(
-      ['src/jig/brand.storefront.css', 'src/jig/mode.product.css', 'jig.config.json'].sort(),
+      ['src/jig/brand.storefront.css', 'src/jig/mode.product.css',
+       'src/jig/theme.css', 'jig.config.json'].sort(),
     );
-    expect(withoutState).toHaveLength(3);
+    expect(withoutState).toHaveLength(4);
     // state.json exists too (it has to — it's what makes a safe re-run and
     // `update`'s refresh possible) but is bookkeeping, not a project file.
     expect(files).toContain('.jig/state.json');
@@ -627,8 +657,10 @@ describe('config.brand decides where the brand file is written', () => {
                  version: '0.5.0', yes: true, log: () => {} });
 
     const css = readFileSync(join(project, 'styles', 'global.css'), 'utf8');
-    expect(css).toContain('@import "./jig/brand.acme.css";');
+    expect(css).toContain('@import "./jig/theme.css";');
     expect(css, 'still climbing out to the dotfolder').not.toContain('.jig/tokens');
+    expect(readFileSync(join(project, 'styles', 'jig', 'theme.css'), 'utf8'))
+      .toContain('@import "./brand.acme.css";');
   });
 
   it('falls back to the derived default when the config says nothing', async () => {
