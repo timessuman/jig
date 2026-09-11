@@ -313,12 +313,24 @@ Drop this in the project root so mode selection does not require asking on every
 ```jsonc
 // jig.config.json
 {
-  "brand": ".jig/tokens/brand.acme.css",
+  // Where the token layer lives. `init` writes the brand file here and puts
+  // the mode files beside it. Omit it and you get `.jig/tokens/`.
+  "brand": "src/styles/jig/brand.acme.css",
+
+  // One entry per surface. This outranks an agent's own reading of the
+  // project, so it is worth getting right before `init` runs.
   "surfaces": [
     { "match": "/",         "mode": "editorial" },
     { "match": "/app/**",   "mode": "product"   },
     { "match": "/admin/**", "mode": "operator"  }
-  ]
+  ],
+
+  // Files that render OUTSIDE the cascade, where a literal is the only thing
+  // that works: an OG card serialised into an SVG `foreignObject` carries no
+  // stylesheet, and a PDF drawn by a React renderer never sees CSS. `check`
+  // skips these and names them in every report — an exemption list grows one
+  // entry at a time, so it is never allowed to be invisible.
+  "exempt": ["src/components/og-card.tsx", "src/cv/pdf/**"]
 }
 ```
 
