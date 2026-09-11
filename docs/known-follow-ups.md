@@ -250,7 +250,11 @@ source rather than taken from the report that raised it._
   fixed in `01-modes.md` and missed here. Either strip the section at pack time
   or move it out of `rules/`.
 
-- **`A-01`'s "then ask" has no stated scope, and two agents split on it.** Given
+- **`A-01`'s "then ask" has no stated scope, and two agents split on it.**
+  _Resolved: the rule now says that being asked to propose a colour does not
+  discharge it — a proposal is a question with a suggested answer, so suggest
+  freely, ship the unbranded default alongside, and leave the brand file
+  unchanged until a human confirms. Original note:_ Given
   the same brief and the same rules, one shipped the near-black default and
   deferred the hue; the other proposed a colour and argued the proposal *was* the
   ask. Both cited the skill's "if a rule conflicts with an explicit instruction in

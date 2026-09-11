@@ -17,6 +17,7 @@ import { renderBrandFile, brandFileName } from '../init/brand-file.js';
 import { relativeImportPath } from '../init/import-path.js';
 import { deriveProjectSlug } from '../init/project-name.js';
 import { readInitManifest, writeInitManifest, isInitFileModified, checksum } from '../init/state.js';
+import { declaredTokenNames, tailwindNamespaced, utilitiesBody } from '../init/utilities.js';
 import { vendorHeader } from '../install/vendor.js';
 import { relKey } from './install.js';
 import { check } from './check.js';
@@ -853,6 +854,70 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     mkdirSync(dirname(abs), { recursive: true });
     writeFileSync(abs, content, 'utf8');
     files[rel] = checksum(content);
+  }
+
+  // ---- Optional: Tailwind utility classes ----
+  //
+  // Only offered, never assumed. The flat import already works; this block
+  // changes how every component in the project is written, and both it and the
+  // plain-`var()` style are correct. That is a decision for whoever maintains
+  // the codebase, so `init` asks and takes silence as no.
+  //
+  // Under `--yes` it is skipped rather than accepted: accepting on a caller's
+  // behalf is how a token layer quietly drags a CSS framework into a project.
+  if (detection.cssSystem === 'tailwind-v4') {
+    const declared = declaredTokenNames(
+      [brandAbsPath, modeAbsPath]
+        .map((f) => {
+          try {
+            return readFileSync(f, 'utf8');
+          } catch {
+            return '';
+          }
+        })
+        .join('\n'),
+    );
+    const aliasable = tailwindNamespaced(declared);
+    const rel = relKey(...tokensRelDir, 'utilities.css');
+
+    if (aliasable.length === 0) {
+      log(`\n  Tailwind v4 detected, but no token here matches a Tailwind namespace — skipping ${rel}.`);
+    } else if (opts.yes) {
+      log(`\n  Tailwind v4 detected. Utility classes (\`p-card\`, \`rounded-surface\`) are`);
+      log(`  available but not set up: re-run without --yes to be offered ${rel},`);
+      log(`  or see "Optional: Tailwind utility classes" in 02-tokens.md.`);
+    } else {
+      log(`\n  Tailwind v4 detected. Jig works as-is — every token reads as`);
+      log(`  var(--color-text-strong) from any component, and nothing further is needed.`);
+      log(`  Optionally, ${aliasable.length} tokens can also become utility classes`);
+      log(`  (\`p-card\`, \`rounded-surface\`, \`text-text-strong\`) via ${rel}.`);
+      log(`  This changes how components are written. Both styles are correct.`);
+      const answer = (await prompt('  Generate it? [y/N]: ')).toLowerCase();
+      if (answer === 'y' || answer === 'yes') {
+        const abs = join(opts.projectRoot, ...tokensRelDir, 'utilities.css');
+        const state = fileState(opts.projectRoot, abs, rel, initManifest);
+        if (state.existsOnDisk && (!state.tracked || state.modified)) {
+          log(`  ${rel} exists and is not jig-tracked (or has been edited) — leaving it alone.`);
+        } else {
+          const content = utilitiesBody(aliasable, opts.version);
+          mkdirSync(dirname(abs), { recursive: true });
+          writeFileSync(abs, content, 'utf8');
+          files[rel] = checksum(content);
+          // The path as the wiring target would write it, not the repo-relative
+          // key — a reader is about to paste this into that stylesheet.
+          const target = findWireTarget(detection);
+          const importPath = target
+            ? relativeImportPath(
+                dirname(join(opts.projectRoot, target)),
+                join(opts.projectRoot, ...tokensRelDir, 'utilities.css'),
+              )
+            : `./${rel}`;
+          log(`  Wrote ${rel}. Import it in the stylesheet that imports Tailwind:`);
+          log(`    @import "tailwindcss";`);
+          log(`    @import "${importPath}";`);
+        }
+      }
+    }
   }
 
   // Which entry point serves `/admin/**` is the project's routing, which init

@@ -390,14 +390,89 @@ In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation s
 }
 ```
 
-**Tailwind v4** — wrap the barrel, nothing else changes
+**Tailwind v4** — the barrel is imported flat, exactly as anywhere else
+
 ```css
 @import "tailwindcss";
-@theme {
-  @import "./jig/theme.css";
+@import "./jig/theme.css";
+```
+
+That is all that is required, and it is what `init` writes. Every token is
+readable as `var(--color-text-strong)` in any stylesheet or component.
+
+**Do not nest the import inside `@theme`.** Earlier versions of this file told
+you to, and Tailwind rejects it outright:
+
+```
+@theme blocks must only contain custom properties or @keyframes.
+```
+
+`@theme` takes declarations, not an `@import`, and Jig's tokens cannot move into
+one regardless: `@theme` requires them top-level and unnested, while Jig's live
+in `:root` and are redeclared under `[data-theme="dark"]` and a
+`prefers-color-scheme` query. That structure is what makes dark mode work.
+
+### Optional: Tailwind utility classes
+
+The flat import gives you the tokens. It does **not** give you `p-card` or
+`rounded-surface` as classes — Tailwind only generates utilities for names
+declared in `@theme`. If you want them, add one alias block:
+
+```css
+/* jig/utilities.css — one per project, not one per mode */
+@theme inline {
+  --color-text-strong: var(--color-text-strong);
+  --color-bg-base:     var(--color-bg-base);
+  --spacing-card:      var(--spacing-card);
+  --radius-surface:    var(--radius-surface);
+  /* …every token you want as a utility */
 }
 ```
-Yields `bg-surface`, `rounded-surface`, `p-card`, `text-body` as utilities.
+
+```css
+/* your root stylesheet */
+@import "tailwindcss";
+@import "./jig/utilities.css";
+```
+
+Then `<article class="bg-bg-base p-card rounded-surface">` works, and the value
+still comes from whichever mode barrel that route loaded — so one set of
+utilities serves every mode, with no `dark:` variants and nothing per-mode.
+
+**`@theme` and `@theme inline` behave identically here.** Both generate the
+utilities; both also emit a self-referential declaration you will see in the
+compiled CSS:
+
+```css
+@layer theme { :root, :host { --radius-surface: var(--radius-surface) } }  /* Tailwind's */
+:root { --radius-surface: var(--radius-md) }                              /* Jig's */
+```
+
+**This is not a bug and must not be "fixed".** Tailwind's copy is inside
+`@layer theme`; Jig's is unlayered. Unlayered declarations beat layered ones in
+the cascade regardless of source order, so Jig's value always wins. Removing
+either one breaks something: drop the alias and the utility stops existing, drop
+Jig's and the token has no value.
+
+**The alternative, if the duplicate bothers you:** alias to *different* names,
+the way a project with its own semantic layer would.
+
+```css
+@theme {
+  --color-ink:   var(--color-text-strong);
+  --color-paper: var(--color-bg-base);
+}
+```
+
+Utilities become `text-ink`, `bg-paper`. No self-reference, no duplicate
+declaration, and the names read as yours rather than as Jig's. The cost is a
+mapping to maintain. Both arrangements are correct; this is a naming preference,
+not a correctness one.
+
+**A missing alias fails silently.** A class whose token is not in the block
+renders onto the element and matches no rule — no error, no warning, no style.
+Generate the block rather than hand-maintaining it, and regenerate it when the
+token layer changes.
 
 **In a monorepo, add `@source` for every workspace package that uses these
 utilities.** Tailwind v4's content detection does not cross package boundaries:

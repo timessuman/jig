@@ -23,6 +23,29 @@ cite the number when you follow or deliberately break one.
 
 Load `{{rules_path}}/04-principles.md` only when two rules conflict.
 
+## If the project uses Tailwind v4
+
+Jig needs nothing from Tailwind and Tailwind needs nothing from Jig: the flat
+`@import` of the token barrel is enough, and every token is readable as
+`var(--color-text-strong)` from any component. Build that way unless the user
+tells you otherwise.
+
+Tailwind can additionally generate utility classes (`p-card`, `rounded-surface`)
+from Jig's tokens, but only if the project declares an alias block. **That is
+the user's decision, not yours.** It changes how every component in the codebase
+is written, and both arrangements are correct — so when you find Tailwind v4 in
+a project without one:
+
+1. Say you found it, and that the token layer works today without any change.
+2. Show them the two arrangements from "Optional: Tailwind utility classes" in
+   `{{rules_path}}/02-tokens.md` — self-referential aliases keeping Jig's names,
+   or aliases to names of their own.
+3. Ask which they want, and **wait**. Do not pick one and proceed.
+
+Never write `@import "tailwindcss"` into a project that does not already have
+it. Jig is framework-agnostic by design, and a token layer that drags in a CSS
+framework has stopped being one.
+
 ## Commands
 
 {{available_commands}}
