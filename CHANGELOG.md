@@ -63,6 +63,28 @@ Minor rather than patch: `explain` prints lines it did not print before, and
 
 ### Added
 
+- **Three detectors for the anti-slop rules, and a self-check that names them.**
+  Section A is Jig's answer to "what is AI slop" — fourteen rules for the
+  defaults a model reaches for when nothing was specified. **Three had
+  detectors.** The other eleven were enforced by one self-check question —
+  *"would this look different from a generic template?"* — which an agent that
+  has just produced a generic template answers yes to, and whose `A-01 → A-10`
+  range silently excluded `A-58`, `A-59`, `A-60` and `A-67`.
+
+  Jig's own documentation site shipped `<span aria-hidden="true">❌</span> Don't`
+  in the chrome of all 104 rule pages with `check --all` reporting nothing.
+
+  `A-05` (emoji as iconography) and `A-10` (placeholder content) were never
+  judgment calls — an emoji in a text node is a regex, and so is "lorem ipsum".
+  `A-09` (marketing voice) is the first **mode-gated** detector: it fires in
+  `product` and `operator`, stays silent in `editorial` where that register
+  belongs, and stays silent when no mode is declared rather than guessing.
+
+  The remaining eight stay judgment. Detecting "a container around every group"
+  needs to know what an element is and how heavy it looks, and six noisy checks
+  that fire on correct code is how a linter gets switched off. What reaches them
+  is the self-check, rewritten to name each tell the way every other item does.
+
 - **`check` reports what it examined.** `0 errors · 104 rules, 0 fired` was
   byte-identical whether forty components were examined and found clean or
   nothing was examined at all. It now reads `· 26 files, 4 with styles`, the
