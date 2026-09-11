@@ -313,7 +313,36 @@ reproduced here before being written down._
   literally, got the identical error, and resorted to allocating a pseudo-terminal
   with Python's `pty` module to get past it.
 
-## `check` does not say what it looked at
+## `check` does not say what it looked at — resolved, and it found more
+
+_Resolved. `check` now reports `N files, M with styles` beside the rule count,
+the `JIG_CHECK:` record carries `files=` and `styled=`, and a run where nothing
+carried a style region says "Nothing inspected." instead of "No findings." The
+attestation contract was extended on both sides — CLI and `SKILL.md.tmpl` — since
+the guard asserts they emit identical fields in identical order._
+
+_Wiring it up immediately exposed something bigger. `jig check` defaults to
+**changed files**, so on a clean tree it scans almost nothing:_
+
+```
+default:  files=1  styled=0     Nothing inspected.
+--all:    files=26 styled=4     0 errors · 104 rules · 26 files, 4 with styles
+```
+
+_Every `jig check` run against the documentation site during this session was the
+default. They all reported "No findings" while inspecting one file. The
+deliberate-break test passed only because the brand file was uncommitted at the
+time, which put it in the changed set. The behaviour is correct and deliberate —
+a pre-commit hook should be fast — but it was indistinguishable from a full clean
+run, and the whole project's "check passes" status was built on it._
+
+_Still open: whether the default run should say **which** mode it used. `files=1`
+now makes it visible to someone reading carefully; naming it would make it
+visible to everyone._
+
+### Original note
+
+
 
 Found by misreading it myself. Reporting progress on the docs site, I wrote
 that the work so far was "plumbing that `jig check` can verify mechanically".

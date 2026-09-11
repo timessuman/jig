@@ -50,3 +50,48 @@ describe('formatReport', () => {
     expect(out).toContain('[mechanical]');
   });
 });
+
+/**
+ * A clean report must say what it examined.
+ *
+ * `0 errors · 104 rules, 0 fired` is what a project with forty components and
+ * no violations prints. It is also, byte for byte, what a project containing a
+ * single empty stylesheet and no markup prints. Nothing in the output separates
+ * "found nothing wrong" from "had nothing to look at".
+ *
+ * That is not hypothetical: it was misread that way while building Jig's own
+ * documentation site, where a green `check` was cited as evidence the work was
+ * sound. The project had no authored UI at the time — three generated token
+ * files and Astro's stock index page. The detectors ran over nothing and said
+ * so in language indistinguishable from success.
+ *
+ * Same failure as the token audit going quiet when the token layer moved, and
+ * as `check-tokens` rule 6 silently covering 77% of what it claimed: silence
+ * that reads as a pass.
+ */
+describe('the report says what it looked at', () => {
+  it('names the file count beside the rule count', () => {
+    const out = formatReport([], { totalRules: 104, version: '0.7.1', scanned: 41, withStyles: 12 });
+    expect(out).toMatch(/41 files/);
+  });
+
+  it('separates files that carried styles from files merely opened', () => {
+    // `.ts` is style-bearing by extension but a parser contains no styles. The
+    // count that matters to a reader is how many had anything to inspect.
+    const out = formatReport([], { totalRules: 104, version: '0.7.1', scanned: 41, withStyles: 4 });
+    expect(out).toMatch(/4 .*styl/i);
+  });
+
+  it('says plainly when there was nothing to inspect', () => {
+    const out = formatReport([], { totalRules: 104, version: '0.7.1', scanned: 41, withStyles: 0 });
+    expect(out).toMatch(/no file|nothing/i);
+    // And must not let that read as a pass.
+    expect(out).not.toMatch(/^\s*No findings\.\s*$/m);
+  });
+
+  it('carries the counts into the JIG_CHECK record', () => {
+    const out = formatReport([], { totalRules: 104, version: '0.7.1', scanned: 41, withStyles: 4 });
+    expect(out).toMatch(/JIG_CHECK:.*files=41/);
+    expect(out).toMatch(/JIG_CHECK:.*styled=4/);
+  });
+});

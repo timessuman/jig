@@ -10,6 +10,7 @@ import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
 import { applyExemptions, readExemptions } from '../check/exempt.js';
+import { maskNonStyleRegions } from '../check/styles.js';
 import { auditTokenLayer } from '../check/token-audit.js';
 import type { Finding } from '../check/types.js';
 
@@ -170,6 +171,24 @@ export function check(opts: CheckOptions): CheckResult {
     }
   });
 
+  // How many of the selected files actually carried a style region.
+  //
+  // `.ts`, `.tsx` and friends are style-bearing by EXTENSION, so `files.length`
+  // counts parsers, config and test files that can never produce a finding. A
+  // reader checking whether the run covered their codebase needs the number
+  // that had something to inspect — and a run where that number is zero is not
+  // a pass, however clean it looks. See `ReportMeta.withStyles`.
+  const withStyles = files.filter((f) => {
+    try {
+      const src = readFileSync(join(opts.projectRoot, f), 'utf8');
+      return hasExtension(f, CSS_EXTENSIONS)
+        ? src.trim().length > 0
+        : maskNonStyleRegions(src, f).trim().length > 0;
+    } catch {
+      return false;
+    }
+  }).length;
+
   const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates);
 
   // The token layer's OWN declarations, which no detector reads: `.jig/tokens/`
@@ -226,6 +245,8 @@ export function check(opts: CheckOptions): CheckResult {
     noTokenLayer,
     mode: resolveMode(opts.projectRoot),
     unscanned: summariseUnscanned(files),
+    scanned: files.length,
+    withStyles,
     exempt,
     exemptPatterns: byPattern,
   });

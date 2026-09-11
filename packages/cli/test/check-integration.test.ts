@@ -43,7 +43,12 @@ describe('check — end to end', () => {
   it('works on a project with no .jig/ at all — no install, no init', () => {
     expect(existsSync(join(project, '.jig'))).toBe(false);
     const result = check({ projectRoot: project, homeDir: home, version: '0.1.0', all: true, ci: false });
-    expect(result.report).toMatch(/\d+ rules(?: \(\+ \d+ pattern and mode specs\))?,/);
+    expect(result.report).toMatch(/\d+ rules(?: \(\+ \d+ pattern and mode specs\))?/);
+    // This project is empty, so the run must not read as a clean bill of
+    // health. "No findings" over nothing is the failure this wording exists to
+    // prevent — see ReportMeta.withStyles.
+    expect(result.report).toContain('Nothing inspected.');
+    expect(result.report).toMatch(/styled=0/);
   });
 
   it('--ci restricts to the mechanical bucket and is what a caller checks for a non-zero exit', () => {
@@ -77,7 +82,7 @@ describe('check — legacy .jig/rules.index.json compatibility', () => {
     // The rule COUNT is the legacy index's; the spec count beside it comes from
     // the CLI's own bundle, since specs describe the system rather than
     // whatever a project vendored.
-    expect(result.report).toMatch(/1 rules(?: \(\+ \d+ pattern and mode specs\))?, 1 fired/);
+    expect(result.report).toMatch(/1 rules(?: \(\+ \d+ pattern and mode specs\))?.*1 fired/);
   });
 });
 
