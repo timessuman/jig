@@ -138,10 +138,15 @@ describe('init — writing', () => {
 
     expect(result.wiring.target).toBeNull();
     expect(result.wiring.status).toBe('print-only');
-    const brandLine = result.wiring.snippet.split('\n').find((l) => l.includes('brand.storefront.css'))!;
-    const m = /@import "([^"]+)"/.exec(brandLine)!;
-    const resolved = resolve(project, m[1]);
-    expect(resolved).toBe(join(project, 'src', 'jig', 'brand.storefront.css'));
+    // ONE import, the barrel — the same thing the wiring path writes when it
+    // can find a target. Printing the brand and mode files separately told
+    // anyone without a wirable stylesheet to set their project up differently
+    // from everyone else, and cost them the barrel's whole point: relocating
+    // the token layer later changes one line rather than every stylesheet.
+    const lines = result.wiring.snippet.split('\n').filter((l) => l.includes('@import'));
+    expect(lines).toHaveLength(1);
+    const m = /@import "([^"]+)"/.exec(lines[0])!;
+    expect(resolve(project, m[1])).toBe(join(project, 'src', 'jig', 'theme.css'));
 
     // Neither stylesheet was silently edited.
     expect(readFileSync(join(project, 'src', 'app.css'), 'utf8')).not.toContain('@import');
