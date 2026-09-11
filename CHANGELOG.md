@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.7.1
+
+A rule file that contradicted the tool, and the guard that kept it that way.
+
+Patch: the shipped rules change, but no command writes anything different.
+
+### Fixed
+
+- **`02-tokens.md` named a token location that 0.7.0 stopped using.** It said
+  tokens live at `.jig/tokens/`, that this was "the only location, in every
+  scope and every project", and that "nothing relocates them". Since 0.7.0 the
+  layer follows the project: `init` puts it beside the stylesheet it wires and
+  prints the path it chose. So a single `init` run told you `Token layer:
+  src/styles/jig/` while the rule file an agent is explicitly told to load
+  before writing token code insisted that directory could not exist.
+
+  The file also disagreed with itself — four absolute examples, and one
+  relative one added when the Tailwind section was written.
+
+  It now describes the real behaviour, says pre-0.7.0 projects keep their
+  layout, and points at the `theme.css` barrel so relocating the layer costs
+  one line instead of every stylesheet.
+
+- **`check-tokens` rule 4 was holding the claim in place.** It hardcoded the
+  same path, in a comment that anticipated and forbade this exact change:
+  "nothing — including a future `init` — relocates them". It was checking the
+  documentation against itself rather than against the CLI, so it could not
+  see the drift and would have failed the build on anyone correcting it.
+
+  It now asserts what stays true as the layer moves: token imports shown in
+  the rules must be relative. Mutation-tested in both directions.
+
+### Corrected
+
+- **0.7.0's notes said the non-TTY refusal "names the three ways out:
+  `--yes`, a real terminal, or writing `jig.config.json` first."** The third
+  is not a way out on its own. The guard runs before any config is read, so a
+  config alone changes nothing — it selects the *mode* once you are past the
+  guard. `jig.config.json` plus `--yes` works; `jig.config.json` alone exits 1
+  with the same message that suggested it.
+
+  The message itself is unchanged in this release and still reads as though
+  the config were a third alternative. It is recorded in
+  `docs/known-follow-ups.md` rather than reworded here, because the wording
+  that is actually right depends on whether the guard should consult the
+  config first — a behaviour question, not a copy question.
+
+### How these were found
+
+Not by the test suite, which passes 631 tests either way. By handing the rules
+to agents that had never seen this repository and asking them to build
+something real. Everyone who could have caught the token-location defect
+already knew where the tokens were.
+
 ## 0.7.0
 
 A silent no-op, fixed, plus the missing half of 0.6.0's token-layer move.
