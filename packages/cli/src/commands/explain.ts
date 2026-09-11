@@ -36,6 +36,10 @@ function renderRule(rule: LoadedRule): string {
     '',
     `❌ ${rule.wrong}`,
     `✅ ${rule.correction}`,
+    // The reasoning, where the rule carries any. This was dropped at the parser
+    // for three releases, so `explain` showed the pair and none of the argument
+    // for it — which is the half that tells you when the rule does not apply.
+    ...(rule.notes.length > 0 ? ['', ...rule.notes] : []),
     '',
     `   ${rule.bucket} · ${rule.severity}${rule.detector ? ` · detector: ${rule.detector}` : ''}`,
     `   since ${rule.since} · ${rule.source}`,

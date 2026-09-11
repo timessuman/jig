@@ -159,3 +159,21 @@ describe('explain — forgiving input', () => {
     expect(() => explain({ ruleId: 'zzzz', version })).toThrow();
   });
 });
+
+describe('explain shows the reasoning, not just the pair', () => {
+  it('prints the prose A-04 ships after its correction', () => {
+    // Shipped in the tarball, installed into every skill directory, and
+    // invisible through the command built to read it.
+    // Not 'neumorphism' — that is in the ❌ line and would pass without the
+    // fix. 'Experiment freely' exists only in the prose explain was dropping.
+    expect(explain({ ruleId: 'A-04', version })).toContain('Experiment freely');
+  });
+
+  it('does not invent a notes section for a rule with no prose', () => {
+    const out = explain({ ruleId: 'A-02', version });
+    const afterCorrection = out.slice(out.indexOf('✅'));
+    expect(afterCorrection.split('\n').filter((l) => l.trim() && !l.includes('·') && !l.includes('since')))
+      .toHaveLength(1);
+  });
+});
+

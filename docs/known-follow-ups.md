@@ -260,7 +260,15 @@ source rather than taken from the report that raised it._
   rule says what to do when the task explicitly asks for the decision the rule
   says to defer.
 
-- **`jig explain` discards the prose after the correction.** `rules/parse.ts:37-41`
+- **`jig explain` discards the prose after the correction.** _Resolved:
+  `parseRules` now collects it into `notes` and `explain` renders it after the
+  ✅. Verified against the real corpus — 40 of 104 rules, 96 lines, now
+  reachable. The first test written for this passed against the unfixed parser,
+  because it asserted on "neumorphism", which also appears in A-04's ❌ line; it
+  now asserts on phrases that exist only in the dropped prose. `parseRules` also
+  stops at any heading now, not just a rule heading — harmless while only the
+  ❌/✅ pair was collected, wrong the moment anything else is._ Original note:
+  `rules/parse.ts:37-41`
   keeps only the first `❌` and the first `✅` line. **40 of 104 rules carry real
   prose after their correction — 96 lines — that `jig explain` never shows.**
   `C-22` loses 16 lines, `E-94` 8, `D-69` 7. The text ships in the package and is
