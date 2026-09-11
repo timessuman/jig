@@ -31,6 +31,8 @@ export interface ReportMeta {
    *  exemption list grows one entry at a time until it covers the codebase,
    *  and the only defence is that it is never invisible. */
   exempt?: string[];
+  /** Per-pattern counts, so an over-broad glob names itself. */
+  exemptPatterns?: Array<{ pattern: string; count: number; tooBroad: boolean }>;
 }
 
 /** Rows beyond this many, for one rule in one file, collapse into a count.
@@ -117,14 +119,23 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     : `${meta.totalRules} rules`;
   lines.push(`  ${summaryParts.join(', ')} · ${scope}, ${rulesFired} fired`);
 
-  if (meta.exempt && meta.exempt.length > 0) {
-    const n = meta.exempt.length;
-    lines.push(
-      `  ${n} file(s) exempt via jig.config.json and not scanned: ` +
-        `${meta.exempt.slice(0, 5).join(', ')}` +
-        (n > 5 ? `, and ${n - 5} more` : '') +
-        '.',
-    );
+  if (meta.exemptPatterns && meta.exemptPatterns.length > 0) {
+    const n = meta.exempt?.length ?? 0;
+    lines.push(`  ${n} file(s) exempt via jig.config.json and not scanned:`);
+    for (const { pattern, count, tooBroad } of meta.exemptPatterns) {
+      // The PATTERN leads. Naming only the files told you what had been excused
+      // and never which rule excused it — and a pattern excusing thirty files
+      // is precisely the one you need to see.
+      const note = count === 0
+        ? 'matches nothing — check the path'
+        : tooBroad
+          ? `${count} files — likely too broad, review it`
+          : `${count} file${count > 1 ? 's' : ''}`;
+      lines.push(`    ${pattern}  (${note})`);
+    }
+    if (n > 0) {
+      lines.push(`    ${meta.exempt!.slice(0, 8).join(', ')}${n > 8 ? `, and ${n - 8} more` : ''}`);
+    }
   }
 
   if (meta.unscanned && meta.unscanned.count > 0) {

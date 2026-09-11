@@ -69,17 +69,50 @@ export function readExemptions(projectRoot: string): string[] {
   );
 }
 
+/** A pattern excusing more than this is reported as likely too broad.
+ *
+ *  Not a limit — a project may legitimately have a large PDF or email tree. It
+ *  is the point at which a pattern stops looking like "this one file renders
+ *  outside the cascade" and starts looking like a naming coincidence:
+ *  `**\/*-card.tsx`, written to excuse one OG card, also excuses `doc-card`,
+ *  `pricing-card` and every other real component that ends that way. */
+const LIKELY_TOO_BROAD = 3;
+
+export interface ExemptionResult {
+  scanned: string[];
+  exempt: string[];
+  /** Per pattern, so the report can name the glob that did this. Naming only
+   *  the FILES was the original mistake: it told you what had been excused and
+   *  never which rule excused it, which is the one thing you need in order to
+   *  recognise the error. And it truncated, so it degraded exactly as the
+   *  pattern got broader. */
+  byPattern: Array<{ pattern: string; count: number; tooBroad: boolean }>;
+}
+
 /** Splits `files` into the ones to scan and the ones a pattern excused. */
-export function applyExemptions(
-  files: string[],
-  patterns: string[],
-): { scanned: string[]; exempt: string[] } {
-  if (patterns.length === 0) return { scanned: files, exempt: [] };
-  const res = patterns.map(globToRegExp);
+export function applyExemptions(files: string[], patterns: string[]): ExemptionResult {
+  if (patterns.length === 0) return { scanned: files, exempt: [], byPattern: [] };
+
+  const compiled = patterns.map((pattern) => ({ pattern, re: globToRegExp(pattern), count: 0 }));
   const scanned: string[] = [];
   const exempt: string[] = [];
+
   for (const file of files) {
-    (res.some((re) => re.test(file)) ? exempt : scanned).push(file);
+    // Every matching pattern is counted, not just the first: a file excused
+    // twice means two patterns are broader than they look, and attributing it
+    // to one of them would hide the other.
+    const matches = compiled.filter((c) => c.re.test(file));
+    for (const m of matches) m.count++;
+    (matches.length > 0 ? exempt : scanned).push(file);
   }
-  return { scanned, exempt };
+
+  return {
+    scanned,
+    exempt,
+    byPattern: compiled.map(({ pattern, count }) => ({
+      pattern,
+      count,
+      tooBroad: count > LIKELY_TOO_BROAD,
+    })),
+  };
 }

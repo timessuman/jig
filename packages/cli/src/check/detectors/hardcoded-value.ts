@@ -102,11 +102,17 @@ const KEYFRAME_STEP_RE = /^(from|to|\d+(\.\d+)?%)$/i;
  */
 const PRIMITIVE_RE = /var\(\s*(--(?:brand|error|warning|success|info)-(?:h|s|l|fill-a))\s*[,)]/g;
 
-/** The token layer declares these; it is the one place they may be read. A
- *  mode file composing `hsl(var(--brand-h) ...)` is correct, and once the token
- *  layer can live beside a project's own CSS it becomes a scanned file — so
- *  this cannot rely on those files being unreachable. */
-const TOKEN_LAYER_RE = /(^|\/)(\.jig\/tokens\/|jig\/)?(brand|mode)\.[\w.-]+\.css$/;
+/** The token layer declares these; it is the one place they may be read. A mode
+ *  file composing `hsl(var(--brand-h) ...)` is correct, and once the token layer
+ *  can live beside a project's own CSS it becomes a scanned file — so this
+ *  cannot rely on those files being unreachable.
+ *
+ *  Scoped by DIRECTORY, not by filename. It matched `(brand|mode).*.css` with
+ *  the directory optional, so a project's own `src/legacy/brand.colors.css` was
+ *  silently exempt wherever it sat — the same over-broad exemption this system
+ *  now warns users about in their own config. Jig owns the `jig/` directory
+ *  outright; a filename that merely looks like one of ours is a coincidence. */
+const TOKEN_LAYER_RE = /(^|\/)(\.jig\/tokens|jig)\/[^/]+\.css$/;
 
 function primitiveConsumption(source: string, file: string, ctx: DetectorContext): Finding[] {
   if (TOKEN_LAYER_RE.test(file)) return [];
