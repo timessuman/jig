@@ -312,3 +312,68 @@ reproduced here before being written down._
   strength of a run that had `--yes` set. A cold agent followed the message
   literally, got the identical error, and resorted to allocating a pseudo-terminal
   with Python's `pty` module to get past it.
+
+## `check` does not say what it looked at — resolved, and it found more
+
+_Resolved. `check` now reports `N files, M with styles` beside the rule count,
+the `JIG_CHECK:` record carries `files=` and `styled=`, and a run where nothing
+carried a style region says "Nothing inspected." instead of "No findings." The
+attestation contract was extended on both sides — CLI and `SKILL.md.tmpl` — since
+the guard asserts they emit identical fields in identical order._
+
+_Wiring it up immediately exposed something bigger. `jig check` defaults to
+**changed files**, so on a clean tree it scans almost nothing:_
+
+```
+default:  files=1  styled=0     Nothing inspected.
+--all:    files=26 styled=4     0 errors · 104 rules · 26 files, 4 with styles
+```
+
+_Every `jig check` run against the documentation site during this session was the
+default. They all reported "No findings" while inspecting one file. The
+deliberate-break test passed only because the brand file was uncommitted at the
+time, which put it in the changed set. The behaviour is correct and deliberate —
+a pre-commit hook should be fast — but it was indistinguishable from a full clean
+run, and the whole project's "check passes" status was built on it._
+
+_Still open: whether the default run should say **which** mode it used. `files=1`
+now makes it visible to someone reading carefully; naming it would make it
+visible to everyone._
+
+### Original note
+
+
+
+Found by misreading it myself. Reporting progress on the docs site, I wrote
+that the work so far was "plumbing that `jig check` can verify mechanically".
+It was not. At that point the project contained no agent-authored UI at all —
+three generated token files, a ten-line stylesheet of imports, and Astro's stock
+`index.astro`. The detectors had nothing to inspect.
+
+What `check` printed was:
+
+```
+0 errors · 104 rules (+ 15 pattern and mode specs), 0 fired
+JIG_CHECK: version=0.7.1 mode=editorial mechanical=pass:0 judgment=not-run
+```
+
+A scratch project with a single empty stylesheet and no markup whatsoever prints
+**byte-identical output**. There is no way to tell "scanned forty components,
+all clean" from "scanned nothing".
+
+That is the same failure this codebase has now fixed three times in other
+places: the token audit going quiet when the token layer moved, `check-tokens`
+rule 6 silently covering 77% of what it claimed, rule 4 validating the docs
+against the docs. A guard whose silence reads as a pass.
+
+**The fix is to say what was examined** — file count, and ideally the count of
+style-bearing files specifically, since that is what the detectors act on. `0
+findings across 41 files` and `0 findings across 0 files` are different
+statements, and only one of them is reassuring. The `JIG_CHECK:` attestation
+line has the same gap, and it is the line agents are told to emit as proof of
+work.
+
+Worth noting how it surfaced: not from a test, and not from reading the code,
+but from writing a claim about the output and then checking whether the claim
+was true.
+

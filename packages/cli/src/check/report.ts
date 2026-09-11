@@ -33,6 +33,22 @@ export interface ReportMeta {
   exempt?: string[];
   /** Per-pattern counts, so an over-broad glob names itself. */
   exemptPatterns?: Array<{ pattern: string; count: number; tooBroad: boolean }>;
+  /**
+   * How many files the detectors were handed, and how many of those actually
+   * contained a style region to inspect.
+   *
+   * Without these, `0 errors · 104 rules, 0 fired` is byte-identical whether
+   * forty components were examined and found clean or nothing was examined at
+   * all. That was misread exactly that way while building Jig's own docs site:
+   * a green run cited as evidence, on a project whose only styling was the
+   * token layer Jig itself generated.
+   *
+   * Both numbers are needed, not one. `.ts` is style-bearing by extension, so
+   * `scanned` counts parsers and config files too; `withStyles` is the number a
+   * reader should check against their own expectation of the codebase.
+   */
+  scanned?: number;
+  withStyles?: number;
 }
 
 /** Rows beyond this many, for one rule in one file, collapse into a count.
@@ -97,7 +113,12 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     }
     lines.push('');
   } else {
-    lines.push('  No findings.');
+    // "No findings" is only true if there was something to find them in.
+    lines.push(
+      meta.withStyles === 0 && meta.scanned !== undefined
+        ? '  Nothing inspected.'
+        : '  No findings.',
+    );
     lines.push('');
     if (meta.noTokenLayer) {
       lines.push('  No file references a Jig token, so H-47 (hard-coded values) was not run.');
@@ -117,7 +138,21 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
   const scope = meta.totalSpecs
     ? `${meta.totalRules} rules (+ ${meta.totalSpecs} pattern and mode specs)`
     : `${meta.totalRules} rules`;
-  lines.push(`  ${summaryParts.join(', ')} · ${scope}, ${rulesFired} fired`);
+  const examined =
+    meta.scanned === undefined
+      ? ''
+      : ` · ${plural(meta.scanned, 'file')}, ${meta.withStyles ?? 0} with styles`;
+  lines.push(`  ${summaryParts.join(', ')} · ${scope}${examined}, ${rulesFired} fired`);
+
+  // A run that inspected nothing must not read like a run that found nothing.
+  if (meta.scanned !== undefined && meta.withStyles === 0) {
+    lines.push('');
+    lines.push(
+      `  No file carried a style region, so the detectors examined nothing. This is ` +
+        `not a pass — a project with no styling and a project with clean styling ` +
+        `report the same findings, and only one of them has been checked.`,
+    );
+  }
 
   if (meta.exemptPatterns && meta.exemptPatterns.length > 0) {
     const n = meta.exempt?.length ?? 0;
@@ -154,9 +189,19 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
   // mechanical result; it cannot run the judgment rules, so it reports
   // `judgment=not-run` rather than omitting the field. An agent completing a
   // task emits the same four with `judgment=ran`. See templates/SKILL.md.tmpl.
+  // `files` and `styled` carry the run's scope into the attestation, because
+  // the claim is worthless without them: a pass over zero files reads exactly
+  // like a clean result on a real codebase. Fields are never dropped — an
+  // emitter that cannot determine one says `unknown`, the rule `mode` already
+  // follows, so the record keeps a single shape.
+  //
+  // Keep prose ABOVE this call, never inside the template literal: the contract
+  // test reads field names out of that span, and a comment naming a field
+  // registers as a duplicate of it.
   lines.push(
     `  JIG_CHECK: version=${meta.version} mode=${meta.mode ?? 'unknown'} ` +
-      `mechanical=${mechStatus} judgment=not-run`,
+      `mechanical=${mechStatus} judgment=not-run ` +
+      `files=${meta.scanned ?? 'unknown'} styled=${meta.withStyles ?? 'unknown'}`,
   );
 
   return lines.join('\n');

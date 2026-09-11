@@ -16,7 +16,11 @@ import { repoRoot } from './helpers/registered-commands.js';
  * emitter that cannot determine a field says so in the value (`unknown`,
  * `not-run`) rather than dropping it.
  */
-const FIELDS = ['version', 'mode', 'mechanical', 'judgment'];
+// `files` and `styled` join the record because the claim it makes is worthless
+// without them: `mechanical=pass:0 judgment=ran` over zero files reads exactly
+// like a clean review of a real codebase. That was misread that way on Jig's
+// own docs site.
+const FIELDS = ['version', 'mode', 'mechanical', 'judgment', 'files', 'styled'];
 
 function fieldsOf(text: string): string[] {
   return [...text.matchAll(/(\w+)=/g)].map((m) => m[1]);
