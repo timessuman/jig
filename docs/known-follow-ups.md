@@ -312,3 +312,39 @@ reproduced here before being written down._
   strength of a run that had `--yes` set. A cold agent followed the message
   literally, got the identical error, and resorted to allocating a pseudo-terminal
   with Python's `pty` module to get past it.
+
+## `check` does not say what it looked at
+
+Found by misreading it myself. Reporting progress on the docs site, I wrote
+that the work so far was "plumbing that `jig check` can verify mechanically".
+It was not. At that point the project contained no agent-authored UI at all —
+three generated token files, a ten-line stylesheet of imports, and Astro's stock
+`index.astro`. The detectors had nothing to inspect.
+
+What `check` printed was:
+
+```
+0 errors · 104 rules (+ 15 pattern and mode specs), 0 fired
+JIG_CHECK: version=0.7.1 mode=editorial mechanical=pass:0 judgment=not-run
+```
+
+A scratch project with a single empty stylesheet and no markup whatsoever prints
+**byte-identical output**. There is no way to tell "scanned forty components,
+all clean" from "scanned nothing".
+
+That is the same failure this codebase has now fixed three times in other
+places: the token audit going quiet when the token layer moved, `check-tokens`
+rule 6 silently covering 77% of what it claimed, rule 4 validating the docs
+against the docs. A guard whose silence reads as a pass.
+
+**The fix is to say what was examined** — file count, and ideally the count of
+style-bearing files specifically, since that is what the detectors act on. `0
+findings across 41 files` and `0 findings across 0 files` are different
+statements, and only one of them is reassuring. The `JIG_CHECK:` attestation
+line has the same gap, and it is the line agents are told to emit as proof of
+work.
+
+Worth noting how it surfaced: not from a test, and not from reading the code,
+but from writing a claim about the output and then checking whether the claim
+was true.
+
