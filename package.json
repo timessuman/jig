@@ -10,5 +10,5 @@
     "build": "npm run build --workspaces --if-present",
     "check-tokens": "node scripts/check-tokens.mjs"
   },
-  "version": "0.7.1"
+  "version": "0.8.0"
 }

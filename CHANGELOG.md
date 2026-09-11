@@ -1,5 +1,119 @@
 # Changelog
 
+## 0.8.0
+
+Everything here was found by handing Jig to agents that had never seen it and
+asking them to build something real — its own documentation site. None of it
+was found by the test suite, which passed throughout.
+
+Minor rather than patch: `explain` prints lines it did not print before, and
+`init` can write a file it did not write before.
+
+### Fixed
+
+- **`jig explain` discarded most of the reasoning in the rules.** The parser
+  kept the first `❌` and the first `✅` and threw away everything else. **41 of
+  104 rules carry prose outside that pair — 103 lines.** `A-04` explains why
+  shadow-only definition cannot hold 3:1; `C-22` loses sixteen lines; `C-49`
+  leads with a three-row table distinguishing when a link needs colour, when it
+  needs an underline, and when neither is required — and its pair alone says
+  "keep the underline". All of it shipped in the tarball, installed into every
+  skill directory, and was unreachable through the command built to read it.
+
+- **`02-tokens.md` documented a Tailwind arrangement that fails.** It told every
+  reader to write `@theme { @import "./jig/theme.css"; }` and claimed it yields
+  `bg-surface`, `rounded-surface`, `p-card` and `text-body` as utilities.
+  Tailwind 4 rejects it: *"@theme blocks must only contain custom properties or
+  @keyframes."* The tokens cannot move into `@theme` regardless — it requires
+  them top-level and unnested, while they live in `:root` and are redeclared
+  under `[data-theme="dark"]` and a `prefers-color-scheme` query, which is what
+  makes dark mode work. The flat import is what works, and is what `init`
+  already wired without being told.
+
+- **`02-tokens.md` named a token location the tool had stopped using.** It said
+  tokens live at `.jig/tokens/`, that this was "the only location, in every
+  scope and every project", and that "nothing relocates them" — while `init`
+  printed `Token layer: src/styles/jig/` in the same run. `check-tokens` rule 4
+  hardcoded the same path in a comment anticipating and forbidding this exact
+  change, so the guard held the claim in place and would have failed the build
+  on anyone correcting it. Shipped in 0.7.1.
+
+- **A section headed "Notes for the author (not for the agent)" shipped to every
+  agent.** The heading was a label, not a mechanism: the file is in the tarball
+  and installs into every skill directory. A probe read it, quoted the
+  `A-07`/`A-08` line back as "the author's own notes… license to go tighter than
+  the shared default", and halved the radius scale on that authority. Moved to
+  `docs/house-positions.md`.
+
+- **The published package shipped no changelog**, despite the repo holding 32KB
+  of one. Staging and `files` now change together, which the tarball guard
+  already enforced.
+
+- **`A-01` had no stated scope for "then ask".** Two agents given the same brief
+  split on it — one shipped the unbranded default and deferred, the other
+  proposed a hue and argued the proposal *was* the ask — both citing the same
+  conflict-resolution clause. The rule now says a proposal is a question with a
+  suggested answer, not a decision.
+
+- **`B-11` capped line length and stated no floor**, so a column could be halved
+  indefinitely and still pass. Measured on the documentation site: two
+  side-by-side panels rendering prose at 41 characters, in a mode whose
+  `--measure-prose` selects 68. The 40–80 band existed in `02-tokens.md` but not
+  in the file an agent reads for a line-length decision.
+
+### Added
+
+- **`check` reports what it examined.** `0 errors · 104 rules, 0 fired` was
+  byte-identical whether forty components were examined and found clean or
+  nothing was examined at all. It now reads `· 26 files, 4 with styles`, the
+  `JIG_CHECK:` record carries `files=` and `styled=`, and a run where nothing
+  carried a style region says **"Nothing inspected."** rather than "No
+  findings." Both counts, because `.ts` and `.tsx` are style-bearing by
+  extension and the file count includes parsers and configs that can never
+  produce a finding.
+
+  Worth knowing: `check` defaults to changed files, so on a clean tree it scans
+  almost nothing. That was always true and always looked like a pass.
+
+- **`init` offers a Tailwind v4 alias block.** The flat import gives you tokens,
+  not utility classes — Tailwind only generates those for names declared in
+  `@theme`. `init` can now generate that block, and **asks first**: it changes
+  how every component in a project is written, both styles are correct, and
+  silence is no. Under `--yes` it declines and says how to get it.
+
+  Only the 18 Tailwind namespaces are aliased. `--size-*`, `--measure-*`,
+  `--focus-ring-*`, `--border-width-*` and `--opacity-*` have none, and aliasing
+  one emits a declaration that generates nothing. 189 declared names filter to
+  87 — and the filter also excludes every primitive `02-tokens.md` says never to
+  consume directly.
+
+  The generated file explains why `--radius-surface: var(--radius-surface)`
+  appears beside Jig's own declaration in the compiled CSS: Tailwind's lands in
+  `@layer theme`, Jig's is unlayered, and unlayered beats layered regardless of
+  source order. Without that note, someone finds it and "fixes" it.
+
+- **The skill treats Tailwind setup as an ask.** Finding Tailwind in a project
+  is not permission to change how every component in it is written. The agent
+  reports what it found, shows both arrangements, and waits — and is told never
+  to write `@import "tailwindcss"` into a project that does not already have it.
+
+- **A guard that staged assets stay out of git.** Adding `CHANGELOG.md` to the
+  prepack staging list committed a build artifact, because
+  `packages/cli/.gitignore` is a hand-maintained list that nothing forced into
+  step. On its first run the new guard caught a second, pre-existing hole:
+  `references` had been staged and unignored since it was added, saved only by
+  the directory not existing yet.
+
+### Corrected
+
+- **0.7.0's notes said the non-TTY refusal "names the three ways out".** It
+  names three; two work. The guard runs before any config is read, so
+  `jig.config.json` alone still exits 1 — it selects the mode once you are past
+  the guard, it does not get you past it. The message is unchanged here and
+  recorded in `docs/known-follow-ups.md`, because the right wording depends on
+  whether the guard should consult the config first, which is a behaviour
+  question rather than a copy one.
+
 ## 0.7.1
 
 A rule file that contradicted the tool, and the guard that kept it that way.
