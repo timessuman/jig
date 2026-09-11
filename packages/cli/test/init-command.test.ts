@@ -765,3 +765,37 @@ describe('default token location follows the project', () => {
     expect(lines.join('\n').toLowerCase()).toMatch(/jig\.config\.json/);
   });
 });
+
+/**
+ * `jig init` without `--yes` needs a terminal to ask its questions. Given
+ * anything else — a pipe, a CI step, an agent shelling out without a TTY — it
+ * printed the first prompt, read EOF, and exited 0 having written nothing.
+ *
+ * Verified against published 0.5.0, so this predates the prompts added since.
+ * A silent no-op that exits 0 is the worst available outcome: the caller cannot
+ * tell it from success, and the next thing they do is act on a token layer that
+ * was never created.
+ */
+describe('init refuses to pretend it asked', () => {
+  it('fails loudly rather than doing nothing when there is no terminal', async () => {
+    // vitest runs with a non-TTY stdin, which is exactly the case in question.
+    await expect(
+      init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+             version: '0.6.0', yes: false, log: NOOP_LOG }),
+    ).rejects.toThrow(/--yes|terminal|tty/i);
+  });
+
+  it('says what to do instead', async () => {
+    await expect(
+      init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+             version: '0.6.0', yes: false, log: NOOP_LOG }),
+    ).rejects.toThrow(/--yes/);
+  });
+
+  it('is unaffected when a prompt is supplied', async () => {
+    const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+                                version: '0.6.0', yes: false, prompt: async () => '',
+                                log: NOOP_LOG });
+    expect(result.brand.action).toBe('written');
+  });
+});

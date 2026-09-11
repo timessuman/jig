@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { detect, type DetectionResult } from '../init/detect.js';
 import {
@@ -487,6 +487,20 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   const log = opts.log ?? ((line: string) => console.log(line));
   const prompt = opts.prompt ?? defaultPrompt;
 
+  // Without `--yes` this command is a conversation, and a conversation needs
+  // somewhere to hold it. Given a pipe, a CI step, or an agent shelling out
+  // without a TTY, it used to print the first question, read EOF, and exit 0
+  // having written nothing — which the caller cannot tell from success, and
+  // the next thing they do is act on a token layer that was never created.
+  // Fail where the cause is still visible.
+  if (!opts.yes && !opts.prompt && !process.stdin.isTTY) {
+    throw new Error(
+      "'jig init' asks questions and stdin is not a terminal, so it cannot. " +
+        'Re-run with --yes to accept the derived defaults, or run it in a terminal. ' +
+        '(To choose the mode without a terminal, write jig.config.json first — init honours it.)',
+    );
+  }
+
   // ---- 0. Migration: report + consent-gated removal, shared by every
   // legacy layout `init` knows about (a pre-0.4.0 project with rule files
   // vendored directly into .jig/, and a pre-harness-table Cursor install at
@@ -656,7 +670,32 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     // a project holding a legacy token layer must keep it rather than gain a
     // second one somewhere else.
     legacyBrandFile(opts.projectRoot);
+  // A project from before 0.6 keeps its layout, and keeping it silently is what
+  // makes the improvement unreachable — the way out is one line of output that
+  // is easy to miss. So offer it. Consent is the whole mechanism here: the
+  // project may import these files from somewhere init cannot see, and with
+  // consent a broken import is a decision to undo rather than a surprise to
+  // discover.
+  let relocateTo: string | null = null;
+  const currentBrand = configuredBrand.path ?? priorBrand;
+  if (currentBrand) {
+    const wouldBe = relKey(...defaultTokenDir(detection), currentBrand.split('/').pop()!);
+    const currentDir = currentBrand.split('/').slice(0, -1).join('/');
+    if (wouldBe !== currentBrand && findWireTarget(detection)) {
+      log(`\nThe token layer is at ${currentDir}/, and this project's layout suggests ` +
+          `${wouldBe.split('/').slice(0, -1).join('/')}/.`);
+      if (opts.yes) {
+        log('  Re-run without --yes to be offered the move, or set `brand` in jig.config.json yourself.');
+      } else {
+        const answer = (await prompt('  Move the token layer there? [y/N]: ')).toLowerCase();
+        if (answer === 'y' || answer === 'yes') relocateTo = wouldBe;
+        else log('  Left it where it is.');
+      }
+    }
+  }
+
   const brandRelPath =
+    relocateTo ??
     configuredBrand.path ??
     priorBrand ??
     relKey(...defaultTokenDir(detection), brandFileName(projectSlug));
@@ -712,6 +751,21 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     mkdirSync(dirname(brandAbsPath), { recursive: true });
     writeFileSync(brandAbsPath, content, 'utf8');
     files[brandRelPath] = checksum(content);
+  }
+
+  // A relocation the user consented to has to reach the config, whatever the
+  // config's own action would otherwise have been. Leaving it pointing at the
+  // old path would move the files and then send the next run back for them.
+  if (relocateTo && configAction !== 'written') {
+    try {
+      const existing = JSON.parse(readFileSync(configAbsPath, 'utf8')) as Record<string, unknown>;
+      const content = `${JSON.stringify({ ...existing, brand: brandRelPath }, null, 2)}\n`;
+      writeFileSync(configAbsPath, content, 'utf8');
+      files[configRelPath] = checksum(content);
+      log(`  Updated ${configRelPath} to point at the new location.`);
+    } catch {
+      log(`  Could not update ${configRelPath} — set \`brand\` to ${brandRelPath} yourself.`);
+    }
   }
 
   if (configAction === 'written') {
@@ -815,6 +869,27 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   writeInitManifest(opts.projectRoot, { version: opts.version, modes: declaredModes, files });
 
   // ---- Wire or print the import ----
+  // The old copies go only after the new ones are on disk, and only when this
+  // run wrote them — an edited file is the user's, and a relocation is not a
+  // licence to discard it.
+  if (relocateTo && currentBrand) {
+    const oldDir = currentBrand.split('/').slice(0, -1);
+    const oldAbsDir = join(opts.projectRoot, ...oldDir);
+    if (existsSync(oldAbsDir)) {
+      for (const name of readdirSync(oldAbsDir).filter((f) => f.endsWith('.css'))) {
+        const rel = relKey(...oldDir, name);
+        const abs = join(oldAbsDir, name);
+        const state = fileState(opts.projectRoot, abs, rel, initManifest);
+        if (!state.tracked || state.modified) {
+          log(`  ${rel} was edited — left in place. Delete it yourself once you have moved anything you need.`);
+          continue;
+        }
+        rmSync(abs, { force: true });
+        delete files[rel];
+      }
+    }
+  }
+
   const wireTarget = findWireTarget(detection);
 
   let wiring: InitResult['wiring'];
@@ -829,6 +904,18 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     // not abort the run — fall back to the print-only snippet and still run
     // the baseline below, the same as the "ambiguous target" case.
     try {
+      if (relocateTo && currentBrand) {
+        // Drop any import still pointing into the directory we just emptied,
+        // or the file ends up importing both locations — one of which is gone.
+        const abs = join(opts.projectRoot, wireTarget);
+        const oldDirName = currentBrand.split('/').slice(0, -1).join('/');
+        const before = existsSync(abs) ? readFileSync(abs, 'utf8') : '';
+        const after = before
+          .split('\n')
+          .filter((l) => !(l.includes('@import') && l.includes(oldDirName)))
+          .join('\n');
+        if (after !== before) writeFileSync(abs, after, 'utf8');
+      }
       const outcome = wireBarrel(join(opts.projectRoot, wireTarget), barrelImport);
       wiring = { target: wireTarget, status: outcome.status, snippet };
       const verb = outcome.status === 'wired' ? 'Wired' : outcome.status === 'rewired' ? 'Rewired' : 'Already present in';
