@@ -62,3 +62,46 @@ describe('init --yes surfaces the mode it chose', () => {
     expect(output).toMatch(/jig\.config\.json/);
   });
 });
+
+/**
+ * The same line, told the truth.
+ *
+ * With a `jig.config.json` already present, `init --yes` used the surfaces it
+ * declared — writing a mode file for each and wiring the first — and then
+ * reported `'/' → product — the default, not inferred from this project`,
+ * because it logged the variable it had NOT used. The message was a lie in
+ * exactly the case where being told the truth matters most: someone who had
+ * gone to the trouble of declaring three surfaces was told their config had
+ * been ignored.
+ */
+describe('init reports the surfaces it actually used', () => {
+  const threeModes = JSON.stringify({
+    brand: '.jig/tokens/brand.acme.css',
+    surfaces: [
+      { match: '/', mode: 'editorial' },
+      { match: '/app/**', mode: 'product' },
+      { match: '/admin/**', mode: 'operator' },
+    ],
+  });
+
+  it('names the modes from an existing config, and does not call them the default', async () => {
+    writeFileSync(join(project, 'jig.config.json'), threeModes);
+    const lines: string[] = [];
+    await init({ projectRoot: project, packageRoot: pkg, version: '0.5.0',
+                 homeDir: pkg, yes: true, log: (l) => { lines.push(l); } });
+
+    const out = lines.join('\n');
+    expect(out).toMatch(/editorial/);
+    expect(out).toMatch(/operator/);
+    expect(out, 'still claimed the default while using the config')
+      .not.toMatch(/the default, not inferred/);
+    expect(out, 'does not say where the surfaces came from').toMatch(/jig\.config\.json/);
+  });
+
+  it('still says "default" when there is genuinely no config', async () => {
+    const lines: string[] = [];
+    await init({ projectRoot: project, packageRoot: pkg, version: '0.5.0',
+                 homeDir: pkg, yes: true, log: (l) => { lines.push(l); } });
+    expect(lines.join('\n')).toMatch(/default/);
+  });
+});

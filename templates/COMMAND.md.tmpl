@@ -11,14 +11,42 @@ output — findings are ordered by severity, not position, so `head`, `tail`,
 
 ## init
 
-Report what it detected, the brand colour it derived and where that came from,
-and the mode it wrote. The mode is the load-bearing decision: `jig.config.json`
-outranks your own inference from then on, so if the project's signals point
-elsewhere — the mode table in `{{rules_path}}/01-modes.md` — say so and ask
-before leaving it.
+**Settle the surfaces before you run it.** Mode is the most consequential thing
+`init` writes and the thing it is worst at choosing: with `--yes` it takes
+`'/' → product` without reading the project at all, and `{{rules_path}}/01-modes.md`
+rule 1 then makes that config outrank your own reading of the project from then
+on. A default chosen in a second binds the project indefinitely, and density is
+expensive to reverse.
 
-If the token layer does not exist yet, this is the command that creates it. Do
-not author token values yourself under any circumstances.
+You are the half that can fix this, because you are talking to someone who knows
+the answer and the CLI is not. So, first:
+
+1. **Ask what the product is**, in their words rather than Jig's — a marketing
+   or content site, a signed-in application, an internal tool people use all
+   day? A project usually has more than one of these, and each is a surface.
+2. **Map each to a mode** using the table in `{{rules_path}}/01-modes.md`:
+   `editorial` for first-visit content, `product` for the signed-in app,
+   `operator` for dense daily tools. State the mapping in one line and let them
+   correct it.
+3. **Write `jig.config.json`** with those surfaces before running anything.
+   `init` reads an existing config and honours it — writing one mode file per
+   declared mode — so this is how a decision reaches the tokens.
+4. **Then run the command.**
+
+Where there is genuinely one surface, say so and move on; the point is that the
+mode was chosen rather than defaulted into.
+
+Afterwards, report what it detected, the brand colour it derived and where that
+came from, and the surfaces it used — the output says whether they came from
+`jig.config.json` or from the default.
+
+If the token layer does not exist yet, this is the command that creates it. **Do
+not author token values yourself.** `init` derives the brand colour, checks it
+against the contrast floor in both light and dark, and records a checksum for
+each file it writes; a file you write by hand is untracked, so `jig update` can
+never refresh it again. `jig check` now reads the token layer back and holds it
+to those floors either way, so a hand-written value will be caught — but caught
+late, and unmaintainable, is worse than derived.
 
 ## check
 

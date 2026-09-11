@@ -227,3 +227,45 @@ describe('/jig update is not pinned to the version it is meant to replace', () =
     expect(command).toContain('npx jig-ui@0.4.0');
   });
 });
+
+/**
+ * Mode is the most consequential thing `init` writes and the thing it is worst
+ * at choosing. `--yes` takes `'/' → product` without reading the project, and
+ * `01-modes.md` rule 1 then makes that config outrank every agent's later
+ * inference — so a default chosen in a second binds the project indefinitely.
+ * Two baseline runs on an `ops-console` read every signal as `operator`, found
+ * `product` in the config, and correctly deferred to it.
+ *
+ * The CLI cannot fix this: "is this a marketing site, an app, or an internal
+ * console" is a question, not a detection. But the agent is holding a
+ * conversation with someone who knows the answer, and `init` already honours a
+ * `jig.config.json` that exists before it runs. So the instruction is: settle
+ * the surfaces FIRST, write them down, then run the command.
+ */
+describe('the command file tells the agent to settle mode before init runs', () => {
+  const initSection = () => {
+    const body = buildCommandBody(repoRoot, '.claude/skills/jig/rules', '0.5.0', '$ARGUMENTS').body;
+    return body.slice(body.indexOf('## init'), body.indexOf('## check'));
+  };
+
+  it('says to establish the surfaces before running init, not after', () => {
+    const s = initSection().toLowerCase();
+    expect(s, 'no instruction to act before running').toMatch(/before (you )?run/);
+    expect(s).toMatch(/jig\.config\.json/);
+  });
+
+  it('tells it to ask rather than infer silently', () => {
+    expect(initSection().toLowerCase()).toMatch(/ask/);
+  });
+
+  it('names all three modes, so the question can be asked concretely', () => {
+    const s = initSection();
+    for (const mode of ['editorial', 'product', 'operator']) {
+      expect(s, `${mode} is not named`).toContain(mode);
+    }
+  });
+
+  it('still forbids authoring token values by hand', () => {
+    expect(initSection().toLowerCase()).toMatch(/not author|never author/);
+  });
+});
