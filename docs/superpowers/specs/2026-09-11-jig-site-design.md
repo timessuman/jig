@@ -169,11 +169,19 @@ come back with the Task 0 proposal for approval.
 
 ### 4.3 Content generation
 
-Pages generate from the **published npm package**, not from this repo:
+Pages generate from the **published tarball**, not from this repo — and
+crucially, **not as a dependency**:
 
 ```
-jig-site/  package.json  →  "jig-ui": "0.7.0"
+jig-site/  scripts/fetch-corpus.mjs  →  npm pack jig-ui@0.7.0  →  .jig-corpus/
 ```
+
+`jig-ui` must never appear in the site's `package.json`. Jig is a tool you
+install — a skill and a CLI — not a package a project depends on. The docs site
+is a user project like any other, and one that lists `jig-ui` in its
+dependencies teaches the wrong pattern to everyone who copies it. `npm pack`
+downloads and integrity-checks the published tarball without installing it,
+which gets the corpus on disk, pinned and reproducible, at zero dependency cost.
 
 `jig-ui` ships `rules/`, `tokens/`, `templates/`, `references/` and
 `rules.index.json` in its tarball (`packages/cli/package.json` `files`). So:
@@ -181,7 +189,7 @@ jig-site/  package.json  →  "jig-ui": "0.7.0"
 - The docs cannot drift from the release. They are generated from it.
 - If the site builds, the published asset layout is proven correct from outside
   the repo that produced it. That is a second test riding along free.
-- A version bump is a dependency bump.
+- A version bump is one constant in one script.
 
 ### 4.4 The agent route
 
