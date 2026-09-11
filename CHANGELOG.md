@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.7.0
+
+A silent no-op, fixed, plus the missing half of 0.6.0's token-layer move.
+
+Minor rather than patch, and the call is arguable. The non-TTY fix is a
+correction; the relocation offer is new behaviour that can move files, though
+only interactively and only with consent. Taking the higher of the two is the
+reading that does not understate the change, and anyone who might be prompted
+to move their token layer should read these notes.
+
+### Fixed
+
+- **`jig init` without `--yes` exited 0 having written nothing when stdin was
+  not a terminal.** It printed the first prompt, read EOF, and stopped. Every CI
+  step, every piped invocation, and every agent shelling out without a TTY got a
+  silent no-op — and exit 0 having done nothing is the worst outcome available,
+  because the caller cannot tell it from success and then acts on a token layer
+  that was never created. Confirmed identical in 0.5.0, so this predates the
+  prompts added since. It now fails where the cause is still visible and names
+  the three ways out: `--yes`, a real terminal, or writing `jig.config.json`
+  first.
+
+### Added
+
+- **`init` offers to move a legacy `.jig/tokens/` layout** to the location your
+  project's own structure suggests. 0.6.0 deliberately left an upgraded project
+  where it was — a silent relocation could break an import you wrote that `init`
+  knows nothing about — but that meant the improvement only ever reached new
+  projects, and the way out was one line of output that is easy to miss.
+
+  Interactively it asks; under `--yes` it declines and says how. Moving is all
+  four halves or none: write at the new location, remove the old copies, strip
+  the stale import before wiring the new one, and update `jig.config.json` so
+  the next run does not go back for them. A file you have edited is never
+  removed — it is named and left for you to clear.
+
+  ```text
+  BEFORE  @import "../../.jig/tokens/brand.acme.css";
+          @import "../../.jig/tokens/mode.product.css";
+  AFTER   @import "./jig/theme.css";
+  ```
+
 ## 0.6.0
 
 The token layer stops hiding in a dotfolder, and `check` starts reading it back.
