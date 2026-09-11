@@ -159,3 +159,48 @@ describe('explain — forgiving input', () => {
     expect(() => explain({ ruleId: 'zzzz', version })).toThrow();
   });
 });
+
+describe('explain shows the reasoning, not just the pair', () => {
+  it('prints the prose A-04 ships after its correction', () => {
+    // Shipped in the tarball, installed into every skill directory, and
+    // invisible through the command built to read it.
+    // Not 'neumorphism' — that is in the ❌ line and would pass without the
+    // fix. 'Experiment freely' exists only in the prose explain was dropping.
+    expect(explain({ ruleId: 'A-04', version })).toContain('Experiment freely');
+  });
+
+  it('does not invent a notes section for a rule with no prose', () => {
+    const out = explain({ ruleId: 'A-02', version });
+    const afterCorrection = out.slice(out.indexOf('✅'));
+    expect(afterCorrection.split('\n').filter((l) => l.trim() && !l.includes('·') && !l.includes('since')))
+      .toHaveLength(1);
+  });
+});
+
+/**
+ * Some rules carry their substance BEFORE the ❌/✅ pair.
+ *
+ * `C-49` opens with two paragraphs and a three-row table setting out when a
+ * link needs colour, when it needs an underline, and when neither is required.
+ * Its ❌/✅ pair alone says "keep the underline" and omits every case the table
+ * exists to distinguish. Collecting only the prose AFTER the correction left
+ * that unreachable — a half-fix that looked complete because the rules with the
+ * most prose happen to carry it at the end.
+ */
+describe('prose before the pair', () => {
+  it('shows the table C-49 leads with', () => {
+    const out = explain({ ruleId: 'C-49', version });
+    expect(out).toContain('Colour-blind users cannot separate');
+    expect(out).toContain('Underline, no colour');
+  });
+
+  it('keeps source order — preamble above the pair, notes below', () => {
+    const out = explain({ ruleId: 'C-49', version });
+    const preamble = out.indexOf('Colour-blind users cannot separate');
+    // indexOf returns -1 when absent, which is trivially less than anything —
+    // without this the assertion below passes on a missing preamble.
+    expect(preamble).toBeGreaterThan(-1);
+    expect(preamble).toBeLessThan(out.indexOf('❌'));
+  });
+});
+

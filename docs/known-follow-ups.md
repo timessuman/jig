@@ -237,7 +237,9 @@ planning a real build against the published package. Each was verified in the
 source rather than taken from the report that raised it._
 
 - **A section marked "not for the agent" is shipped to every agent, and one acted
-  on it.** `00-anti-patterns.md:528` opens `## Notes for the author (not for the
+  on it.** _Resolved: the section moved to `docs/house-positions.md`, which is
+  where notes addressed to the author belong. Verified against a real `npm pack`
+  that the shipped `00-anti-patterns.md` no longer contains it._ `00-anti-patterns.md:528` opens `## Notes for the author (not for the
   agent)`. It is in the published tarball and installs to
   `~/.claude/skills/jig/rules/`. A cold probe read it, quoted "bordered,
   low-radius, low-shadow surfaces" back as "the author's own notes... license to
@@ -258,16 +260,25 @@ source rather than taken from the report that raised it._
   rule says what to do when the task explicitly asks for the decision the rule
   says to defer.
 
-- **`jig explain` discards the prose after the correction.** `rules/parse.ts:37-41`
+- **`jig explain` discards the prose after the correction.** _Resolved:
+  `parseRules` now collects it into `notes` and `explain` renders it after the
+  ✅. Verified against the real corpus — 40 of 104 rules, 96 lines, now
+  reachable. The first test written for this passed against the unfixed parser,
+  because it asserted on "neumorphism", which also appears in A-04's ❌ line; it
+  now asserts on phrases that exist only in the dropped prose. `parseRules` also
+  stops at any heading now, not just a rule heading — harmless while only the
+  ❌/✅ pair was collected, wrong the moment anything else is._ Original note:
+  `rules/parse.ts:37-41`
   keeps only the first `❌` and the first `✅` line. **40 of 104 rules carry real
   prose after their correction — 96 lines — that `jig explain` never shows.**
   `C-22` loses 16 lines, `E-94` 8, `D-69` 7. The text ships in the package and is
   unreachable through the command built to read it.
 
-- **The published package contains no changelog.** `packages/cli/package.json`
-  `files` lists `dist rules tokens templates references rules.index.json LICENSE
-  NOTICE README.md`. The repo carries 32KB of `CHANGELOG.md` that no consumer of
-  the package can see. One line in the `files` array.
+- **The published package contains no changelog.** _Resolved: `CHANGELOG.md` is
+  now staged at prepack and listed in `files`. It was two lines, not one — the
+  staging script and the `files` array have to change together, which the tarball
+  guard already enforced. Verified in a real `npm pack`: 20 files, changelog
+  present._
 
 ## From scaffolding the documentation site
 
