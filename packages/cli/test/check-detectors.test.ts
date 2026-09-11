@@ -300,3 +300,65 @@ describe('contrast-floor applies the large-text floor', () => {
     expect(contrastFloor.run(src, 'a.css', c)).toHaveLength(0);
   });
 });
+
+/**
+ * H-47's correction reads "Consume the semantic role (`--color-text-strong`),
+ * not the primitive" — and nothing enforced the second half. The detector
+ * caught raw hex and raw px, so `color: #767676` was a finding while
+ * `color: var(--brand-l)` was not.
+ *
+ * That is the worse of the two. A literal looks wrong on sight; a `var()`
+ * reading a raw channel input looks exactly like correct token usage, and it
+ * breaks in a way the literal does not — `--brand-l` is a bare number (`15%`),
+ * so consuming it as a colour produces an invalid declaration that silently
+ * does nothing, and consuming it anywhere bypasses every theme override.
+ *
+ * The preview's own diagnostics panel already labels these "raw channel inputs
+ * ... Not for use at a call site". The rule said it; only the check did not.
+ */
+describe('H-47 — consuming a primitive instead of a semantic role', () => {
+  const ctx = (raw = '') => ({
+    ruleId: 'H-47', bucket: 'mechanical' as const, severity: 'error' as const,
+    tokens: {}, projectParticipates: true, raw,
+  });
+  const run = (src: string, file = 'src/Card.css') =>
+    hardcodedValue.run(src, file, ctx(src));
+
+  it('flags a raw channel input used at a call site', () => {
+    const found = run('.card {\n  color: var(--brand-l);\n}\n');
+    expect(found.length, 'consuming --brand-l was not reported').toBeGreaterThan(0);
+    expect(found[0].message).toMatch(/--brand-l/);
+  });
+
+  it('flags every channel family, not just brand', () => {
+    for (const token of ['--error-h', '--warning-s', '--success-l', '--info-fill-a']) {
+      expect(run(`.a {\n  color: var(${token});\n}\n`).length, `${token} not flagged`)
+        .toBeGreaterThan(0);
+    }
+  });
+
+  it('does not flag a semantic role, which is the whole point', () => {
+    for (const token of ['--color-text-strong', '--color-fill-error', '--spacing-m', '--text-h1']) {
+      expect(run(`.a {\n  color: var(${token});\n}\n`), `${token} was flagged`).toEqual([]);
+    }
+  });
+
+  it('says what to use instead', () => {
+    expect(run(".a { color: var(--error-l); }")[0]?.message ?? "")
+      .toMatch(/semantic|--color-/);
+  });
+
+  it('stays silent inside the token layer, where primitives are declared', () => {
+    // A mode file composing `hsl(var(--brand-h) ...)` is the correct and only
+    // place to read one. If the token layer moves next to the project's CSS it
+    // becomes a scanned file, so this cannot depend on it being unreachable.
+    const src = ':root {\n  --color-brand: hsl(var(--brand-h) var(--brand-s) var(--brand-l));\n}\n';
+    expect(run(src, 'src/styles/jig/mode.product.css')).toEqual([]);
+    expect(run(src, '.jig/tokens/brand.acme.css')).toEqual([]);
+  });
+
+  it('fires in a host file too, not only in a stylesheet', () => {
+    const src = 'const A = () => <b style={{ color: "var(--brand-l)" }}>x</b>;';
+    expect(hardcodedValue.run(src, 'src/A.tsx', ctx(src)).length).toBeGreaterThan(0);
+  });
+});
