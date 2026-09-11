@@ -181,7 +181,7 @@ on the result — the CLI reports, the agent applies the judgment half.
 | Slash command | Equivalent |
 | --- | --- |
 | `/jig init` | `jig init` — then states the mode it chose and what it wired |
-| `/jig check` | `jig check` — then applies the 97 judgment rules and reports both halves |
+| `/jig check` | `jig check` — then applies the 94 judgment rules and reports both halves |
 | `/jig explain C-19` | `jig explain C-19` — prints the rule as-is, without paraphrasing it |
 | `/jig explain contrast` | `jig explain contrast` — every rule matching a word, when you do not have an id |
 | `/jig install --agent cursor` | `jig install --agent cursor` |
@@ -262,7 +262,7 @@ In CI:
 code — nothing model-dependent, no network. As a pre-commit hook, plain `check`
 looks at changed files only.
 
-What you will not get from the CLI alone is the other 97 rules. `check` says so
+What you will not get from the CLI alone is the other 94 rules. `check` says so
 rather than letting a narrow pass read as a broad one.
 
 ## What `check` covers

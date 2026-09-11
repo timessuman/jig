@@ -1,5 +1,8 @@
 import type { Detector } from './types.js';
 import { gradientText } from './detectors/gradient-text.js';
+import { emojiIcon } from './detectors/emoji-icon.js';
+import { marketingVoice } from './detectors/marketing-voice.js';
+import { placeholderContent } from './detectors/placeholder-content.js';
 import { backdropBlur } from './detectors/backdrop-blur.js';
 import { pureBlackWhite } from './detectors/pure-black-white.js';
 import { contrastFloor } from './detectors/contrast-floor.js';
@@ -15,6 +18,9 @@ import { violetBandHue } from './detectors/violet-band-hue.js';
  */
 const DETECTORS: Detector[] = [
   gradientText,
+  emojiIcon,
+  marketingVoice,
+  placeholderContent,
   backdropBlur,
   pureBlackWhite,
   contrastFloor,

@@ -189,7 +189,10 @@ export function check(opts: CheckOptions): CheckResult {
     }
   }).length;
 
-  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates);
+  // Resolved once and shared: the report names it, and A-09 gates on it.
+  const resolvedMode = resolveMode(opts.projectRoot);
+
+  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode);
 
   // The token layer's OWN declarations, which no detector reads: `.jig/tokens/`
   // is not in the scanned set, so until this ran, a brand file edited after
@@ -243,7 +246,7 @@ export function check(opts: CheckOptions): CheckResult {
     totalSpecs: countSpecs(),
     version: opts.version,
     noTokenLayer,
-    mode: resolveMode(opts.projectRoot),
+    mode: resolvedMode,
     unscanned: summariseUnscanned(files),
     scanned: files.length,
     withStyles,

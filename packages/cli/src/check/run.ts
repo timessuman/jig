@@ -23,6 +23,7 @@ export function runChecks(
   tokens: Record<string, string>,
   bucketFilter?: (bucket: Bucket) => boolean,
   projectParticipates = false,
+  mode?: string,
 ): Finding[] {
   const findings: Finding[] = [];
 
@@ -60,7 +61,7 @@ export function runChecks(
     const source = maskComments(maskNonStyleRegions(raw, file));
 
     for (const { entry, detector } of applicable) {
-      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw };
+      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw, mode };
       findings.push(...detector.run(source, file, ctx));
     }
   }

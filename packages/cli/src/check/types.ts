@@ -47,6 +47,16 @@ export interface DetectorContext {
    * them needs the original.
    */
   raw: string;
+  /**
+   * The mode this surface resolved to, when `jig.config.json` declares one.
+   *
+   * `A-09` is the first rule whose violation depends on it: marketing voice is
+   * correct on a landing page and wrong on an internal dashboard, so a detector
+   * that fires everywhere would be wrong half the time on the half of projects
+   * that are marketing sites. `undefined` when no config declares a mode — in
+   * which case a mode-gated detector stays silent rather than guessing.
+   */
+  mode?: string;
 }
 
 export interface Detector {
