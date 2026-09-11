@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { detect, type DetectionResult } from '../init/detect.js';
 import {
   detectLegacyRules,
@@ -192,6 +192,40 @@ function loadEffectiveConfig(
   } catch {
     return { brand: fallbackBrand, surfaces: fallbackSurfaces };
   }
+}
+
+/**
+ * Where `jig.config.json` says the brand file should live, as a `/`-joined
+ * project-relative path, or `null` for "wherever init defaults to".
+ *
+ * This is the DESTINATION, which is a different question from the one
+ * `loadEffectiveConfig` answers. That one only trusts `brand` when the file
+ * already exists — correct for wiring, since an import must not point at
+ * nothing, but it meant the config could name a location and never create one.
+ * Every project got `.jig/tokens/` no matter what it asked for.
+ *
+ * A path that escapes the project is refused rather than clamped: `../` in a
+ * committed config is either a mistake or an attempt, and neither should cause
+ * a write outside the repo.
+ */
+function configuredBrandPath(projectRoot: string, configAbsPath: string): { path: string | null; refused?: string } {
+  if (!existsSync(configAbsPath)) return { path: null };
+  let declared: unknown;
+  try {
+    declared = (JSON.parse(readFileSync(configAbsPath, 'utf8')) as { brand?: unknown }).brand;
+  } catch {
+    return { path: null };
+  }
+  if (typeof declared !== 'string' || !declared.trim()) return { path: null };
+
+  const rel = declared.trim().replace(/\\/g, '/');
+  const abs = resolve(projectRoot, rel);
+  const root = resolve(projectRoot);
+  if (isAbsolute(rel) || (abs !== root && !abs.startsWith(root + sep))) {
+    return { path: null, refused: rel };
+  }
+  if (!/\.css$/i.test(rel)) return { path: null, refused: rel };
+  return { path: rel };
 }
 
 /** The surfaces a `jig.config.json` declares, or `null` when there is no
@@ -461,10 +495,23 @@ export async function init(opts: InitOptions): Promise<InitResult> {
 
   // ---- 5. Write ----
   const projectSlug = deriveProjectSlug(opts.projectRoot);
-  const brandRelPath = relKey('.jig', 'tokens', brandFileName(projectSlug));
-  const brandAbsPath = join(opts.projectRoot, '.jig', 'tokens', brandFileName(projectSlug));
   const configRelPath = 'jig.config.json';
   const configAbsPath = join(opts.projectRoot, configRelPath);
+
+  // The config decides where the token layer lives; `.jig/tokens/` is only the
+  // default. The mode files follow the brand file into the same directory —
+  // they are imported by the same stylesheet and belong beside it, and a token
+  // layer split across two locations is worse than either one.
+  const configuredBrand = configuredBrandPath(opts.projectRoot, configAbsPath);
+  if (configuredBrand.refused) {
+    log(
+      `jig.config.json names brand '${configuredBrand.refused}', which is outside the project ` +
+        `or is not a .css file — ignoring it and using the default location.`,
+    );
+  }
+  const brandRelPath = configuredBrand.path ?? relKey('.jig', 'tokens', brandFileName(projectSlug));
+  const brandAbsPath = join(opts.projectRoot, ...brandRelPath.split('/'));
+  const tokensRelDir = brandRelPath.split('/').slice(0, -1);
 
   const initManifest = readInitManifest(opts.projectRoot);
   const files: Record<string, string> = { ...(initManifest?.files ?? {}) };
@@ -556,9 +603,9 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   const modeAbsPaths: Record<string, string> = {};
   for (const mode of declaredModes) {
     const modeFileName = `mode.${mode}.css`;
-    const modeAbsPath = join(opts.projectRoot, '.jig', 'tokens', modeFileName);
+    const modeAbsPath = join(opts.projectRoot, ...tokensRelDir, modeFileName);
     modeAbsPaths[mode] = modeAbsPath;
-    const modeRelPath = relKey('.jig', 'tokens', modeFileName);
+    const modeRelPath = relKey(...tokensRelDir, modeFileName);
     const modeState = fileState(opts.projectRoot, modeAbsPath, modeRelPath, initManifest);
     let modeAction: FileAction = 'written';
     if (modeState.existsOnDisk && !modeState.tracked) modeAction = 'skipped-untracked';

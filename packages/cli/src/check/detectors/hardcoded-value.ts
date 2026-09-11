@@ -4,7 +4,7 @@ import { isMarkupHost, isStyleHost } from '../styles.js';
 import { arbitraryValues, classAttributeValues } from '../tailwind.js';
 import { mkFinding } from '../finding.js';
 import { participatesInTokenLayer } from '../token-layer.js';
-import type { Detector, Finding } from '../types.js';
+import type { Detector, DetectorContext, Finding } from '../types.js';
 
 // H-47: values invented at the call site instead of read from the token
 // layer. The highest noise-risk detector in the set — a real codebase is
@@ -84,6 +84,57 @@ const EXCLUDED_PX = new Set([0, 1, 2]);
 // at-rule.
 const KEYFRAME_STEP_RE = /^(from|to|\d+(\.\d+)?%)$/i;
 
+/**
+ * The token layer's raw channel inputs — the values every semantic colour is
+ * derived FROM. `--brand-h/s/l`, `--error-fill-a`, and the same for warning,
+ * success and info.
+ *
+ * Consuming one at a call site is H-47's other half, and the worse half. A
+ * literal at least looks wrong; `color: var(--brand-l)` looks exactly like
+ * correct token usage while being neither — `--brand-l` is a bare number
+ * (`15%`), so as a colour it produces an invalid declaration that silently does
+ * nothing, and reading any of them bypasses every theme override, since the
+ * dark block remaps the semantic roles rather than the channels.
+ *
+ * Deliberately narrow: only the families Jig itself declares. A consumer's own
+ * custom property is theirs, and guessing which of them are "primitives" would
+ * produce findings on correct code.
+ */
+const PRIMITIVE_RE = /var\(\s*(--(?:brand|error|warning|success|info)-(?:h|s|l|fill-a))\s*[,)]/g;
+
+/** The token layer declares these; it is the one place they may be read. A
+ *  mode file composing `hsl(var(--brand-h) ...)` is correct, and once the token
+ *  layer can live beside a project's own CSS it becomes a scanned file — so
+ *  this cannot rely on those files being unreachable. */
+const TOKEN_LAYER_RE = /(^|\/)(\.jig\/tokens\/|jig\/)?(brand|mode)\.[\w.-]+\.css$/;
+
+function primitiveConsumption(source: string, file: string, ctx: DetectorContext): Finding[] {
+  if (TOKEN_LAYER_RE.test(file)) return [];
+  const out: Finding[] = [];
+  const seen = new Set<string>();
+  for (const m of source.matchAll(PRIMITIVE_RE)) {
+    const token = m[1];
+    const line = source.slice(0, m.index ?? 0).split('\n').length;
+    const key = `${token}:${line}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(
+      mkFinding(
+        ctx,
+        'hardcoded-value',
+        file,
+        line,
+        `${token} is a raw channel input, not a semantic role — consuming it bypasses ` +
+          `the theme overrides, which remap \`--color-*\` and never the channels. ` +
+          `Use the semantic token for what this is (\`--color-text-*\`, \`--color-fill-*\`, ` +
+          `\`--color-stroke-*\`).`,
+        sourceLine(source, line),
+      ),
+    );
+  }
+  return out;
+}
+
 export const hardcodedValue: Detector = {
   name: 'hardcoded-value',
   appliesTo: (file) => isStyleBearing(file),
@@ -95,12 +146,23 @@ export const hardcodedValue: Detector = {
     // A stylesheet answers for itself. A host file's style regions never carry
     // the project's `@import`, so it inherits the project's answer — see
     // `projectParticipates`.
+    // Reading a primitive is checked FIRST, and BEFORE the participation gate.
+    //
+    // Before it, because it is a `var()`, and every literal check below skips a
+    // declaration that already routes through `var(...)` — right for
+    // `var(--spacing-m)`, exactly wrong here, and why this half of H-47 went
+    // unenforced.
+    //
+    // Before the gate, because naming a Jig primitive IS participation. The
+    // gate exists so a project that has not adopted tokens is not told its
+    // whole codebase is wrong; a file writing `var(--brand-l)` has adopted
+    // them and is misusing them, which is the opposite situation.
+    const findings: Finding[] = primitiveConsumption(source, file, ctx);
+
     const participates = isStyleHost(file)
       ? ctx.projectParticipates
       : participatesInTokenLayer(source, ctx.tokens);
-    if (!participates) return [];
-
-    const findings: Finding[] = [];
+    if (!participates) return findings;
 
     // No media-query masking. A breakpoint `px` lives in the `@media` prelude,
     // which lands in the OUTER block's selector — and `DECL_RE` only ever reads

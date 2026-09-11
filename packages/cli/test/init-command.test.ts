@@ -573,3 +573,80 @@ describe('init — file count (target: 3 files for a single-mode project)', () =
     expect(sidecar.modes.sort()).toEqual(['editorial', 'operator']);
   });
 });
+
+/**
+ * `jig.config.json` declares where the brand file lives, and `init` ignored it
+ * for placement — it honoured the path only when the file ALREADY existed,
+ * which is the one case where the declaration does not matter. So the config
+ * could name a location but never create one, and every project got
+ * `.jig/tokens/` whatever it asked for.
+ *
+ * The existing guard is still right for WIRING: an import must not point at a
+ * file that is not there. But writing the file is how it gets there.
+ */
+describe('config.brand decides where the brand file is written', () => {
+  it('writes the brand file where the config says, creating the directory', async () => {
+    mkdirSync(join(project, 'app', 'assets', 'stylesheets'), { recursive: true });
+    writeFileSync(join(project, 'app', 'assets', 'stylesheets', 'application.css'), 'body{color:#333}\n');
+    writeFileSync(join(project, 'jig.config.json'), JSON.stringify({
+      brand: 'app/assets/stylesheets/jig/brand.acme.css',
+      surfaces: [{ match: '/', mode: 'product' }],
+    }));
+
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+                 version: '0.5.0', yes: true, log: () => {} });
+
+    expect(existsSync(join(project, 'app/assets/stylesheets/jig/brand.acme.css')),
+      'brand file not written where the config asked').toBe(true);
+  });
+
+  it('puts the mode files beside the brand file, not somewhere else', async () => {
+    mkdirSync(join(project, 'styles'), { recursive: true });
+    writeFileSync(join(project, 'styles', 'global.css'), 'body{color:#333}\n');
+    writeFileSync(join(project, 'jig.config.json'), JSON.stringify({
+      brand: 'styles/jig/brand.acme.css',
+      surfaces: [{ match: '/', mode: 'operator' }],
+    }));
+
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+                 version: '0.5.0', yes: true, log: () => {} });
+
+    expect(existsSync(join(project, 'styles/jig/mode.operator.css')),
+      'mode file did not follow the brand file').toBe(true);
+  });
+
+  it('wires the import to the configured location', async () => {
+    mkdirSync(join(project, 'styles'), { recursive: true });
+    writeFileSync(join(project, 'styles', 'global.css'), 'body{color:#333}\n');
+    writeFileSync(join(project, 'jig.config.json'), JSON.stringify({
+      brand: 'styles/jig/brand.acme.css',
+      surfaces: [{ match: '/', mode: 'product' }],
+    }));
+
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+                 version: '0.5.0', yes: true, log: () => {} });
+
+    const css = readFileSync(join(project, 'styles', 'global.css'), 'utf8');
+    expect(css).toContain('@import "./jig/brand.acme.css";');
+    expect(css, 'still climbing out to the dotfolder').not.toContain('.jig/tokens');
+  });
+
+  it('still defaults to .jig/tokens when the config says nothing', async () => {
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+                 version: '0.5.0', yes: true, log: () => {} });
+    expect(existsSync(join(project, '.jig', 'tokens'))).toBe(true);
+  });
+
+  it('refuses a path that escapes the project', async () => {
+    writeFileSync(join(project, 'jig.config.json'), JSON.stringify({
+      brand: '../outside/brand.acme.css',
+      surfaces: [{ match: '/', mode: 'product' }],
+    }));
+    const lines: string[] = [];
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+                 version: '0.5.0', yes: true, log: (l) => lines.push(l) });
+
+    expect(existsSync(join(project, '..', 'outside')), 'wrote outside the project').toBe(false);
+    expect(lines.join('\n').toLowerCase()).toMatch(/outside|ignor|refus/);
+  });
+});

@@ -27,6 +27,10 @@ export interface ReportMeta {
    * reports "No findings" having examined none of them.
    */
   unscanned?: { count: number; extensions: string[] };
+  /** Files `jig.config.json` excused. Reported by name on every run: an
+   *  exemption list grows one entry at a time until it covers the codebase,
+   *  and the only defence is that it is never invisible. */
+  exempt?: string[];
 }
 
 /** Rows beyond this many, for one rule in one file, collapse into a count.
@@ -112,6 +116,16 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     ? `${meta.totalRules} rules (+ ${meta.totalSpecs} pattern and mode specs)`
     : `${meta.totalRules} rules`;
   lines.push(`  ${summaryParts.join(', ')} · ${scope}, ${rulesFired} fired`);
+
+  if (meta.exempt && meta.exempt.length > 0) {
+    const n = meta.exempt.length;
+    lines.push(
+      `  ${n} file(s) exempt via jig.config.json and not scanned: ` +
+        `${meta.exempt.slice(0, 5).join(', ')}` +
+        (n > 5 ? `, and ${n - 5} more` : '') +
+        '.',
+    );
+  }
 
   if (meta.unscanned && meta.unscanned.count > 0) {
     const exts = meta.unscanned.extensions.join(', ');

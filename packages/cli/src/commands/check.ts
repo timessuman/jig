@@ -9,6 +9,7 @@ import { loadSpecs } from '../rules/specs.js';
 import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
+import { applyExemptions, readExemptions } from '../check/exempt.js';
 import { auditTokenLayer } from '../check/token-audit.js';
 import type { Finding } from '../check/types.js';
 
@@ -133,7 +134,12 @@ export function check(opts: CheckOptions): CheckResult {
   // already returns `{}` for a missing directory, which is exactly right
   // for a project Jig has never been `init`-ed in.
   const selection = selectFiles(opts.projectRoot, opts.all);
-  const { files } = selection;
+  // Files a project has declared render outside the token cascade — an OG card
+  // in a `foreignObject`, a PDF drawn by a React renderer. They cannot consume
+  // a custom property, so holding them to the token layer makes `check`
+  // impossible to pass, and a check that cannot pass gets switched off.
+  const exemptions = readExemptions(opts.projectRoot);
+  const { scanned: files, exempt } = applyExemptions(selection.files, exemptions);
 
   const bucketFilter = opts.ci ? (b: string) => b === 'mechanical' : undefined;
   // Does ANY stylesheet in this project sit on the token layer? Host files
@@ -220,6 +226,7 @@ export function check(opts: CheckOptions): CheckResult {
     noTokenLayer,
     mode: resolveMode(opts.projectRoot),
     unscanned: summariseUnscanned(files),
+    exempt,
   });
 
   return { findings, report, hasError };
