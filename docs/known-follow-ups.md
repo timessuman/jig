@@ -268,3 +268,36 @@ source rather than taken from the report that raised it._
   `files` lists `dist rules tokens templates references rules.index.json LICENSE
   NOTICE README.md`. The repo carries 32KB of `CHANGELOG.md` that no consumer of
   the package can see. One line in the `files` array.
+
+## From scaffolding the documentation site
+
+_Both found by a cold agent running `jig init` on a real Astro project, and both
+reproduced here before being written down._
+
+- **`02-tokens.md` states the token location, and the statement is false.**
+  Line 22 of the shipped file reads: *"**Tokens live at `.jig/tokens/`.** That is
+  the only location, in every scope and every project — `jig install` puts them
+  there, `jig update` refreshes them there, and nothing relocates them."* Since
+  0.7.0 that is wrong: `defaultTokenDir()` places the token layer beside the
+  wired stylesheet, and `init` itself prints `Token layer: src/styles/jig/ —
+  beside the stylesheet being wired.` So the CLI and the rule file disagree, out
+  loud, in the same run. `README.md` documents the new behaviour correctly; the
+  rule file — the one an agent is explicitly told to load before writing any
+  token code — was never updated. This ships in the tarball and installs into
+  every skill directory.
+
+- **The non-TTY refusal names three ways out and only two of them work.**
+  `init.ts:496` refuses when `!opts.yes && !opts.prompt && !process.stdin.isTTY`,
+  and the message ends: *"(To choose the mode without a terminal, write
+  jig.config.json first — init honours it.)"* The guard runs before any config is
+  read, so a config alone changes nothing. Verified both ways in a scratch
+  project: config + no `--yes` → exit 1 with that same message; config + `--yes`
+  → succeeds and reports `'/' → operator — from jig.config.json`.
+
+  The sentence is true about mode *selection* and false in the context it appears
+  in — a paragraph about not having a terminal — so it reads as a third
+  alternative when it is a modifier on the first. **This was mis-verified at
+  release**: step 6 recorded "third way out works, no terminal needed" on the
+  strength of a run that had `--yes` set. A cold agent followed the message
+  literally, got the identical error, and resorted to allocating a pseudo-terminal
+  with Python's `pty` module to get past it.
