@@ -994,9 +994,16 @@ export async function init(opts: InitOptions): Promise<InitResult> {
       log(`  ${snippet.split('\n').join('\n  ')}`);
     }
   } else {
-    const brandImport = relativeImportPath(opts.projectRoot, wiringBrandAbsPath);
-    const modeImport = relativeImportPath(opts.projectRoot, modeAbsPath);
-    const snippet = `@import "${brandImport}";\n@import "${modeImport}";`;
+    // The barrel, not the two files it contains. `init` writes `theme.css` for
+    // exactly this reason — one import, and relocating the layer later changes
+    // one line rather than every stylesheet — and the wiring path above already
+    // uses it. Printing the pair here told anyone without a wirable stylesheet
+    // to set their project up differently from everyone else.
+    const barrelImport = relativeImportPath(
+      opts.projectRoot,
+      join(opts.projectRoot, ...tokensRelDir, 'theme.css'),
+    );
+    const snippet = `@import "${barrelImport}";`;
     wiring = { target: null, status: 'print-only', snippet };
     log('\nCould not find a single unambiguous stylesheet to wire the import into.');
 
@@ -1020,7 +1027,7 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     } else {
       log(
         'Add this near the top of your global stylesheet. A CSS @import resolves ' +
-          'relative to the file it sits in, so these project-root paths need a ../ ' +
+          'relative to the file it sits in, so this project-root path needs a ../ ' +
           'per directory of depth:',
       );
       log(`  ${snippet.split('\n').join('\n  ')}`);
