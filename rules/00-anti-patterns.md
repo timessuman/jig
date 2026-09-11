@@ -24,6 +24,7 @@ These are the strongest defaults in a model's training data and the fastest way 
 ### A-01 Purple and violet as the unspecified default
 ❌ A violet or indigo fill, or a violet→pink gradient, chosen because no colour was specified
 ✅ Use `--color-brand` from the brand file. The unbranded default resolves it to near-black, which ships a coherent monochrome UI and makes the missing decision visible. Then ask.
+**Being asked to propose a colour does not discharge this.** A proposal is a question with a suggested answer, not a decision — so suggest one freely when asked, but ship the unbranded default alongside it and leave the brand file unchanged until a human confirms. Two agents given the same brief split on exactly this point, one deferring and one treating its own proposal as the answer, and both cited the same conflict-resolution clause to get there. The task can ask you for a recommendation; it cannot make you the one who decided.
 
 ### A-02 Gradient text on headings
 ❌ `background-clip: text` with a gradient fill and transparent text colour
@@ -90,6 +91,7 @@ In `operator`, `--radius-surface` also selects `sm`, so cards, buttons and input
 ### B-11 Unbounded line length
 ❌ Paragraphs spanning the full width of a wide viewport
 ✅ Cap at `--measure-prose` (68ch editorial, 60ch product, 72ch operator). Applies to any run of prose in any mode.
+**And do not let a layout choice push it far under.** The readable band is 40–80 characters (`02-tokens.md`); the cap is the only half stated here, so a column can be halved indefinitely and still satisfy this rule while reading worse at every step. A narrow viewport that cannot reach 40 is a constraint and fine. Splitting a capped column into two side-by-side panels, and rendering prose at 41 characters in a mode whose own measure selects 68, is a choice — and it is choosing density over legibility, which is the trade `M-01` says editorial does not make.
 
 ### B-12 Centred or justified body text
 ❌ A centred paragraph of four lines. Justified text of any length.
