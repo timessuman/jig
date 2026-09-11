@@ -84,9 +84,10 @@
   },
   {
     "id": "A-05",
-    "bucket": "judgment",
-    "severity": "note",
-    "since": "0.1.0"
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.1.0",
+    "detector": "emoji-icon"
   },
   {
     "id": "A-06",
@@ -108,15 +109,17 @@
   },
   {
     "id": "A-09",
-    "bucket": "judgment",
-    "severity": "note",
-    "since": "0.1.0"
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.1.0",
+    "detector": "marketing-voice"
   },
   {
     "id": "A-10",
-    "bucket": "judgment",
-    "severity": "note",
-    "since": "0.1.0"
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.1.0",
+    "detector": "placeholder-content"
   },
   {
     "id": "B-11",

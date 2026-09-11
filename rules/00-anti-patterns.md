@@ -505,7 +505,28 @@ Load `05-copy.md` whenever writing or reviewing a user-facing string.
 
 Run this against what you produced. Any "no" is a defect to fix, not a note to mention.
 
-1. Would this look different from a generic template if the accent colour were removed? (A-01 → A-10)
+1. **The generic-AI tells, named rather than gestured at.** This used to read
+   "would this look different from a generic template if the accent colour were
+   removed?", which an agent that has just produced a generic template answers
+   yes to — and its `A-01 → A-10` range silently excluded `A-58`, `A-59`, `A-60`
+   and `A-67`. Check each:
+   - Was the accent colour **chosen**, or did it appear because none was
+     specified? (`A-01`)
+   - Any gradient text, decorative blobs, glassmorphism or neumorphism?
+     (`A-02`, `A-03`, `A-04`)
+   - Emoji standing in for icons — including ones marked `aria-hidden`?
+     (`A-05`)
+   - Three things in a three-column icon-and-heading grid because there were
+     three of them? (`A-06`)
+   - One radius on every element regardless of its size; shadow doing all the
+     depth work? (`A-07`, `A-08`)
+   - Marketing voice in an application, or placeholder content still in place?
+     (`A-09`, `A-10`)
+   - Decoration that mimics a functional signal — colour picked for variety, an
+     icon that looks pressable and is not? (`A-58`)
+   - Every list item restating the context they share? (`A-59`)
+   - Icons at equal weight competing with the text they support? (`A-60`)
+   - A border, card or panel around every group on the page? (`A-67`)
 2. Is every run of prose measure-capped and left-aligned? (B-11, B-12)
 3. Does any text or placeholder fall below 4.5:1? (C-19)
 4. Is every spacing value a `--spacing-*` token, and does `--spacing-heading-before` exceed `--spacing-heading-after`? (D-23, D-24)
