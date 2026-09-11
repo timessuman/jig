@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { detect, type DetectionResult } from '../init/detect.js';
 import {
@@ -228,6 +228,51 @@ function configuredBrandPath(projectRoot: string, configAbsPath: string): { path
   return { path: rel };
 }
 
+/**
+ * Where the token layer goes when `jig.config.json` does not say.
+ *
+ * Derived from the project's own layout rather than assumed: a `jig/` directory
+ * beside the stylesheet `init` is about to wire. `.jig/tokens/` was a location
+ * that is right everywhere by being right nowhere — a tool dotdir holding
+ * product source, reached from a Rails stylesheet by
+ * `@import "../../../.jig/tokens/brand.acme.css"`, a build-graph edge climbing
+ * three levels out of the tree it belongs to.
+ *
+ * Beside the wire target the import is always `./jig/brand.x.css`: one segment,
+ * no traversal, still valid if the whole tree moves, and sitting where a person
+ * looking at that stylesheet would look. It is correct in ecosystems nobody had
+ * in mind here — `app/assets/stylesheets/jig/`, `src/styles/jig/`,
+ * `resources/css/jig/`, `css/jig/` — which is the actual test of
+ * framework-agnostic.
+ *
+ * `jig/` and not `tokens/`: a directory named for the tool cannot collide with
+ * a `tokens/` the project already has or wants, and it says whose files these
+ * are.
+ *
+ * With no stylesheet to follow there is nothing to import them into either, so
+ * the location matters less than being obvious: `jig/` at the root, with the
+ * snippet printed. `styles/jig/` was the alternative and is one convention
+ * guess too many for a project that has shown no convention at all.
+ */
+function defaultTokenDir(detection: DetectionResult): string[] {
+  const target = findWireTarget(detection);
+  if (target) return [...target.split('/').slice(0, -1), 'jig'];
+
+  // No single target does not mean no information. Several stylesheets in one
+  // directory still say where this project keeps its CSS, and that is the
+  // question being asked — `init` declines to guess which file to WIRE, which
+  // is a different and riskier decision than where to put a new directory.
+  const candidates = detection.cssFiles.filter((f) => !isCssModule(f) && !isTokenLayerFile(f));
+  if (candidates.length > 1) {
+    const dirs = new Set(candidates.map((f) => f.split('/').slice(0, -1).join('/')));
+    if (dirs.size === 1) {
+      const only = [...dirs][0];
+      return only ? [...only.split('/'), 'jig'] : ['jig'];
+    }
+  }
+  return ['jig'];
+}
+
 /** The surfaces a `jig.config.json` declares, or `null` when there is no
  *  config, it does not parse, or its `surfaces` are not valid. Separate from
  *  `loadEffectiveConfig` because the log needs this BEFORE the brand path is
@@ -251,9 +296,31 @@ function isCssModule(path: string): boolean {
   return /\.module\.(css|scss)$/i.test(path);
 }
 
+/** A `.jig/tokens/brand.*.css` on disk. Detection never walks a dotdir, so the
+ *  pre-0.6 layout is invisible to `cssFiles` and has to be looked for. */
+function legacyBrandFile(projectRoot: string): string | undefined {
+  const dir = join(projectRoot, '.jig', 'tokens');
+  if (!existsSync(dir)) return undefined;
+  const found = readdirSync(dir).find((f) => /^brand\.[\w.-]+\.css$/.test(f));
+  return found ? relKey('.jig', 'tokens', found) : undefined;
+}
+
+/** A file Jig itself wrote: `brand.*.css` / `mode.*.css` inside a `jig/`
+ *  directory, or under the legacy `.jig/tokens/`.
+ *
+ *  Excluded from wire-target detection, and this is not tidiness. Once the
+ *  token layer lives BESIDE the project's stylesheets rather than in a dotdir,
+ *  its files are ordinary `.css` in the scanned tree — so the second `init` run
+ *  saw three stylesheets where the first saw one, called it ambiguous, and
+ *  stopped wiring anything. The dotdir was hiding this by being outside the
+ *  tree, which is the one thing it was good at. */
+function isTokenLayerFile(f: string): boolean {
+  return /(^|\/)(\.jig\/tokens|jig)\/(brand|mode)\.[\w.-]+\.css$/.test(f);
+}
+
 function findWireTarget(d: DetectionResult): string | null {
   if (d.cssSystem === 'tailwind-v4' && d.tailwindV4EntryFile) return d.tailwindV4EntryFile;
-  const candidates = d.cssFiles.filter((f) => !isCssModule(f));
+  const candidates = d.cssFiles.filter((f) => !isCssModule(f) && !isTokenLayerFile(f));
   if (candidates.length === 1) return candidates[0];
   return null;
 }
@@ -509,11 +576,41 @@ export async function init(opts: InitOptions): Promise<InitResult> {
         `or is not a .css file — ignoring it and using the default location.`,
     );
   }
-  const brandRelPath = configuredBrand.path ?? relKey('.jig', 'tokens', brandFileName(projectSlug));
+  // An existing install keeps its layout. Relocating files on an upgrade could
+  // break an import the project wrote itself and init knows nothing about, and
+  // a silent move is the worst way to find that out — so a pre-0.6 token layer
+  // stays at `.jig/tokens/` and the log says how to move it deliberately.
+  const priorManifest = readInitManifest(opts.projectRoot);
+  const priorBrand =
+    Object.keys(priorManifest?.files ?? {}).find((f) => /(^|\/)brand\.[\w.-]+\.css$/.test(f)) ??
+    // Also honour a brand file that is simply THERE. A project may hold one
+    // init never recorded — written by hand, or by a version that predates the
+    // sidecar — and writing a second one somewhere else would leave two token
+    // layers, which is worse than either location.
+    detection.cssFiles.find((f) => isTokenLayerFile(f) && /(^|\/)brand\./.test(f)) ??
+    // `.jig/` is a dotdir, so detection never walks into it. Probe it directly:
+    // a project holding a legacy token layer must keep it rather than gain a
+    // second one somewhere else.
+    legacyBrandFile(opts.projectRoot);
+  const brandRelPath =
+    configuredBrand.path ??
+    priorBrand ??
+    relKey(...defaultTokenDir(detection), brandFileName(projectSlug));
   const brandAbsPath = join(opts.projectRoot, ...brandRelPath.split('/'));
   const tokensRelDir = brandRelPath.split('/').slice(0, -1);
 
-  const initManifest = readInitManifest(opts.projectRoot);
+  log(
+    `Token layer: ${tokensRelDir.join('/') || '.'}/ — ` +
+      (configuredBrand.path
+        ? 'from jig.config.json.'
+        : priorBrand
+          ? 'the layout this project already had. Set `brand` in jig.config.json to move it.'
+          : findWireTarget(detection)
+            ? 'beside the stylesheet being wired. Set `brand` in jig.config.json to put it elsewhere.'
+            : 'no stylesheet found to follow, so the project root. Set `brand` in jig.config.json to move it.'),
+  );
+
+  const initManifest = priorManifest;
   const files: Record<string, string> = { ...(initManifest?.files ?? {}) };
 
   const brandState = fileState(opts.projectRoot, brandAbsPath, brandRelPath, initManifest);
