@@ -151,23 +151,35 @@ for (const file of ['brand.default.css']) {
 }
 
 /* ------------------------------------------------------------------ *
- * Rule 4 — every token import path in the rules is the canonical one.
+ * Rule 4 — token imports in the rules are RELATIVE, never a fixed location.
  *
- * The rule markdown is BOTH the source of truth and the artefact vendored
- * into a consumer's repo, so a path that is correct in one context and wrong
- * in the other is a dual truth that drifts. There is exactly one location:
- * `.jig/tokens/`. `install` writes there, `update` refreshes there, and
- * nothing — including a future `init` — relocates them.
+ * This rule used to assert the opposite: that `.jig/tokens/` was "the only
+ * location, in every scope and every project", and it said so in a comment
+ * anticipating that "nothing — including a future `init` — relocates them".
+ * 0.7.0 relocated them. `defaultTokenDir()` places the layer beside the
+ * stylesheet it wires, so the path is `src/styles/jig/` in one project and
+ * `app/assets/stylesheets/jig/` in another.
+ *
+ * The guard did not notice, because it was checking for agreement with
+ * itself rather than with the CLI. It kept `02-tokens.md` pinned to a claim
+ * the tool had stopped honouring, and would have failed the build on anyone
+ * correcting it — found when a cold agent ran `init` on a real project, was
+ * told `Token layer: src/styles/jig/`, and read a rule file insisting
+ * otherwise.
+ *
+ * What is still true, and worth guarding: a project-absolute path in an
+ * example is wrong for everyone whose layer is somewhere else, so every
+ * token import shown in the rules must be relative.
  * ------------------------------------------------------------------ */
-const CANONICAL_TOKEN_PATH = '.jig/tokens/';
 for (const file of ['02-tokens.md', ...PROSE]) {
   read(`rules/${file}`).split('\n').forEach((line, i) => {
     for (const m of line.matchAll(/@import\s+["']([^"']+)["']/g)) {
       const spec = m[1];
-      if (!/tokens?\//.test(spec)) continue;          // not a token import
-      if (spec.startsWith(CANONICAL_TOKEN_PATH)) continue;
-      fail(`${file}:${i + 1} imports tokens from "${spec}" — the canonical path is ` +
-           `"${CANONICAL_TOKEN_PATH}", the only place install and update ever write them`);
+      if (!/tokens?\/|theme\.css|\/(brand|mode)\./.test(spec)) continue; // not a token import
+      if (spec.startsWith('./') || spec.startsWith('../')) continue;
+      fail(`${file}:${i + 1} imports tokens from "${spec}" — token imports in the ` +
+           `rules must be relative, because the token layer's location follows the ` +
+           `project (init puts it beside the stylesheet it wires)`);
     }
   });
 }

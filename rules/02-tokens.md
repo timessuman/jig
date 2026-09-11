@@ -19,13 +19,24 @@ tokens/
 
 A surface loads **exactly one brand file and exactly one mode file**.
 
-**Tokens live at `.jig/tokens/`.** That is the only location, in every scope and
-every project — `jig install` puts them there, `jig update` refreshes them there,
-and nothing relocates them. Import from that path and it stays correct.
+**The token layer's location follows the project.** `init` writes it beside the
+stylesheet it wires and prints the path it chose — `src/styles/jig/` where the CSS
+lives in `src/styles/`, `app/assets/stylesheets/jig/` in a Rails app. Set `brand`
+in `jig.config.json` to put it elsewhere. Projects set up before 0.7.0 keep their
+`.jig/tokens/` layout; `update` does not move them.
+
+So **never hardcode that path**. `init` writes one barrel per surface, `theme.css`,
+which imports the brand and the mode in the right order — import the barrel, and
+relocating the layer changes one line instead of every stylesheet:
 
 ```css
-@import ".jig/tokens/brand.acme.css";
-@import ".jig/tokens/mode.operator.css";
+/* src/styles/jig/theme.css — written by init */
+@import "./brand.acme.css";
+@import "./mode.operator.css";
+```
+```css
+/* your stylesheet */
+@import "./jig/theme.css";
 ```
 
 Three separate mode files rather than one file with variants. The trade: a surface cannot switch modes at runtime, and shared values are duplicated across three files. In exchange each surface ships only the tokens it uses, the files are independently readable, and there is no cascade to reason about. For a system where mode is a routing decision rather than a user preference, that is the right trade.
@@ -369,8 +380,7 @@ In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation s
 
 **Plain CSS, any framework**
 ```css
-@import ".jig/tokens/brand.default.css";
-@import ".jig/tokens/mode.product.css";
+@import "./jig/theme.css";
 
 .card {
   background: var(--color-bg-raised);
