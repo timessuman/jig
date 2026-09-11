@@ -1,5 +1,80 @@
 # Changelog
 
+## 0.6.0
+
+The token layer stops hiding in a dotfolder, and `check` starts reading it back.
+
+Both came from the same question: who should write the tokens. The answer turned
+out to depend on something that did not exist — **nothing validated the token
+layer's own declarations.** `init` checked a brand colour once, at write time,
+and no command ever looked again. A generated file edited afterwards, by a person
+or an agent, went unexamined: `--color-text-weak` dropped to 22% opacity and
+`check` reported "No findings". With that closed, where the files live and who
+writes them become ordinary decisions rather than load-bearing ones.
+
+**Upgrading:** run `npx jig-ui@latest update`, then `npx jig-ui@latest init`.
+Existing installs keep their `.jig/tokens/` layout — nothing moves unless you
+move it, because relocating files could break an import you wrote yourself.
+
+### Added
+
+- **`check` validates the token layer** (`check/token-audit.ts`). Text roles to
+  4.5:1, interface strokes to 3:1, **in both themes**, plus `--text-prose` at
+  18px and `--size-touch-target` at 48px. Alpha foregrounds are composited over
+  each surface first — Jig's foregrounds are alpha by design, so a ratio before
+  compositing means nothing. Only floors, never density: `--size-control` at 28px
+  is a deliberate `operator` choice, and reporting it would teach you to ignore
+  the ones that matter.
+- **`H-47` enforces the half of itself it only stated.** Its correction always
+  read "consume the semantic role, not the primitive"; the detector caught raw
+  hex and raw px and nothing else. `color: var(--brand-l)` was silent — and it is
+  the worse case, because it looks exactly like correct token usage while reading
+  a bare number and bypassing every theme override.
+- **`exempt` in `jig.config.json`.** Some surfaces render outside the cascade: an
+  OG card in an SVG `foreignObject` carries no stylesheet, a PDF renderer never
+  sees CSS. Those files were in permanent violation, which is an adoption blocker
+  — a check that cannot pass is a check people switch off. Exempt files are
+  reported **by name** every run, because an exemption list grows one entry at a
+  time and the only defence is that it is never invisible.
+- **One import per surface, through a barrel.** `jig/theme.css` imports the brand
+  file and one mode file; your stylesheet imports that single line and then never
+  changes again. Switching mode rewrites Jig's file, not yours.
+
+### Changed
+
+- **The token layer follows your project's layout.** `.jig/tokens/` was right
+  everywhere by being right nowhere — a tool dotdir holding product source,
+  reached from a Rails stylesheet by `@import "../../../.jig/tokens/…"`. The
+  default is now a `jig/` directory beside the stylesheet being wired, so the
+  import is `./jig/theme.css` in every ecosystem. `jig.config.json`'s `brand`
+  now decides placement, not just wiring — it previously honoured the path only
+  when the file already existed, which is the one case where it does not matter.
+- **The mode is chosen before `init` runs.** It is the most consequential thing
+  `init` writes and the thing it is worst at choosing: `--yes` took `'/' → product`
+  without reading the project, and that config then outranks every agent's later
+  inference. The command file now tells the agent to ask what the product is, map
+  each surface, write the config, and only then run. `init` also reports the
+  surfaces it **used** rather than the ones it defaulted to — with a config
+  present it had been announcing a default it was about to ignore.
+- A barrel holds exactly one mode, never a merge. Importing all three into one
+  document leaves only the last; verified in a browser, it yields `operator`
+  throughout. `01-modes.md` already said why that is not a loss: density switches
+  at the route boundary, never inside one view.
+
+### Fixed
+
+- `--text-prose`, `--size-touch-target` and every semantic colour are now held to
+  their floors after `init` as well as during it.
+- The token audit follows the token layer instead of reading a fixed directory.
+  It was written when `.jig/tokens/` was the only possible answer, so moving the
+  layer made it find nothing and report nothing — caught in a pre-release smoke
+  test, where a brand file edited to 22% opacity passed cleanly. A check that
+  goes quiet when its subject moves is worse than one that was never written,
+  because the silence reads as a pass.
+- Tailwind v4 does not scan workspace packages — documented, with the `@source`
+  directive it needs. Nothing errors when this bites: the class lands on the
+  element, no rule exists to match it, and the style simply does not apply.
+
 ## 0.5.0
 
 Four things shipped in 0.4.0 were broken in ways that reported success. `/jig

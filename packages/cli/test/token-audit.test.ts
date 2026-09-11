@@ -134,3 +134,48 @@ describe('what it refuses to guess about', () => {
     expect(p.line).toBeGreaterThan(0);
   });
 });
+
+/**
+ * The audit must find the token layer wherever the project keeps it.
+ *
+ * It read `.jig/tokens/` directly, which was correct for exactly as long as
+ * that was the only possible answer. The moment the token layer began following
+ * the project's own layout, the audit found nothing and reported nothing —
+ * caught in a pre-release smoke test, where a brand file edited to 22% opacity
+ * passed cleanly. A check that goes quiet when its subject moves is worse than
+ * one that was never written, because the silence reads as a pass.
+ */
+describe('the audit follows the token layer', () => {
+  const brandAt = (rel: string, content: string) => {
+    const abs = join(project, ...rel.split('/'));
+    mkdirSync(join(abs, '..'), { recursive: true });
+    writeFileSync(abs, content);
+    mkdirSync(join(project, '.jig'), { recursive: true });
+    writeFileSync(join(project, '.jig', 'state.json'),
+      JSON.stringify({ version: '0.6.0', modes: ['product'], files: { [rel]: 'sha256:x' } }));
+  };
+
+  it('finds a failing token under src/styles/jig/', () => {
+    brandAt('src/styles/jig/brand.acme.css',
+      realBrand().replace('--color-text-weak:     rgb(0 0 0 / 60%)',
+                          '--color-text-weak:     rgb(0 0 0 / 22%)'));
+    const problems = auditTokenLayer(project);
+    expect(problems.length, 'the audit did not follow the token layer').toBeGreaterThan(0);
+    expect(problems[0].file).toBe('src/styles/jig/brand.acme.css');
+  });
+
+  it('finds one under a Rails-shaped path too', () => {
+    brandAt('app/assets/stylesheets/jig/brand.acme.css',
+      realBrand().replace('--color-text-weak:     rgb(0 0 0 / 60%)',
+                          '--color-text-weak:     rgb(0 0 0 / 22%)'));
+    expect(auditTokenLayer(project).length).toBeGreaterThan(0);
+  });
+
+  it('still reads a legacy .jig/tokens layout with no sidecar', () => {
+    mkdirSync(join(project, '.jig', 'tokens'), { recursive: true });
+    writeFileSync(join(project, '.jig', 'tokens', 'brand.old.css'),
+      realBrand().replace('--color-text-weak:     rgb(0 0 0 / 60%)',
+                          '--color-text-weak:     rgb(0 0 0 / 22%)'));
+    expect(auditTokenLayer(project).length).toBeGreaterThan(0);
+  });
+});
