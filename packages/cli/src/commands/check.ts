@@ -139,7 +139,7 @@ export function check(opts: CheckOptions): CheckResult {
   // a custom property, so holding them to the token layer makes `check`
   // impossible to pass, and a check that cannot pass gets switched off.
   const exemptions = readExemptions(opts.projectRoot);
-  const { scanned: files, exempt } = applyExemptions(selection.files, exemptions);
+  const { scanned: files, exempt, byPattern } = applyExemptions(selection.files, exemptions);
 
   const bucketFilter = opts.ci ? (b: string) => b === 'mechanical' : undefined;
   // Does ANY stylesheet in this project sit on the token layer? Host files
@@ -227,6 +227,7 @@ export function check(opts: CheckOptions): CheckResult {
     mode: resolveMode(opts.projectRoot),
     unscanned: summariseUnscanned(files),
     exempt,
+    exemptPatterns: byPattern,
   });
 
   return { findings, report, hasError };

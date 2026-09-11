@@ -362,3 +362,35 @@ describe('H-47 — consuming a primitive instead of a semantic role', () => {
     expect(hardcodedValue.run(src, 'src/A.tsx', ctx(src)).length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * Jig's own built-in skip had the same defect it warns users about.
+ *
+ * The primitive check exempts the token layer, because composing
+ * `hsl(var(--brand-h) …)` in a mode file is the one correct place to read a
+ * channel. That exemption matched `(brand|mode).*.css` with the DIRECTORY
+ * optional — so any file a project happened to name `brand.colors.css` was
+ * silently exempt too, wherever it lived. An exemption matched by filename
+ * shape is a naming coincidence, not a statement about the file.
+ */
+describe('the token-layer skip is scoped to the token layer', () => {
+  const ctx = (raw = '') => ({
+    ruleId: 'H-47', bucket: 'mechanical' as const, severity: 'error' as const,
+    tokens: {}, projectParticipates: true, raw,
+  });
+  const src = ':root {\n  --x: hsl(var(--brand-h) 50% 50%);\n}\n';
+  const run = (file: string) => hardcodedValue.run(src, file, ctx(src));
+
+  it('still skips Jig’s own token files', () => {
+    for (const f of ['src/styles/jig/brand.acme.css', 'src/styles/jig/mode.product.css',
+                     '.jig/tokens/brand.acme.css', 'jig/theme.css']) {
+      expect(run(f), `${f} should be skipped`).toEqual([]);
+    }
+  });
+
+  it('does not skip a file of the project’s own that is merely named like one', () => {
+    for (const f of ['src/legacy/brand.colors.css', 'app/mode.dark.css', 'brand.css']) {
+      expect(run(f).length, `${f} was silently exempt`).toBeGreaterThan(0);
+    }
+  });
+});

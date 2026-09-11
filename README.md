@@ -327,9 +327,17 @@ Drop this in the project root so mode selection does not require asking on every
 
   // Files that render OUTSIDE the cascade, where a literal is the only thing
   // that works: an OG card serialised into an SVG `foreignObject` carries no
-  // stylesheet, and a PDF drawn by a React renderer never sees CSS. `check`
-  // skips these and names them in every report — an exemption list grows one
-  // entry at a time, so it is never allowed to be invisible.
+  // stylesheet, and a PDF drawn by a React renderer never sees CSS.
+  //
+  // Prefer an exact path. An exemption is a claim about ONE file's rendering
+  // context, and that is usually literally true of one file. Reach for a glob
+  // only where the directory exists to hold them — `src/cv/pdf/**` is a fact
+  // about that tree; `**/*-card.tsx` is a naming coincidence that would also
+  // excuse every real card component you have.
+  //
+  // `check` names the pattern and its match count on every run, and says so
+  // when one is excusing enough files to look like a mistake. Nothing is ever
+  // exempt by default: this list is the only source.
   "exempt": ["src/components/og-card.tsx", "src/cv/pdf/**"]
 }
 ```

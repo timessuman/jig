@@ -88,3 +88,56 @@ describe('jig.config.json can exempt a file', () => {
       'an escaping glob silenced the project').toBe(true);
   });
 });
+
+/**
+ * An over-broad pattern is the failure mode of an exemption list, and it does
+ * not announce itself: `check` simply gets quieter, and quieter looks like
+ * progress. `**\/*-card.tsx` written to excuse one OG card also excuses
+ * `doc-card.tsx`, `pricing-card.tsx` and every other real component that
+ * happens to end that way.
+ *
+ * The report is the only defence, and it was not good enough. It named files,
+ * truncated at five, and never named the PATTERN — which is the one thing you
+ * need to see in order to recognise the mistake. So it degraded exactly when it
+ * mattered most: the broader the glob, the less the output told you.
+ */
+describe('an over-broad exemption is visible', () => {
+  const manyCards = () => {
+    for (const n of ['og', 'doc', 'pricing', 'profile', 'team', 'blog']) {
+      writeFileSync(join(project, 'src', `${n}-card.css`),
+        '@import "../.jig/tokens/brand.t.css";\n' + bad);
+    }
+    writeFileSync(join(project, 'jig.config.json'),
+      JSON.stringify({ exempt: ['src/*-card.css'] }));
+  };
+
+  it('names the pattern, not only the files', () => {
+    manyCards();
+    expect(run().report, 'the report never names the glob that did this')
+      .toContain('src/*-card.css');
+  });
+
+  it('says how many files each pattern excused', () => {
+    manyCards();
+    expect(run().report).toMatch(/src\/\*-card\.css[^\n]*6/);
+  });
+
+  it('calls out a pattern that is excusing a lot of files', () => {
+    manyCards();
+    expect(run().report.toLowerCase()).toMatch(/broad|review|likely/);
+  });
+
+  it('stays quiet about a single exact path, which is the normal case', () => {
+    writeFileSync(join(project, 'jig.config.json'),
+      JSON.stringify({ exempt: ['src/og-card.css'] }));
+    const report = run().report;
+    expect(report).toContain('src/og-card.css');
+    expect(report.toLowerCase(), 'nagged about a one-file exemption').not.toMatch(/too broad/);
+  });
+
+  it('reports a pattern that matches nothing, so a typo is visible', () => {
+    writeFileSync(join(project, 'jig.config.json'),
+      JSON.stringify({ exempt: ['src/og-crad.css'] }));
+    expect(run().report).toMatch(/src\/og-crad\.css[^\n]*(0|nothing|no file)/i);
+  });
+});
