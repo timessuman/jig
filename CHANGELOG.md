@@ -33,9 +33,23 @@ move it, because relocating files could break an import you wrote yourself.
 - **`exempt` in `jig.config.json`.** Some surfaces render outside the cascade: an
   OG card in an SVG `foreignObject` carries no stylesheet, a PDF renderer never
   sees CSS. Those files were in permanent violation, which is an adoption blocker
-  — a check that cannot pass is a check people switch off. Exempt files are
-  reported **by name** every run, because an exemption list grows one entry at a
-  time and the only defence is that it is never invisible.
+  — a check that cannot pass is a check people switch off.
+
+  Nothing is exempt by default and no filename is baked in; this list is the only
+  source. Every run reports the **pattern** and what it excused, because an
+  over-broad glob does not fail — `check` simply gets quieter, and quieter looks
+  like progress:
+
+  ```text
+  5 file(s) exempt via jig.config.json and not scanned:
+    src/*-card.css  (5 files — likely too broad, review it)
+    src/nope.css  (matches nothing — check the path)
+  ```
+
+  Prefer an exact path. An exemption is a claim about one file's rendering
+  context, and that is usually literally true of one file. `src/cv/pdf/**` is a
+  fact about a tree; `**/*-card.tsx` is a naming coincidence that would also
+  excuse every real card component in the project.
 - **One import per surface, through a barrel.** `jig/theme.css` imports the brand
   file and one mode file; your stylesheet imports that single line and then never
   changes again. Switching mode rewrites Jig's file, not yours.
@@ -65,6 +79,11 @@ move it, because relocating files could break an import you wrote yourself.
 
 - `--text-prose`, `--size-touch-target` and every semantic colour are now held to
   their floors after `init` as well as during it.
+- **`H-47`'s built-in token-layer skip was over-broad.** It matched
+  `(brand|mode).*.css` with the directory optional, so a project's own
+  `src/legacy/brand.colors.css` was silently exempt from the primitive check
+  wherever it sat. Scoped to the token layer's directory now — Jig owns `jig/`
+  outright, and a filename that merely looks like one of ours is a coincidence.
 - The token audit follows the token layer instead of reading a fixed directory.
   It was written when `.jig/tokens/` was the only possible answer, so moving the
   layer made it find nothing and report nothing — caught in a pre-release smoke
