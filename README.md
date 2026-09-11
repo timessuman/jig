@@ -75,25 +75,63 @@ skill.
 npx jig-ui@latest init
 ```
 
-`init` is the only command that writes into your repo. It detects your CSS
-system (Tailwind v4, Tailwind v3, plain CSS), derives a brand colour from what
-your project already has — custom properties first, then a Tailwind config, then
-the most frequent literal colour — rather than interviewing you cold, validates
-that colour against the contrast and collision requirements in Jig's own brand
-file, writes the token files, wires the `@import`s into your stylesheet when
-there is one unambiguous place for them, and runs a baseline `check` so you have
-a number to move.
+`init` is the only command that writes into your repo. It runs on a project
+with nothing in it and on one with years of CSS, and behaves differently in
+each — because the useful thing to do differs.
 
-A single-mode project ends up with four files, all of them yours:
+### An existing site
+
+`init` reads what you already have. It detects the CSS system (Tailwind v4,
+Tailwind v3, plain CSS), derives a brand colour from the project rather than
+interviewing you cold — custom properties first, then a Tailwind config, then
+the most frequent literal colour — and validates that colour against the
+contrast and collision requirements in Jig's own brand file. It puts the token
+layer **beside the stylesheet it wires**, and adds one import to it:
 
 ```
+src/styles/app.css          ← @import "./jig/theme.css"; added at the top
+src/styles/jig/
+  brand.<project>.css       your identity, edit freely
+  mode.<mode>.css           a copy of Jig's mode file, refreshed by `update`
+  theme.css                 the barrel: brand + mode, in order
 jig.config.json             route → mode map
-.jig/
-  state.json                bookkeeping — version, modes in use, checksums
-  tokens/
-    brand.<project>.css     your identity, edit freely
-    <mode>.css              a copy of Jig's mode file, refreshed by `update`
+.jig/state.json             bookkeeping — version, modes, checksums
 ```
+
+Nothing you wrote is touched beyond that one import line. Re-running `init`
+never overwrites a config or brand file you have edited.
+
+### A brand-new site
+
+There is no CSS to read, so there is nothing to derive from and nowhere obvious
+to wire. `init` says so rather than guessing:
+
+```
+Detected: unknown
+Token layer: jig/ — no stylesheet found to follow, so the project root.
+Could not find a single unambiguous stylesheet to wire the import into.
+Add this near the top of your global stylesheet:
+  @import "./jig/theme.css";
+```
+
+The brand colour resolves to the unbranded near-black default, which ships a
+coherent monochrome UI and makes the missing decision visible instead of
+inventing a purple (`A-01`). Set `--brand-h/-s/-l` in the brand file when you
+have decided, or tell your agent to ask you.
+
+Add `--yes` to accept every derived default non-interactively — the mode CI and
+agents run in.
+
+### Where the token layer goes
+
+Beside the stylesheet it wires, so it sits with the rest of your CSS rather than
+in a dotfolder next to your lockfile. `src/styles/jig/` in a project whose CSS
+lives in `src/styles/`, `app/assets/stylesheets/jig/` in a Rails app, `jig/` at
+the root when there is no stylesheet to follow. `init` prints the path it chose.
+
+Set `brand` in `jig.config.json` to put it somewhere else. Projects set up
+before 0.7.0 keep their `.jig/tokens/` layout; `update` does not move them, and
+`init` offers to.
 
 The mode file is the one thing genuinely copied: a stylesheet `@import` is an
 edge in a build graph and has to resolve locally, on every machine that builds.
@@ -251,7 +289,7 @@ contrast below the floor (`C-19`), removed focus rings (`E-29`), gradient text
 (`A-02`), backdrop blur (`A-04`), pure black and white (`C-18`), and the
 violet-band hue check (`A-01`, which asks rather than fails).
 
-**It also reads the token layer itself.** `.jig/tokens/*.css` is not application
+**It also reads the token layer itself.** The token layer is not application
 code, so no detector scans it — but it is where a mistake costs most, since every
 call site inherits it. `check` reads back what is declared there and holds it to
 the floors the token layer claims: 4.5:1 for text roles, 3:1 for interface
@@ -298,8 +336,9 @@ treatment.
 | `rules/03-patterns.md` | Component anatomy and behaviour |
 | `rules/04-principles.md` | Five frames + seven tiebreakers |
 | `rules/05-copy.md` | Interface text rules |
-| `.jig/tokens/brand.*.css` | Identity. One per project. |
-| `.jig/tokens/mode.*.css` | Density, scale, rhythm, motion |
+| `<css dir>/jig/brand.*.css` | Identity. One per project. |
+| `<css dir>/jig/mode.*.css` | Density, scale, rhythm, motion |
+| `<css dir>/jig/theme.css` | The barrel — brand + mode. This is what you import. |
 
 `rules/*` and `rules.index.json` live beside your installed skill file, not
 in the project — see above.
@@ -314,7 +353,8 @@ Drop this in the project root so mode selection does not require asking on every
 // jig.config.json
 {
   // Where the token layer lives. `init` writes the brand file here and puts
-  // the mode files beside it. Omit it and you get `.jig/tokens/`.
+  // the mode files beside it. Omit it and the layer follows your own
+  // layout — beside the stylesheet init wires, or the project root.
   "brand": "src/styles/jig/brand.acme.css",
 
   // One entry per surface. This outranks an agent's own reading of the
@@ -346,12 +386,56 @@ Without this file, follow the selection procedure in `rules/01-modes.md`: infer,
 
 ## Consuming tokens
 
+### Plain CSS, any framework
+
+One import, the barrel:
+
 ```css
-@import ".jig/tokens/brand.acme.css";   /* one per project */
-@import ".jig/tokens/mode.product.css"; /* one per surface  */
+@import "./jig/theme.css";
 ```
 
-Then `var(--color-text-strong)`, `var(--spacing-card)`, `var(--text-body)` in any framework. For Tailwind v4, wrap both imports in `@theme` to generate utilities. See `rules/02-tokens.md`.
+Then `var(--color-text-strong)`, `var(--spacing-card)`, `var(--text-body)`
+anywhere — plain CSS, CSS modules, styled-components, Vue, Svelte, Rails. They
+are ordinary custom properties and nothing takes a dependency on anything.
+
+### Tailwind v4
+
+The same import. Jig needs nothing from Tailwind and Tailwind needs nothing from
+Jig:
+
+```css
+@import "tailwindcss";
+@import "./jig/theme.css";
+```
+
+That is what `init` wires, and it is enough. Every token is readable as
+`var(--color-text-strong)` from any component.
+
+**Optionally**, Tailwind can also generate utility classes from the tokens —
+`p-card`, `rounded-surface`, `text-text-strong`. It only does that for names
+declared in a `@theme` block, so `init` offers to generate one:
+
+```css
+@import "tailwindcss";
+@import "./jig/utilities.css";   /* the generated @theme block */
+```
+
+`init` asks before writing it, because it changes how every component in the
+project is written and both styles are correct. Under `--yes` it declines and
+tells you how to get it.
+
+One set of utilities serves every mode: the utility references the variable
+rather than a resolved value, so whichever mode barrel a route loaded supplies
+it. No `dark:` variants, nothing per-mode.
+
+**Do not nest the import inside `@theme`.** Tailwind rejects it — *"@theme
+blocks must only contain custom properties or @keyframes"* — and Jig's tokens
+cannot move into one regardless, since they live in `:root` and are redeclared
+under `[data-theme="dark"]` and a `prefers-color-scheme` query. That structure
+is what makes dark mode work.
+
+Full detail, including why a duplicate declaration in the compiled CSS is
+correct and must not be "fixed": `rules/02-tokens.md`.
 
 ---
 
