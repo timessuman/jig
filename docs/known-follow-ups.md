@@ -237,7 +237,9 @@ planning a real build against the published package. Each was verified in the
 source rather than taken from the report that raised it._
 
 - **A section marked "not for the agent" is shipped to every agent, and one acted
-  on it.** `00-anti-patterns.md:528` opens `## Notes for the author (not for the
+  on it.** _Resolved: the section moved to `docs/house-positions.md`, which is
+  where notes addressed to the author belong. Verified against a real `npm pack`
+  that the shipped `00-anti-patterns.md` no longer contains it._ `00-anti-patterns.md:528` opens `## Notes for the author (not for the
   agent)`. It is in the published tarball and installs to
   `~/.claude/skills/jig/rules/`. A cold probe read it, quoted "bordered,
   low-radius, low-shadow surfaces" back as "the author's own notes... license to
@@ -264,10 +266,11 @@ source rather than taken from the report that raised it._
   `C-22` loses 16 lines, `E-94` 8, `D-69` 7. The text ships in the package and is
   unreachable through the command built to read it.
 
-- **The published package contains no changelog.** `packages/cli/package.json`
-  `files` lists `dist rules tokens templates references rules.index.json LICENSE
-  NOTICE README.md`. The repo carries 32KB of `CHANGELOG.md` that no consumer of
-  the package can see. One line in the `files` array.
+- **The published package contains no changelog.** _Resolved: `CHANGELOG.md` is
+  now staged at prepack and listed in `files`. It was two lines, not one — the
+  staging script and the `files` array have to change together, which the tarball
+  guard already enforced. Verified in a real `npm pack`: 20 files, changelog
+  present._
 
 ## From scaffolding the documentation site
 
