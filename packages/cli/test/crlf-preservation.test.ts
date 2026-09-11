@@ -62,8 +62,10 @@ it('refreshes a CRLF token file without flattening it to LF', async () => {
   // derives the brand file's name from the project, so it is never a match.
   const manifest = readInitManifest(project)!;
   const packaged = new Set(readdirSync(join(repoRoot, 'tokens')));
-  const key = Object.keys(manifest.files)
-    .find((k) => k.startsWith('.jig/tokens/') && packaged.has(k.split('/').pop()!));
+  // Located from the sidecar, not from a hardcoded directory: the token layer
+  // now follows the project's own layout, so `.jig/tokens/` is one possible
+  // answer rather than the answer.
+  const key = Object.keys(manifest.files).find((k) => packaged.has(k.split('/').pop()!));
   expect(key, 'no vendored token file that update would refresh — test is vacuous')
     .toBeDefined();
 

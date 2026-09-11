@@ -51,12 +51,12 @@ describe('init — writing', () => {
     writeFileSync(join(project, 'src', 'app.css'), ':root { --brand-color: #0F766E; }\n.button { color: red; }\n');
   });
 
-  it('writes the brand file at .jig/tokens/brand.<project>.css with the derived h/s/l and the vendor header', async () => {
+  it('writes the brand file beside the wired stylesheet, with the derived h/s/l and the vendor header with the derived h/s/l and the vendor header', async () => {
     const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
 
     expect(result.brand.action).toBe('written');
-    expect(result.brand.relPath).toBe('.jig/tokens/brand.storefront.css');
-    const abs = join(project, '.jig', 'tokens', 'brand.storefront.css');
+    expect(result.brand.relPath).toBe('src/jig/brand.storefront.css');
+    const abs = join(project, 'src', 'jig', 'brand.storefront.css');
     expect(existsSync(abs)).toBe(true);
     const content = readFileSync(abs, 'utf8');
     expect(content).toContain('Licensed Apache-2.0');
@@ -75,7 +75,7 @@ describe('init — writing', () => {
     const configPath = join(project, 'jig.config.json');
     expect(existsSync(configPath)).toBe(true);
     const config = JSON.parse(readFileSync(configPath, 'utf8'));
-    expect(config.brand).toBe('.jig/tokens/brand.storefront.css');
+    expect(config.brand).toBe('src/jig/brand.storefront.css');
     expect(config.brand).not.toContain('\\');
     expect(config.surfaces).toEqual([{ match: '/', mode: 'product' }]);
   });
@@ -83,7 +83,7 @@ describe('init — writing', () => {
   it('records both written files in the init sidecar (.jig/state.json) with forward-slash keys and real checksums', async () => {
     await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
     const sidecar = JSON.parse(readFileSync(join(project, '.jig', 'state.json'), 'utf8'));
-    expect(sidecar.files['.jig/tokens/brand.storefront.css']).toMatch(/^sha256:/);
+    expect(sidecar.files['src/jig/brand.storefront.css']).toMatch(/^sha256:/);
     expect(sidecar.files['jig.config.json']).toMatch(/^sha256:/);
     for (const key of Object.keys(sidecar.files)) expect(key).not.toContain('\\');
   });
@@ -105,13 +105,13 @@ describe('init — writing', () => {
     expect(importMatch).not.toBeNull();
 
     const resolved = resolve(dirname(join(project, 'src', 'app.css')), importMatch![1]);
-    expect(resolved).toBe(join(project, '.jig', 'tokens', 'brand.storefront.css'));
+    expect(resolved).toBe(join(project, 'src', 'jig', 'brand.storefront.css'));
     expect(existsSync(resolved)).toBe(true);
 
     const modeMatch = /@import "([^"]+mode\.product\.css)";/.exec(cssContent);
     expect(modeMatch).not.toBeNull();
     const modeResolved = resolve(dirname(join(project, 'src', 'app.css')), modeMatch![1]);
-    expect(modeResolved).toBe(join(project, '.jig', 'tokens', 'mode.product.css'));
+    expect(modeResolved).toBe(join(project, 'src', 'jig', 'mode.product.css'));
     expect(existsSync(modeResolved)).toBe(true);
   });
 
@@ -132,7 +132,7 @@ describe('init — writing', () => {
     const brandLine = result.wiring.snippet.split('\n').find((l) => l.includes('brand.storefront.css'))!;
     const m = /@import "([^"]+)"/.exec(brandLine)!;
     const resolved = resolve(project, m[1]);
-    expect(resolved).toBe(join(project, '.jig', 'tokens', 'brand.storefront.css'));
+    expect(resolved).toBe(join(project, 'src', 'jig', 'brand.storefront.css'));
 
     // Neither stylesheet was silently edited.
     expect(readFileSync(join(project, 'src', 'app.css'), 'utf8')).not.toContain('@import');
@@ -149,7 +149,7 @@ describe('init — writing', () => {
     rmSync(join(project, 'package.json'));
     const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
     const base = project.split('/').pop()!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    expect(result.brand.relPath).toBe(`.jig/tokens/brand.${base}.css`);
+    expect(result.brand.relPath).toBe(`src/jig/brand.${base}.css`);
   });
 
   // M4: the DEFAULT_PROPOSAL fallback (no colour found anywhere) is exactly
@@ -473,7 +473,7 @@ describe('init — global scope', () => {
 
     const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
 
-    expect(existsSync(join(project, '.jig', 'tokens', 'brand.globalapp.css'))).toBe(true);
+    expect(existsSync(join(project, 'src', 'jig', 'brand.globalapp.css'))).toBe(true);
     expect(existsSync(join(project, 'jig.config.json'))).toBe(true);
     // The real skill/reference-bundle manifest lives beside the skill file
     // under $HOME, untouched by init's own writes.
@@ -491,14 +491,14 @@ describe('init — global scope', () => {
     // .jig/tokens/, and the @import is project-relative — never pointing at
     // $HOME, which would resolve only on the machine that ran `init`.
     const resolved = resolve(dirname(join(project, 'src', 'app.css')), modeMatch[1]);
-    expect(resolved).toBe(join(project, '.jig', 'tokens', 'mode.product.css'));
+    expect(resolved).toBe(join(project, 'src', 'jig', 'mode.product.css'));
     expect(existsSync(resolved)).toBe(true);
     expect(resolved.startsWith(home)).toBe(false);
 
     // The copy is tracked in the init sidecar manifest, so a later `jig
     // update` can refresh it (see the companion fix in commands/update.ts).
     const sidecar = JSON.parse(readFileSync(join(project, '.jig', 'state.json'), 'utf8'));
-    expect(sidecar.files['.jig/tokens/mode.product.css']).toMatch(/^sha256:/);
+    expect(sidecar.files['src/jig/mode.product.css']).toMatch(/^sha256:/);
   });
 
   it('does not clobber a hand-edited copy of the mode file on a second run', async () => {
@@ -507,7 +507,7 @@ describe('init — global scope', () => {
     writeFileSync(join(project, 'src', 'app.css'), ':root { --brand-color: #0F766E; }\n');
 
     await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
-    const modePath = join(project, '.jig', 'tokens', 'mode.product.css');
+    const modePath = join(project, 'src', 'jig', 'mode.product.css');
     const edited = `${readFileSync(modePath, 'utf8')}\n:root { --my-own-var: 1; }\n`;
     writeFileSync(modePath, edited);
 
@@ -519,18 +519,18 @@ describe('init — global scope', () => {
 /** Every file `init` actually put on disk under `.jig/` plus `jig.config.json`
  *  at the project root — walked fresh each time rather than hardcoded, so
  *  this fails loudly if a future change adds an unexpected file. */
+/** What `init` recorded writing, from the sidecar itself.
+ *
+ *  This used to walk `.jig/` on the assumption that everything init wrote lived
+ *  there. Once the token layer follows the project's own layout that is no
+ *  longer true, and a walk of a fixed directory would silently find fewer files
+ *  and pass — the file-count guard reporting a smaller number than it was
+ *  written to catch. The sidecar is the authoritative list and does not move. */
 function initWrittenFiles(root: string): string[] {
-  const out: string[] = [];
-  const walk = (dir: string, prefix: string) => {
-    for (const name of readdirSync(dir)) {
-      const abs = join(dir, name);
-      if (statSync(abs).isDirectory()) walk(abs, `${prefix}${name}/`);
-      else out.push(`${prefix}${name}`);
-    }
-  };
-  if (existsSync(join(root, '.jig'))) walk(join(root, '.jig'), '.jig/');
-  if (existsSync(join(root, 'jig.config.json'))) out.push('jig.config.json');
-  return out.sort();
+  const statePath = join(root, '.jig', 'state.json');
+  if (!existsSync(statePath)) return [];
+  const state = JSON.parse(readFileSync(statePath, 'utf8')) as { files: Record<string, string> };
+  return [...Object.keys(state.files), '.jig/state.json'].sort();
 }
 
 // --- Target: 3 files for a single-mode project (brand.css, <mode>.css,
@@ -549,7 +549,7 @@ describe('init — file count (target: 3 files for a single-mode project)', () =
     const files = initWrittenFiles(project);
     const withoutState = files.filter((f) => f !== '.jig/state.json');
     expect(withoutState.sort()).toEqual(
-      ['.jig/tokens/brand.storefront.css', '.jig/tokens/mode.product.css', 'jig.config.json'].sort(),
+      ['src/jig/brand.storefront.css', 'src/jig/mode.product.css', 'jig.config.json'].sort(),
     );
     expect(withoutState).toHaveLength(3);
     // state.json exists too (it has to — it's what makes a safe re-run and
@@ -564,10 +564,10 @@ describe('init — file count (target: 3 files for a single-mode project)', () =
     };
     await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: NOOP_LOG });
 
-    expect(existsSync(join(project, '.jig', 'tokens', 'mode.editorial.css'))).toBe(true);
-    expect(existsSync(join(project, '.jig', 'tokens', 'mode.operator.css'))).toBe(true);
+    expect(existsSync(join(project, 'src', 'jig', 'mode.editorial.css'))).toBe(true);
+    expect(existsSync(join(project, 'src', 'jig', 'mode.operator.css'))).toBe(true);
     // 'product' was never declared — must not be copied.
-    expect(existsSync(join(project, '.jig', 'tokens', 'mode.product.css'))).toBe(false);
+    expect(existsSync(join(project, 'src', 'jig', 'mode.product.css'))).toBe(false);
 
     const sidecar = JSON.parse(readFileSync(join(project, '.jig', 'state.json'), 'utf8'));
     expect(sidecar.modes.sort()).toEqual(['editorial', 'operator']);
@@ -631,10 +631,11 @@ describe('config.brand decides where the brand file is written', () => {
     expect(css, 'still climbing out to the dotfolder').not.toContain('.jig/tokens');
   });
 
-  it('still defaults to .jig/tokens when the config says nothing', async () => {
+  it('falls back to the derived default when the config says nothing', async () => {
     await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
                  version: '0.5.0', yes: true, log: () => {} });
-    expect(existsSync(join(project, '.jig', 'tokens'))).toBe(true);
+    // No stylesheet in this fixture, so there is nothing to sit beside.
+    expect(existsSync(join(project, 'jig'))).toBe(true);
   });
 
   it('refuses a path that escapes the project', async () => {
@@ -648,5 +649,87 @@ describe('config.brand decides where the brand file is written', () => {
 
     expect(existsSync(join(project, '..', 'outside')), 'wrote outside the project').toBe(false);
     expect(lines.join('\n').toLowerCase()).toMatch(/outside|ignor|refus/);
+  });
+});
+
+/**
+ * Where the token layer goes when the config does not say.
+ *
+ * `.jig/tokens/` was a location that is right everywhere by being right
+ * nowhere: it is a tool dotdir holding product source, and from a stylesheet of
+ * any depth the import climbed out of the tree to reach it —
+ * `@import "../../../.jig/tokens/brand.acme.css"` in a Rails app.
+ *
+ * The default is now DERIVED from the project's own layout: a `jig/` directory
+ * beside the stylesheet `init` is about to wire. That makes the import
+ * `./jig/brand.acme.css` in every ecosystem, including ones nobody thought
+ * about while writing this, which is the actual test of framework-agnostic.
+ * `jig/` rather than `tokens/` so it cannot collide with a `tokens/` the
+ * project already has.
+ */
+describe('default token location follows the project', () => {
+  const initHere = (log: (l: string) => void = () => {}) =>
+    init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+           version: '0.6.0', yes: true, log });
+
+  it('lands beside the stylesheet it wires — Rails shape', async () => {
+    mkdirSync(join(project, 'app', 'assets', 'stylesheets'), { recursive: true });
+    writeFileSync(join(project, 'app/assets/stylesheets/application.css'), 'body{color:#333}\n');
+    await initHere();
+    expect(existsSync(join(project, 'app/assets/stylesheets/jig')), 'not beside the stylesheet').toBe(true);
+    expect(readFileSync(join(project, 'app/assets/stylesheets/application.css'), 'utf8'))
+      .toContain('@import "./jig/');
+  });
+
+  it('lands beside the stylesheet it wires — src/styles shape', async () => {
+    mkdirSync(join(project, 'src', 'styles'), { recursive: true });
+    writeFileSync(join(project, 'src/styles/global.css'), 'body{color:#333}\n');
+    await initHere();
+    expect(existsSync(join(project, 'src/styles/jig'))).toBe(true);
+  });
+
+  it('never climbs out of the tree to reach the tokens', async () => {
+    mkdirSync(join(project, 'a', 'b', 'c'), { recursive: true });
+    writeFileSync(join(project, 'a/b/c/main.css'), 'body{color:#333}\n');
+    await initHere();
+    expect(readFileSync(join(project, 'a/b/c/main.css'), 'utf8'),
+      'the import traverses upward').not.toContain('../');
+  });
+
+  it('falls back to a root jig/ when there is no stylesheet to follow', async () => {
+    await initHere();
+    expect(existsSync(join(project, 'jig')), 'no token directory at all').toBe(true);
+    expect(existsSync(join(project, '.jig', 'tokens')), 'still using the dotdir').toBe(false);
+  });
+
+  it('states where it put them', async () => {
+    mkdirSync(join(project, 'src', 'styles'), { recursive: true });
+    writeFileSync(join(project, 'src/styles/global.css'), 'body{color:#333}\n');
+    const lines: string[] = [];
+    await initHere((l) => lines.push(l));
+    expect(lines.join('\n')).toMatch(/src\/styles\/jig/);
+  });
+
+  it('keeps an existing .jig/tokens layout where it is, and says how to move it', async () => {
+    // Never relocate files on an upgrade: a project may import them from
+    // somewhere init did not write, and a silent move breaks that build.
+    mkdirSync(join(project, 'src', 'styles'), { recursive: true });
+    writeFileSync(join(project, 'src/styles/global.css'), 'body{color:#333}\n');
+    await initHere();                                  // new layout
+    rmSync(join(project, 'src/styles/jig'), { recursive: true, force: true });
+    mkdirSync(join(project, '.jig', 'tokens'), { recursive: true });
+
+    // Simulate a pre-0.6 install: state.json recording files under .jig/tokens/.
+    const statePath = join(project, '.jig', 'state.json');
+    writeFileSync(statePath, JSON.stringify({
+      version: '0.5.0', modes: ['product'],
+      files: { '.jig/tokens/brand.legacy.css': 'sha256:x' },
+    }));
+    writeFileSync(join(project, '.jig/tokens/brand.legacy.css'), ':root{}\n');
+
+    const lines: string[] = [];
+    await initHere((l) => lines.push(l));
+    expect(existsSync(join(project, '.jig/tokens/brand.legacy.css')), 'legacy file removed').toBe(true);
+    expect(lines.join('\n').toLowerCase()).toMatch(/jig\.config\.json/);
   });
 });
