@@ -229,3 +229,42 @@ _Recorded as `F11`, `F12` and `F13` in `RECONCILE.md`._
   but it means `init` derives nothing for what is likely the most common stack in
   new projects going forward. Highest-value follow-up from this review: add an
   `oklch()` branch to `extractColorComponents`.
+
+## From building the documentation site
+
+_Found by handing the rules to fresh agents that had never seen this repo, and by
+planning a real build against the published package. Each was verified in the
+source rather than taken from the report that raised it._
+
+- **A section marked "not for the agent" is shipped to every agent, and one acted
+  on it.** `00-anti-patterns.md:528` opens `## Notes for the author (not for the
+  agent)`. It is in the published tarball and installs to
+  `~/.claude/skills/jig/rules/`. A cold probe read it, quoted "bordered,
+  low-radius, low-shadow surfaces" back as "the author's own notes... license to
+  go tighter than the shared default", and halved the radius scale on that
+  authority. The label is not a mechanism. The section also addresses a stranger
+  in the second person — "your site's `#fafaf7`", "your taste", "your writing on
+  JS-dependent form fields" — and its `#fafaf7` is the same stale hex that was
+  fixed in `01-modes.md` and missed here. Either strip the section at pack time
+  or move it out of `rules/`.
+
+- **`A-01`'s "then ask" has no stated scope, and two agents split on it.** Given
+  the same brief and the same rules, one shipped the near-black default and
+  deferred the hue; the other proposed a colour and argued the proposal *was* the
+  ask. Both cited the skill's "if a rule conflicts with an explicit instruction in
+  the task, the task wins" clause to reach opposite conclusions. Tiebreaker 5
+  ("ship the plainer thing **and surface the question**") points the same way as
+  `A-01`, and was cited by the agent that did neither. The gap is real: neither
+  rule says what to do when the task explicitly asks for the decision the rule
+  says to defer.
+
+- **`jig explain` discards the prose after the correction.** `rules/parse.ts:37-41`
+  keeps only the first `❌` and the first `✅` line. **40 of 104 rules carry real
+  prose after their correction — 96 lines — that `jig explain` never shows.**
+  `C-22` loses 16 lines, `E-94` 8, `D-69` 7. The text ships in the package and is
+  unreachable through the command built to read it.
+
+- **The published package contains no changelog.** `packages/cli/package.json`
+  `files` lists `dist rules tokens templates references rules.index.json LICENSE
+  NOTICE README.md`. The repo carries 32KB of `CHANGELOG.md` that no consumer of
+  the package can see. One line in the `files` array.
