@@ -34,6 +34,10 @@ function renderRule(rule: LoadedRule): string {
   return [
     `${rule.id}  ${rule.title}`,
     '',
+    // Source order: what the rule leads with comes first. C-49's table sets up
+    // the distinction its pair then relies on, and reading them the other way
+    // round is reading the answer before the question.
+    ...(rule.preamble.length > 0 ? [...rule.preamble, ''] : []),
     `❌ ${rule.wrong}`,
     `✅ ${rule.correction}`,
     // The reasoning, where the rule carries any. This was dropped at the parser

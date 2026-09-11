@@ -17,6 +17,17 @@ export interface Rule {
    * it.
    */
   notes: string[];
+  /**
+   * Prose between the heading and the ❌, where a rule has any.
+   *
+   * `C-49` opens with two paragraphs and a three-row table distinguishing when
+   * a link needs colour, when it needs an underline, and when neither is
+   * required. Its pair alone says "keep the underline" and omits every case the
+   * table exists to draw. Collecting only what follows the correction looked
+   * like a complete fix because the rules carrying the MOST prose happen to
+   * carry it at the end.
+   */
+  preamble: string[];
   source: string;
 }
 
@@ -43,6 +54,7 @@ export function parseRules(markdown: string, sourceFile: string): Rule[] {
         wrong: '',
         correction: '',
         notes: [],
+        preamble: [],
         source: `${sourceFile}#${id.toLowerCase()}`,
       };
       continue;
@@ -62,12 +74,13 @@ export function parseRules(markdown: string, sourceFile: string): Rule[] {
       current.wrong = line.slice(1).trim();
     } else if (line.startsWith('✅') && !current.correction) {
       current.correction = line.slice(1).trim();
-    } else if (current.correction) {
-      // Everything after the correction is reasoning. Blank lines and `---`
-      // separators carry no information and would only make every excerpt
-      // ragged.
+    } else {
+      // Before the ❌ it is preamble, after the ✅ it is reasoning. Blank lines
+      // and `---` separators carry no information and would only make every
+      // excerpt ragged.
       const text = line.trim();
-      if (text && !/^-{3,}$/.test(text)) current.notes.push(text);
+      if (!text || /^-{3,}$/.test(text)) continue;
+      (current.correction ? current.notes : current.preamble).push(text);
     }
   }
   push();
