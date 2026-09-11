@@ -3,10 +3,12 @@
 /rules/
 /tokens/
 /templates/
+/references/
 /rules.index.json
 /LICENSE
 /NOTICE
 /README.md
+/CHANGELOG.md
 
 # Harness installs written by running the CLI from inside this package during
 # manual verification. Never source — one such run committed 65 files.
