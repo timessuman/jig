@@ -131,14 +131,54 @@ function floorFor(token: string): number | null {
   return null;
 }
 
-export function auditTokenLayer(projectRoot: string): TokenProblem[] {
-  const dir = join(projectRoot, '.jig', 'tokens');
-  if (!existsSync(dir)) return [];
+/**
+ * The token layer's CSS files, wherever this project keeps them.
+ *
+ * Located from `.jig/state.json`, which records every file `init` wrote, rather
+ * than from a fixed directory. This read `.jig/tokens/` directly for exactly as
+ * long as that was the only possible answer — and the moment the token layer
+ * began following the project's own layout, it found nothing and reported
+ * nothing. A check that goes quiet when its subject moves is worse than one
+ * that was never written, because the silence reads as a pass.
+ *
+ * `.jig/tokens/` remains the fallback for a project that has a token layer but
+ * no sidecar — one vendored by hand, or by a version that predates it.
+ */
+function tokenFiles(projectRoot: string): Array<{ path: string; source: string }> {
+  const read = (rel: string) => {
+    try {
+      return readFileSync(join(projectRoot, ...rel.split('/')), 'utf8');
+    } catch {
+      return null;
+    }
+  };
 
-  const files = readdirSync(dir)
+  const statePath = join(projectRoot, '.jig', 'state.json');
+  if (existsSync(statePath)) {
+    try {
+      const state = JSON.parse(readFileSync(statePath, 'utf8')) as { files?: Record<string, string> };
+      const recorded = Object.keys(state.files ?? {})
+        .filter((f) => f.endsWith('.css'))
+        .sort();
+      const out = recorded
+        .map((path) => ({ path, source: read(path) }))
+        .filter((f): f is { path: string; source: string } => f.source !== null);
+      if (out.length > 0) return out;
+    } catch {
+      // fall through to the legacy directory
+    }
+  }
+
+  const legacy = join(projectRoot, '.jig', 'tokens');
+  if (!existsSync(legacy)) return [];
+  return readdirSync(legacy)
     .filter((f) => f.endsWith('.css'))
     .sort()
-    .map((f) => ({ path: join('.jig', 'tokens', f), source: readFileSync(join(dir, f), 'utf8') }));
+    .map((f) => ({ path: `.jig/tokens/${f}`, source: readFileSync(join(legacy, f), 'utf8') }));
+}
+
+export function auditTokenLayer(projectRoot: string): TokenProblem[] {
+  const files = tokenFiles(projectRoot);
   if (files.length === 0) return [];
 
   const scopes = collectScopes(files);
