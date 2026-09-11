@@ -194,6 +194,21 @@ function loadEffectiveConfig(
   }
 }
 
+/** The surfaces a `jig.config.json` declares, or `null` when there is no
+ *  config, it does not parse, or its `surfaces` are not valid. Separate from
+ *  `loadEffectiveConfig` because the log needs this BEFORE the brand path is
+ *  resolvable, and because "the user declared nothing" and "the user declared
+ *  something unusable" must not both silently read as the default. */
+function readConfiguredSurfaces(configAbsPath: string): Surface[] | null {
+  if (!existsSync(configAbsPath)) return null;
+  try {
+    const parsed = JSON.parse(readFileSync(configAbsPath, 'utf8')) as { surfaces?: unknown };
+    return isValidSurfaceArray(parsed.surfaces) ? parsed.surfaces : null;
+  } catch {
+    return null;
+  }
+}
+
 /** I4: a `*.module.css`/`*.module.scss` file is scoped per-component by its
  *  build tooling — a `:root`-level token import written into one is dead on
  *  arrival everywhere except that one component. Excluded here so it can
@@ -405,11 +420,22 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   // to reverse". The brand colour already states its default and why; the mode
   // is the more consequential of the two and said nothing.
   if (opts.yes) {
+    // Report what is ACTUALLY in effect, not the variable this function
+    // happens to hold. An existing jig.config.json wins — `loadEffectiveConfig`
+    // reads it later and the mode files are written from it — so logging
+    // `surfaces` here announced a default that was about to be ignored. Someone
+    // who had gone to the trouble of declaring three surfaces was told their
+    // config had not been read.
+    const declared = readConfiguredSurfaces(join(opts.projectRoot, 'jig.config.json'));
+    const inEffect = declared ?? surfaces;
+    const map = inEffect.map((x) => `'${x.match}' → ${x.mode}`).join(', ');
     log(
-      `Surface → mode: ${surfaces.map((s) => `'${s.match}' → ${s.mode}`).join(', ')} — the default, ` +
-        `not inferred from this project. Mode sets density, type scale and control sizes, and it ` +
-        `wins over an agent's own inference, so change it in jig.config.json if another mode fits ` +
-        `(${MODES.join('/')}).`,
+      declared
+        ? `Surface → mode: ${map} — from jig.config.json. Mode sets density, type scale and ` +
+            `control sizes, and it outranks an agent's own reading of the project.`
+        : `Surface → mode: ${map} — the default, not inferred from this project. Mode sets ` +
+            `density, type scale and control sizes, and it wins over an agent's own inference, ` +
+            `so change it in jig.config.json if another mode fits (${MODES.join('/')}).`,
     );
   }
 
