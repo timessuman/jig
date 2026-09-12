@@ -9,3 +9,5 @@ dist/
 # Never committed: it is not ours to redistribute, and it is 29MB.
 nooon.pdf
 *.pdf
+
+graphify-out/
