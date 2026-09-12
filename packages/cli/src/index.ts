@@ -117,7 +117,13 @@ program
 program
   .command('check')
   .description("Check the repo against Jig's mechanical + hybrid rules.")
-  .option('--all', 'check the whole repo instead of just changed files', false)
+  .option(
+    '--all',
+    // Names the files, because the default scope surprised a user who read
+    // this as widening the RULES and attested a clean diff as a clean project.
+    'scan every file in the repo, not just those changed since HEAD (same rules either way)',
+    false,
+  )
   .option('--ci', 'mechanical bucket only; exits non-zero on any error, deterministic', false)
   .option('--json', 'emit findings as JSON', false)
   .action((opts: { all: boolean; ci: boolean; json: boolean }) => {

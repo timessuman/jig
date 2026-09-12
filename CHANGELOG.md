@@ -1,5 +1,84 @@
 # Changelog
 
+## 0.8.2
+
+Every fix here was found by a consumer using Jig rather than by Jig checking
+itself: the documentation site was upgraded to 0.8.1 and then styled in
+Tailwind, which is the first time Jig's Tailwind guidance had been followed
+end to end by anything other than its own tests.
+
+Three of the four are the same shape — two places answering one question, and
+disagreeing without either knowing the other existed.
+
+### Fixed
+
+- **`H-47` read a value differently depending on how it was spelled.**
+  `00-anti-patterns.md:11` sets the scope of the whole rule file: "**Framework:**
+  agnostic. […] Where a utility-class framework is in use, translate — the rule
+  is about the resulting style, not the syntax." The detector was the exact
+  inverse, in both directions at once. Its CSS branch matched `px` alone and
+  excluded `0/1px/2px`; its Tailwind branch matched ten units and excluded
+  nothing. So `font-size: 0.9em` was silent while `text-[0.9em]` was an error,
+  and `p-[1px]` was an error while `padding: 1px` was not.
+
+  A project on plain CSS got a clean `check` for code a Tailwind project got
+  eight errors for. Found by converting a real stylesheet to utilities without
+  changing one computed value and watching the report go from `No findings` to
+  eight; the two declarations responsible had been in that file since it was
+  written and had never been flagged. Both branches now read one definition.
+
+  **This widens what `check` reports.** A stylesheet carrying `1rem` or `0.9em`
+  past the token layer was always an H-47 violation and is now reported as one,
+  so a repo that was clean under 0.8.1 can have findings here without its CSS
+  having moved.
+
+- **The naming contract named namespaces Tailwind does not have.**
+  `02-tokens.md` opened with "an alias block can expose **any of them** as
+  Tailwind utilities" over a table of thirteen. Three generate nothing in
+  Tailwind v4 — `--duration-*`, `--measure-*` and `--focus-ring-*` — and
+  `--duration-*` shared a row with `--ease-*`, so only half of that row worked.
+  Aliasing one is accepted, emits the custom property, and produces no rule, so
+  the class lands on the element and does nothing: the same silent failure the
+  file warns about 190 lines later, reached from the opposite direction. The
+  table now carries a **Utility** column, and the three say how to be read from
+  a class instead — `max-w-(--measure-prose)`, which keeps the semantic token
+  and satisfies `H-47` without going through `@theme`.
+
+  `init`'s own generator was wrong in both directions. It correctly filtered
+  `--measure-*` and `--focus-ring-*`, and it also filtered `--size-*` and
+  `--border-width-*`, which both generate working utilities — `size-control`
+  sets width and height, `border-hairline` sets a border width. Jig was
+  withholding correct aliases for its own tokens, and a test asserted that as
+  correct, which is how it survived.
+
+- **`check` did not say which files it had looked at.** It defaults to the
+  files changed since HEAD and falls back to the whole repo when that diff is
+  empty. Nothing in the output said so, so the same repo reported `files=31` on
+  a clean tree and `files=9` with nine files touched, minutes apart, with
+  nothing committed — and a consumer bisected it by reverting files one at a
+  time to find out why.
+
+  Worse, `mechanical=pass:0` on a dirty tree means "nothing in your diff
+  fired", not "the project is clean", and the skill tells an agent to run
+  `check` before finishing — exactly when the tree is dirty and the scope is
+  narrowest. The exempt line compounded it: `src/content/rules.ts (matches
+  nothing — check the path)` was printed for a path that exists, is tracked,
+  and had matched a file on the previous run. The glob was fine; it matched
+  nothing *within the narrowed set*, and "check the path" sends you to debug a
+  correct config.
+
+  The summary now names the scope, a narrowed run says a clean result is not a
+  clean project, the exempt note distinguishes "no such path" from "not in this
+  scan", and `--all`'s help says it widens the files rather than the rules —
+  which is how it had been read.
+
+- **A flag written across two lines vanished from the metadata guard.**
+  `registeredFlags` read `src/index.ts` line by line and required the flag
+  string to sit on the same line as `.option(`, so reformatting one option to
+  fit a longer description dropped `--all` from the parsed set and from every
+  guard built on it. Caught by its own canary the moment an option wrapped.
+
+
 ## 0.8.1
 
 Both fixes here are the same shape: 0.8.0 corrected the instance it was looking

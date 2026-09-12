@@ -89,3 +89,13 @@ check that never inspected anything.
 
 A skipped check must say `skipped` and give the reason. Do not report `ran` for
 a check you did not perform.
+
+**`files=` and `styled=` describe a scope, and the scope is not fixed.**
+`jig check` defaults to the files changed since HEAD and falls back to the
+whole repo only when that diff is empty. So the same project reports a
+different `files=` before and after a commit with nothing else having moved,
+and two `JIG_CHECK:` lines are comparable only when both runs had the same
+scope. Run `jig check --all` for a number that describes the project rather
+than your diff — `--all` widens the files, not the rules. A narrowed run says
+so in its own output; attest from what it printed, not from what you assumed
+it looked at.

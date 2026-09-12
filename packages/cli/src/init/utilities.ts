@@ -16,12 +16,25 @@
 /**
  * Tailwind v4's theme namespaces, as of 4.3.
  *
- * Only these prefixes generate utilities. Jig declares several token families
- * Tailwind has no namespace for — `--size-*`, `--measure-*`, `--focus-ring-*`,
- * `--border-width-*`, `--opacity-*` — and aliasing one of those emits a
- * declaration that generates nothing at all. Including them would reproduce
- * exactly the silent failure this file exists to prevent, so they are filtered
- * out rather than passed through hopefully.
+ * Only these prefixes generate utilities. Jig declares token families Tailwind
+ * has no namespace for — `--measure-*`, `--focus-ring-*`, `--duration-*`,
+ * `--opacity-*`, and the `--grid-*` a mode file may add — and aliasing one of
+ * those emits a declaration that generates nothing at all. Including them
+ * reproduces exactly the silent failure this file exists to prevent, so they
+ * are filtered out rather than passed through hopefully.
+ *
+ * This list was wrong in the other direction too, which is the more expensive
+ * way to be wrong: `--size-*` and `--border-width-*` were filtered out as
+ * having no namespace, and both generate utilities — `size-control` sets width
+ * and height, `border-hairline` sets border-width. A consumer wanting them had
+ * to hand-write an alias for tokens Jig had decided, incorrectly, that Tailwind
+ * could not express.
+ *
+ * Established by compiling one alias per namespace against `tailwindcss@4.3.3`
+ * and reading the generated rules. Probe with a DISTINCT token name per
+ * namespace if you re-check: `text-*`, `border-*`, `outline-*` and `max-w-*`
+ * each read more than one namespace, so a shared suffix lets a colour alias
+ * masquerade as proof that four other namespaces work.
  */
 const TAILWIND_NAMESPACES = [
   '--color-',
@@ -42,6 +55,8 @@ const TAILWIND_NAMESPACES = [
   '--aspect-',
   '--ease-',
   '--animate-',
+  '--size-',
+  '--border-width-',
 ];
 
 /** The subset of `names` Tailwind can turn into utilities, deduplicated and
@@ -93,8 +108,10 @@ export function utilitiesBody(names: string[], version: string): string {
    order, so Jig's value always wins. Do not "fix" it — deleting the alias
    removes the utility, deleting Jig's removes the value.
 
-   Only tokens in a Tailwind namespace are listed. \`--size-*\`, \`--measure-*\`,
-   \`--focus-ring-*\` and \`--border-width-*\` have none, so they stay \`var()\`-only.
+   Only tokens in a Tailwind namespace are listed. \`--measure-*\`, \`--focus-ring-*\`
+   and \`--duration-*\` have none, so they stay \`var()\`-only — read them from a class
+   with Tailwind's custom-property form instead: \`max-w-(--measure-prose)\`,
+   \`duration-(--duration-fast)\`.
 
    Regenerate with \`jig init\` after the token layer changes; a token missing here
    is a class that renders and matches nothing. */

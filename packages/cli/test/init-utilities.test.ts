@@ -20,7 +20,13 @@ describe('which tokens can become utilities', () => {
     // Aliasing these emits a declaration and generates NOTHING, which is the
     // same silent failure the block exists to prevent — so they are excluded
     // rather than passed through.
-    expect(tailwindNamespaced(['--size-touch-target', '--measure-prose', '--focus-ring-width']))
+    //
+    // `--size-touch-target` used to be asserted here, and that was wrong:
+    // `--size-*` is a real namespace and `size-touch-target` compiles to a
+    // width/height rule. This test pinned the mistake in place, which is how it
+    // survived — see the allowlist test at the bottom of this file for the
+    // compiled evidence.
+    expect(tailwindNamespaced(['--measure-prose', '--focus-ring-width', '--duration-fast']))
       .toEqual([]);
   });
 
@@ -145,5 +151,50 @@ describe('init and the Tailwind alias block', () => {
     let asked = false;
     await run({ yes: false, prompt: async (q: string) => { if (/Generate it/.test(q)) asked = true; return ''; } });
     expect(asked, 'init offered a Tailwind block to a project with no Tailwind').toBe(false);
+  });
+});
+
+/**
+ * The namespace allowlist is a claim about Tailwind, and it was wrong both ways.
+ *
+ * `--measure-*` and `--focus-ring-*` were correctly excluded; `--duration-*`
+ * was too. But `--size-*` and `--border-width-*` were excluded as having "no
+ * namespace" when both generate utilities, so Jig withheld working aliases for
+ * its own tokens and a consumer had to hand-write them.
+ *
+ * Established by compiling one alias per namespace against `tailwindcss@4.3.3`
+ * and reading the output:
+ *
+ *   --size-sz         → .size-sz   { width: 29px; height: 29px }
+ *   --border-width-bw → .border-bw { border-width: 3px }
+ *   --duration-du     → nothing
+ *   --measure-ms      → nothing
+ *   --focus-ring-fr   → nothing
+ *
+ * Probe with a distinct token name per namespace when re-checking this:
+ * `text-*`, `border-*`, `outline-*` and `max-w-*` each read more than one
+ * namespace, so a shared suffix makes a colour alias look like proof for four
+ * other namespaces. That mistake was made while verifying this very fix.
+ */
+describe('the Tailwind namespace allowlist matches what Tailwind generates', () => {
+  const generates = ['--size-control', '--border-width-hairline', '--color-text-strong',
+                     '--spacing-card', '--radius-surface', '--ease-out'];
+  const doesNot = ['--measure-prose', '--focus-ring-width', '--duration-fast',
+                   '--grid-gutter', '--opacity-disabled'];
+
+  it('keeps every namespace that produces a utility', () => {
+    expect(tailwindNamespaced(generates).sort()).toEqual([...generates].sort());
+  });
+
+  it('drops every token family with no utility behind it', () => {
+    expect(tailwindNamespaced(doesNot)).toEqual([]);
+  });
+
+  it('sorts a mixed list without losing the keepers', () => {
+    // Guard the guard: if the filter returned everything, the first test would
+    // pass and the second would fail; if it returned nothing, the reverse. This
+    // pins both halves against one input.
+    const mixed = [...generates, ...doesNot];
+    expect(tailwindNamespaced(mixed).sort()).toEqual([...generates].sort());
   });
 });

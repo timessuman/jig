@@ -252,6 +252,7 @@ export function check(opts: CheckOptions): CheckResult {
     withStyles,
     exempt,
     exemptPatterns: byPattern,
+    scope: selection.mode,
   });
 
   return { findings, report, hasError };

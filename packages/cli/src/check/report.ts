@@ -49,6 +49,19 @@ export interface ReportMeta {
    */
   scanned?: number;
   withStyles?: number;
+  /**
+   * Which population `scanned` describes.
+   *
+   * `check` defaults to the working-tree diff and falls back to the whole repo
+   * when that diff is empty — so on a clean tree it reads like a full scan, and
+   * on a dirty tree the same repo reports a different `files=` minutes later
+   * with nothing committed. Nothing said so. Two consequences, both found by a
+   * consumer rather than by us: `mechanical=pass:0` before a commit means
+   * "nothing in the diff fired", not "the project is clean"; and an exemption
+   * that matched nothing was told to "check the path" when the path was right
+   * and merely outside the narrowed set.
+   */
+  scope?: 'changed' | 'all';
 }
 
 /** Rows beyond this many, for one rule in one file, collapse into a count.
@@ -138,10 +151,15 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
   const scope = meta.totalSpecs
     ? `${meta.totalRules} rules (+ ${meta.totalSpecs} pattern and mode specs)`
     : `${meta.totalRules} rules`;
+  // The scope is part of the number, not a footnote to it. `31 files` and
+  // `9 files` from the same tree are both true and describe different
+  // populations; a reader comparing two runs has no other way to know that.
   const examined =
     meta.scanned === undefined
       ? ''
-      : ` · ${plural(meta.scanned, 'file')}, ${meta.withStyles ?? 0} with styles`;
+      : ` · ${plural(meta.scanned, 'file')}${
+          meta.scope === 'changed' ? ' changed since HEAD' : ''
+        }, ${meta.withStyles ?? 0} with styles`;
   lines.push(`  ${summaryParts.join(', ')} · ${scope}${examined}, ${rulesFired} fired`);
 
   // A run that inspected nothing must not read like a run that found nothing.
@@ -154,6 +172,16 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     );
   }
 
+  // A narrowed run must not be attested from as though it were a full one.
+  if (meta.scope === 'changed') {
+    lines.push('');
+    lines.push(
+      `  Scope: files changed since HEAD, not the whole project — this is the ` +
+        `inner-loop default. A clean result here means nothing in your diff fired, ` +
+        `not that the project is clean. Run 'jig check --all' for that.`,
+    );
+  }
+
   if (meta.exemptPatterns && meta.exemptPatterns.length > 0) {
     const n = meta.exempt?.length ?? 0;
     lines.push(`  ${n} file(s) exempt via jig.config.json and not scanned:`);
@@ -161,8 +189,13 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
       // The PATTERN leads. Naming only the files told you what had been excused
       // and never which rule excused it — and a pattern excusing thirty files
       // is precisely the one you need to see.
+      // "check the path" is wrong advice when the scan was narrowed: the glob
+      // is fine and simply matched nothing among the changed files. It sent a
+      // user to debug a working config.
       const note = count === 0
-        ? 'matches nothing — check the path'
+        ? meta.scope === 'changed'
+          ? 'matches nothing among the changed files — not necessarily wrong'
+          : 'matches nothing — check the path'
         : tooBroad
           ? `${count} files — likely too broad, review it`
           : `${count} file${count > 1 ? 's' : ''}`;

@@ -34,25 +34,31 @@ export function commandMetadata(): Record<
  * Every long flag each command registers, read out of `src/index.ts` the same
  * way and for the same reason.
  *
- * `.option('--list', ...)` lines are attributed to the nearest preceding
+ * `.option('--list', ...)` is attributed to the nearest preceding
  * `.command('x')`, which is exactly how commander scopes them.
+ *
+ * Scanned over the whole source rather than line by line. The line-based
+ * version required the flag string to sit on the same line as `.option(`, so
+ * reformatting one option across several lines — to fit a longer description,
+ * or to add a comment above it — silently dropped that flag from the metadata
+ * and from every guard built on it. A flag can go missing here without anyone
+ * touching a flag, which is the failure this helper exists to prevent.
  */
 export function registeredFlags(): Record<string, string[]> {
   const src = readFileSync(join(repoRoot, 'packages/cli/src/index.ts'), 'utf8');
   const out: Record<string, string[]> = {};
   let current: string | null = null;
-  for (const line of src.split('\n')) {
-    const cmd = /^\s*\.command\('([a-z-]+)'\)/.exec(line);
-    if (cmd) {
-      current = cmd[1];
+  // One pass, both token shapes, in source order — `\s*` spans newlines, so the
+  // argument may sit on its own line.
+  const TOKEN = /\.command\(\s*'([a-z-]+)'\s*\)|\.option\(\s*'([^']*)'/g;
+  for (const m of src.matchAll(TOKEN)) {
+    if (m[1] !== undefined) {
+      current = m[1];
       out[current] ??= [];
       continue;
     }
     if (!current) continue;
-    const opt = /^\s*\.option\(\s*'([^']*)'/.exec(line);
-    if (opt) {
-      for (const m of opt[1].matchAll(/--[a-z][a-z-]*/g)) out[current].push(m[0]);
-    }
+    for (const flag of m[2].matchAll(/--[a-z][a-z-]*/g)) out[current].push(flag[0]);
   }
   return out;
 }

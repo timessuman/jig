@@ -95,3 +95,62 @@ describe('the report says what it looked at', () => {
     expect(out).toMatch(/JIG_CHECK:.*styled=4/);
   });
 });
+
+/**
+ * A narrowed run must not read like a full one.
+ *
+ * `check` defaults to the files changed since HEAD and falls back to the whole
+ * repo when that diff is empty, so `files=` describes a different population
+ * depending on whether the tree is dirty — and nothing in the output said so.
+ * A consumer compared two `JIG_CHECK:` lines from the same repo, saw three of
+ * six fields move with nothing committed, and had to bisect by reverting files
+ * one at a time to work out why.
+ */
+describe('the report states which population it scanned', () => {
+  const base = { totalRules: 104, version: '0.8.2', scanned: 9, withStyles: 3 };
+
+  it('names the scope in the summary when the run was narrowed', () => {
+    const out = formatReport([], { ...base, scope: 'changed' as const });
+    expect(out).toContain('9 files changed since HEAD');
+    expect(out).toContain("jig check --all");
+  });
+
+  it('says a clean narrowed run is not a clean project', () => {
+    const out = formatReport([], { ...base, scope: 'changed' as const });
+    expect(out).toMatch(/nothing in your diff fired, not that the project is clean/);
+  });
+
+  it('does not add the caveat to a whole-repo run', () => {
+    const out = formatReport([], { ...base, scope: 'all' as const });
+    expect(out).toContain('9 files, 3 with styles');
+    expect(out).not.toContain('changed since HEAD');
+    expect(out).not.toMatch(/not that the project is clean/);
+  });
+
+  /**
+   * The exempt note is advice, and on a narrowed run it was wrong advice:
+   * a correct, tracked path that matched nothing among the changed files was
+   * reported as a path to go and debug.
+   */
+  it('does not tell you to check a path that is fine, on a narrowed run', () => {
+    const out = formatReport([], {
+      ...base,
+      scope: 'changed' as const,
+      exempt: [],
+      exemptPatterns: [{ pattern: 'src/content/rules.ts', count: 0, tooBroad: false }],
+    });
+    expect(out).toContain('matches nothing among the changed files');
+    expect(out).not.toContain('check the path');
+  });
+
+  it('still says check the path when the whole repo was scanned', () => {
+    const out = formatReport([], {
+      ...base,
+      scope: 'all' as const,
+      exempt: [],
+      exemptPatterns: [{ pattern: 'src/typo.ts', count: 0, tooBroad: false }],
+    });
+    // Here the advice is right: nothing in the repo matches, so the glob is wrong.
+    expect(out).toContain('check the path');
+  });
+});

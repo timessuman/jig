@@ -1,3 +1,5 @@
+import { LENGTH_RE, isExcludedLength } from './length.js';
+
 /**
  * Values written into class attributes, where they are not CSS and no amount of
  * style extraction will find them.
@@ -100,7 +102,12 @@ export interface ArbitraryValue {
  */
 const ARBITRARY = /(?:^|\s)(?:[\w-]+:)*([a-z][\w-]*)-\[([^\]\s]+)\]/gi;
 const COLOUR = /^(?:#[0-9a-f]{3,8}|(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\()/i;
-const LENGTH = /^-?\d*\.?\d+(?:px|rem|em|pt|vh|vw|vmin|vmax|ch|ex)$/i;
+// Which units count, and which values are too small to be a design decision,
+// are H-47's answer and not Tailwind's — so both come from `length.ts`, which
+// the CSS branch of the same detector reads. `p-[1px]` was a finding while
+// `padding: 1px` was not, for the same reason in reverse.
+const LENGTH_PARTS = /^(-?\d*\.?\d+)([a-z]+)$/i;
+
 
 export function arbitraryValues(classes: string): ArbitraryValue[] {
   const out: ArbitraryValue[] = [];
@@ -109,8 +116,14 @@ export function arbitraryValues(classes: string): ArbitraryValue[] {
     // Tailwind writes spaces as underscores inside brackets.
     const value = rawValue.replace(/_/g, ' ');
     if (/var\(|--/.test(value)) continue;
-    if (COLOUR.test(value)) out.push({ utility, value, kind: 'colour' });
-    else if (LENGTH.test(value)) out.push({ utility, value, kind: 'length' });
+    if (COLOUR.test(value)) {
+      out.push({ utility, value, kind: 'colour' });
+      continue;
+    }
+    if (!LENGTH_RE.test(value)) continue;
+    const parts = LENGTH_PARTS.exec(value)!;
+    if (isExcludedLength(parseFloat(parts[1]), parts[2])) continue;
+    out.push({ utility, value, kind: 'length' });
   }
   return out;
 }
