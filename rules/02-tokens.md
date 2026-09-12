@@ -281,23 +281,32 @@ Resist per-component tokens (`--button-bg`). They multiply fast and rarely earn 
 
 ## Naming contract
 
-Names align to Tailwind v4's theme namespaces. This is free for other frameworks — they are ordinary custom properties — and means an alias block can expose any of them as Tailwind utilities without any framework taking a dependency on Tailwind.
+Names align to Tailwind v4's theme namespaces. This is free for other frameworks — they are ordinary custom properties — and means most of them can be exposed as Tailwind utilities through an alias block, without any framework taking a dependency on Tailwind.
 
-| Namespace | Holds | Layer |
-| --- | --- | --- |
-| `--color-*` | All colour | brand |
-| `--font-*` | Font families | brand |
-| `--text-*` | Font sizes | mode |
-| `--leading-*` | Line heights | mode |
-| `--tracking-*` | Letter spacing | mode |
-| `--spacing-*` | Spacing values | mode |
-| `--radius-*` | Corner radii | brand scale, mode selection |
-| `--border-width-*` | Stroke widths | brand options, mode selection |
-| `--focus-ring-*` | Focus indicator geometry | brand — an accessibility floor, so not mode-negotiable |
-| `--shadow-*` | Elevation | brand |
-| `--duration-*`, `--ease-*` | Motion | mode |
-| `--size-*` | Control and row heights | mode |
-| `--measure-*` | Line length caps | mode |
+**Most, not all.** Three of the namespaces below are Jig's own and have no utility behind them in Tailwind v4 — the **Utility** column says which. Aliasing one is accepted silently, emits the custom property, and generates no rule, so the class lands on the element and does nothing. That is the same silent failure this file warns about under [Optional: Tailwind utility classes](#optional-tailwind-utility-classes), reached from the other direction: there the alias is missing, here the alias is present and the utility does not exist.
+
+| Namespace | Holds | Layer | Utility |
+| --- | --- | --- | --- |
+| `--color-*` | All colour | brand | yes |
+| `--font-*` | Font families | brand | yes |
+| `--text-*` | Font sizes | mode | yes |
+| `--leading-*` | Line heights | mode | yes |
+| `--tracking-*` | Letter spacing | mode | yes |
+| `--spacing-*` | Spacing values | mode | yes |
+| `--radius-*` | Corner radii | brand scale, mode selection | yes |
+| `--border-width-*` | Stroke widths | brand options, mode selection | yes |
+| `--focus-ring-*` | Focus indicator geometry | brand — an accessibility floor, so not mode-negotiable | **no** |
+| `--shadow-*` | Elevation | brand | yes |
+| `--ease-*` | Motion easing | mode | yes |
+| `--duration-*` | Motion duration | mode | **no** |
+| `--size-*` | Control and row heights | mode | yes |
+| `--measure-*` | Line length caps | mode | **no** |
+
+`--duration-*` and `--ease-*` had one row between them and only one half of it works, which is why they are separated here.
+
+**Reading a `no` token from a class.** Use Tailwind's custom-property value form, which needs no alias and keeps the semantic name: `max-w-(--measure-prose)`, `duration-(--duration-fast)`, `outline-(--focus-ring-width)`. That satisfies `H-47` — the value is still the token — it simply does not route through `@theme`. The same form covers any token a mode file adds that has no namespace at all, such as the `--grid-*` values.
+
+Verified by compiling one alias per namespace against `tailwindcss@4.3.3` and reading the output. Probe each namespace with a *distinct* token name if you re-check this: `text-*`, `border-*`, `outline-*` and `max-w-*` each read more than one namespace, so a shared suffix makes a colour alias look like proof that four other namespaces work.
 
 **Rules**
 1. Semantic names only at the point of use. `--color-text-strong`, not `--color-neutral-900`, in component code. Primitives exist to build semantics, not to be consumed directly.
