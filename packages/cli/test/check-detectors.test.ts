@@ -394,3 +394,71 @@ describe('the token-layer skip is scoped to the token layer', () => {
     }
   });
 });
+
+/**
+ * H-47 must reach the same verdict for a value however it is spelled.
+ *
+ * `00-anti-patterns.md:11` sets the scope of the whole rule file: "**Framework:**
+ * agnostic. […] Where a utility-class framework is in use, translate — the rule
+ * is about the resulting style, not the syntax." The detector was the inverse.
+ * Two branches answered "is this a hard-coded length" independently: the CSS one
+ * matched `px` alone, the Tailwind one matched ten units and excluded nothing.
+ * So `font-size: 0.9em` was silent while `text-[0.9em]` was an error, and
+ * `p-[1px]` was an error while `padding: 1px` was not.
+ *
+ * A table, not a pair of examples. The defect was that the two answers could
+ * drift apart at all, so the test asserts they agree — adding a unit to one
+ * branch and not the other fails here rather than shipping.
+ */
+describe('H-47 reads a value the same way in CSS and in a class attribute', () => {
+  const tokens = { 'color-brand': '#000', 'spacing-m': '24px' };
+
+  /** `prop: value` inside an adopted stylesheet. */
+  const inCss = (prop: string, value: string) => {
+    const src = `.a { color: var(--color-brand); }\n.b { ${prop}: ${value}; }\n`;
+    return hardcodedValue.run(src, 'a.css', ctx('H-47', 'mechanical', 'error', tokens)).length;
+  };
+
+  /** The same value as a Tailwind arbitrary utility, in markup. */
+  const inClass = (utility: string, value: string) => {
+    const raw = `<div class="${utility}-[${value}]">x</div>`;
+    const c: DetectorContext = {
+      ...ctx('H-47', 'mechanical', 'error', tokens, true),
+      raw,
+    };
+    return hardcodedValue.run('', 'a.astro', c).length;
+  };
+
+  const cases: Array<[string, string, string, boolean]> = [
+    // value      css prop     utility  expected to be a finding
+    ['0.9em', 'font-size', 'text', true],
+    ['7em', 'padding', 'p', true],
+    ['1rem', 'padding', 'p', true],
+    ['18px', 'padding', 'p', true],
+    ['1.5ch', 'margin', 'm', true],
+    ['2vh', 'gap', 'gap', true],
+    // Hairlines and zero name no design decision, in either spelling.
+    ['1px', 'padding', 'p', false],
+    ['2px', 'gap', 'gap', false],
+    ['0px', 'margin', 'm', false],
+  ];
+
+  it.each(cases)('%s is read the same way in both spellings', (value, prop, utility, expected) => {
+    const css = inCss(prop, value);
+    const cls = inClass(utility, value);
+    expect(css > 0, `CSS \`${prop}: ${value}\``).toBe(expected);
+    expect(cls > 0, `class \`${utility}-[${value}]\``).toBe(expected);
+  });
+
+  it('has a harness that can actually observe a finding', () => {
+    // Guard the guard: if either helper always returned 0, every `false` row
+    // above would pass while asserting nothing.
+    expect(inCss('padding', '18px')).toBeGreaterThan(0);
+    expect(inClass('p', '18px')).toBeGreaterThan(0);
+  });
+
+  it('still leaves a tokenised value alone in both spellings', () => {
+    expect(inCss('padding', 'var(--spacing-m)')).toBe(0);
+    expect(inClass('p', 'var(--spacing-m)')).toBe(0);
+  });
+});

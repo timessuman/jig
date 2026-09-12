@@ -4,6 +4,7 @@ import { isMarkupHost, isStyleHost } from '../styles.js';
 import { arbitraryValues, classAttributeValues } from '../tailwind.js';
 import { mkFinding } from '../finding.js';
 import { participatesInTokenLayer } from '../token-layer.js';
+import { hasHardCodedLength } from '../length.js';
 import type { Detector, DetectorContext, Finding } from '../types.js';
 
 // H-47: values invented at the call site instead of read from the token
@@ -29,7 +30,10 @@ import type { Detector, DetectorContext, Finding } from '../types.js';
 //    consumer who is already using the token layer.
 //  - `0`, `1px` and `2px` are excluded from the spacing/type check —
 //    borders and hairlines Jig has no token for, a known gap stated in the
-//    task brief, not an oversight here.
+//    task brief, not an oversight here. That exclusion, and the set of units
+//    that count as a length at all, live in `length.ts` — the Tailwind branch
+//    below decides the identical question and the two answered it differently
+//    for as long as both existed.
 //  - A breakpoint `px` is never flagged, because it lives in the `@media`
 //    prelude, which lands in the OUTER block's selector — and declarations
 //    are only ever read from a leaf block's body. Declarations INSIDE a
@@ -73,8 +77,6 @@ const SPACING_PROPS = new Set([
 // made the last declaration of every rule invisible.
 const DECL_RE = /(?<![-\w])([a-zA-Z-]+)\s*:\s*([^;]+)(?:;|$)/g;
 const COLOR_LITERAL_RE = /#[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\([^)]*\)/;
-const PX_RE = /(-?\d*\.?\d+)px/g;
-const EXCLUDED_PX = new Set([0, 1, 2]);
 // A leaf block whose selector is a `@keyframes` step (`from`, `to`, or a
 // percentage) is an animation waypoint, not a design value — `margin-left:
 // 240px` inside `to { ... }` is how far something travels, not spacing that
@@ -200,16 +202,7 @@ export const hardcodedValue: Detector = {
         }
 
         if (SPACING_PROPS.has(prop)) {
-          PX_RE.lastIndex = 0;
-          let px: RegExpExecArray | null;
-          let flagged = false;
-          while ((px = PX_RE.exec(value))) {
-            if (!EXCLUDED_PX.has(Math.abs(parseFloat(px[1])))) {
-              flagged = true;
-              break;
-            }
-          }
-          if (flagged) {
+          if (hasHardCodedLength(value)) {
             const line = lineOfOffset(block, m.index);
             findings.push(
               mkFinding(
