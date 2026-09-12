@@ -204,3 +204,35 @@ describe('prose before the pair', () => {
   });
 });
 
+
+/**
+ * `parse.ts` has always dropped bare `---` separators; `specs.ts` took a
+ * different code path and never did. Every spec in `03-patterns.md` and
+ * `01-modes.md` is followed by one, so 14 of the 15 specs rendered a dangling
+ * horizontal rule between their last paragraph and their footer.
+ *
+ * The corpus test below is the one that would have caught it. It asserts over
+ * every spec rather than the one that was noticed, because the bug was never
+ * about `P-12` — that was just where it was spotted.
+ */
+describe('separators do not leak into spec bodies', () => {
+  const specIds = ['P-01', 'P-02', 'P-03', 'P-04', 'P-05', 'P-06', 'P-07',
+                   'P-08', 'P-10', 'P-11', 'P-12', 'P-13', 'M-01', 'M-02', 'M-03'];
+
+  it.each(specIds)('%s renders no bare --- line', (id) => {
+    const out = explain({ ruleId: id, version });
+    // Guard the guard: if the id stopped resolving, the body would be empty and
+    // "no separator" would pass while asserting nothing.
+    expect(out).toContain(id);
+    expect(out.length).toBeGreaterThan(200);
+
+    const body = out.split('\n   specification')[0];
+    const bare = body.split('\n').filter((l) => /^-{3,}$/.test(l.trim()));
+    expect(bare).toEqual([]);
+  });
+
+  it('still keeps table separators, which are not thematic breaks', () => {
+    // `| --- |` must survive: P-01's feedback table is the whole point of it.
+    expect(explain({ ruleId: 'P-01', version })).toContain('---');
+  });
+});

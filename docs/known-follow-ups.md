@@ -381,14 +381,3 @@ Worth noting how it surfaced: not from a test, and not from reading the code,
 but from writing a claim about the output and then checking whether the claim
 was true.
 
-
-## `explain` leaks a `---` separator into spec-rule output
-
-`jig explain P-12` prints a bare `---` between the prose and the footer.
-Reproduced identically on published 0.8.0, so it predates 0.8.1 and is not a
-regression from removing the author notes.
-
-`parse.ts` already skips separator lines (`/^-{3,}$/`), so the leak is
-somewhere the spec-rule path bypasses that filter — spec rules carry no
-❌/✅ pair and take a different branch. Cosmetic, but it is the kind of
-artefact that makes rendered rule text look unfinished on a docs site.

@@ -33,6 +33,13 @@ by inspecting the published tarball rather than the working tree.
   ("the same file can be wrapped in `@theme`") is gone too. `@theme` now first
   appears in the section that explains it correctly.
 
+- **`jig explain` rendered a dangling `---` in 14 of the 15 pattern and mode
+  specs.** `parse.ts` has always dropped bare separator lines; `specs.ts` is a
+  separate code path and never did, so every `P-` and `M-` spec that is
+  followed by a separator in the source carried it into the rendered body,
+  between the last paragraph and the footer. Spotted on `P-12`, but it was
+  never about `P-12`. Table separators (`| --- |`) are untouched.
+
 ### Added
 
 - **`check-tokens` rule 13 — no shipped rule file addresses the author.** The

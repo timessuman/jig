@@ -54,6 +54,15 @@ export function parseSpecs(markdown: string, sourceFile: string): Spec[] {
       current = null;
       continue;
     }
+    // A bare `---` separator carries no information, and every spec in
+    // `03-patterns.md` and `01-modes.md` is followed by one — so 14 of the 15
+    // specs rendered a dangling rule between their prose and their footer.
+    // `parse.ts` has always dropped these for `### X-NN` rules; specs took a
+    // different path and never did. Dropped anywhere in the body rather than
+    // only at the end, to match that: a thematic break inside one spec's prose
+    // is the same non-information as one between two specs. Table separators
+    // are `| --- |` and do not match.
+    if (current && /^-{3,}$/.test(line.trim())) continue;
     if (current) body.push(line);
   }
   push();
