@@ -11,3 +11,11 @@ nooon.pdf
 *.pdf
 
 graphify-out/
+
+# Local agent-tool working state. Both ship their own ignore file, but
+# .superpowers/ only covers sdd/ — its root is exposed, so a tool writing
+# directly there would be committable by `git add .`. Ignored here so the
+# repo owns the rule rather than inheriting it from files those tools may
+# rewrite on upgrade. .gstack/ holds browse daemon logs and an audit trail.
+.gstack/
+.superpowers/
