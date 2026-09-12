@@ -49,7 +49,7 @@
     "bucket": "mechanical",
     "severity": "error",
     "detector": "hardcoded-value",
-    "fix": "token-substitute",
+    "fix": "token-substitute-or-remove",
     "since": "0.1.0"
   },
   {
@@ -186,6 +186,12 @@
     "bucket": "judgment",
     "severity": "note",
     "since": "0.1.0"
+  },
+  {
+    "id": "B-105",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.9.0"
   },
   {
     "id": "C-66",
