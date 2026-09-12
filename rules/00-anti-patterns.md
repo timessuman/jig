@@ -144,6 +144,13 @@ Four workable treatments:
 4. **Solid background behind the text** — the caption approach; most reliable, least subtle.
 A text shadow may reinforce any of these but never substitutes for one. Verify against the worst image the slot will ever hold, not the one in the mockup.
 
+### B-105 Monospace sized by a guessed ratio
+❌ Inline `code` set to `0.9em` — or any fixed ratio — to stop it looking bigger than the text around it
+✅ Measure both faces before correcting either. If they share an x-height, the ratio is the mismatch. Let code inherit its host's size.
+The habit comes from pairings where it is true: a mono face drawn separately from the text face often does sit larger at the same `font-size`. In a superfamily it does not. IBM Plex Sans and IBM Plex Mono are both x-height 51.6 and cap-height 69.8 per 1000 units — identical — and mono is *narrower*, not larger. A `0.9em` there sets code at x-height 46.8 inside text at 52, creating the mismatch it was meant to remove.
+A ratio is also the wrong shape of answer. Inline `code` appears inside body text, headings, table cells and captions; one multiplier has to be right for all of them, and a fixed token is worse still — it collapses code in a heading to caption size. Inheriting is correct in every host, which is why this rule has no token.
+The measurement is one line in a browser: render `x` in both faces at the same size and compare the rendered heights, or read `sxHeight` from each font's `OS/2` table. Do it once per project when the brand file is written, not per component.
+
 ---
 
 ## C. Colour and contrast
@@ -485,7 +492,8 @@ Where people must *browse* to decide, split the list into two dependent fields �
 
 ### H-47 Values hard-coded past the token layer
 ❌ A raw hex colour or pixel size written in component code
-✅ Reference the token. Consume the semantic role (`--color-text-strong`), not the primitive (`--color-neutral-900`). A value that cannot be expressed as a token indicates a missing token.
+✅ Reference the token. Consume the semantic role (`--color-text-strong`), not the primitive (`--color-neutral-900`). A value that cannot be expressed as a token is a missing token — or a value that should not exist at all. Check the second before minting the first.
+Deletion is a real answer and the easy one to miss, because the correction points at a token and an agent reading it literally invents one. Both times this rule fired on Jig's own documentation site the fix was removal: `font-size: 0.9em` on inline `code`, where the two faces share vertical metrics and inheriting is correct (`B-105`); and a `min-width` in `em` on a table column that `max-content` measures for free. A token minted to satisfy a detector entrenches the value it was invented for.
 
 ### H-48 JavaScript for something CSS does
 ❌ Scroll listeners for sticky positioning; scripted accordions and dialogs that have native equivalents

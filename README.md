@@ -12,7 +12,7 @@ Installed as `npx jig-ui` — the bare name was taken on npm.
 Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
 They are two halves of the same thing, and the split is not arbitrary:
 
-- Of the 104 rules, **7 can be decided by a machine** — a hard-coded colour, a
+- Of the 105 rules, **7 can be decided by a machine** — a hard-coded colour, a
   contrast ratio below the floor, a removed focus ring. The CLI decides those.
 - The other **97 are judgment** — whether an empty state says anything useful,
   whether a label reads as an instruction, whether motion earns its place. No
@@ -181,7 +181,7 @@ on the result — the CLI reports, the agent applies the judgment half.
 | Slash command | Equivalent |
 | --- | --- |
 | `/jig init` | `jig init` — then states the mode it chose and what it wired |
-| `/jig check` | `jig check` — then applies the 94 judgment rules and reports both halves |
+| `/jig check` | `jig check` — then applies the 95 judgment rules and reports both halves |
 | `/jig explain C-19` | `jig explain C-19` — prints the rule as-is, without paraphrasing it |
 | `/jig explain contrast` | `jig explain contrast` — every rule matching a word, when you do not have an id |
 | `/jig install --agent cursor` | `jig install --agent cursor` |
@@ -262,7 +262,7 @@ In CI:
 code — nothing model-dependent, no network. As a pre-commit hook, plain `check`
 looks at changed files only.
 
-What you will not get from the CLI alone is the other 94 rules. `check` says so
+What you will not get from the CLI alone is the other 95 rules. `check` says so
 rather than letting a narrow pass read as a broad one.
 
 ## What `check` covers
@@ -330,7 +330,7 @@ treatment.
 
 | File | Contents |
 | --- | --- |
-| `rules/00-anti-patterns.md` | 87 universal rules with corrections |
+| `rules/00-anti-patterns.md` | 88 universal rules with corrections |
 | `rules/01-modes.md` | `editorial` / `product` / `operator` profiles |
 | `rules/02-tokens.md` | Token contract, naming, consumption |
 | `rules/03-patterns.md` | Component anatomy and behaviour |

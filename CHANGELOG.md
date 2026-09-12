@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.9.0
+
+One new rule and one amended correction, both from the same afternoon of
+dogfooding and both about the same blind spot: H-47's correction always pointed
+at a token, so an agent reading it literally always produced one.
+
+### Added
+
+- **`B-105` Monospace sized by a guessed ratio.** No rule in the corpus
+  mentioned monospace or inline `code` at all — `jig explain monospace` returned
+  nothing — while `brand.default.css` ships a `--font-mono` stack, so every Jig
+  project has the pairing and none had guidance on it.
+
+  Shrinking inline code by a ratio is right for faces drawn apart, where a mono
+  face often does sit larger at the same `font-size`. In a superfamily it is
+  wrong: IBM Plex Sans and IBM Plex Mono are both x-height 51.6 and cap-height
+  69.8 per 1000 units — identical — and mono is *narrower*. A `0.9em` there sets
+  code at x-height 46.8 inside text at 52, creating the mismatch it was meant to
+  remove. The rule asks for one measurement, once per project, when the brand
+  file is written.
+
+  It deliberately has no token. Inline `code` appears inside body text,
+  headings, table cells and captions; one multiplier has to be right for all
+  four, and a fixed token is worse — it collapses code in a heading to caption
+  size. Inheriting is correct in every host.
+
+### Changed
+
+- **`H-47`'s correction names a third branch.** It offered "reference the token"
+  or "a value that cannot be expressed as a token indicates a missing token".
+  Both end in a token. Twice in a row on Jig's own documentation site the right
+  answer was **deletion** — the `0.9em` above, and a `min-width` in `em` on a
+  table column that `max-content` measures for free. An agent following the text
+  as written invents `--text-code: 0.9em` and entrenches a value that should not
+  exist. The correction now says to check "should this value exist at all"
+  before minting a token.
+
+  `rules.index.json`'s `fix: token-substitute` on H-47 encoded the same
+  assumption and is now `token-substitute-or-remove`. Nothing consumes that
+  field yet, which is why it was worth correcting before something does.
+
+- **Rule count is 105.** The attestation line and the README's counts move with
+  it.
+
+
 ## 0.8.2
 
 Every fix here was found by a consumer using Jig rather than by Jig checking
