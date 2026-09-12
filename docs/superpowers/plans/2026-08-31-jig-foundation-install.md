@@ -103,7 +103,7 @@ jig/
 - [ ] **Step 1: Commit the existing content before restructuring**
 
 ```bash
-cd /home/soket/projects/squint
+cd ~/projects/squint
 printf 'node_modules/\ndist/\n*.tsbuildinfo\n' > .gitignore
 git add -A
 git commit -m "chore: initial commit of rule content"
@@ -1882,7 +1882,7 @@ program.parse();
 ```bash
 cd packages/cli && npm run build
 mkdir -p /tmp/jig-smoke && cd /tmp/jig-smoke && npm init -y >/dev/null
-node /home/soket/projects/squint/packages/cli/dist/index.js install --agent claude
+node ~/projects/squint/packages/cli/dist/index.js install --agent claude
 ls -R .jig .claude
 ```
 Expected: `.jig/` holds the six rule files, `rules.index.json`, `LICENSE`,
@@ -2282,7 +2282,7 @@ alone.
 - [ ] **Step 7: Replace every remaining reference to the old name**
 
 ```bash
-cd /home/soket/projects/squint
+cd ~/projects/squint
 grep -rln 'Squint\|squint\|ui\.config\.json' README.md AGENTS.md rules/ docs/ || true
 ```
 
