@@ -804,3 +804,58 @@ describe('init refuses to pretend it asked', () => {
     expect(result.brand.action).toBe('written');
   });
 });
+
+/**
+ * The refusal when there is no terminal and no `--yes`.
+ *
+ * Nothing covered this path, and the message it printed was wrong about the
+ * tool's own behaviour: it ended "(To choose the mode without a terminal,
+ * write jig.config.json first — init honours it.)" The guard runs BEFORE any
+ * config is read, so a config alone changes nothing — the sentence was true
+ * about mode selection and false where it appeared, reading as a third way out
+ * when it is a modifier on the first. A cold agent followed it literally, hit
+ * the identical error, and allocated a pseudo-terminal with Python's `pty` to
+ * get past it.
+ */
+describe('init without a terminal', () => {
+  const withoutTTY = async (fn: () => Promise<unknown>) => {
+    const saved = process.stdin.isTTY;
+    // Set explicitly rather than trusting the runner: a test whose result
+    // depends on how vitest was launched asserts nothing reliable.
+    Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
+    try { return await fn(); }
+    finally { Object.defineProperty(process.stdin, 'isTTY', { value: saved, configurable: true }); }
+  };
+
+  const run = (over: Record<string, unknown> = {}) =>
+    init({ projectRoot: project, packageRoot: repoRoot, homeDir: home,
+           version: '0.8.1', log: NOOP_LOG, ...over } as never);
+
+  const config = (mode: string) =>
+    writeFileSync(join(project, 'jig.config.json'),
+                  JSON.stringify({ surfaces: [{ match: '/', mode }] }));
+
+  it('refuses, and does not offer a config as a way out', async () => {
+    const err = await withoutTTY(() => run({ yes: false }).then(() => null, (e: Error) => e));
+    expect(err).toBeInstanceOf(Error);
+    const msg = (err as Error).message;
+    expect(msg).toContain('--yes');
+    // The specific false promise, in the wording that shipped.
+    expect(msg).not.toMatch(/choose the mode without a terminal/i);
+    expect(msg).not.toMatch(/write jig\.config\.json first/i);
+  });
+
+  it('still refuses when a config IS present — the guard runs before it is read', async () => {
+    config('operator');
+    const err = await withoutTTY(() => run({ yes: false }).then(() => null, (e: Error) => e));
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toContain('does not replace --yes');
+  });
+
+  it('succeeds with --yes, and takes the mode from the config', async () => {
+    config('operator');
+    const result = await withoutTTY(() => run({ yes: true })) as { surfaces: { mode: string }[] };
+    expect(result.surfaces.length).toBeGreaterThan(0);
+    expect(result.surfaces.map((s) => s.mode)).toContain('operator');
+  });
+});

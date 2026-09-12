@@ -498,7 +498,15 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     throw new Error(
       "'jig init' asks questions and stdin is not a terminal, so it cannot. " +
         'Re-run with --yes to accept the derived defaults, or run it in a terminal. ' +
-        '(To choose the mode without a terminal, write jig.config.json first — init honours it.)',
+        // Not a third way out. The earlier wording — "To choose the mode
+        // without a terminal, write jig.config.json first — init honours it"
+        // — was true about mode SELECTION and false in a paragraph about not
+        // having a terminal, so it read as an alternative to --yes when it is
+        // a modifier on it: this guard runs before any config is read. A cold
+        // agent followed it literally, hit the identical error, and ended up
+        // allocating a pseudo-terminal with Python's `pty` to get past it.
+        'A jig.config.json does not replace --yes, because this check runs before it is read. ' +
+        'With both, init takes the mode from the config instead of deriving it.',
     );
   }
 
