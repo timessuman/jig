@@ -510,17 +510,3 @@ Before writing a new component, check whether it is a composite of things that a
 A new pattern earns a place here when it has been built three times. Before then it is a component, not a pattern.
 
 Each entry states: anatomy in order, complete state list, rules that are decidable, and mode variance. If a rule cannot be checked by looking at the output, it belongs in `04-principles.md`.
-
----
-
-## Notes for the author (not for the agent)
-
-**Where your taste is recorded here:**
-- `P-01` — the whole feedback table is a position. Toasts are over-used because they are easy to build and require no layout decisions; treating them as the narrowest case rather than the default is deliberate.
-- `P-03` help-text-before-control. Contested — many systems put it after. Placing it before means it is read before the user commits to typing, which matters more in forms people fill once.
-- `P-04` one-column forms, and the no-JS baseline for the primary action.
-- `P-06` stable row identity, absolute timestamps, no hover-only truncation. The procurement instinct again: the record is evidence before it is a convenience.
-
-**Deliberately absent.** Navigation, cards, tabs, and toasts-as-a-component. Navigation and cards vary too much by project to have decidable rules yet — they would produce prose, not constraints. Add them once you have built enough to see the invariant.
-
-**Worth testing before extending.** These 12 cover most of what generated UI gets wrong. Point an agent at a form and a table with `00`, `01`, `02` and `03` loaded, and compare against the same task with nothing loaded. If `P-03` and `P-05` do not visibly change the output, the rules are not decidable enough and the fix is more specificity, not more patterns.

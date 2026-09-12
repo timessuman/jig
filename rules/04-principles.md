@@ -138,17 +138,3 @@ An invented accent, a decorative animation, a gradient filling an empty space �
 A codebase with one consistent approach is more maintainable than one with a better approach applied to 30% of it. Note the divergence, raise it, change it deliberately as its own work — not silently, mid-task.
 
 **This tiebreaker outranks the other six.** It does not outrank Part 1: a local convention creating a genuine accessibility risk is a defect to raise, not a convention to match.
-
----
-
-## Notes for the author (not for the agent)
-
-**What changed in v0.2.** Part 1 did not exist. The file was adjudicative only — seven tiebreakers that fire when rules collide, with no method for producing a rule not yet written. That meant the system handed an agent 51 known failures and no way to recognise the 52nd. The four frames are that method.
-
-Frame 3 is the most immediately useful, because it is the only idea here that produces a number. Everything else in this system is checked by inspection; interaction cost is checked by counting, which makes it the one principle an agent can be held to objectively.
-
-Frames 1 and 2 are close to reasoning already embedded in `00` — the risk frame is *why* most of those rules exist, and the rationale requirement is the decidability test that let them in. Stating them explicitly means the next rule can be derived rather than remembered.
-
-**Tiebreaker 7 remains the one to argue about**, and now has a stated ceiling: it loses to Frame 1. Without that boundary, "match the codebase" would license inheriting anything.
-
-Tiebreakers 1 and 2 are the same instinct from two directions, and both come from outside software — a document that looks wrong gets marked and filed, never destroyed.

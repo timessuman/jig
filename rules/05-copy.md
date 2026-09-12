@@ -141,13 +141,3 @@ See `P-01` for *where* the message goes and `F-37` for field-level validation te
 6. Numerals as figures, formatted consistently? (`I-83`)
 7. One word per concept across the whole product? (`I-87`)
 8. Every error saying what happened and what to do next? (`I-90`)
-
----
-
-## Notes for the author (not for the agent)
-
-**Where your taste is recorded here:** the ban on apology words in errors, and `I-90`'s requirement that the heading and button work without the body text. Both come from the same instinct as the rest of the system — the person reading is trying to get something done, and the interface should not make them wade.
-
-`I-87` is the rule most likely to need a project-specific companion. A term list belongs in the brand file's voice section, not here; this rule only says that one must exist and be followed.
-
-Deliberately absent: tone-of-voice guidance beyond plain language. Tone is a brand decision and varies per client, so it belongs in `03-brand.md` when that file exists.
