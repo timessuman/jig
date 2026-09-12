@@ -237,9 +237,20 @@ planning a real build against the published package. Each was verified in the
 source rather than taken from the report that raised it._
 
 - **A section marked "not for the agent" is shipped to every agent, and one acted
-  on it.** _Resolved: the section moved to `docs/house-positions.md`, which is
-  where notes addressed to the author belong. Verified against a real `npm pack`
-  that the shipped `00-anti-patterns.md` no longer contains it._ `00-anti-patterns.md:528` opens `## Notes for the author (not for the
+  on it.** _Resolved in 0.7.x for one file, and that was the wrong
+  shape of fix — see the correction below. The section moved to
+  `docs/house-positions.md`, which is where notes addressed to the author
+  belong._
+
+  **Corrected in 0.8.1.** The verification recorded here — "verified against a
+  real `npm pack` that the shipped `00-anti-patterns.md` no longer contains it"
+  — checked the one file it had just edited. `01-modes.md`, `03-patterns.md`,
+  `04-principles.md` and `05-copy.md` carried a section under the same heading
+  and all four shipped in 0.8.0. `01-modes.md` was the one that mattered: it
+  told the reader to "Change them in `tokens/mode.*.css`" and closed "it is your
+  call", inviting an agent to edit the layer the architecture reserves for a
+  human. All four moved, and `check-tokens` rule 13 now reads `rules/` from disk
+  rather than a list, so the next one cannot escape the same way._ `00-anti-patterns.md:528` opens `## Notes for the author (not for the
   agent)`. It is in the published tarball and installs to
   `~/.claude/skills/jig/rules/`. A cold probe read it, quoted "bordered,
   low-radius, low-shadow surfaces" back as "the author's own notes... license to
@@ -290,6 +301,11 @@ _Both found by a cold agent running `jig init` on a real Astro project, and both
 reproduced here before being written down._
 
 - **`02-tokens.md` states the token location, and the statement is false.**
+  _Resolved in 0.7.1. Re-verified on 0.8.1: the file now reads "The token
+  layer's location follows the project — `init` writes it beside the stylesheet
+  it wires and prints the path it chose", and the only surviving `.jig/tokens/`
+  mention is a correct statement about projects set up before 0.7.0. Original
+  note:_
   Line 22 of the shipped file reads: *"**Tokens live at `.jig/tokens/`.** That is
   the only location, in every scope and every project — `jig install` puts them
   there, `jig update` refreshes them there, and nothing relocates them."* Since
@@ -302,6 +318,14 @@ reproduced here before being written down._
   every skill directory.
 
 - **The non-TTY refusal names three ways out and only two of them work.**
+  _Resolved in 0.8.1. The message no longer offers a config as an escape; it
+  now says "A jig.config.json does not replace --yes, because this check runs
+  before it is read. With both, init takes the mode from the config instead of
+  deriving it." Reproduced in a scratch project first — config with no `--yes`
+  refuses, config with `--yes` succeeds reporting `mode=operator` — rather than
+  trusting this entry, which had itself been mis-verified once. Nothing covered
+  this path: three tests now do, and two of them fail against the old wording.
+  Original note:_
   `init.ts:496` refuses when `!opts.yes && !opts.prompt && !process.stdin.isTTY`,
   and the message ends: *"(To choose the mode without a terminal, write
   jig.config.json first — init honours it.)"* The guard runs before any config is

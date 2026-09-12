@@ -40,6 +40,17 @@ by inspecting the published tarball rather than the working tree.
   between the last paragraph and the footer. Spotted on `P-12`, but it was
   never about `P-12`. Table separators (`| --- |`) are untouched.
 
+- **`jig init`'s refusal without a terminal offered a way out that does not
+  work.** The message ended *"(To choose the mode without a terminal, write
+  jig.config.json first — init honours it.)"* The guard runs before any config
+  is read, so a config alone still exits 1. The sentence was true about mode
+  selection and false in a paragraph about not having a terminal, so it read as
+  a third alternative when it is a modifier on the first — a cold agent
+  followed it literally, hit the identical error, and allocated a
+  pseudo-terminal with Python's `pty` to get past it. It now says a config does
+  not replace `--yes`, and what the two do together. Nothing covered this path;
+  three tests now do.
+
 ### Added
 
 - **`check-tokens` rule 13 — no shipped rule file addresses the author.** The
