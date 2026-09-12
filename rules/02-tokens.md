@@ -48,7 +48,7 @@ They are the only token format every web framework consumes natively with no bui
 | Consumer | Usage |
 | --- | --- |
 | Plain CSS / any framework | `color: var(--color-text-strong)` |
-| Tailwind v4 | Wrap in `@theme { }` — generates utilities automatically |
+| Tailwind v4 | `@import` the barrel flat, alongside `@import "tailwindcss"` — see [Colour architecture](#colour-architecture). Utility classes are opt-in and need an alias block |
 | CSS-in-JS (styled-components, emotion) | `color: var(--color-text-strong)` inside template literals |
 | Vue / Svelte / Angular | Identical to plain CSS, scoped or global |
 | React inline styles | `style={{ color: 'var(--color-text-strong)' }}` |
@@ -281,7 +281,7 @@ Resist per-component tokens (`--button-bg`). They multiply fast and rarely earn 
 
 ## Naming contract
 
-Names align to Tailwind v4's theme namespaces. This is free for other frameworks — they are ordinary custom properties — and means the same file can be wrapped in `@theme` to generate utilities without any framework taking a dependency on Tailwind.
+Names align to Tailwind v4's theme namespaces. This is free for other frameworks — they are ordinary custom properties — and means an alias block can expose any of them as Tailwind utilities without any framework taking a dependency on Tailwind.
 
 | Namespace | Holds | Layer |
 | --- | --- | --- |

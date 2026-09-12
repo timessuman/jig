@@ -205,17 +205,3 @@ Per project, one file supplying:
 - **Voice** — sentence case or title case, contraction policy, error-message tone.
 
 Default when no brand is supplied: warm neutral ramp anchored on `--color-bg-base` (`oklch(0.980 0.004 95)`, a warm off-white), no accent, 8px base radius (`--radius-sm`), border-led elevation. Greyscale output plus a stated question beats an invented purple (`A-01`).
-
----
-
-## Notes for the author (not for the agent)
-
-**Decided, not derived.** These numbers are internally consistent and defensible, but several are judgement calls that should be tuned once you have run real work through them: the operator row height, the three section-rhythm values, and the motion durations. Change them in `tokens/mode.*.css`, never at the call site — this file describes them, `02-tokens.md` resolves them, and neither is where they live.
-
-**Where your taste is recorded here:**
-- The zero-JS default in `editorial` — a stronger position than most systems take, and consistent with your writing on JS-dependent forms.
-- Absolute-first timestamps in `operator` — that is the procurement instinct: the record is evidence before it is a convenience.
-- Typed confirmation for destructive operator actions, and no hover-hidden information in all-day tools.
-- Border-led elevation as the unbranded default.
-
-**Open question worth resolving before tokens.** `product` is currently defined as the midpoint of the other two, which is how it earns its place, but it is also the mode that most often needs to lean. A customer dashboard leans editorial; a billing admin screen leans operator. Consider whether `product` needs a documented `dense` variant, or whether such surfaces should simply be declared `operator`. My inclination is the latter — three modes you apply confidently beat five you deliberate over — but it is your call, and it affects how many token sets `02` has to emit.

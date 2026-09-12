@@ -547,6 +547,11 @@ const LIGHT_BACKGROUNDS = {
   const index = JSON.parse(read('rules.index.json'));
   const readme = read('README.md');
   const patterns = read('rules/03-patterns.md');
+  // The "These N cover" sentence moved to docs/house-positions.md in 0.8.1
+  // with the rest of 03-patterns' author notes. It still states a count of
+  // something in another file, so it can still drift — the claim is checked
+  // where it now lives, not deleted along with its old address.
+  const housePositions = read('docs/house-positions.md');
   const antiPatterns = read('rules/00-anti-patterns.md');
 
   const claim = (label, source, re, actual) => {
@@ -563,7 +568,7 @@ const LIGHT_BACKGROUNDS = {
   claim('README judgment count', readme, /(\d+) judgment\b/, index.filter((r) => r.bucket === 'judgment').length);
   claim("README's 00-anti-patterns row", readme, /\| (\d+) universal rules/,
         (antiPatterns.match(/^### [A-Z]-\d+/gm) ?? []).length);
-  claim('03-patterns.md pattern count', patterns, /These (\d+) cover/,
+  claim('house-positions pattern count', housePositions, /These (\d+) cover/,
         (patterns.match(/^## P-\d+/gm) ?? []).length);
 
   // There was a fifth claim here: the README stated how many reconciliation
@@ -572,6 +577,53 @@ const LIGHT_BACKGROUNDS = {
   // its source is the thing that rots. Removed rather than repointed: a check
   // aimed at a file it is derived from would assert nothing.
 
+}
+
+/* ------------------------------------------------------------------ *
+ * Rule 13 — nothing in a shipped rule file is addressed to the author.
+ *
+ * `rules/*.md` installs into every agent's skill directory. A section
+ * headed "Notes for the author (not for the agent)" is a label, not a
+ * mechanism: agents read the file, not the heading's intent. One did more
+ * than read it — handed a docs site to build, it quoted `00-anti-patterns`'s
+ * author notes back as "license to go tighter than the shared default" and
+ * halved the radius scale on that authority.
+ *
+ * That section was removed from `00-anti-patterns.md` in 0.7.x and the fix
+ * stopped there, while four other files kept shipping the same heading. The
+ * commit claiming "no author notes in the shipped rules" had grepped only
+ * the file it had just edited. This rule is the part that was missing: it
+ * reads the directory rather than a list, so a rule file added later cannot
+ * escape it the way those four did.
+ *
+ * The second-person tells are checked too, because the heading is the easy
+ * half. "your taste", "it is your call" and "Change them in ..." are the
+ * lines that actually caused the drift, and they would survive a rename.
+ * ------------------------------------------------------------------ */
+{
+  const AUTHOR_TELLS = [
+    [/^#{1,6}\s.*\bnotes for the author\b/im, 'a section addressed to the author'],
+    [/\byour taste\b/i,                       '"your taste" — addresses the installer, not the agent'],
+    [/\bit is your call\b/i,                  '"it is your call" — hands the agent an author decision'],
+    [/\bmy inclination is\b/i,                '"my inclination is" — the author thinking aloud'],
+    [/\bwhat changed in v\d/i,                'release notes; those belong in CHANGELOG.md'],
+  ];
+
+  // Derived from disk, not hardcoded: every .md under rules/ ships, so every
+  // .md under rules/ is checked.
+  const shipped = list('rules').filter((f) => f.endsWith('.md'));
+  if (shipped.length === 0) {
+    fail('Rule 13 found no rule files to check — the path is wrong, so this rule asserts nothing.');
+  }
+
+  for (const file of shipped) {
+    const lines = read(`rules/${file}`).split('\n');
+    lines.forEach((line, i) => {
+      for (const [re, why] of AUTHOR_TELLS) {
+        if (re.test(line)) fail(`${file}:${i + 1} ${why} — ships to agents. Move it to docs/house-positions.md.`);
+      }
+    });
+  }
 }
 
 if (failed) {

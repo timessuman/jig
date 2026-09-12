@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.8.1
+
+Both fixes here are the same shape: 0.8.0 corrected the instance it was looking
+at and left the class alone, and in each case the commit message claimed a
+verification that had only checked the file it had just edited. Both were found
+by inspecting the published tarball rather than the working tree.
+
+### Fixed
+
+- **Four rule files still shipped author notes.** 0.7.x removed the section
+  headed "Notes for the author (not for the agent)" from `00-anti-patterns.md`
+  after an agent read it as "license to go tighter than the shared default" and
+  halved the radius scale on that authority. `01-modes.md`, `03-patterns.md`,
+  `04-principles.md` and `05-copy.md` carried a section under the same heading
+  and kept shipping it to every agent that installed Jig.
+
+  `01-modes.md` was the worst of them: it told the reader to **"Change them in
+  `tokens/mode.*.css`"** and closed with **"it is your call"** — an invitation
+  to edit the token layer, which is the one thing Jig's architecture reserves
+  for a human. `03-patterns.md` described navigation and cards as "deliberately
+  absent… add them once you have built enough". `05-copy.md` pointed at
+  `03-brand.md`, which does not exist. The content moves to
+  `docs/house-positions.md` unchanged; only its audience changes.
+
+- **`02-tokens.md` contradicted its own Tailwind fix 352 lines earlier.** The
+  compatibility table near the top still read *"Tailwind v4 | Wrap in
+  `@theme { }`"* — the exact instruction the section below it retracts with
+  *"Earlier versions of this file told you to, and Tailwind rejects it
+  outright."* The table is the part an agent reads first, so the correction
+  shipped underneath the error it corrected. A second, softer restatement
+  ("the same file can be wrapped in `@theme`") is gone too. `@theme` now first
+  appears in the section that explains it correctly.
+
+- **`jig explain` rendered a dangling `---` in 14 of the 15 pattern and mode
+  specs.** `parse.ts` has always dropped bare separator lines; `specs.ts` is a
+  separate code path and never did, so every `P-` and `M-` spec that is
+  followed by a separator in the source carried it into the rendered body,
+  between the last paragraph and the footer. Spotted on `P-12`, but it was
+  never about `P-12`. Table separators (`| --- |`) are untouched.
+
+### Added
+
+- **`check-tokens` rule 13 — no shipped rule file addresses the author.** The
+  guard that should have existed for the 0.7.x fix. It reads `rules/` from disk
+  rather than a hardcoded list, so a rule file added later cannot escape it the
+  way those four did, and it checks the second-person tells ("your taste", "it
+  is your call", "my inclination is") as well as the heading, because a rename
+  would otherwise defeat it. Each tell is verified to fire on reintroduction.
+
 ## 0.8.0
 
 Everything here was found by handing Jig to agents that had never seen it and
