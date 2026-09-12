@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-11
 **Status:** proposed
-**Repo:** `/home/soket/projects/jig-site` (new, outside this repo)
+**Repo:** `~/projects/jig-site` (new, outside this repo)
 **Stack:** Astro 7.3.2 + Tailwind 4.3.3, static output (framework and styling fixed by the user; versions verified against npm 2026-09-11)
 
 ---
