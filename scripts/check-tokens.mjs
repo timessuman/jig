@@ -565,6 +565,12 @@ const LIGHT_BACKGROUNDS = {
   };
 
   claim('README rule count', readme, /(\d+) rules\b/, index.length);
+  // The npm package description is the one count a reader sees BEFORE
+  // installing anything, and it is the only one no other check here covered:
+  // it said 104 from 0.9.0 until this guard was added, so the registry
+  // advertised a rule count the tarball had not matched for a release.
+  claim('package.json description rule count',
+        read('packages/cli/package.json'), /(\d+) numbered UI rules/, index.length);
   claim('README judgment count', readme, /(\d+) judgment\b/, index.filter((r) => r.bucket === 'judgment').length);
   claim("README's 00-anti-patterns row", readme, /\| (\d+) universal rules/,
         (antiPatterns.match(/^### [A-Z]-\d+/gm) ?? []).length);
