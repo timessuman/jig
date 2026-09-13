@@ -18,7 +18,7 @@ Before generating or reviewing any UI in this repository:
 to stay cheap in context. `02` is for setup or when adding a token. `03` is the
 largest file — load the section for the component being built, never the whole
 thing, **except `L-01`, which is not a component's section and applies to every
-screen**. `04` only when two rules conflict. `05` whenever you write a string.
+screen**. `04` only when two rules conflict — and fetch the one tiebreaker (`R-06`–`R-12`) rather than the file. `05` whenever you write a string.
 
 A `##`-level id is an addressable unit in its own right: `P-` a component spec,
 `M-` a mode profile, `L-` a method. `explain` resolves all three, so cite and

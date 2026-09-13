@@ -15,7 +15,7 @@ If you reach for Part 2 often, the rules in `00`–`03` are underspecified and t
 
 # Part 1 · Frames
 
-## Frame 1 — Minimise usability risk
+## R-01 · Frame 1 — Minimise usability risk
 
 **Ask: who could struggle with this, and why?**
 
@@ -35,7 +35,7 @@ The risk is rarely to the median user. It falls on people with reduced vision, l
 
 **Floor:** WCAG 2.1 level AA. Meeting AA is the starting point, not the achievement.
 
-## Frame 2 — Every detail has a reason you can state
+## R-02 · Frame 2 — Every detail has a reason you can state
 
 **Ask: why this way rather than another way?**
 
@@ -45,7 +45,7 @@ This is the test every rule in this system had to pass, and it is why the token 
 
 **Use it like this:** when you make a call the rules do not cover, state the reason in one line. If you cannot, you are guessing — and a guess should be surfaced as a question, not shipped as a decision (Tiebreaker 5).
 
-## Frame 3 — Minimise interaction cost
+## R-03 · Frame 3 — Minimise interaction cost
 
 **Ask: what does this cost the user, counted?**
 
@@ -59,7 +59,7 @@ Three reliable reductions:
 
 **Use it like this:** count before and after, and state it. "3 clicks + 1 scroll → 2 clicks" is reviewable. "Improved the UX" is not. See `P-10`.
 
-## Frame 4 — Minimise cognitive load
+## R-04 · Frame 4 — Minimise cognitive load
 
 **Ask: how much thinking does this require that is not the user's actual task?**
 
@@ -73,7 +73,7 @@ Attention spent decoding the interface is unavailable for the work. Reliable red
 
 **Use it like this:** when something feels heavy but no rule is broken, the load is usually ungrouped information or an unnecessary decision. Split it or remove it. A long form becomes steps; a wide table becomes fewer default columns; six equal options become two recommended and four behind "more".
 
-## Frame 5 — Optimise for the common path
+## R-05 · Frame 5 — Optimise for the common path
 
 **Ask: what are most people here to do?**
 
@@ -91,31 +91,31 @@ Effort should follow it. Make the common task excellent before making the rare o
 
 Seven. Each resolves a specific conflict in a specific direction. A principle that does not tell you what to give up is decoration.
 
-### 1. Prefer the loud failure
+## R-06 · Tiebreaker 1 — Prefer the loud failure
 
 **Between silent failure and visible failure, choose visible.**
 
 A form that discards a submission and shows success is worse than one that errors. A page serving stale data without saying so is worse than a slow one. Silent failure is the most expensive class of defect, because the cost is paid by someone who never finds out.
 
-### 2. Never destroy on suspicion
+## R-07 · Tiebreaker 2 — Never destroy on suspicion
 
 **When the system suspects input is wrong, mark it and hold it. Do not discard it.**
 
 Spam scores, validation failures, duplicate detection — all heuristics, all wrong sometimes. Hold the item, record why, let a person decide. Applies equally to the user's typing: never clear a form, drop a draft, or overwrite without a copy.
 
-### 3. Recoverable beats correct
+## R-08 · Tiebreaker 3 — Recoverable beats correct
 
 **Between preventing a mistake and allowing it to be undone, choose undo.**
 
 Prevention charges every user friction on every interaction to guard against a rare error. Recovery costs nothing until the error happens. Exception: genuinely irreversible operations, which confirm — and in `operator`, confirm by typing.
 
-### 4. Optimise for who is actually there
+## R-09 · Tiebreaker 4 — Optimise for who is actually there
 
 **When density and legibility conflict, decide by the user's real conditions, not by preference.**
 
 A first-time visitor on mobile data in bright sun and an operator at a large display for eight hours need opposite things. Mode encodes this. When the mode is genuinely unclear, ask — do not average, because the average serves neither.
 
-### 5. Restraint is the default
+## R-10 · Tiebreaker 5 — Restraint is the default
 
 **When a decision has not been made, ship the plainer thing and surface the question.**
 
@@ -125,13 +125,13 @@ An invented accent, a decorative animation, a gradient filling an empty space �
 
 **Ceiling: restraint applies to decoration, never to information.** Minimal is not the same as simple. A sparse interface that has dropped labels, selected states or visible actions is harder to use than a busier one that keeps them — it just photographs better. Strip styling freely; never strip the answers to *what is this*, *which one is selected*, and *what can I do next* (`E-63`).
 
-### 6. The platform before the framework
+## R-11 · Tiebreaker 6 — The platform before the framework
 
 **When the browser can already do it, use the browser.**
 
 `<dialog>`, `<details>`, `position: sticky`, `:has()`, container queries, native form validation, `popover`. Platform features carry accessibility, keyboard handling and state management that a reimplementation gets wrong and then needs maintaining.
 
-### 7. Match the codebase before matching this document
+## R-12 · Tiebreaker 7 — Match the codebase before matching this document
 
 **When local convention conflicts with these rules, local convention wins.**
 

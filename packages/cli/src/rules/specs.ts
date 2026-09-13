@@ -4,7 +4,7 @@ import { join } from 'node:path';
 /**
  * The `##`-level addressable units: `## P-NN · Name` pattern specs in
  * `03-patterns.md`, `## M-NN · name` mode specs in `01-modes.md`, and
- * `## L-NN · Name` methods.
+ * `## L-NN · Name` methods, and `## R-NN · Name` principles.
  *
  * These are a different kind of thing from the `### X-NN` rules, which is why
  * `rules.index.json` deliberately excludes them: a rule states one failure and
@@ -27,9 +27,21 @@ import { join } from 'node:path';
  * The prefix is the only thing that distinguishes them, so it is read once,
  * here, and never re-derived by a caller.
  */
-export type SpecKind = 'pattern' | 'mode' | 'method';
+export type SpecKind = 'pattern' | 'mode' | 'method' | 'principle';
 
-const KINDS: Record<string, SpecKind> = { P: 'pattern', M: 'mode', L: 'method' };
+const KINDS: Record<string, SpecKind> = {
+  P: 'pattern',
+  M: 'mode',
+  L: 'method',
+  // `R` — principles. Both halves of `04-principles.md`: the five frames, which
+  // are generative (how to recognise a failure no rule covers yet), and the
+  // seven tiebreakers, which are adjudicative (which rule yields when two
+  // conflict). The file itself was 0% addressable, so `04` could be cited by
+  // nothing and loaded only as a whole — and the protocol says to load it only
+  // when two rules conflict, which is exactly when a reader wants one entry and
+  // not 141 lines.
+  R: 'principle',
+};
 
 export interface Spec {
   id: string;
@@ -41,7 +53,7 @@ export interface Spec {
   source: string;
 }
 
-const HEADING = /^##\s+([PML]-\d+)\s*(?:·\s*)?(.*?)\s*$/;
+const HEADING = /^##\s+([PMLR]-\d+)\s*(?:·\s*)?(.*?)\s*$/;
 
 export function parseSpecs(markdown: string, sourceFile: string): Spec[] {
   const lines = markdown.split('\n');
