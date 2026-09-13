@@ -532,6 +532,33 @@ const LIGHT_BACKGROUNDS = {
 }
 
 /* ------------------------------------------------------------------ *
+ * Rule 13 — every id COVERAGE.md cites still exists.
+ *
+ * The ledger's whole value is the "Where we stand" column, and that column
+ * is a set of citations. A row saying "covered by B-75" is worthless the day
+ * B-75 is renumbered or deleted — worse than worthless, because it reads as
+ * a decision that was checked.
+ *
+ * Same bargain rules.index.json makes with the markdown, applied to the one
+ * other file that names ids.
+ * ------------------------------------------------------------------ */
+{
+  const coverage = read('COVERAGE.md');
+  const index = JSON.parse(read('rules.index.json'));
+  const known = new Set(index.map((r) => r.id));
+  // Specs are not in the index; read their headings straight from the corpus.
+  for (const f of readdirSync(join(ROOT, 'rules'))) {
+    if (!f.endsWith('.md')) continue;
+    for (const m of read(`rules/${f}`).matchAll(/^##\s+([A-Z]-\d+)/gm)) known.add(m[1]);
+  }
+  const cited = [...new Set([...coverage.matchAll(/`([A-Z]-\d+)`/g)].map((m) => m[1]))];
+  const missing = cited.filter((id) => !known.has(id));
+  if (missing.length > 0) {
+    fail(`COVERAGE.md cites ids that no longer exist: ${missing.join(', ')}.`);
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * Rule 12 — counts stated in prose match what is actually there.
  *
  * "These eight cover most of what generated UI gets wrong" sat in
