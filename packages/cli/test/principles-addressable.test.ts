@@ -79,3 +79,46 @@ describe('principles stay out of the rule index', () => {
     expect(src).not.toMatch(/^### [A-Z]-\d+/m);
   });
 });
+
+
+/**
+ * `02-tokens.md` was the largest unaddressable block in the corpus: 517 lines at
+ * 0%. The protocol sends a reader there "for setup or when adding a token",
+ * which wants one contract, not the file.
+ */
+describe('token guidance is addressable', () => {
+  const specs = () => loadSpecs(join(repoRoot, 'rules'));
+
+  it('gives every top-level section an id', () => {
+    const t = specs().filter((s) => s.id.startsWith('T-'));
+    expect(t.length).toBe(10);
+  });
+
+  it('resolves the contract a reader is most likely to want', () => {
+    const out = explain({ ruleId: 'T-08', version });
+    expect(out).toContain('Contrast contract');
+    expect(flat(out)).toMatch(/WCAG 2\.1 AA/);
+  });
+
+  it('calls it a token contract, not a rule', () => {
+    const out = explain({ ruleId: 'T-08', version });
+    expect(out).toMatch(/token contract/i);
+    expect(out).not.toMatch(/judgment · note|detector:/);
+  });
+
+  it('keeps subsections inside their parent rather than orphaning them', () => {
+    // APCA is a `###` under the contrast contract, and `Optional: Tailwind
+    // utility classes` a `###` under consuming. Promoting either to `##` would
+    // have split its parent; leaving them means the parent carries them.
+    const by = Object.fromEntries(specs().map((s) => [s.id, s.body]));
+    expect(by['T-08']).toMatch(/APCA/);
+    expect(by['T-10']).toMatch(/Tailwind/);
+  });
+
+  it('leaves the token layer the only place values live', () => {
+    // The id makes the guidance citable. It must not make it a second home for
+    // the numbers themselves — that is the defect this repo keeps finding.
+    const index = JSON.parse(readFileSync(join(repoRoot, 'rules.index.json'), 'utf8'));
+    expect(index.some((e: { id: string }) => e.id.startsWith('T-'))).toBe(false);
+  });
+});

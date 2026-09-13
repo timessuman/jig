@@ -32,7 +32,7 @@ cite the number when you follow or deliberately break one.
 6. Consume tokens by semantic name only. Never write a raw colour or pixel value
    at a call site, and never resolve a name yourself: if a token you need has no
    value, that is a finding to report, not a number to supply.
-7. Run `check` for the rules the CLI can detect, then run the self-check at the
+7. Run `check` for the rules the CLI can detect, then run the self-check `L-04` at the
    end of `{{rules_path}}/00-anti-patterns.md` for the rules it cannot. Both
    halves, every time — a clean `check` is not a clean review.
 8. Cite any rule you deliberately break, with the reason, in one line.

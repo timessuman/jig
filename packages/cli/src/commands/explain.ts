@@ -73,6 +73,10 @@ const KIND_NOTE: Record<Spec['kind'], [string, string]> = {
     'principle — for the case no rule covers, or the case two rules answer',
     'differently. Not a rule: it has no ❌/✅ pair and nothing detects it.',
   ],
+  token: [
+    'token contract — what the token layer guarantees and what it expects back.',
+    'Values live in the token files; this is what they mean and how they resolve.',
+  ],
 };
 
 function renderSpec(spec: Spec): string {

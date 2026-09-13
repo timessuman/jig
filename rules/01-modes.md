@@ -22,7 +22,7 @@ Collapsing these into one switch produces `theme-marketing-dark-compact` and a s
 
 ---
 
-## Choosing a mode
+## L-05 · Choosing a mode
 
 1. If the project config declares a mode for this route or surface, use it.
 2. If not, infer from the signals below and **state the inference in one line** before building.

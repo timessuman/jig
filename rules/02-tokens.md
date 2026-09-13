@@ -5,7 +5,7 @@
 **Canonical format:** CSS custom properties
 **Consumed by:** any framework that renders to the web
 
-## Architecture
+## T-01 · Architecture
 
 Tokens resolve as **brand × mode**. Two layers, loaded in order.
 
@@ -41,7 +41,7 @@ relocating the layer changes one line instead of every stylesheet:
 
 Three separate mode files rather than one file with variants. The trade: a surface cannot switch modes at runtime, and shared values are duplicated across three files. In exchange each surface ships only the tokens it uses, the files are independently readable, and there is no cascade to reason about. For a system where mode is a routing decision rather than a user preference, that is the right trade.
 
-## Why CSS custom properties
+## T-02 · Why CSS custom properties
 
 They are the only token format every web framework consumes natively with no build step.
 
@@ -55,7 +55,7 @@ They are the only token format every web framework consumes natively with no bui
 
 **Boundary:** this does not cover React Native or native platforms, which cannot read CSS. If a non-web target enters scope, author in DTCG JSON and generate these files with Style Dictionary or Terrazzo. The naming contract below is DTCG-compatible, so that migration is mechanical. Do not build the pipeline before you need it.
 
-## Predefined option sets
+## T-03 · Predefined option sets
 
 Limited options, chosen once. The point is not the specific values — it is that there are few of them, so a decision is a selection rather than an invention.
 
@@ -178,7 +178,7 @@ width and buys one character at 360px, while changing nothing at 320px.
 
 **Shadow — three, two of which do anything**: `--shadow-raised` sits above the page, `--shadow-overlay` floats over it, and `--shadow-none` is the explicit absence a mode selects when its elevation is stroke-led rather than shadow-led (every mode currently does, via `--shadow-surface`). `A-08` still prefers a stroke; the other two exist for when depth is the point.
 
-## Sizes and motion, by mode
+## T-04 · Sizes and motion, by mode
 
 `01-modes.md` names these tokens in each mode's profile and points here for the
 resolved values. They were not here: the option sets above cover type, spacing,
@@ -257,7 +257,7 @@ shared ladder rather than stating their own values:
 | `--spacing-card` | `--spacing-m` | `--spacing-m` | `--spacing-s` |
 | `--spacing-section` | `--spacing-xxl` | `--spacing-xl` | `--spacing-m` |
 
-## Colour naming
+## T-05 · Colour naming
 
 Two layers, and only one of them is used in component code.
 
@@ -279,7 +279,7 @@ The payoff is mode switching: one semantic name maps to a different primitive in
 
 Resist per-component tokens (`--button-bg`). They multiply fast and rarely earn it.
 
-## Naming contract
+## T-06 · Naming contract
 
 Names align to Tailwind v4's theme namespaces. This is free for other frameworks — they are ordinary custom properties — and means most of them can be exposed as Tailwind utilities through an alias block, without any framework taking a dependency on Tailwind.
 
@@ -313,7 +313,7 @@ Verified by compiling one alias per namespace against `tailwindcss@4.3.3` and re
 2. No component-scoped tokens. `--button-bg` belongs in the component, referencing `--color-brand`.
 3. A value that cannot be expressed as a token is a missing token, not an exception (`H-47`).
 
-## Colour architecture
+## T-07 · Colour architecture
 
 **Foregrounds are transparent. Backgrounds are solid.**
 
@@ -340,7 +340,7 @@ Brand and each system colour take the same four variations: **100%** text, **80%
 
 **Neutral or monochromatic.** The default is neutral (pure black/white opacities), which works with any brand colour. For a monochromatic palette, tint the dark-mode backgrounds with the brand hue and, in light mode, replace the black opacities with a heavily saturated brand hue at low lightness. Change `--brand-h` and `--brand-s`; nothing else moves.
 
-## Contrast contract
+## T-08 · Contrast contract
 
 **Floor: WCAG 2.1 AA.** Two thresholds, and the boundary between them is a common mistake.
 
@@ -379,13 +379,13 @@ APCA reference values, with the sizes they apply at — a score means nothing wi
 
 These thresholds are APCA's own and do not line up with WCAG's large-text definition (`C-17`, 24px regular / 18.66px bold) — the two systems measure differently, and each is right inside its own frame.
 
-## Dark mode
+## T-09 · Dark mode
 
 Not an inversion (`C-21`). Each brand file supplies a dark block under `@media (prefers-color-scheme: dark)` and `[data-theme="dark"]`, remapping semantics only. Mode files are theme-independent — density does not change with colour scheme.
 
 In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation survives the switch; shadow-led does not, which is one reason border-led is the unbranded default.
 
-## Consuming
+## T-10 · Consuming
 
 **Plain CSS, any framework**
 ```css

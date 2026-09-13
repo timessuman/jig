@@ -4,7 +4,8 @@ import { join } from 'node:path';
 /**
  * The `##`-level addressable units: `## P-NN · Name` pattern specs in
  * `03-patterns.md`, `## M-NN · name` mode specs in `01-modes.md`, and
- * `## L-NN · Name` methods, and `## R-NN · Name` principles.
+ * `## L-NN · Name` methods, `## R-NN · Name` principles, and `## T-NN · Name`
+ * token guidance.
  *
  * These are a different kind of thing from the `### X-NN` rules, which is why
  * `rules.index.json` deliberately excludes them: a rule states one failure and
@@ -27,7 +28,7 @@ import { join } from 'node:path';
  * The prefix is the only thing that distinguishes them, so it is read once,
  * here, and never re-derived by a caller.
  */
-export type SpecKind = 'pattern' | 'mode' | 'method' | 'principle';
+export type SpecKind = 'pattern' | 'mode' | 'method' | 'principle' | 'token';
 
 const KINDS: Record<string, SpecKind> = {
   P: 'pattern',
@@ -41,6 +42,12 @@ const KINDS: Record<string, SpecKind> = {
   // when two rules conflict, which is exactly when a reader wants one entry and
   // not 141 lines.
   R: 'principle',
+  // `T` — token guidance. The contracts and conventions around the token layer:
+  // what the names mean, what the contrast floor is, how dark mode resolves.
+  // 02-tokens.md was 517 lines at 0% addressable, the largest single block in
+  // the corpus, and the protocol sends readers there "for setup or when adding a
+  // token" — both of which want one contract, not the file.
+  T: 'token',
 };
 
 export interface Spec {
@@ -53,7 +60,7 @@ export interface Spec {
   source: string;
 }
 
-const HEADING = /^##\s+([PMLR]-\d+)\s*(?:·\s*)?(.*?)\s*$/;
+const HEADING = /^##\s+([PMLRT]-\d+)\s*(?:·\s*)?(.*?)\s*$/;
 
 export function parseSpecs(markdown: string, sourceFile: string): Spec[] {
   const lines = markdown.split('\n');

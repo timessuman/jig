@@ -11,7 +11,7 @@ Before generating or reviewing any UI in this repository:
 4. Load the relevant section of `03-patterns.md` for the component being built.
 4b. Load `05-copy.md` whenever you write a label, button, heading, error or empty state.
 5. Consume tokens by semantic name only (`--color-fg`, not `--color-neutral-900`). Never write a raw colour or pixel value at the call site.
-6. Run the self-check at the end of `00-anti-patterns.md` before finishing.
+6. Run the self-check `L-04` at the end of `00-anti-patterns.md` before finishing.
 7. Cite any rule you deliberately break, with the reason, in one line.
 
 **Which file, and when.** `00` and `01` are the always-loaded core and are sized

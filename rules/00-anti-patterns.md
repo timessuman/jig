@@ -509,7 +509,7 @@ Load `05-copy.md` whenever writing or reviewing a user-facing string.
 
 ---
 
-## Self-check before finishing
+## L-04 · Self-check before finishing
 
 Run this against what you produced. Any "no" is a defect to fix, not a note to mention.
 
