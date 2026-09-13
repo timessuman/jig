@@ -69,9 +69,10 @@ program
   .description("Explain a rule, or find the rules you cannot name.")
   .argument('[query]', "a rule id ('C-19'), a word to search for ('contrast'), or a section letter with --list")
   .option('--list', 'list every rule id and title, or one section with a section letter')
-  .action((query: string | undefined, options: { list?: boolean }) => {
+  .option('--layer', 'name the six layers, or list one of them by name')
+  .action((query: string | undefined, options: { list?: boolean; layer?: boolean }) => {
     try {
-      console.log(explain({ ruleId: query ?? '', version, list: options.list }));
+      console.log(explain({ ruleId: query ?? '', version, list: options.list, layer: options.layer }));
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);
