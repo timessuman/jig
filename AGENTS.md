@@ -11,14 +11,14 @@ Before generating or reviewing any UI in this repository:
 4. Load the relevant section of `03-patterns.md` for the component being built.
 4b. Load `05-copy.md` whenever you write a label, button, heading, error or empty state.
 5. Consume tokens by semantic name only (`--color-fg`, not `--color-neutral-900`). Never write a raw colour or pixel value at the call site.
-6. Run the self-check at the end of `00-anti-patterns.md` before finishing.
+6. Run the self-check `L-04` at the end of `00-anti-patterns.md` before finishing.
 7. Cite any rule you deliberately break, with the reason, in one line.
 
 **Which file, and when.** `00` and `01` are the always-loaded core and are sized
 to stay cheap in context. `02` is for setup or when adding a token. `03` is the
 largest file — load the section for the component being built, never the whole
 thing, **except `L-01`, which is not a component's section and applies to every
-screen**. `04` only when two rules conflict. `05` whenever you write a string.
+screen**. `04` only when two rules conflict — and fetch the one tiebreaker (`R-06`–`R-12`) rather than the file. `05` whenever you write a string.
 
 A `##`-level id is an addressable unit in its own right: `P-` a component spec,
 `M-` a mode profile, `L-` a method. `explain` resolves all three, so cite and

@@ -69,6 +69,14 @@ const KIND_NOTE: Record<Spec['kind'], [string, string]> = {
     'method — a procedure to follow before building, not a component to build.',
     'It applies to any screen, so nothing selects it for you: run it.',
   ],
+  principle: [
+    'principle — for the case no rule covers, or the case two rules answer',
+    'differently. Not a rule: it has no ❌/✅ pair and nothing detects it.',
+  ],
+  token: [
+    'token contract — what the token layer guarantees and what it expects back.',
+    'Values live in the token files; this is what they mean and how they resolve.',
+  ],
 };
 
 function renderSpec(spec: Spec): string {

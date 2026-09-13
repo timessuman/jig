@@ -4,7 +4,8 @@ import { join } from 'node:path';
 /**
  * The `##`-level addressable units: `## P-NN · Name` pattern specs in
  * `03-patterns.md`, `## M-NN · name` mode specs in `01-modes.md`, and
- * `## L-NN · Name` methods.
+ * `## L-NN · Name` methods, `## R-NN · Name` principles, and `## T-NN · Name`
+ * token guidance.
  *
  * These are a different kind of thing from the `### X-NN` rules, which is why
  * `rules.index.json` deliberately excludes them: a rule states one failure and
@@ -27,9 +28,27 @@ import { join } from 'node:path';
  * The prefix is the only thing that distinguishes them, so it is read once,
  * here, and never re-derived by a caller.
  */
-export type SpecKind = 'pattern' | 'mode' | 'method';
+export type SpecKind = 'pattern' | 'mode' | 'method' | 'principle' | 'token';
 
-const KINDS: Record<string, SpecKind> = { P: 'pattern', M: 'mode', L: 'method' };
+const KINDS: Record<string, SpecKind> = {
+  P: 'pattern',
+  M: 'mode',
+  L: 'method',
+  // `R` — principles. Both halves of `04-principles.md`: the five frames, which
+  // are generative (how to recognise a failure no rule covers yet), and the
+  // seven tiebreakers, which are adjudicative (which rule yields when two
+  // conflict). The file itself was 0% addressable, so `04` could be cited by
+  // nothing and loaded only as a whole — and the protocol says to load it only
+  // when two rules conflict, which is exactly when a reader wants one entry and
+  // not 141 lines.
+  R: 'principle',
+  // `T` — token guidance. The contracts and conventions around the token layer:
+  // what the names mean, what the contrast floor is, how dark mode resolves.
+  // 02-tokens.md was 517 lines at 0% addressable, the largest single block in
+  // the corpus, and the protocol sends readers there "for setup or when adding a
+  // token" — both of which want one contract, not the file.
+  T: 'token',
+};
 
 export interface Spec {
   id: string;
@@ -41,7 +60,7 @@ export interface Spec {
   source: string;
 }
 
-const HEADING = /^##\s+([PML]-\d+)\s*(?:·\s*)?(.*?)\s*$/;
+const HEADING = /^##\s+([PMLRT]-\d+)\s*(?:·\s*)?(.*?)\s*$/;
 
 export function parseSpecs(markdown: string, sourceFile: string): Spec[] {
   const lines = markdown.split('\n');

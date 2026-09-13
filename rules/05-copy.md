@@ -131,7 +131,7 @@ See `P-01` for *where* the message goes and `F-37` for field-level validation te
 
 ---
 
-## Checklist
+## L-06 · Copy checklist
 
 1. Sentence case throughout? (`I-53`)
 2. Any word removable without loss? (`I-79`)

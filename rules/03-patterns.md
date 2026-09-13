@@ -486,7 +486,7 @@ An agent cannot squint, so use the analogue: **if all type were one size and one
 
 ---
 
-## Building modularly
+## L-02 · Building modularly
 
 Patterns are not built page-first. Build the smallest pieces, then compose.
 
@@ -505,7 +505,7 @@ Before writing a new component, check whether it is a composite of things that a
 
 ---
 
-## Adding a pattern
+## L-03 · Adding a pattern
 
 A new pattern earns a place here when it has been built three times. Before then it is a component, not a pattern.
 
