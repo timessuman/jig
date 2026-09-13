@@ -143,7 +143,21 @@ export function buildCommandBody(
     // for a no-op. `buildSkillBody` has always known this; the command body did
     // not, so `/jig update` could never upgrade anyone and would say it had.
     .replace(/\{\{update_path\}\}/g, 'npx jig-ui@latest')
-    .replace(/\{\{rules_path\}\}/g, rulesPath);
+    .replace(/\{\{rules_path\}\}/g, rulesPath)
+    .replace(/\{\{config_file\}\}/g, 'jig.config.json');
+
+  // This chain is hand-rolled rather than `render()`, so an unknown placeholder
+  // is not an error here — it is simply left in the file, and ships to the user
+  // as the literal text `{{config_file}}` in the instructions their agent reads.
+  // `render()` throws on exactly this; the chain had no equivalent, so it gets
+  // one.
+  const unresolved = [...new Set(body.match(/\{\{[a-z_]+\}\}/g) ?? [])];
+  if (unresolved.length > 0) {
+    throw new Error(
+      `COMMAND.md.tmpl has placeholders nothing substitutes: ${unresolved.join(', ')}. ` +
+        `Add them to the replace chain in buildCommandBody, or remove them from the template.`,
+    );
+  }
   return { body, subcommands };
 }
 
