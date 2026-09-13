@@ -30,7 +30,7 @@ described by what it is and how much of it has been read.
 
 ## Source A — typography, 33 numbered laws in five sections
 
-Read so far: sections 1–2 (laws 1–8) on 2026-09-13.
+Read: all five sections, 33 laws, on 2026-09-13. Complete.
 
 | # | The source's position, in our words | Where we stand | Status |
 | --- | --- | --- | --- |
@@ -44,7 +44,60 @@ Read so far: sections 1–2 (laws 1–8) on 2026-09-13.
 | A8 | Body text on the web: 16px maximum, 12px minimum used sparingly | **We say the opposite for long-form.** `B-75` sets `--text-prose` at 18px and reserves 16px for UI text read in glances. Kept: people read at roughly arm's length on every device, so a maximum of 16px optimises for the designer's screen rather than the reader's distance. The source is writing primarily for print, where the page distance is fixed | diverged |
 | A9 | Line length of 50–75 characters including spaces | `B-11` unbounded line length, and `--measure-prose` at 60ch (product), 68ch (editorial), 72ch (operator) — inside the range at every mode | covered |
 
-**Nine positions read, none adopted.** Seven were already covered or
-out of scope, and two are argued divergences. Worth stating plainly, because a
-source that produces no new rules has still done its job — it has confirmed seven
-existing positions and disagreed usefully on two.
+| A10 | Flush-left, ragged-right body text; never justified | `B-12` centred or justified body text | covered |
+| A11 | One space after a sentence, not two | Not our subject — a typing habit, invisible in rendered HTML, which collapses whitespace | out of scope |
+| A12 | Never leave fewer than seven characters alone on a line (an orphan) | **Nothing covers this.** Not print-only either: a heading that breaks with one word on the last line is a real defect in rendered UI | open |
+| A13 | Avoid a paragraph's last line stranded alone (a widow) | Same gap as `A12` | open |
+| A14 | Do not let a hyphen be the last character on a line | Same family. `hyphens: auto` produces exactly this and Jig says nothing about it | open |
+| A15 | Signal a new paragraph once — blank line **or** indent, never both | The web default is a blank line and indents are rare, so there is no failure to prevent. A rule with no failure mode is context cost | out of scope |
+| A16 | Break long text into paragraphs, roughly every five lines | `I-80` long text without a structure | covered |
+| A17 | Emphasise a tenth of the text or less | **Nothing covers this.** `B-77` caps how many weights exist, not how much text carries them; `C-50` is about colour on headings. The reason is good: emphasis works by contrast with unemphasised text, and past a point there is nothing left to contrast against | open |
+| A18 | Avoid all caps; avoid underline, which reads as a link on the web | `B-16` all-caps for anything long, `I-85` UPPERCASE, and `C-49` link treatment for the underline half | covered |
+| A19 | Set acronyms in small caps | `I-84` covers acronyms as a copy decision. Small caps specifically is a print refinement — `font-variant: small-caps` is poorly drawn in most UI faces | out of scope |
+| A20 | Hang punctuation off the aligned edge in small blocks | `D-27` optical alignment ignored covers the principle. `hanging-punctuation` has almost no browser support, so the CSS half is not actionable | covered |
+| A21 | Hang numbers and bullets in lists | Browser default for `<ul>`/`<ol>`. No failure to prevent | out of scope |
+| A22 | Set line breaks manually rather than letting margins decide | Directly wrong for responsive UI, where the margin *is* the variable. A manual break is a bug at the next viewport width | diverged |
+| A23 | Use symbols and special characters, encoded so every browser renders them | Encoding, not design | out of scope |
+| A24 | Old-style figures in prose, tabular figures where columns align | `P-06` — numeric columns right-aligned with tabular figures (`--font-numeric`). The old-style half is a refinement Jig has no token for and has not needed | covered |
+| A25 | Large text needs its leading and tracking adjusted; it does not scale linearly | `B-13` one line-height for everything is exactly this failure | covered |
+| A26 | Trust your eye over the software's alignment | `D-27` optical alignment ignored | covered |
+| A27 | Em dash to join thoughts; en dash for ranges, unspaced; hyphen for compounds | Nothing in `05-copy.md` covers dashes. Real, small, and genuinely decidable — a date range written with a hyphen is wrong and checkable | open |
+| A28 | Prime symbols for feet and inches, not quote characters | Unit notation, and rare in product UI | out of scope |
+| A29 | Apostrophes mark omission, never plurals | Spelling, not design | out of scope |
+| A30 | Two typefaces per project, one heading and one body | `B-76`, already recorded as `A4`. **The source repeats itself** — laws 4 and 31 are the same position | covered |
+| A31 | Let the typeface carry the document's mood; never Comic Sans, Papyrus, Jokerman, Curlz | Font choice is the project's, set once in the brand file. A blocklist of four faces is not a rule, it is a joke with a long tail | out of scope |
+| A32 | Pair a serif and a sans by judgement, not by formality | Jig's stated default is one sans for everything (`B-76`), on the grounds that it keeps content rather than lettering in focus. A pairing is allowed, not encouraged | diverged |
+
+**32 positions read, 0 adopted, 5 open.**
+
+The four open rows are the ledger doing its job — they are candidates, not
+entries. Minting a rule needs more than a source agreeing with itself: `S4`
+requires a detector or a stated self-check question and a `pass`, and
+`AGENTS.md:32` requires the twice-run control showing the output actually
+changes. `B-105`, the last rule added, took a release and a measurement.
+
+Worth noting what most of the open rows have in common. **`A12`–`A14` are orphans, widows
+and line-break hyphens — a family Jig has never covered, and one that only became
+admissible when `critique` learned to render.** A rule about where a line breaks
+cannot be judged from a stylesheet; it needs the composed page at a width. The
+capability arrived before the rule that needs it, which is the right order.
+
+`A17` (emphasis ≤ 10%) is the opposite: decidable by counting markup, so it would
+be `pass: code`, and possibly a detector rather than a judgement at all.
+
+---
+
+## What this source was worth
+
+32 positions across five sections: **14 covered**, each citing the id that
+covers it; **9 out of scope**, mostly print and word-processor concerns that do
+not survive contact with a browser; **4 argued divergences**; **5 left open**.
+
+**No new rules.** That is a successful read, not a failed one. The corpus was
+confirmed on 14 points by a source that had never seen it, contradicted on 4
+where we have a reason, and shown one genuine blind spot — line breaking — that
+nothing in `00`–`05` has ever addressed.
+
+A ledger that adopted all 32 rows would have doubled the typography section with
+restatements of `B-12`, `B-13`, `B-16`, `B-76` and `I-80`, and buried the one
+finding that matters.
