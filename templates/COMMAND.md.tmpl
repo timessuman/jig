@@ -12,7 +12,7 @@ then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
 `jq` drop the ones that matter.
 
-**Agent procedures** — `spec`, `make`. There is no binary. Do not try to run one:
+**Agent procedures** — `spec`, `make`, `critique`. There is no binary. Do not try to run one:
 the section below **is** the command. A CLI can check what these produce; it
 cannot do their work, because the work is judgment and authorship.
 
@@ -65,7 +65,12 @@ Do the other half yourself:
 1. Load `{{rules_path}}/00-anti-patterns.md` and `{{rules_path}}/05-copy.md`,
    plus the relevant section of `{{rules_path}}/03-patterns.md` for whatever the
    changed files build.
-2. Apply the judgment rules to the same files the CLI just scanned.
+2. Apply the judgment rules **that `rules.index.json` marks `pass: code`** to the
+   same files the CLI just scanned — the ones decidable by reading. Leave the
+   `pass: screen` rules alone: they need the rendered composition, which is not
+   in any file you have, and guessing at them here is how this command and
+   `critique` come to give one page two verdicts. `{{command_prefix}}critique`
+   owns those.
 3. Merge both halves into **one** report keyed by rule id, ordered by severity —
    not two lists. A reader should not have to know which half found what.
 4. Run the self-check at the end of `{{rules_path}}/00-anti-patterns.md`.
@@ -79,6 +84,12 @@ JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judg
 Take `mechanical=` from the CLI's own line. If `check` could not run, that is
 `mechanical=skipped:0` — never `pass`, which would report a clean result for a
 check that inspected nothing. Report `judgment=ran` only if you did step 2.
+
+`judgment=ran` here means the `code` rules ran. It does not mean the page was
+reviewed — nothing in this command looks at a rendered page, so a screen whose
+stylesheet never loaded passes every part of it. Say so if the user is treating
+a clean `check` as a finished review, and point them at
+`{{command_prefix}}critique`.
 
 ## install
 
@@ -250,3 +261,81 @@ review then validates the page against fiction and reports it clean.
 
 Run `check`, then the self-check at the end of `{{rules_path}}/00-anti-patterns.md`,
 and say which fields of the spec the built page satisfies and which it does not.
+
+## critique
+
+Review a built screen. This is **not** a second `check`, and the difference is
+not effort — it is evidence.
+
+`check` reads files. `critique` looks at the page. A hierarchy failure is in no
+file: it is in what the files produce together, so no amount of careful reading
+finds it. Every judgment rule says which pass owns it, in `pass:` — `check`
+judges the `code` ones, this judges the `screen` ones, and neither re-judges the
+other's. That is why the two can never hand a user competing verdicts on one
+rule.
+
+### Refuse rather than guess
+
+- The user named no surface → ask which screen.
+- There is no `.jig/specs/<surface>.spec.md` → say so and continue **rules-only**,
+  reporting `spec=missing`. Do not invent the spec the page should have had; a
+  spec written after the page, from the page, agrees with it by construction.
+
+### 1. Two assessments that cannot see each other
+
+Run both. **Neither may see the other's output**, and neither may see the
+conversation that built the page. Running them in one head anchors them to each
+other; do not shortcut it for cost, speed or context size.
+
+- **A — the reader.** Delegate to a subagent. Give it the URL or file, the spec,
+  and the corpus. Do **not** give it the build conversation. If it needs that
+  conversation, it is not reviewing the page, it is agreeing with itself.
+- **B — the machine.** Run `check`. Deterministic, same input same output.
+
+The reader is a subagent for the same reason a writer does not proofread their
+own copy. An agent that built the page knows what it meant, and what it meant is
+invisible in the artifact — which is the one thing a reviewer must not have.
+
+### 2. Look at the page
+
+If a browser is available this is **required**, not optional:
+
+- Render at a narrow width (~400px) and a wide one (~1280px).
+- Compare them. Did narrow width change the **composition**, or only the
+  **dimensions**? Reordering, stacking, collapsing, a different control — that is
+  composition. The same layout with smaller numbers is not.
+- Check the page is styled at all. A stylesheet that 404s renders a page that
+  passes every file-based check ever written.
+- Run the squint test from `L-01` against the render, not the analogue. The
+  analogue exists for when there is no browser.
+
+If no browser is available, say so in one line and use `L-01`'s analogue. Never
+skip it silently, and never report a render you did not do.
+
+### 3. Compare the page to its spec
+
+For each frontmatter field, say whether the built page satisfies it. A difference
+is a finding **unless** `deviations:` already explains it — that is what the
+recorded deviation is for. A difference explained by neither is the more serious
+finding, because it means the spec has quietly stopped describing the page.
+
+### 4. Report
+
+Merge both assessments into one report, keyed by rule id, ordered by severity.
+Say explicitly where the two agree, what only the machine found, what only the
+reader found, and which machine findings are false positives. **The disagreement
+is information, not noise to smooth over.**
+
+Say what is right as well as what is wrong — two or three things, and why they
+work. A review that only lists faults tells the reader nothing about what to
+preserve while fixing them.
+
+Then the attestation:
+
+```text
+JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> rendered=<yes|no> screen=<ran|skipped>:<n> code=<pass|fail|skipped>:<n>
+```
+
+`rendered=no` is not a detail. Without it a clean report reads as "this page is
+good" when it can only mean "the files are good" — and a page whose stylesheet
+never loaded satisfies every file-based check there is.

@@ -37,7 +37,7 @@ function seedLegacyInstall(opts: { editRule?: boolean; withManifest?: boolean } 
   const jigDir = join(project, '.jig');
   mkdirSync(jigDir, { recursive: true });
   const ruleBody = '### A-01 Rule\n❌ bad\n✅ good\n';
-  const indexBody = JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' }]);
+  const indexBody = JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' }]);
   writeFileSync(join(jigDir, '00-anti-patterns.md'), ruleBody);
   writeFileSync(join(jigDir, 'rules.index.json'), indexBody);
   writeFileSync(join(jigDir, 'LICENSE'), 'Apache License 2.0 text');
@@ -164,7 +164,7 @@ function seedLegacyCursorInstall(opts: { editMdc?: boolean; withManifest?: boole
   writeFileSync(join(cursorRulesDir, 'jig.mdc'), mdcBody);
 
   const ruleBody = '### A-01 Rule\n❌ bad\n✅ good\n';
-  const indexBody = JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' }]);
+  const indexBody = JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' }]);
   writeFileSync(join(bundleDir, '00-anti-patterns.md'), ruleBody);
   writeFileSync(join(bundleDir, 'rules.index.json'), indexBody);
   writeFileSync(join(bundleDir, 'LICENSE'), 'Apache License 2.0 text');

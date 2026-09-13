@@ -33,5 +33,10 @@
     "description": "Build a screen from its confirmed spec, recording any deviation back into it. Refuses to start without one. No CLI \u2014 the agent does this.",
     "argumentHint": "<surface, in your own words>",
     "status": "agent"
+  },
+  "critique": {
+    "description": "Review a built screen the way check cannot: render it, compare it to its spec, and judge the rules that only the composed page can answer. No CLI \u2014 the agent does this.",
+    "argumentHint": "<surface, in your own words>",
+    "status": "agent"
   }
 }
