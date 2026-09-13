@@ -12,7 +12,7 @@ then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
 `jq` drop the ones that matter.
 
-**Agent procedures** — `spec`, `make`, `critique`. There is no binary. Do not try to run one:
+**Agent procedures** — `decide`, `spec`, `make`, `critique`. There is no binary. Do not try to run one:
 the section below **is** the command. A CLI can check what these produce; it
 cannot do their work, because the work is judgment and authorship.
 
@@ -339,3 +339,67 @@ JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missi
 `rendered=no` is not a detail. Without it a clean report reads as "this page is
 good" when it can only mean "the files are good" — and a page whose stylesheet
 never loaded satisfies every file-based check there is.
+
+## decide
+
+Write `DECISIONS.md` beside the token layer — `jig/DECISIONS.md` by default, or
+wherever `brand` in `{{config_file}}` puts the token files.
+
+Every other command is blocked until this exists, so it is worth being exact
+about what it is for.
+
+### What belongs in it, and what does not
+
+The token layer already holds **values**, and `{{config_file}}` already holds
+**mode**. Neither can hold a **reason**. This file is the reasons.
+
+- ✅ *"Our accent arrives as a whole field or not at all — a full-bleed section,
+  a solid button, a filled state. Never a 2px underline, never an icon tint.
+  Its authority comes from arriving in quantity, rarely."*
+- ❌ *"The accent is `#FF6347`."* — that is a token. Restating it here creates
+  two places to change it, and they will disagree.
+- ❌ *"Use 4.5:1 contrast."* — that is `C-19`, and it is true of every project.
+  A universal rule copied into a project file is a rule that can rot locally.
+
+The test: **could this be derived from the tokens, the mode, or a numbered rule?**
+If yes, it is already written down somewhere better. If no, it is a decision, and
+this is where it lives.
+
+### How to write it
+
+**Interview, do not infer.** Two or three questions per round, then wait. What
+you are looking for is the places where this project has already chosen
+something, or will have to:
+
+- Round 1 — what is this product, and who is it for in a sentence the team would
+  recognise? What should it never look like? Name real products, not adjectives.
+- Round 2 — for each thing the tokens already set, is there a rule about *how* it
+  is used? Where does the brand colour go, and where is it forbidden? What earns
+  emphasis?
+- Round 3 — what has the team already argued about, or reversed? A decision with
+  a history is the one most worth recording, because it is the one most likely to
+  be re-made wrongly.
+
+**Write each decision as a named rule with its reason attached**, in the project's
+own vocabulary:
+
+```markdown
+### The Stamp Rule
+
+The accent appears as a whole field or not at all. A full-bleed section, a solid
+button, a filled active state — never a 2px underline, never a small icon tint,
+never a gradient stop. Its authority comes from arriving in quantity, rarely.
+
+**Why:** thinly spread, it reads as decoration and stops meaning anything. The
+audit test: if a coloured element is smaller than a section band, it is probably
+wrong.
+```
+
+A name gives the team something to cite in review. A reason lets a future agent
+tell when the rule does not apply, which a bare instruction never can.
+
+### Finish
+
+Show it and ask the user to confirm it is right before you stop. Leave no
+`[TODO]` markers — the gate treats them as an unwritten file, correctly, because
+a placeholder decision is not a decision.
