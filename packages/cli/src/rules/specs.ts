@@ -2,8 +2,9 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * The `## P-NN · Name` pattern specs in `03-patterns.md` and `## M-NN · name`
- * mode specs in `01-modes.md`.
+ * The `##`-level addressable units: `## P-NN · Name` pattern specs in
+ * `03-patterns.md`, `## M-NN · name` mode specs in `01-modes.md`, and
+ * `## L-NN · Name` methods.
  *
  * These are a different kind of thing from the `### X-NN` rules, which is why
  * `rules.index.json` deliberately excludes them: a rule states one failure and
@@ -15,16 +16,32 @@ import { join } from 'node:path';
  * But agents cite them as ids — every baseline run in this release cited
  * `P-02`, `P-05` or `P-06` — so anything that resolves a citation has to know
  * about them. That is M10, and this is the half of it that `explain` needs.
+ *
+ * `L-` — methods — joined in 0.10.0, and parses here rather than in a parser of
+ * its own. A method is a third kind of content (a procedure to follow, not a
+ * component to build or a mode to inherit), but it is the *same shape*: a `##`
+ * heading with an id, a body of several paragraphs, no ❌/✅ pair, and no place
+ * in the rule index. Two parsers doing one job is how two places come to answer
+ * one question and disagree — `H-45`. So the kind is a field, not a file.
+ *
+ * The prefix is the only thing that distinguishes them, so it is read once,
+ * here, and never re-derived by a caller.
  */
+export type SpecKind = 'pattern' | 'mode' | 'method';
+
+const KINDS: Record<string, SpecKind> = { P: 'pattern', M: 'mode', L: 'method' };
+
 export interface Spec {
   id: string;
   title: string;
+  /** What kind of unit this is, from the id's prefix. */
+  kind: SpecKind;
   /** The section body, without its heading. */
   body: string;
   source: string;
 }
 
-const HEADING = /^##\s+([PM]-\d+)\s*(?:·\s*)?(.*?)\s*$/;
+const HEADING = /^##\s+([PML]-\d+)\s*(?:·\s*)?(.*?)\s*$/;
 
 export function parseSpecs(markdown: string, sourceFile: string): Spec[] {
   const lines = markdown.split('\n');
@@ -44,7 +61,13 @@ export function parseSpecs(markdown: string, sourceFile: string): Spec[] {
     if (heading) {
       push();
       const [, id, title] = heading;
-      current = { id, title, body: '', source: `${sourceFile}#${id.toLowerCase()}` };
+      current = {
+        id,
+        title,
+        kind: KINDS[id[0]],
+        body: '',
+        source: `${sourceFile}#${id.toLowerCase()}`,
+      };
       continue;
     }
     // A `##` heading that is not a spec ends the current one — otherwise a

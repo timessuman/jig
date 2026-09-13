@@ -12,6 +12,12 @@ nooon.pdf
 
 graphify-out/
 
+# Restructure working material: the conversation that started it, the planning
+# files, and the source books for the six layers. Ignored for the same reason
+# nooon.pdf is — the sources are licensed and not ours to redistribute — and
+# because the plan is scratch until it lands in AGENTS.md and the rules.
+/redesign-docs/
+
 # Local agent-tool working state. Both ship their own ignore file, but
 # .superpowers/ only covers sdd/ — its root is exposed, so a tool writing
 # directly there would be committable by `git add .`. Ignored here so the

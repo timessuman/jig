@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { explain } from '../src/commands/explain.js';
+import { repoRoot } from './helpers/registered-commands.js';
 
 /**
  * `explain <rule-id>` closes the loop when a rule fires. `check` prints
@@ -217,7 +220,8 @@ describe('prose before the pair', () => {
  */
 describe('separators do not leak into spec bodies', () => {
   const specIds = ['P-01', 'P-02', 'P-03', 'P-04', 'P-05', 'P-06', 'P-07',
-                   'P-08', 'P-10', 'P-11', 'P-12', 'P-13', 'M-01', 'M-02', 'M-03'];
+                   'P-08', 'P-10', 'P-11', 'P-12', 'P-13', 'M-01', 'M-02', 'M-03',
+                   'L-01'];
 
   it.each(specIds)('%s renders no bare --- line', (id) => {
     const out = explain({ ruleId: id, version });
@@ -226,7 +230,11 @@ describe('separators do not leak into spec bodies', () => {
     expect(out).toContain(id);
     expect(out.length).toBeGreaterThan(200);
 
-    const body = out.split('\n   specification')[0];
+    // Split on whichever footer this kind carries — a method's does not say
+    // "specification". Hard-coding one kind's wording would have silently
+    // included the footer in `body` for the others, and the assertion below
+    // would then have been testing the footer instead of the prose.
+    const body = out.split(/\n   (?:specification|mode profile|method) /)[0];
     const bare = body.split('\n').filter((l) => /^-{3,}$/.test(l.trim()));
     expect(bare).toEqual([]);
   });
@@ -234,5 +242,89 @@ describe('separators do not leak into spec bodies', () => {
   it('still keeps table separators, which are not thematic breaks', () => {
     // `| --- |` must survive: P-01's feedback table is the whole point of it.
     expect(explain({ ruleId: 'P-01', version })).toContain('---');
+  });
+});
+
+
+/**
+ * `L-` methods — the layout method and anything else that is a procedure rather
+ * than a component or a mode.
+ *
+ * The defect these pin: the layout method sat at `03-patterns.md:440` from the
+ * first release, complete and good, and no agent ever read it. It had no id, so
+ * `explain` could not resolve it, `explain layout` returned nine entries and
+ * none of them was the method itself, and the loading protocol said "load the
+ * relevant section for the component you are building" — which never selects a
+ * procedure, because a procedure is not a component.
+ *
+ * Measured before the fix: 56% of the corpus was unaddressable this way.
+ */
+describe('explain — methods (L-)', () => {
+  it('resolves a method by id', () => {
+    const out = explain({ ruleId: 'L-01', version });
+    expect(out).toContain('L-01');
+    expect(out).toContain('Layout method');
+    // The steps, not just the heading — an empty body would satisfy the two
+    // assertions above.
+    expect(out).toContain('Step 1');
+    expect(out).toContain('squint');
+  });
+
+  it('calls a method a method, not a specification', () => {
+    // Telling a reader that a procedure is "component anatomy" is worse than
+    // saying nothing: they file it under the component they happen to be
+    // writing, which is exactly how it went unread.
+    const out = explain({ ruleId: 'L-01', version });
+    expect(out).toMatch(/method/i);
+    expect(out).not.toMatch(/component anatomy/i);
+  });
+
+  it('surfaces the method first when searching for layout', () => {
+    // The search that used to miss it entirely. Title matches sort first, so
+    // the method leads rather than sitting below nine rules that merely
+    // mention the word.
+    const out = explain({ ruleId: 'layout', version });
+    const ids = out.split('\n').map((l) => /^([A-Z]-\d+)/.exec(l.trim())?.[1]).filter(Boolean);
+    expect(ids[0]).toBe('L-01');
+  });
+
+  it('carries no bucket, severity or detector line', () => {
+    // A method is not a rule. Dressing it as one implies a detector that
+    // cannot exist and a severity that means nothing here.
+    const out = explain({ ruleId: 'L-01', version });
+    expect(out).not.toMatch(/judgment · note|detector:/);
+  });
+});
+
+/**
+ * The protocol has to SELECT it. Everything above only proves the method can be
+ * fetched by someone who already knows it exists — which was never the problem.
+ *
+ * Read out of the two files an agent actually follows, rather than asserted
+ * about a copy, because those two are the ones that failed.
+ */
+describe('the loading protocol selects the layout method', () => {
+  const read = (rel: string) => readFileSync(join(repoRoot, rel), 'utf8');
+
+  it.each(['AGENTS.md', 'templates/SKILL.md.tmpl'])('%s names L-01 as a step', (file) => {
+    const src = read(file);
+    expect(src).toContain('L-01');
+    // Not merely mentioned somewhere: it has to be a numbered step, on the
+    // screen-building branch, ahead of the component step.
+    const atMethod = src.indexOf('L-01');
+    const atComponent = src.indexOf('for the component');
+    expect(atMethod).toBeGreaterThan(-1);
+    expect(atComponent).toBeGreaterThan(-1);
+    expect(atMethod).toBeLessThan(atComponent);
+  });
+
+  it('no longer tells the reader to load 03 only by component', () => {
+    // The exact sentence that hid it: "load the section for the component
+    // being built, never the whole thing" — true of the component specs and
+    // false of the method, which is why the method needed naming here.
+    const agents = read('AGENTS.md');
+    const sentence = /never the whole\s+thing/.exec(agents);
+    expect(sentence, 'the steering sentence changed shape — re-check this guard').not.toBeNull();
+    expect(agents.slice(sentence!.index, sentence!.index + 200)).toContain('L-01');
   });
 });
