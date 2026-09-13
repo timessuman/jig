@@ -14,6 +14,11 @@
     "argumentHint": "[--yes]",
     "status": "available"
   },
+  "decide": {
+    "description": "Write the project's design decisions to DECISIONS.md beside the token layer \u2014 the choices that needed a reason, which the tokens hold the values for but cannot explain. Required before any UI work. No CLI \u2014 the agent does this.",
+    "argumentHint": "",
+    "status": "agent"
+  },
   "check": {
     "description": "Check the repo against the mechanical and hybrid rules the CLI can detect. Reports findings by rule id; the judgment rules remain yours to apply.",
     "argumentHint": "[--all] [--ci] [--json]",

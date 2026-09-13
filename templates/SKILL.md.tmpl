@@ -3,11 +3,22 @@ cite the number when you follow or deliberately break one.
 
 ## Before generating or reviewing any UI
 
-0. Check that `{{config_file}}` exists. If it does not, this project has no
-   token layer: run `init` and stop until it has been run. Do not proceed by
-   writing token definitions of your own — a `:root` block you author, however
-   clearly you label it, is an invented design system wearing this one's names,
-   and it will not be replaced when the real tokens arrive.
+0. **Two preconditions. Check both, and stop on either.**
+
+   a. `{{config_file}}` exists. If it does not, this project has no token layer:
+      run `init` and stop until it has been run. Do not proceed by writing token
+      definitions of your own — a `:root` block you author, however clearly you
+      label it, is an invented design system wearing this one's names, and it
+      will not be replaced when the real tokens arrive.
+
+   b. `DECISIONS.md` exists beside the token files — `jig/DECISIONS.md` by
+      default, or wherever `brand` in `{{config_file}}` puts them — and has
+      substance: not empty, no `[TODO]` markers left in it, more than a few
+      lines. If it does not, run `{{command_prefix}}decide` and stop until it has
+      been written. Do not write it yourself from this task's prompt — it records
+      decisions the project has made, and a file you author alone records
+      decisions *you* have made, which is the opposite thing wearing the same
+      name.
 1. Load `{{rules_path}}/00-anti-patterns.md` and `{{rules_path}}/01-modes.md`.
 2. Determine the mode from `{{config_file}}`, or infer it using the procedure in
    `{{rules_path}}/01-modes.md` and state the inference in one line before building.
