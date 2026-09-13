@@ -50,14 +50,36 @@ function renderRule(rule: LoadedRule): string {
   ].join('\n');
 }
 
+// What each kind of `##` unit is, said in the unit's own terms. A method is not
+// a specification and telling a reader it is would be worse than saying nothing:
+// `L-01` is a procedure to run before building, and an agent that reads
+// "component anatomy" will file it under the component it happens to be writing
+// and never run it. That mis-filing is the whole reason the layout method went
+// unread for four releases.
+const KIND_NOTE: Record<Spec['kind'], [string, string]> = {
+  pattern: [
+    'specification — component anatomy and behaviour, not a single rule,',
+    'so it carries no ❌/✅ pair and no detector.',
+  ],
+  mode: [
+    'mode profile — the character a surface inherits, not a single rule,',
+    'so it carries no ❌/✅ pair and no detector.',
+  ],
+  method: [
+    'method — a procedure to follow before building, not a component to build.',
+    'It applies to any screen, so nothing selects it for you: run it.',
+  ],
+};
+
 function renderSpec(spec: Spec): string {
+  const [what, more] = KIND_NOTE[spec.kind];
   return [
     `${spec.id}  ${spec.title}`,
     '',
     spec.body,
     '',
-    `   specification — component anatomy and behaviour, not a single rule,`,
-    `   so it carries no ❌/✅ pair and no detector.`,
+    `   ${what}`,
+    `   ${more}`,
     `   ${spec.source}`,
   ].join('\n');
 }

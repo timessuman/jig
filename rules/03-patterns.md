@@ -437,7 +437,7 @@ done, and `G-42` applies instead.
 
 ---
 
-## Layout method
+## L-01 · Layout method
 
 Not a component. The procedure for structuring any screen, before styling anything.
 

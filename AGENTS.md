@@ -4,16 +4,25 @@ Before generating or reviewing any UI in this repository:
 
 1. Load `00-anti-patterns.md` and `01-modes.md`.
 2. Determine the mode from `jig.config.json`, or infer it using the procedure in `01-modes.md` and **state the inference in one line** before building.
-3. Load the relevant section of `03-patterns.md` for the component being built.
-3b. Load `05-copy.md` whenever you write a label, button, heading, error or empty state.
-4. Consume tokens by semantic name only (`--color-fg`, not `--color-neutral-900`). Never write a raw colour or pixel value at the call site.
-5. Run the self-check at the end of `00-anti-patterns.md` before finishing.
-6. Cite any rule you deliberately break, with the reason, in one line.
+3. **Building a screen rather than a single component?** Read `L-01 · Layout
+   method` in `03-patterns.md` and run its five steps before writing any markup.
+   It is a procedure, not a component, so step 4 never selects it and nothing
+   else will. (`explain L-01` prints it too, but the file is the source.)
+4. Load the relevant section of `03-patterns.md` for the component being built.
+4b. Load `05-copy.md` whenever you write a label, button, heading, error or empty state.
+5. Consume tokens by semantic name only (`--color-fg`, not `--color-neutral-900`). Never write a raw colour or pixel value at the call site.
+6. Run the self-check at the end of `00-anti-patterns.md` before finishing.
+7. Cite any rule you deliberately break, with the reason, in one line.
 
 **Which file, and when.** `00` and `01` are the always-loaded core and are sized
 to stay cheap in context. `02` is for setup or when adding a token. `03` is the
 largest file — load the section for the component being built, never the whole
-thing. `04` only when two rules conflict. `05` whenever you write a string.
+thing, **except `L-01`, which is not a component's section and applies to every
+screen**. `04` only when two rules conflict. `05` whenever you write a string.
+
+A `##`-level id is an addressable unit in its own right: `P-` a component spec,
+`M-` a mode profile, `L-` a method. `explain` resolves all three, so cite and
+fetch them by id rather than by hunting for a heading.
 
 ---
 
