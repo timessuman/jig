@@ -4,9 +4,10 @@ Before generating or reviewing any UI in this repository:
 
 1. Load `00-anti-patterns.md` and `01-modes.md`.
 2. Determine the mode from `jig.config.json`, or infer it using the procedure in `01-modes.md` and **state the inference in one line** before building.
-3. **Building a screen rather than a single component?** Run `L-01`, the layout
-   method, before writing any markup — `explain L-01` prints it. It is a
-   procedure, not a component, so step 4 never selects it and nothing else will.
+3. **Building a screen rather than a single component?** Read `L-01 · Layout
+   method` in `03-patterns.md` and run its five steps before writing any markup.
+   It is a procedure, not a component, so step 4 never selects it and nothing
+   else will. (`explain L-01` prints it too, but the file is the source.)
 4. Load the relevant section of `03-patterns.md` for the component being built.
 4b. Load `05-copy.md` whenever you write a label, button, heading, error or empty state.
 5. Consume tokens by semantic name only (`--color-fg`, not `--color-neutral-900`). Never write a raw colour or pixel value at the call site.
