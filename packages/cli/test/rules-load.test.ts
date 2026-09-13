@@ -30,12 +30,12 @@ describe('validateIndex', () => {
   });
 
   it('rejects a missing id', () => {
-    expect(() => validateIndex([{ bucket: 'judgment', severity: 'note', since: '0.1.0' }]))
+    expect(() => validateIndex([{ bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' }]))
       .toThrow(/id/);
   });
 
   it('accepts a well-formed entry', () => {
-    const out = validateIndex([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' }]);
+    const out = validateIndex([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' }]);
     expect(out[0].id).toBe('A-01');
   });
 });
@@ -44,7 +44,7 @@ describe('loadRules', () => {
   it('joins parsed rules with their index entries', () => {
     const { rulesDir, indexPath, dir } = scratch(JSON.stringify([
       { id: 'A-01', bucket: 'mechanical', severity: 'error', detector: 'd', since: '0.1.0' },
-      { id: 'A-02', bucket: 'judgment', severity: 'note', since: '0.1.0' },
+      { id: 'A-02', bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' },
     ]));
     const loaded = loadRules(rulesDir, indexPath);
     expect(loaded).toHaveLength(2);
@@ -55,7 +55,7 @@ describe('loadRules', () => {
 
   it('throws when a rule has no index entry', () => {
     const { rulesDir, indexPath, dir } = scratch(JSON.stringify([
-      { id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' },
+      { id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' },
     ]));
     expect(() => loadRules(rulesDir, indexPath)).toThrow(/A-02/);
     rmSync(dir, { recursive: true, force: true });
@@ -63,9 +63,9 @@ describe('loadRules', () => {
 
   it('throws when an index entry has no rule', () => {
     const { rulesDir, indexPath, dir } = scratch(JSON.stringify([
-      { id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0' },
-      { id: 'A-02', bucket: 'judgment', severity: 'note', since: '0.1.0' },
-      { id: 'Z-99', bucket: 'judgment', severity: 'note', since: '0.1.0' },
+      { id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' },
+      { id: 'A-02', bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' },
+      { id: 'Z-99', bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' },
     ]));
     expect(() => loadRules(rulesDir, indexPath)).toThrow(/Z-99/);
     rmSync(dir, { recursive: true, force: true });
