@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { loadRules, type LoadedRule } from '../rules/load.js';
 import { loadSpecs, type Spec } from '../rules/specs.js';
+import { loadLayers, layerOf } from '../rules/layers.js';
 
 export interface ExplainOptions {
   ruleId: string;
@@ -9,6 +10,8 @@ export interface ExplainOptions {
   /** List ids rather than explaining one. With `ruleId` set to a section
    *  letter, lists just that section. */
   list?: boolean;
+  /** List one layer of the six, or name them all when no layer is given. */
+  layer?: boolean;
   /** Overridable for tests; defaults to the CLI's own bundled assets. */
   packageRoot?: string;
 }
@@ -118,6 +121,57 @@ export function explain(opts: ExplainOptions): string {
     ...rules.map((r) => ({ id: r.id, title: r.title, text: `${r.wrong}\n${r.correction}` })),
     ...specs.map((s) => ({ id: s.id, title: s.title, text: s.body })),
   ];
+
+  // ---- The six layers ----
+  //
+  // The layer view answers a different question from `--list`. `--list` is "what
+  // ids exist"; this is "where do I look for the kind of thing I need". An agent
+  // that does not know a rule's number knows what it is trying to do, and the
+  // layer's question is how it gets from one to the other.
+  if (opts.layer) {
+    const l = loadLayers(root);
+    if (!raw) {
+      const rows = Object.entries(l.layers).map(
+        ([name, layer]) =>
+          `${name.padEnd(14)} ${layer.ids.length === 0 ? String(rules.length).padStart(3) : String(layer.ids.length).padStart(3)}  ${layer.question}`,
+      );
+      const extra = Object.entries(l.not_a_layer)
+        .filter(([, g]) => Array.isArray(g.ids))
+        .map(([name, g]) => `${name.padEnd(14)} ${String(g.ids!.length).padStart(3)}  ${g.question ?? ''}`);
+      return [
+        'The six layers — a view over the corpus, not where anything is stored.',
+        '',
+        ...rows,
+        '',
+        'Not one of the six — the machinery, rather than the design knowledge:',
+        '',
+        ...extra,
+        '',
+        "Run 'jig explain --layer <name>' for one, or 'jig explain <id>' for an entry.",
+      ].join('\n');
+    }
+    const name = raw.toLowerCase();
+    const layer = l.layers[name] ?? l.not_a_layer[name];
+    if (!layer) {
+      throw new Error(
+        `No layer '${raw}'. The six are: ${Object.keys(l.layers).join(', ')}; ` +
+          `plus ${Object.keys(l.not_a_layer).filter((k) => !k.startsWith('_')).join(' and ')}.`,
+      );
+    }
+    // The anti-patterns layer is every rule in the index, which is why it
+    // carries no ids of its own here.
+    const members =
+      'ids' in layer && layer.ids && layer.ids.length > 0
+        ? entries.filter((e) => layer.ids!.includes(e.id))
+        : entries.filter((e) => rules.some((r) => r.id === e.id));
+    return [
+      `${name} — ${members.length} entries`,
+      ...('question' in layer && layer.question ? ['', layer.question] : []),
+      ...('note' in layer && layer.note ? ['', layer.note] : []),
+      '',
+      ...members.sort((a, b) => byNumber(a.id, b.id)).map((e) => `${e.id.padEnd(6)} ${e.title}`),
+    ].join('\n');
+  }
 
   // ---- Listing ----
   if (opts.list) {

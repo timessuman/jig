@@ -1,0 +1,49 @@
+{
+  "_comment": "The six layers, as a VIEW over the corpus. Ids are not renumbered to fit: an id is a permanent address, and a rule that moves layer must keep its number. Every rule in rules.index.json is the anti-patterns layer by definition and is not listed here; this file places the 43 `##`-level units. Guarded by layers.test.ts: every spec appears exactly once, and every id listed exists.",
+  "layers": {
+    "principles": {
+      "question": "What should good UI achieve, and what do I do when no rule covers this?",
+      "file": "04-principles.md",
+      "ids": ["R-01", "R-02", "R-03", "R-04", "R-05", "R-06", "R-07", "R-08", "R-09", "R-10", "R-11", "R-12"]
+    },
+    "anti-patterns": {
+      "question": "What must I never do?",
+      "file": "00-anti-patterns.md",
+      "ids": [],
+      "note": "Every entry in rules.index.json. Listed there, not here — one place per fact."
+    },
+    "tokens": {
+      "question": "What am I allowed to use?",
+      "file": "02-tokens.md",
+      "ids": ["T-01", "T-02", "T-03", "T-04", "T-05", "T-06", "T-07", "T-08", "T-09", "T-10"]
+    },
+    "components": {
+      "question": "What building blocks exist, and how does each behave?",
+      "file": "03-patterns.md",
+      "ids": ["P-02", "P-03", "P-06", "P-07"],
+      "note": "A component is a thing you render. Its spec states anatomy, states and variants."
+    },
+    "layout": {
+      "question": "How do I arrange them?",
+      "file": "03-patterns.md",
+      "ids": ["L-01", "L-02"]
+    },
+    "patterns": {
+      "question": "Which proven composition solves this problem?",
+      "file": "03-patterns.md",
+      "ids": ["P-01", "P-04", "P-05", "P-08", "P-10", "P-11", "P-12", "P-13"],
+      "note": "A pattern is a solution you apply, not a thing you render. P-04 Form composes P-03 fields; P-12 is a decision procedure; P-05 and P-08 answer 'what shows when there is nothing yet'."
+    }
+  },
+  "not_a_layer": {
+    "_comment": "The six layers are the design KNOWLEDGE. These are the machinery that decides which of it applies, and the procedures you run. Forcing them into one of the six would make the view lie.",
+    "modes": {
+      "question": "Which character does this surface inherit?",
+      "ids": ["M-01", "M-02", "M-03", "L-05"]
+    },
+    "process": {
+      "question": "What do I run, and when?",
+      "ids": ["L-03", "L-04", "L-06"]
+    }
+  }
+}

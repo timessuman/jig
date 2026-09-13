@@ -25,8 +25,8 @@
     "status": "available"
   },
   "explain": {
-    "description": "Explain a rule, or find the rules you cannot name. Given an id, prints the rule's full text, its correction, the version it arrived in and who checks it \u2014 including the P-/M- pattern and mode specs, which no rule index contains. Given a word instead, searches every title and body and lists what matches. `--list` prints every id, or one section's.",
-    "argumentHint": "<rule-id | search term> [--list]",
+    "description": "Explain a rule, or find the rules you cannot name. Given an id, prints the rule's full text, its correction, the version it arrived in and who checks it \u2014 including the P-/M- pattern and mode specs, which no rule index contains. Given a word instead, searches every title and body and lists what matches. `--list` prints every id, or one section's. `--layer` names the six layers \u2014 principles, anti-patterns, tokens, components, layout, patterns \u2014 and lists one by name, which is how to find a rule when you know what you are trying to do but not its number.",
+    "argumentHint": "<rule-id | search term | layer name> [--list] [--layer]",
     "status": "available"
   },
   "spec": {
