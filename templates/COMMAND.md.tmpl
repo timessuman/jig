@@ -4,10 +4,17 @@ The user invoked `{{command_prefix}}{{args_placeholder}}`. Treat
 Available subcommands: {{subcommand_list}}. If it is empty or is not one of
 these, say so, list them, and stop.
 
-Run the matching CLI command with `{{scripts_path}}`, passing the flags through
-unchanged. Then do the work below for that subcommand. Read the command's full
-output — findings are ordered by severity, not position, so `head`, `tail`,
-`grep` and `jq` drop the ones that matter.
+There are two kinds of subcommand, and they are not run the same way.
+
+**CLI-backed** — `install`, `update`, `init`, `check`, `explain`. Run the
+matching command with `{{scripts_path}}`, passing the flags through unchanged,
+then do the work below for that subcommand. Read the command's full output —
+findings are ordered by severity, not position, so `head`, `tail`, `grep` and
+`jq` drop the ones that matter.
+
+**Agent procedures** — `spec`, `make`. There is no binary. Do not try to run one:
+the section below **is** the command. A CLI can check what these produce; it
+cannot do their work, because the work is judgment and authorship.
 
 ## init
 
@@ -118,3 +125,128 @@ locally and are the user's; never re-apply Jig's version over them.
 
 Everything in `{{rules_path}}/` is yours to read. Cite rules by id, and cite any
 rule you deliberately break with the reason, in one line.
+
+## spec
+
+Plan the screen before building it. This command writes no markup and no CSS.
+
+### Refuse rather than guess
+
+Stop and say which of these is missing, rather than proceeding:
+
+- `{{config_file}}` does not exist → run `init` first. Without it there is no
+  mode and no token layer, so there is nothing for a spec to be specific to.
+- The user named no surface → ask which screen. `{{command_prefix}}spec` with no
+  argument is not a request to invent one.
+
+### 1. Ask, two or three questions at a time
+
+**This is a required interaction, not a suggestion.** Ask two or three questions,
+then **wait**. Do not send a questionnaire. Do not write the spec and present it
+for approval on your first response — a spec synthesised from a one-line prompt
+and handed over for a yes is the failure this command exists to prevent, and it
+looks exactly like the command working.
+
+Ask about **structure**, not appearance. Colour, type scale and density were
+settled at `init` and live in `{{config_file}}` and the token layer; re-deciding
+them per screen creates a second source of truth for the values Jig exists to
+centralise. If the user raises appearance, record it and move on.
+
+- Round 1 — what is this screen for, who arrives at it, and what must they be
+  able to do? What is the single most important thing on it?
+- Round 2 — what content and states does it carry? Empty, loading, error,
+  first-run, and the realistic range (0 items, 5, 500)?
+- Round 3 — only what is still unresolved: entry points, where it leads, what
+  must not happen here.
+
+### 2. Run `L-01`
+
+Read `L-01 · Layout method` in `{{rules_path}}/03-patterns.md` and run its five
+steps against the answers. The spec's structural half **is** that output — group,
+order by importance, space from the inside out, align to a grid, and state the
+hierarchy plainly enough that the squint question can be answered against it.
+
+### 3. Write it down
+
+`.jig/specs/<surface-slug>.spec.md`. Frontmatter carries what can be compared to
+a built page; prose carries the reasoning that no check can read.
+
+```yaml
+---
+surface: login page
+mode: product              # from {{config_file}} — state it, never leave it implied
+confirmed: false           # only the user sets this to true; see below
+regions:                   # in order
+  - brand: wordmark only
+  - form: the single primary task
+  - recovery: secondary, below the action
+hierarchy: [form, brand, recovery]        # most important first
+grouping:                                 # which of L-01's four tools, per group
+  form: proximity
+  recovery: continuity
+grid: { wide: 12, narrow: 4, container: --measure-form }
+narrow:                    # must name a COMPOSITION change, not only a size change
+  - recovery moves below the submit control
+states: [default, loading, error, success]
+deviations: []             # `make` writes here; `spec` leaves it empty
+---
+```
+
+Every frontmatter field must be answerable by looking at the built page. If a
+field cannot be, it is prose — put it below the frontmatter, where it belongs.
+"Feels focused" is prose. "Three regions, form first" is a field.
+
+Add fields the surface needs (`form: { steps, validation }` for a form, `nav:`
+for a screen with navigation). Do not add fields nothing can check.
+
+### 4. Get it confirmed
+
+Show the spec and ask the user to confirm it. Then **stop**.
+
+`confirmed: true` records that **the user said so in their own response**. You
+may not set it on their behalf, and you may not treat your own summary,
+`{{config_file}}`, or the absence of objection as confirmation. An unconfirmed
+spec is not a weaker spec — it is not a spec, and `make` will refuse it.
+
+If the user changes something, revise and ask again. The run is incomplete until
+they confirm.
+
+## make
+
+Build the screen from its confirmed spec.
+
+### Refuse rather than guess
+
+- No `.jig/specs/<surface>.spec.md` → say so and run `{{command_prefix}}spec`
+  first. Do not write a quick spec of your own to satisfy the check; a spec you
+  wrote and accepted in the same breath is the thing the confirmation exists to
+  prevent.
+- `confirmed: false` → the spec exists but nobody has agreed to it. Ask for
+  confirmation and stop.
+
+### Build
+
+Follow the spec's structure. Then the ordinary rules apply: tokens by semantic
+name, the relevant `03-patterns.md` section for each component, `05-copy.md` for
+every string.
+
+### Record what you changed
+
+Building reveals that a spec was wrong somewhere — that is normal and expected.
+**Silence is the failure, not the change.** Append to `deviations:`:
+
+```yaml
+deviations:
+  - field: form.steps
+    from: 1
+    to: 2
+    why: "password reset needs an email round-trip; one screen cannot hold both"
+```
+
+A spec that quietly stops describing the page is worse than no spec: a later
+review then validates the page against fiction and reports it clean.
+
+### Finish
+
+Run `check`, then the self-check at the end of `{{rules_path}}/00-anti-patterns.md`,
+and say which fields of the spec the built page satisfies and which it does not.

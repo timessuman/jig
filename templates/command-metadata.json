@@ -20,8 +20,18 @@
     "status": "available"
   },
   "explain": {
-    "description": "Explain a rule, or find the rules you cannot name. Given an id, prints the rule's full text, its correction, the version it arrived in and who checks it — including the P-/M- pattern and mode specs, which no rule index contains. Given a word instead, searches every title and body and lists what matches. `--list` prints every id, or one section's.",
+    "description": "Explain a rule, or find the rules you cannot name. Given an id, prints the rule's full text, its correction, the version it arrived in and who checks it \u2014 including the P-/M- pattern and mode specs, which no rule index contains. Given a word instead, searches every title and body and lists what matches. `--list` prints every id, or one section's.",
     "argumentHint": "<rule-id | search term> [--list]",
     "status": "available"
+  },
+  "spec": {
+    "description": "Plan a screen before building it: run the layout method, record the result, and get it confirmed. Writes .jig/specs/<surface>.spec.md. No CLI \u2014 the agent does this.",
+    "argumentHint": "<surface, in your own words>",
+    "status": "agent"
+  },
+  "make": {
+    "description": "Build a screen from its confirmed spec, recording any deviation back into it. Refuses to start without one. No CLI \u2014 the agent does this.",
+    "argumentHint": "<surface, in your own words>",
+    "status": "agent"
   }
 }

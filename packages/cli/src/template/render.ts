@@ -24,7 +24,15 @@ export interface TemplateVars {
   rules_path: string;
 }
 
-export type CommandStatus = 'available' | 'planned';
+/**
+ * `available` and `planned` describe a CLI binary — one that exists, one that
+ * does not yet. `agent` is a different axis: the subcommand is a procedure the
+ * agent carries out, and no binary will ever back it. `spec` and `make` are
+ * judgment and authorship; a CLI can check their output but cannot do their
+ * work, and listing them as "available" sends an agent to run a command that
+ * does not exist.
+ */
+export type CommandStatus = 'available' | 'planned' | 'agent';
 
 export interface CommandMetadata {
   [command: string]: {
@@ -68,7 +76,17 @@ function escapeTableCell(value: string): string {
 export function renderCommandTable(metadata: CommandMetadata): string {
   const rows = Object.entries(metadata).map(([name, meta]) => {
     const signature = meta.argumentHint ? `${name} ${meta.argumentHint}` : name;
-    const status = meta.status === 'planned' ? 'planned — not yet implemented' : 'available';
+    // Three statuses, because there are two kinds of subcommand. `available`
+    // and `planned` describe a CLI binary; `agent` describes a procedure the
+    // agent performs itself, with no binary behind it at all. Calling those
+    // "available" would send an agent to run `jig spec`, which does not exist
+    // and never will — the work is the agent's, not the CLI's.
+    const status =
+      meta.status === 'planned'
+        ? 'planned — not yet implemented'
+        : meta.status === 'agent'
+          ? 'agent procedure — no CLI to run'
+          : 'available';
     return `| \`${escapeTableCell(signature)}\` | ${escapeTableCell(meta.description)} | ${status} |`;
   });
   return ['| Command | Description | Status |', '| --- | --- | --- |', ...rows].join('\n');

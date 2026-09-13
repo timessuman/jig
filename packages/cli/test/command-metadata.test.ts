@@ -34,9 +34,14 @@ describe('command-metadata.json agrees with the CLI', () => {
     const registered = new Set(registeredCommands());
     for (const [name, entry] of Object.entries(metadata())) {
       if (registered.has(name)) continue;
-      expect(entry.status, `'${name}' is not registered, so the skill must not call it available`).toBe(
-        'planned',
-      );
+      // Not registered means one of two things, and they are not the same
+      // failure: `planned` is a binary that does not exist yet, `agent` is work
+      // no binary will ever do. Only `available` is wrong here — it would send
+      // an agent to run a command that is not there.
+      expect(
+        ['planned', 'agent'],
+        `'${name}' is not registered, so the skill must not call it available`,
+      ).toContain(entry.status);
     }
   });
 
@@ -44,7 +49,7 @@ describe('command-metadata.json agrees with the CLI', () => {
     for (const [name, entry] of Object.entries(metadata())) {
       expect(entry.description, `'${name}' description`).toBeTruthy();
       expect(typeof entry.argumentHint, `'${name}' argumentHint`).toBe('string');
-      expect(['available', 'planned'], `'${name}' status`).toContain(entry.status);
+      expect(['available', 'planned', 'agent'], `'${name}' status`).toContain(entry.status);
     }
   });
 });
@@ -57,11 +62,14 @@ describe('the slash-command body covers every available command', () => {
     // reaching that instruction found nothing.
     const tmpl = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
     const sections = [...tmpl.matchAll(/^## ([a-z-]+)$/gm)].map((m) => m[1]);
-    const available = Object.entries(metadata())
-      .filter(([, v]) => v.status === 'available')
+    // `agent` procedures are included, and for them this is not a
+    // documentation check — the section IS the implementation. A missing
+    // section means the subcommand does nothing at all.
+    const needsSection = Object.entries(metadata())
+      .filter(([, v]) => v.status === 'available' || v.status === 'agent')
       .map(([k]) => k);
-    expect(available.length).toBeGreaterThan(3);
-    for (const name of available) {
+    expect(needsSection.length).toBeGreaterThan(3);
+    for (const name of needsSection) {
       expect(sections, `no '## ${name}' section in COMMAND.md.tmpl`).toContain(name);
     }
   });
