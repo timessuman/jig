@@ -151,6 +151,14 @@ The habit comes from pairings where it is true: a mono face drawn separately fro
 A ratio is also the wrong shape of answer. Inline `code` appears inside body text, headings, table cells and captions; one multiplier has to be right for all of them, and a fixed token is worse still — it collapses code in a heading to caption size. Inheriting is correct in every host, which is why this rule has no token.
 The measurement is one line in a browser: render `x` in both faces at the same size and compare the rendered heights, or read `sxHeight` from each font's `OS/2` table. Do it once per project when the brand file is written, not per component.
 
+### B-106 A word stranded on its own line
+❌ A heading that wraps to leave one word alone on the last line, or a paragraph ending on a single short word
+✅ `text-wrap: balance` on headings and short blocks, `text-wrap: pretty` on body copy. One declaration in the type layer, not a fix applied per heading.
+The eye reads a block's shape before it reads the words. A heading whose last line holds one word reads as a mistake to someone who could not name what is wrong with it — the silhouette says unfinished, and that impression lands before the sentence does.
+This is invisible in the source. The same heading breaks cleanly at 1280px and badly at 900px: where a line breaks depends on the box, the face and the string together, and none of the three is decidable from the others. It is judged on the rendered page at more than one width, which is why it carries `pass: screen`.
+A manual break is not the fix. `<br>` placed by eye is correct at exactly one viewport width and wrong at the next, and it survives into every layout the component is later used in.
+Ragged-right is not the failure — that is correct, and `B-12` requires it. The failure is a *stranded* word, not an uneven edge. Do not chase every short last line; chase the one that is alone.
+
 ---
 
 ## C. Colour and contrast

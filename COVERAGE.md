@@ -46,9 +46,9 @@ Read: all five sections, 33 laws, on 2026-09-13. Complete.
 
 | A10 | Flush-left, ragged-right body text; never justified | `B-12` centred or justified body text | covered |
 | A11 | One space after a sentence, not two | Not our subject — a typing habit, invisible in rendered HTML, which collapses whitespace | out of scope |
-| A12 | Never leave fewer than seven characters alone on a line (an orphan) | **Nothing covers this.** Not print-only either: a heading that breaks with one word on the last line is a real defect in rendered UI | open |
-| A13 | Avoid a paragraph's last line stranded alone (a widow) | Same gap as `A12` | open |
-| A14 | Do not let a hyphen be the last character on a line | Same family. `hyphens: auto` produces exactly this and Jig says nothing about it | open |
+| A12 | Never leave fewer than seven characters alone on a line (an orphan) | `B-106` — adopted as one rule with `A13` and `A14`, since they are one failure with one fix | adopted |
+| A13 | Avoid a paragraph's last line stranded alone (a widow) | `B-106` | adopted |
+| A14 | Do not let a hyphen be the last character on a line | `B-106` | adopted |
 | A15 | Signal a new paragraph once — blank line **or** indent, never both | The web default is a blank line and indents are rare, so there is no failure to prevent. A rule with no failure mode is context cost | out of scope |
 | A16 | Break long text into paragraphs, roughly every five lines | `I-80` long text without a structure | covered |
 | A17 | Emphasise a tenth of the text or less | **Nothing covers this.** `B-77` caps how many weights exist, not how much text carries them; `C-50` is about colour on headings. The reason is good: emphasis works by contrast with unemphasised text, and past a point there is nothing left to contrast against | open |
@@ -68,7 +68,7 @@ Read: all five sections, 33 laws, on 2026-09-13. Complete.
 | A31 | Let the typeface carry the document's mood; never Comic Sans, Papyrus, Jokerman, Curlz | Font choice is the project's, set once in the brand file. A blocklist of four faces is not a rule, it is a joke with a long tail | out of scope |
 | A32 | Pair a serif and a sans by judgement, not by formality | Jig's stated default is one sans for everything (`B-76`), on the grounds that it keeps content rather than lettering in focus. A pairing is allowed, not encouraged | diverged |
 
-**32 positions read, 0 adopted, 5 open.**
+**32 positions read, 3 adopted, 2 open.**
 
 The four open rows are the ledger doing its job — they are candidates, not
 entries. Minting a rule needs more than a source agreeing with itself: `S4`
@@ -76,14 +76,29 @@ requires a detector or a stated self-check question and a `pass`, and
 `AGENTS.md:32` requires the twice-run control showing the output actually
 changes. `B-105`, the last rule added, took a release and a measurement.
 
-Worth noting what most of the open rows have in common. **`A12`–`A14` are orphans, widows
-and line-break hyphens — a family Jig has never covered, and one that only became
-admissible when `critique` learned to render.** A rule about where a line breaks
-cannot be judged from a stylesheet; it needs the composed page at a width. The
-capability arrived before the rule that needs it, which is the right order.
+`A12`–`A14` became **`B-106`** — one rule, not three, because they are one
+failure (a word stranded at the end of a block) with one fix family
+(`text-wrap: balance` / `pretty`). They only became admissible when `critique`
+learned to render: where a line breaks cannot be judged from a stylesheet, so
+`B-106` carries `pass: screen`. The capability arrived before the rule that
+needed it, which is the right order.
 
-`A17` (emphasis ≤ 10%) is the opposite: decidable by counting markup, so it would
-be `pass: code`, and possibly a detector rather than a judgement at all.
+Admitted on evidence, per `AGENTS.md:32`. Two cold agents built the same hero
+section from identical briefs, one arm with the rule and one without:
+
+| | `text-wrap` in the CSS | cites `B-106` |
+|---|---|---|
+| with the rule | `balance` on the heading, `pretty` on the paragraph | yes, in a comment |
+| control | **none** | never mentioned |
+
+So it is not the model's default, and it does change the output — the two things
+that decide whether a rule earns its context cost.
+
+`A17` (emphasis ≤ 10%) and `A27` (dash usage) stay open, and the reasons differ.
+`A17` rests on an unreconciled number, where this system's convention is a reason
+rather than a threshold. `A27` is real and small, and it is hard to argue a dash
+convention changes what an agent builds — which is the same test `B-106` had to
+pass.
 
 ---
 

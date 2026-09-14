@@ -29,6 +29,7 @@
   {"id": "B-77", "bucket": "judgment", "severity": "note", "since": "0.1.0", "pass": "code"},
   {"id": "B-78", "bucket": "judgment", "severity": "note", "since": "0.1.0", "pass": "code"},
   {"id": "B-105", "bucket": "judgment", "severity": "note", "since": "0.9.0", "pass": "code"},
+  {"id": "B-106", "bucket": "judgment", "severity": "note", "since": "0.10.0", "pass": "screen"},
   {"id": "C-66", "bucket": "judgment", "severity": "note", "since": "0.1.0", "pass": "code"},
   {"id": "C-20", "bucket": "judgment", "severity": "note", "since": "0.1.0", "pass": "screen"},
   {"id": "C-21", "bucket": "judgment", "severity": "note", "since": "0.1.0", "pass": "code"},
