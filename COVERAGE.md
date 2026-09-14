@@ -116,3 +116,60 @@ nothing in `00`–`05` has ever addressed.
 A ledger that adopted all 32 rows would have doubled the typography section with
 restatements of `B-12`, `B-13`, `B-16`, `B-76` and `I-80`, and buried the one
 finding that matters.
+
+
+---
+
+## Candidates tested and rejected — 2026-09-14
+
+Five candidates from both sources were drafted as rules, indexed, and run through
+`AGENTS.md:32`'s control. **None was admitted.** Recorded here because a rejection
+is a result, and the next person to reach for these should not have to re-run the
+experiment to find out.
+
+The task: a pricing page with site navigation for the project used in the control
+runs — chosen because it gives all five somewhere to appear. Two cold agents,
+identical briefs, same model, sealed corpora (a separate CLI build per arm, so the
+control's binary could not serve a rule its markdown lacked).
+
+| candidate | treatment | control | verdict |
+|---|---|---|---|
+| wayfinding — mark the current location | current nav item marked | **also marked**, `aria-current` plus underline and weight | already the model's default |
+| control-to-thing mapping | billing switch immediately above the plans | **same position** | no difference |
+| ordering — name the order you chose | named "ordered by price ascending" in its notes | did not mention ordering | both produced the same order; only the commentary differed |
+| urgency the product cannot evidence | none produced | none produced | never exercised |
+| emphasis spread until it stops meaning anything | no inline emphasis at all | no inline emphasis at all | never exercised |
+
+### What each rejection means, separately
+
+**Wayfinding and control mapping are the model's defaults.** `AGENTS.md:32` is
+explicit about what to do with a rule whose behaviour appears without it: delete
+it, or it is context cost charged on every task for nothing. These two were the
+most confidently drafted of the five, which is the useful part — confidence in
+drafting predicted nothing.
+
+**Ordering failed on a strict reading, and the strict reading is right.** Both
+arms ordered the plans cheapest-first. The rule changed what the agent *wrote
+about* the page, not the page. A rule that improves an agent's notes and leaves
+the artifact identical has not earned its place in a file that is loaded on every
+task.
+
+**Urgency and emphasis were not tested.** A pricing page with a two-sentence
+intro gives emphasis nowhere to appear, and the project's `DECISIONS.md` — which
+records a real owner decision against unmeasured superlatives — suppressed the
+urgency behaviour in both arms. Both are still open. Testing them needs a task
+that tempts them: long-form prose for emphasis, and a brief that asks for
+persuasion without a decisions file already forbidding it.
+
+### On the harness
+
+Two flaws, one fixed and one found:
+
+- **Fixed:** each arm had its own CLI build this time, so the control could not
+  reach a stripped rule through `explain`. The previous round could only report
+  that the escape hatch went unused.
+- **Found:** the sandbox instruction confined each agent to its project
+  directory while the CLI sat one level above it, so `jig check` ran in neither
+  arm. Both attested `mechanical=skipped:0` rather than claiming a pass —
+  correct behaviour by both agents, and a setup mistake. This round tested the
+  judgment half only.
