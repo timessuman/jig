@@ -557,21 +557,28 @@ const LIGHT_BACKGROUNDS = {
     fail(`COVERAGE.md cites ids that no longer exist: ${missing.join(', ')}.`);
   }
 
-  // The ledger states its own tally in prose, and the tally is the finding —
-  // "32 read, 0 adopted" is the sentence a reader takes away. Rule 12 exists
-  // because a number written in a sentence is invisible to every other check;
-  // this one was wrong on first writing (17/8/3/4 against a table of 14/9/4/5).
-  const rows = [...coverage.matchAll(/^\| A\d+ \|.*\| ([a-z ]+) \|$/gm)].map((m) => m[1]);
-  const count = (status) => rows.filter((r) => r === status).length;
-  const stated = /\*\*(\d+) positions read, (\d+) adopted, (\d+) open\.\*\*/.exec(coverage);
-  if (!stated) {
-    fail('COVERAGE.md has no "N positions read, N adopted, N open" line — its wording ' +
-         'changed, so the tally is no longer checked.');
-  } else {
+  // The ledger states a tally per source, in prose, and the tally IS the
+  // finding — "58 read, 0 adopted" is the sentence a reader takes away. Rule 12
+  // exists because a number written in a sentence is invisible to every other
+  // check; this one was wrong on first writing (17/8/3/4 against a table of
+  // 14/9/4/5). Checked per section, because one file-level number would hide a
+  // section drifting against another.
+  const sections = coverage.split(/^## Source /m).slice(1);
+  if (sections.length === 0) fail('COVERAGE.md has no "## Source" section — Rule 13 is checking nothing.');
+  for (const section of sections) {
+    const label = section.slice(0, section.indexOf('\n')).trim();
+    const rows = [...section.matchAll(/^\| [A-Z]\d+ \|.*\| ([a-z ]+) \|$/gm)].map((m) => m[1]);
+    const count = (status) => rows.filter((r) => r === status).length;
+    const stated = /\*\*(\d+) positions read, (\d+) adopted, (\d+) open\.\*\*/.exec(section);
+    if (!stated) {
+      fail(`COVERAGE.md section "${label}" has no "N positions read, N adopted, N open" ` +
+           `line — its wording changed, so the tally is no longer checked.`);
+      continue;
+    }
     const [, read, adopted, open] = stated.map(Number);
-    if (read !== rows.length) fail(`COVERAGE.md says ${read} positions read, but the table has ${rows.length}.`);
-    if (adopted !== count('adopted')) fail(`COVERAGE.md says ${adopted} adopted, but the table has ${count('adopted')}.`);
-    if (open !== count('open')) fail(`COVERAGE.md says ${open} open, but the table has ${count('open')}.`);
+    if (read !== rows.length) fail(`COVERAGE.md "${label}" says ${read} positions read, but the table has ${rows.length}.`);
+    if (adopted !== count('adopted')) fail(`COVERAGE.md "${label}" says ${adopted} adopted, but the table has ${count('adopted')}.`);
+    if (open !== count('open')) fail(`COVERAGE.md "${label}" says ${open} open, but the table has ${count('open')}.`);
   }
 }
 
