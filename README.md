@@ -12,7 +12,7 @@ Installed as `npx jig-ui` — the bare name was taken on npm.
 Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
 They are two halves of the same thing, and the split is not arbitrary:
 
-- Of the 105 rules, **7 can be decided by a machine** — a hard-coded colour, a
+- Of the 106 rules, **7 can be decided by a machine** — a hard-coded colour, a
   contrast ratio below the floor, a removed focus ring. The CLI decides those.
 - The other **97 are judgment** — whether an empty state says anything useful,
   whether a label reads as an instruction, whether motion earns its place. No
@@ -181,7 +181,7 @@ on the result — the CLI reports, the agent applies the judgment half.
 | Slash command | Equivalent |
 | --- | --- |
 | `/jig init` | `jig init` — then states the mode it chose and what it wired |
-| `/jig check` | `jig check` — then applies the 95 judgment rules and reports both halves |
+| `/jig check` | `jig check` — then applies the 96 judgment rules and reports both halves |
 | `/jig explain C-19` | `jig explain C-19` — prints the rule as-is, without paraphrasing it |
 | `/jig explain contrast` | `jig explain contrast` — every rule matching a word, when you do not have an id |
 | `/jig install --agent cursor` | `jig install --agent cursor` |
@@ -330,7 +330,7 @@ treatment.
 
 | File | Contents |
 | --- | --- |
-| `rules/00-anti-patterns.md` | 88 universal rules with corrections |
+| `rules/00-anti-patterns.md` | 89 universal rules with corrections |
 | `rules/01-modes.md` | `editorial` / `product` / `operator` profiles |
 | `rules/02-tokens.md` | Token contract, naming, consumption |
 | `rules/03-patterns.md` | Component anatomy and behaviour |
