@@ -562,3 +562,19 @@ Run this against what you produced. Any "no" is a defect to fix, not a note to m
 9. Does the primary action still work with JavaScript disabled? (F-41)
 10. Is there a `prefers-reduced-motion` path? (G-43)
 11. Did you reuse existing components and tokens rather than adding new ones? (H-45, H-47)
+12. **Has anything judged the rules this list does not name?** Items 1–11 are a
+    hand-picked sample of the corpus, chosen because they are the failures most
+    worth catching early. They are not the corpus, and finishing them is not
+    coverage.
+
+    Run `jig check` and read its attestation. If it says `judgment=not-run` —
+    and on its own it always does, because the CLI can only decide what a
+    detector decides — then the majority of the rules that apply to what you
+    just built have been judged by nothing.
+
+    That is not a screen you may call done. Either run `critique`, which walks
+    the index and returns a verdict per rule, or say plainly in your final
+    message that the judgment pass did not run and the work is unverified
+    against it. **Saying nothing is the failure this item exists to stop**: a
+    report that lists what was checked and stays silent about what was not reads
+    as a clean result, and a reader cannot tell the two apart.
