@@ -372,6 +372,43 @@ and by mode where a rule is mode-gated. Nothing else. An arm that decides in
 advance which rules are worth checking has reintroduced search with extra
 steps.
 
+### 1b. What makes a verdict real
+
+Every one of these was produced by a live run of this command, by arms that had
+been told to walk the index and believed they were doing it.
+
+**An `n/a` must name what the rule is about.** Not "does not apply" — *what* does
+not apply. `n/a, D-27 is about optical alignment and this page has no icons` is a
+verdict. `n/a, rule context unavailable` is an absence wearing a verdict's shape,
+and the difference is mechanically checkable: run
+`{{command_prefix}}explain <id>` and the rule either resolves or it does not.
+
+One run returned `C-68 — rule not found in accessible corpus` and
+`D-27 — rule context unavailable`. Both resolve instantly. A third described
+`D-25` as being about label spacing; it is about proximity hierarchy. None of
+the three had been read. `C-68` is *non-interactive elements styled like
+interactive ones* — adjacent to the only real finding that arm had raised.
+
+**An id you cannot resolve is a hard stop.** If `explain` fails on an id that is
+in the index, that is a corpus or install defect. Say so, loudly, and stop.
+Recording it as a rule that happens not to apply buries a broken install inside a
+clean-looking report.
+
+**Never treat the count as a target.** The instruction is *return a verdict for
+every id*; `<n>` is the consequence. An arm asked to reach a number will reach
+it — that is how the three fabrications above were produced, in one turn, after a
+reviewer asked for a short pass to be completed. **A pass that comes back short
+is re-run, not topped up.**
+
+**Check the count before merging the arms.** Compare each arm's `<n>` against the
+length of the filtered index. They should be equal. When they are not, name the
+missing ids rather than reporting the total alone: one run reported
+`rules_evaluated=67` against 69, and the two it had skipped were the two ids most
+recently added to the corpus — the only two that could not be recalled from prior
+knowledge of Jig. An arm asked to walk the index may walk its memory of the
+index, and the ids it drops are the newest ones, which are the ones most in need
+of enforcement. The id list is what exposes this; the total alone hides it.
+
 ### 2. Look at the page
 
 If a browser is available this is **required**, not optional:
@@ -427,6 +464,14 @@ report looked complete.
 `rendered=no` is not a detail. Without it a clean report reads as "this page is
 good" when it can only mean "the files are good" — and a page whose stylesheet
 never loaded satisfies every file-based check there is.
+
+**`rendered=yes` requires an artefact.** A screenshot, a rendered dump, something
+that exists because a browser ran. Reading the source and reasoning about how it
+would look is the `L-01` analogue, and the analogue is `rendered=no`. A live run
+of this command emitted `rendered=yes` on a machine with no browser installed and
+no image written anywhere — turning an honest limitation into a false assurance,
+on the one field a reader leans on hardest. If you did not see the page, say you
+did not see the page.
 
 ## decide
 
