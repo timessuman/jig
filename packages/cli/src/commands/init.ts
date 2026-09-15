@@ -621,9 +621,12 @@ export async function init(opts: InitOptions): Promise<InitResult> {
       declared
         ? `Surface → mode: ${map} — from jig.config.json. Mode sets density, type scale and ` +
             `control sizes, and it outranks an agent's own reading of the project.`
-        : `Surface → mode: ${map} — the default, not inferred from this project. Mode sets ` +
-            `density, type scale and control sizes, and it wins over an agent's own inference, ` +
-            `so change it in jig.config.json if another mode fits (${MODES.join('/')}).`,
+        : `Surface → mode: not declared. jig.config.json records no mapping, because ` +
+            `--yes has nobody to ask and a guess written there cannot be told from a ` +
+            `decision. Mode-gated rules stay silent until you declare one. Token files ` +
+            `are written at ${inEffect[0]?.mode ?? 'product'} as a baseline. Add ` +
+            `"surfaces": [{"match": "/", "mode": "..."}] to jig.config.json, or run ` +
+            `jig init without --yes (modes: ${MODES.join('/')}).`,
     );
   }
 
@@ -778,7 +781,18 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   }
 
   if (configAction === 'written') {
-    const config = { brand: brandRelPath, surfaces };
+    // `--yes` is the non-interactive path, which in practice is the agent path,
+    // and it has nobody to ask. Writing `'/' → product` there records a guess in
+    // the one place nothing can tell a guess from a decision: three cold agents
+    // reading a config that declared `product` on a marketing site each treated
+    // it as the owner's choice and flagged the result as wrong.
+    //
+    // `check/types.ts` already states the contract for an undeclared mode — a
+    // mode-gated detector "stays silent rather than guessing". Omitting the key
+    // is what puts `--yes` under that contract instead of around it. Interactive
+    // init still writes `surfaces`, because a human saw the mapping and accepted
+    // it, and that is a declaration.
+    const config = opts.yes ? { brand: brandRelPath } : { brand: brandRelPath, surfaces };
     const content = `${JSON.stringify(config, null, 2)}\n`;
     writeFileSync(configAbsPath, content, 'utf8');
     files[configRelPath] = checksum(content);
@@ -791,9 +805,12 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     }
     const existingBrand = typeof existing.brand === 'string' ? existing.brand : undefined;
     const brandStillResolves = existingBrand ? existsSync(join(opts.projectRoot, ...existingBrand.split('/'))) : false;
+    const existingSurfaces = Array.isArray(existing.surfaces) && existing.surfaces.length > 0 ? existing.surfaces : undefined;
     const merged = {
       brand: brandStillResolves ? existingBrand : brandRelPath,
-      surfaces: Array.isArray(existing.surfaces) && existing.surfaces.length > 0 ? existing.surfaces : surfaces,
+      // Same contract as the 'written' branch: never invent a mapping under
+      // `--yes`. An existing declaration is always kept.
+      ...(existingSurfaces ? { surfaces: existingSurfaces } : opts.yes ? {} : { surfaces }),
     };
     const content = `${JSON.stringify(merged, null, 2)}\n`;
     writeFileSync(configAbsPath, content, 'utf8');

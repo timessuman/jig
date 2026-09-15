@@ -62,15 +62,24 @@ its own attestation says `judgment=not-run` to make that explicit.
 
 Do the other half yourself:
 
-1. Load `{{rules_path}}/00-anti-patterns.md` and `{{rules_path}}/05-copy.md`,
-   plus the relevant section of `{{rules_path}}/03-patterns.md` for whatever the
-   changed files build.
-2. Apply the judgment rules **that `rules.index.json` marks `pass: code`** to the
-   same files the CLI just scanned — the ones decidable by reading. Leave the
-   `pass: screen` rules alone: they need the rendered composition, which is not
-   in any file you have, and guessing at them here is how this command and
-   `critique` come to give one page two verdicts. `{{command_prefix}}critique`
-   owns those.
+1. Load `rules.index.json` and filter it to the entries marked `pass: code`.
+   **That list is the work.** Do not decide from the filenames which rules are
+   likely to matter and read only those — the rule you would not have thought to
+   open is the one you are about to break. Read whatever files those ids live in.
+2. Return a verdict for **every id on the list**: `ok`, `finding`, or `n/a` with
+   one line of reason. `n/a, no form on this page` is a verdict; silence is not.
+   Leave the `pass: screen` rules alone: they need the rendered composition,
+   which is not in any file you have, and guessing at them here is how this
+   command and `critique` come to give one page two verdicts.
+   `{{command_prefix}}critique` owns those.
+
+   **This is self-review, and it is the weakest arm in the system.** You built
+   these files; you know what you meant, and what you meant is invisible in the
+   artifact. It runs here because it is better than nothing and it is cheap. It
+   does not replace `{{command_prefix}}critique`, whose arm C reads the same
+   rules against the same source with an agent that has never seen this
+   conversation. When the two disagree, the one that did not build the page is
+   the one to believe.
 3. Merge both halves into **one** report keyed by rule id, ordered by severity —
    not two lists. A reader should not have to know which half found what.
 4. Run the self-check `L-04` at the end of `{{rules_path}}/00-anti-patterns.md`.
@@ -78,12 +87,18 @@ Do the other half yourself:
 Then emit the attestation with both halves filled in:
 
 ```text
-JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judgment=<ran|skipped>
+JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judgment=<ran|skipped>:<n>
 ```
 
 Take `mechanical=` from the CLI's own line. If `check` could not run, that is
 `mechanical=skipped:0` — never `pass`, which would report a clean result for a
-check that inspected nothing. Report `judgment=ran` only if you did step 2.
+check that inspected nothing.
+
+`judgment=`'s `<n>` is **the number of ids you returned a verdict for**, not the
+number of findings. It exists because `ran` on its own cannot be checked: an
+agent that read four rules and an agent that walked all of them both wrote
+`ran`. A number that is far below the size of the `pass: code` list is a
+sampled review, and it says so without anyone having to ask.
 
 `judgment=ran` here means the `code` rules ran. It does not mean the page was
 reviewed — nothing in this command looks at a rendered page, so a screen whose
@@ -274,12 +289,29 @@ and say which fields of the spec the built page satisfies and which it does not.
 Review a built screen. This is **not** a second `check`, and the difference is
 not effort — it is evidence.
 
-`check` reads files. `critique` looks at the page. A hierarchy failure is in no
+`check` reads files. `critique` looks at the page **and** reads the source
+against the rules `check` has no detector for. A hierarchy failure is in no
 file: it is in what the files produce together, so no amount of careful reading
-finds it. Every judgment rule says which pass owns it, in `pass:` — `check`
-judges the `code` ones, this judges the `screen` ones, and neither re-judges the
-other's. That is why the two can never hand a user competing verdicts on one
-rule.
+finds it. That is what the render arm is for.
+
+Every judgment rule says which pass owns it, in `pass:`. The corpus divides
+three ways, and each part needs a different instrument:
+
+| | rules | instrument |
+|---|---|---|
+| mechanical, has a `detector` | a small minority | `check`, deterministic |
+| judgment, `pass: screen` | the render | arm A, looking at the page |
+| judgment, `pass: code` | **the largest group** | arm C, reading the source |
+
+The third one is the reason this command exists in its current form. `check`
+judges only what a detector can decide, which is a fraction of the corpus. Every
+other `pass: code` rule is judgment, and until something reads the source against
+it, it is enforced by nothing but the building agent having remembered it. An
+agent under load does not remember 60-odd rules; it consults the handful it
+thought to search for, and ships the rest unchecked.
+
+No two arms judge the same rule, which is why they can never hand a user
+competing verdicts on one id.
 
 ### Refuse rather than guess
 
@@ -288,20 +320,57 @@ rule.
   reporting `spec=missing`. Do not invent the spec the page should have had; a
   spec written after the page, from the page, agrees with it by construction.
 
-### 1. Two assessments that cannot see each other
+### 1. Three assessments that cannot see each other
 
-Run both. **Neither may see the other's output**, and neither may see the
+Run all three. **No arm may see another's output**, and none may see the
 conversation that built the page. Running them in one head anchors them to each
 other; do not shortcut it for cost, speed or context size.
 
 - **A — the reader.** Delegate to a subagent. Give it the URL or file, the spec,
-  and the corpus. Do **not** give it the build conversation. If it needs that
-  conversation, it is not reviewing the page, it is agreeing with itself.
-- **B — the machine.** Run `check`. Deterministic, same input same output.
+  and the corpus. It judges the `pass: screen` rules against the render. Do
+  **not** give it the build conversation. If it needs that conversation, it is
+  not reviewing the page, it is agreeing with itself.
+- **B — the machine.** Run `check`. Deterministic, same input same output. It
+  judges the rules that carry a `detector`, and nothing else — its own
+  attestation says `judgment=not-run`, and that is a true statement about the
+  rest of the corpus, not a formality.
+- **C — the source reader.** A second subagent, separate from A. Give it the
+  source files, the spec, and the corpus, and no render. It judges every
+  `pass: code` judgment rule — the group `check` cannot reach.
 
-The reader is a subagent for the same reason a writer does not proofread their
+Each reader is a subagent for the same reason a writer does not proofread their
 own copy. An agent that built the page knows what it meant, and what it meant is
 invisible in the artifact — which is the one thing a reviewer must not have.
+
+A and C are kept apart for a narrower reason: an arm that has seen the render
+stops reading the source and starts confirming the picture. They answer to
+different evidence and must not share it.
+
+### 1a. Arms A and C walk the index. They do not search it.
+
+**This is not a style preference. It is the difference between covering the
+corpus and sampling it.**
+
+Load `rules.index.json`, filter to the pass the arm owns, and return a verdict
+for **every id in that list**: `ok`, `finding`, or `n/a` with one line of
+reason. A rule that does not apply is still answered — `n/a, this page has no
+form` is a verdict.
+
+Searching the corpus is how a *builder* works, and it is the right method there:
+it finds the rules you can already name. It cannot find the rule for the mistake
+you do not know you are making, which is the only kind of rule worth writing
+down. A pass driven by search returns what the agent thought to look for, and
+reports nothing about everything else — indistinguishable, in the output, from a
+clean page.
+
+The builder cannot do this. It is holding a brief, a spec and a half-written
+page, and it will drop most of the corpus under that load. An arm with one job
+can walk all of it, which is the whole reason the work is split.
+
+**Never narrow the list by guessing relevance before reading.** Filter by `pass`,
+and by mode where a rule is mode-gated. Nothing else. An arm that decides in
+advance which rules are worth checking has reintroduced search with extra
+steps.
 
 ### 2. Look at the page
 
@@ -340,8 +409,20 @@ preserve while fixing them.
 Then the attestation:
 
 ```text
-JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> rendered=<yes|no> screen=<ran|skipped>:<n> code=<pass|fail|skipped>:<n>
+JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> mechanical=<pass|fail|skipped>:<n>
 ```
+
+Three counts because there are three arms, and each can fail independently.
+`mechanical=` is `check`'s result and uses `check`'s own field name deliberately,
+so the two records line up. `screen=` and `code=` are the two reader arms, and
+their `<n>` is **the number of rules the arm returned a verdict for** — not the
+number of findings. An arm that walked the index reports the size of the list it
+walked; an arm reporting far fewer did not walk it, and the number is where that
+shows.
+
+`code=skipped:0` is the state this command was rebuilt to make visible. It used
+to be unsayable: the largest group of rules in the corpus went unjudged and the
+report looked complete.
 
 `rendered=no` is not a detail. Without it a clean report reads as "this page is
 good" when it can only mean "the files are good" — and a page whose stylesheet

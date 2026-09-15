@@ -117,6 +117,136 @@ A ledger that adopted all 32 rows would have doubled the typography section with
 restatements of `B-12`, `B-13`, `B-16`, `B-76` and `I-80`, and buried the one
 finding that matters.
 
+---
+
+## Source B — design principles, 150 numbered cross-disciplinary entries
+
+Read: all 150 headwords and definitions, plus the full text of the entries that
+survived triage, on 2026-09-14. It has a text layer, so `render-reference.mjs`
+was not needed — that script exists for a source that has none.
+
+### Triage first, because most of it is not about interfaces
+
+The criterion: **does this change what an agent builds in a UI?** Applied to
+headword and definition, it puts 93 of 150 out of scope before any reading:
+
+| not our subject | n |
+|---|---|
+| cognition with no UI decision attached — priming, mere exposure, flow, uncanny valley | 40 |
+| faces, bodies, attractiveness | 9 |
+| engineering and physics — safety factors, golden ratio, self-similarity | 8 |
+| architecture and environment — cathedral effect, defensible space, savanna preference | 7 |
+| colour folklore — "red effects", "blue effects" | 6 |
+| process and organisation — development cycle, design by committee, prototyping | 10 |
+| **persuasion techniques** — see below | 13 |
+
+That last group is not "out of scope" in the same sense, and it is the most
+interesting thing in the source.
+
+### The persuasion cluster — deliberately not adopted
+
+Thirteen entries teach, neutrally, how to change behaviour without changing
+incentives: scarcity, reciprocity, framing, operant conditioning, the left-digit
+effect, supernormal stimulus, sunk cost, the Veblen effect. They are accurate.
+They also describe, almost exactly, what an agent produces when asked to "make
+the landing page more compelling": *Only 3 left. 2,847 developers joined this
+week. Was £99.*
+
+**Jig has no principle forbidding this, and that is a gap this source found by
+arguing the other side.** `A-09` catches marketing voice and `A-10` catches
+placeholder content, but neither says a system must not manufacture urgency it
+does not have. An agent reading these thirteen entries as guidance would be
+following the source correctly and building something Jig should refuse.
+
+Recorded as open (`B58`) rather than adopted, because a principle is the right
+shape for it and principles are `R-`, not a rule in `00`.
+
+### The 57 that survived
+
+| # | The source's position, in our words | Where we stand | Status |
+| --- | --- | --- | --- |
+| B01 | A small share of causes produces most effects; design for the common path | `R-05` optimise for the common path | covered |
+| B02 | Design to be usable by as many people as possible without modification | `R-01` minimise usability risk, WCAG AA as floor | covered |
+| B03 | Attractive things are *perceived* easier to use than they are | Nothing says this. It cuts against `R-02` — if beauty buys perceived usability, "it looks better" becomes tempting again. Useful as a caution, not actionable as a rule | out of scope |
+| B04 | A thing's form suggests how it is used | `E-52` unconventional controls, `C-68` non-interactive styled as interactive, `E-31` hover-only affordances | covered |
+| B05 | Elements aligned on common edges or axes are perceived as ordered | `D-70` broken left edge, `D-71` multiple alignments | covered |
+| B06 | Align by optical area, not by bounding box | `D-27` optical alignment ignored | covered |
+| B07 | Group units of information so they can be held in mind | `L-01` step 1, `D-25` no proximity hierarchy | covered |
+| B08 | The eye completes interrupted forms | Gestalt closure. `L-01` uses four tools and this is not one of them; in UI it rarely decides anything on its own | out of scope |
+| B09 | Things that move together are perceived as related | **Common fate — a fifth grouping tool `L-01` does not have.** Its table ranks continuity, similarity, proximity and common region by cost. Motion as a grouping cue is real in UI (a row and its detail panel animating together) and absent here | open |
+| B10 | Show relationships by depicting information under controlled comparison | Charts. Jig has no chart pattern, by choice | out of scope |
+| B11 | Require verification before an action is carried out | `R-08` recoverable beats correct, and its irreversible-operation exception; `P-07` dialog | covered |
+| B12 | Similar things should mean and behave similarly | `H-46` local convention overridden, `B-15` ad-hoc type sizes, `D-26` one padding value | covered |
+| B13 | Limit what a user can do to prevent error | `F-40` missing input affordances, and `R-08` argues the other way round — prevention is the second choice after recovery | covered |
+| B14 | Match the level of control to the user's proficiency | `R-09` optimise for who is actually there; mode encodes it | covered |
+| B15 | Value is benefit set against the cost of acquisition and use | `R-03` minimise interaction cost | covered |
+| B16 | The entry point sets the emotional tone for everything after it | Nothing covers this as a principle. `P-05` empty state and `E-30` touch the first-run case. Weak on its own — "set the tone" is not decidable | out of scope |
+| B17 | Errors are slips or mistakes; design for both | `F-37` unhelpful error text, `R-06` prefer the loud failure, `R-07` never destroy on suspicion | covered |
+| B18 | Features accumulate past the point of usefulness | `R-10` restraint is the default | covered |
+| B19 | Output that feeds back as input, changing what follows | `P-01` feedback placement | covered |
+| B20 | Elements are read as figure or as ground | Underpins contrast and `C-19`, but states no decision of its own | out of scope |
+| B21 | Time to hit a target falls as it grows and nears | `R-03`, which cites Fitts by name | covered |
+| B22 | Information can be organised five ways: location, alphabet, time, category, hierarchy | **Nothing covers how to order a list, a nav or a table.** An agent choosing an order today has no guidance, and picks the order the data arrived in. This is the most useful gap the source found | open |
+| B23 | Flexibility costs usability; a thing that does everything does nothing well | `H-45` new component instead of the existing one, and `R-10` | covered |
+| B24 | Help people avoid errors, and protect them when they happen anyway | `R-07`, `R-08` | covered |
+| B25 | Function before aesthetics | `A-58` decorative styling that implies meaning | covered |
+| B26 | The eye follows a line's established direction | `L-01` continuity, first of the four tools | covered |
+| B27 | Reading gravity runs top-left to bottom-right; the bottom-right is the terminal area where the primary action belongs | **We say the opposite.** `E-95` start-aligns the primary action: right-aligned actions get missed on wide screens and by screen-magnifier users, and sit further from the fields they submit. The source is describing a printed page, which has neither a variable width nor a magnifier. Kept — and `R-01` says an accessibility reason does not yield | diverged |
+| B28 | Decision time rises with the number of options | `R-03`, which cites Hick by name | covered |
+| B29 | Hierarchy is the simplest way to show complex relationships | `L-01` step 2, `B-17` skipping heading levels | covered |
+| B30 | Highlight to focus attention, sparingly — heavy highlighting defeats itself | **Reopens `A17`.** A second source, independent of the first, on the same position: emphasis works by contrast and stops working when it is everywhere. Two sources agreeing raises this from a stray number to a candidate | open |
+| B31 | The urge to fill empty space | `A-67` a container around every group, `R-10` | covered |
+| B32 | Pictures aid recognition and recall | `E-51` icon without a visible label, `E-34` icon-only controls without names — both the *limits* of this | covered |
+| B33 | An unexpected thing in clear view can go unseen | `E-61` important navigation hidden when it fits is adjacent but not the same claim. Not decidable without a user | out of scope |
+| B34 | Put the most important information first | `I-54` text that buries the point | covered |
+| B35 | The eye prefers simple, complete, regular forms | States no decision | out of scope |
+| B36 | Stack information in layers to manage complexity | `P-11` progressive disclosure | covered |
+| B37 | Text clarity from size, typeface, contrast, spacing | `B-11`, `B-75`, `C-19`, `T-08` | covered |
+| B38 | Controls should map, in layout and movement, to what they control | **Nothing covers this.** A control for the left panel belongs on the left; a slider that increases should move the way the value moves. Real and decidable, and agents get it wrong in toolbars | open |
+| B39 | People act on a mental simulation of how a thing works | `E-52` unconventional controls is the failure case | covered |
+| B40 | Divide a large system into small self-contained parts | `L-02` building modularly — primitives, composites, templates | covered |
+| B41 | Prefer the simpler design | `R-10` restraint is the default | covered |
+| B42 | Mental and physical effort required to complete a task | `R-03`, `R-04` minimise cognitive load | covered |
+| B43 | Show only what is needed, when it is needed | `P-11` progressive disclosure | covered |
+| B44 | Near things are read as related | `L-01` proximity, `D-25` | covered |
+| B45 | Ease of understanding, from word and sentence complexity | `I-80` long text without a structure, `I-79` padding words | covered |
+| B46 | Recognising is easier than recalling | `E-34` icon-only controls without names is one case of it; the principle is not stated. Adding it would restate the rule it produced | covered |
+| B47 | Back-up elements maintain performance when one fails | Systems engineering | out of scope |
+| B48 | What works at one scale fails at another | `E-73` interface built only for short content is the content-scale half. The viewport half is `B-106`'s neighbourhood and `RESPONSIVE`-shaped | covered |
+| B49 | First and last in a sequence are best recalled | `L-01` step 2 states exactly this, about a price beside the primary action | covered |
+| B50 | Ratio of relevant to irrelevant information | `A-59` repeated information, `A-58` | covered |
+| B51 | Alike things are read as related | `L-01` similarity | covered |
+| B52 | Visual equivalence across an axis | `D-71` multiple alignments in one component | covered |
+| B53 | Things connected by lines or boxes are read as related | `L-01` common region, ranked last for its clutter cost | covered |
+| B54 | Things in clear view are more likely to be used | `E-61`, `E-62` off-screen content with no affordance, `E-31` | covered |
+| B55 | Uncommon things are recalled better | Same candidate as `B30` — the mechanism behind emphasis working | open |
+| B56 | People need to know where they are, where they can go, and how to get back | **Nothing covers this.** `E-61` says navigation must not hide when it fits; nothing says a screen must answer *where am I*. For a multi-page site that is a real omission, and `jig explain "where am i"` returns nothing | open |
+| B57 | An interrupted task produces intrusive thoughts until it is finished | `P-08` loading, `E-30` empty states — the UI halves of it | covered |
+| B58 | Thirteen entries teaching persuasion: scarcity, reciprocity, framing, conditioning, left-digit pricing, sunk cost | **No principle forbids manufacturing urgency.** `A-09` and `A-10` are adjacent and narrower. An agent following these thirteen would build what Jig should refuse | open |
+
+**58 positions read, 0 adopted, 7 open.**
+
+### What this source was worth
+
+150 entries, 93 triaged out before reading, 58 rowed, **0 adopted, 7 open, 1
+argued divergence.**
+
+The divergence is the sharpest thing in it. `B27` puts the primary action in the
+bottom-right terminal area, which is right for a printed page and wrong for a
+screen of variable width read by someone using magnification — the reason `E-95`
+already gives. A source disagreeing with us on a point we can defend is worth
+more than one agreeing.
+
+Four of the seven open rows are genuine gaps rather than candidates needing
+argument: **how to order information** (`B22`), **control-to-thing mapping**
+(`B38`), **wayfinding** (`B56`), and **a principle against manufactured urgency**
+(`B58`). None is typography, spacing or colour — Jig's dense areas. All four are
+about structure and intent, which is where a system built from anti-patterns
+would be thin, and is exactly what the six-layer restructure predicted.
+
+`B30` and `B55` reopen `A17` from the typography source. Two independent sources
+now take the same position on emphasis, which is the difference between a stray
+threshold and a candidate.
 
 ---
 
