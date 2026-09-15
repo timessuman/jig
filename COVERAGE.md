@@ -154,6 +154,22 @@ about* the page, not the page. A rule that improves an agent's notes and leaves
 the artifact identical has not earned its place in a file that is loaded on every
 task.
 
+### A gap is not a rule — a correction to how these were framed
+
+The principles read described four of these as "genuine gaps — not candidates
+needing argument." That framing was wrong, and this section is the evidence.
+
+A gap is a fact about the corpus: grep it, run `jig explain`, nothing comes back.
+Every one of these rows is still `open` above, because that fact has not changed.
+Whether a rule earns a place is a different question, answered only by running the
+task without it. The model carries defaults nobody wrote down, so corpus silence
+predicts nothing about output. `jig explain "where am i"` returns nothing and the
+control still shipped `aria-current` with underline and weight.
+
+The two ledger states are therefore separate and both true: **open** means the
+corpus says nothing, **tested and rejected** means the silence costs nothing.
+A row can be the first without being a candidate for the second.
+
 **Urgency and emphasis were not tested.** A pricing page with a two-sentence
 intro gives emphasis nowhere to appear, and the project's `DECISIONS.md` — which
 records a real owner decision against unmeasured superlatives — suppressed the
