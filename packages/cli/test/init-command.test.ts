@@ -68,7 +68,7 @@ describe('init — writing', () => {
     expect(content).toContain('E-64');
   });
 
-  it('writes jig.config.json with a forward-slash brand path and the default surface mapping under --yes', async () => {
+  it('writes jig.config.json with a forward-slash brand path and NO surface mapping under --yes', async () => {
     const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
 
     expect(result.config.action).toBe('written');
@@ -77,7 +77,28 @@ describe('init — writing', () => {
     const config = JSON.parse(readFileSync(configPath, 'utf8'));
     expect(config.brand).toBe('src/jig/brand.storefront.css');
     expect(config.brand).not.toContain('\\');
-    expect(config.surfaces).toEqual([{ match: '/', mode: 'product' }]);
+
+    // `--yes` has nobody to ask, so it declares nothing. Writing '/' → product
+    // here put a guess in the one place nothing can distinguish a guess from a
+    // decision, and three cold agents read it back as the owner's choice.
+    // `check/types.ts` holds the other half of this contract: an undeclared
+    // mode makes a mode-gated detector stay silent rather than guess.
+    expect(config.surfaces).toBeUndefined();
+    expect(Object.keys(config)).toEqual(['brand']);
+  });
+
+  it('--yes never invents a surface mapping, and never discards one already declared', async () => {
+    const configPath = join(project, 'jig.config.json');
+    writeFileSync(
+      configPath,
+      JSON.stringify({ brand: 'src/jig/brand.storefront.css', surfaces: [{ match: '/', mode: 'editorial' }] }, null, 2),
+      'utf8',
+    );
+
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
+
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    expect(config.surfaces).toEqual([{ match: '/', mode: 'editorial' }]);
   });
 
   it('records both written files in the init sidecar (.jig/state.json) with forward-slash keys and real checksums', async () => {
