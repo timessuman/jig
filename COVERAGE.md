@@ -142,11 +142,19 @@ control's binary could not serve a rule its markdown lacked).
 
 ### What each rejection means, separately
 
-**Wayfinding and control mapping are the model's defaults.** `AGENTS.md:32` is
-explicit about what to do with a rule whose behaviour appears without it: delete
-it, or it is context cost charged on every task for nothing. These two were the
-most confidently drafted of the five, which is the useful part — confidence in
-drafting predicted nothing.
+**Wayfinding and control mapping are the model's defaults — at the top of the
+capability curve.** `AGENTS.md:32` is explicit about what to do with a rule whose
+behaviour appears without it: delete it, or it is context cost charged on every
+task for nothing. These two were the most confidently drafted of the five, which
+is the useful part — confidence in drafting predicted nothing.
+
+> **These three rejections are provisional.** Both arms ran on the strongest
+> model available. Jig installs into four harnesses where the model is the user's
+> choice, much of it a cheap tier, so "the strong model needs no rule" is not
+> "Jig needs no rule." A strong model producing the behaviour unaided is evidence
+> the *position is correct*; whether the *rule* is needed is decided at the floor,
+> and the floor was never run. Pending that, `B22`, `B38` and `B56` stay `open`
+> above rather than moving to a closed status.
 
 **Ordering failed on a strict reading, and the strict reading is right.** Both
 arms ordered the plans cheapest-first. The rule changed what the agent *wrote
