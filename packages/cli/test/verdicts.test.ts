@@ -68,6 +68,16 @@ describe('jig verdicts', () => {
     expect(run().errors.join('\n')).toMatch(new RegExp(`${codeIds[0]}.*pass: code`));
   });
 
+  // Arm test 3: C-19 and A-05 were reported as "not a rule", sending the agent
+  // to hunt for a typo in an id that exists and belongs to `jig check`.
+  it('says a mechanical rule belongs to check, not that it does not exist', () => {
+    write('screen.json', { rendered: false, verdicts: [...all(screenIds), { id: 'C-19', verdict: 'ok', reason: 'contrast is fine' }] });
+    write('code.json', { verdicts: all(codeIds) });
+    const errors = run().errors.join('\n');
+    expect(errors).toMatch(/C-19 is a mechanical rule — `jig check` decides it/);
+    expect(errors).not.toMatch(/C-19 is not a rule/);
+  });
+
   it('rejects a rule judged twice', () => {
     write('screen.json', { rendered: false, verdicts: [...all(screenIds), all(screenIds.slice(0, 1))[0]] });
     write('code.json', { verdicts: all(codeIds) });

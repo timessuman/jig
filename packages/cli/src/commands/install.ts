@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getAdapter, referenceDirFor, skillFilesFor } from '../adapters/registry.js';
 import { referenceFiles } from '../install/references.js';
@@ -39,6 +39,9 @@ export interface InstallOptions {
 export interface InstallResult {
   written: string[];
   skipped: string[];
+  /** Claude, project scope: whether the Stop hook running `jig gate` was
+   *  merged into `.claude/settings.json` (false: that file is not valid JSON). */
+  stopHook?: boolean;
   /**
    * Set, with nothing written, when this would be a project-scope install
    * for an agent that already has a global one — installing anyway would
@@ -360,5 +363,47 @@ export function install(opts: InstallOptions): InstallResult {
   writeManifest(installRoot, manifest, referenceDir);
   written.push(relKey(referenceDir, 'manifest.json'));
 
-  return { written, skipped };
+  // Not in `written`: `.claude/settings.json` is the user's file, merged into
+  // rather than vendored, so no manifest owns it. `update` re-merges it.
+  const stopHook = opts.agent === 'claude' && opts.scope === 'project'
+    ? installStopHook(installRoot, opts.version)
+    : undefined;
+
+  return { written, skipped, stopHook };
+}
+
+/**
+ * The Stop hook that runs `jig gate` when the agent tries to finish.
+ *
+ * Merged into `.claude/settings.json`, never written over it: that file is the
+ * user's, and holds their permissions and other hooks. Jig's entry is found by
+ * its command, so a re-install at a new version replaces it instead of adding a
+ * second one. Project scope only — a global hook would run `npx` on every stop
+ * in every project on the machine. A settings file that is not valid JSON is
+ * left alone, and the install says so rather than destroying it.
+ *
+ * Why a hook at all: see `commands/gate.ts`. In arm test 3 every "run check" and
+ * "run verdicts" step was skippable, and Haiku skipped them.
+ */
+export function installStopHook(projectRoot: string, version: string): boolean {
+  const path = join(projectRoot, '.claude', 'settings.json');
+  let settings: Record<string, unknown> = {};
+  if (existsSync(path)) {
+    try {
+      settings = JSON.parse(readFileSync(path, 'utf8'));
+    } catch {
+      return false;
+    }
+  }
+  const command = `npx --yes jig-ui@${version} gate`;
+  const hooks = (settings.hooks ?? {}) as Record<string, Array<{ matcher?: string; hooks: Array<{ type: string; command: string }> }>>;
+  const isJig = (h: { command?: string }) => /\bjig-ui@[^\s]+ gate\b/.test(h.command ?? '');
+  const stop = (hooks.Stop ?? [])
+    .map((group) => ({ ...group, hooks: group.hooks.filter((h) => !isJig(h)) }))
+    .filter((group) => group.hooks.length > 0);
+  stop.push({ hooks: [{ type: 'command', command }] });
+  settings.hooks = { ...hooks, Stop: stop };
+  mkdirSync(join(projectRoot, '.claude'), { recursive: true });
+  writeFileSync(path, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+  return true;
 }

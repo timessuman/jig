@@ -6,7 +6,7 @@ these, say so, list them, and stop.
 
 There are two kinds of subcommand, and they are not run the same way.
 
-**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`. Run the
+**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`, `gate`. Run the
 matching command with `{{scripts_path}}`, passing the flags through unchanged,
 then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
@@ -963,6 +963,20 @@ Designing every case in advance does not work; fixing a page you can use does. S
 Only then suggest `{{command_prefix}}spec` for the next feature. Starting the next one
 with findings open means the second feature is built on top of the first one's
 problems, and nobody goes back for them.
+
+## gate
+
+Not a command to run. In Claude Code, `install` adds a Stop hook that runs
+`{{scripts_path}} gate` whenever you try to finish. If files you changed fail `check`,
+or a critique's verdict files fail `verdicts`, it refuses to let you stop and hands
+you the failures as the reason. **Fix what it names.** Do not edit verdict files to
+satisfy it, and do not report the work as done while it is blocking. After three
+refusals in one session it lets you stop; then tell the user plainly that the work is
+not finished and what is still failing.
+
+It exists because every "run check" and "run verdicts" step in these procedures was
+skipped in a live run, and pages that did not render their styles were reported
+clean.
 
 ## verdicts
 

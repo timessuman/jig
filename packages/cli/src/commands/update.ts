@@ -6,7 +6,7 @@ import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js'
 import { referenceFiles } from '../install/references.js';
 import { getAdapter, skillFilesFor } from '../adapters/registry.js';
 import { BLOCK_START } from '../adapters/types.js';
-import { buildCommandBody, buildSkillBody, rulesPathFor, type InstallOptions } from './install.js';
+import { buildCommandBody, buildSkillBody, installStopHook, rulesPathFor, type InstallOptions } from './install.js';
 import { bundleFiles, createWriter, relKey } from '../install/writer.js';
 import { readInitManifest, writeInitManifest, isInitFileModified } from '../init/state.js';
 import { detectLegacyRules } from '../init/migrate.js';
@@ -116,6 +116,8 @@ function updateTarget(
   const { installRoot, scope: discoveredScope, manifest: existing, referenceDir } = resolved;
 
   const adapter = getAdapter(existing.agent);
+  // The hook pins a version, so a refresh has to move it with everything else.
+  if (existing.agent === 'claude' && discoveredScope === 'project') installStopHook(installRoot, opts.version);
 
   const updated: string[] = [];
   const skipped: string[] = [];

@@ -21,8 +21,16 @@ const hiddenBaseShownWide = `nav ul {
 }`;
 
 describe('hasMenuToggle — does the navigation carry an open state', () => {
-  it('finds aria-expanded inside nav or header markup', () => {
-    expect(hasMenuToggle('<header><button aria-expanded="false" aria-controls="m">Menu</button></header>')).toBe(true);
+  it('finds aria-expanded in the navigation when something changes it', () => {
+    const button = '<header><button aria-expanded="false" aria-controls="m">Menu</button></header>';
+    expect(hasMenuToggle(`${button}<script>b.setAttribute("aria-expanded", "true")</script>`)).toBe(true);
+    expect(hasMenuToggle('<header><button aria-expanded={open}>Menu</button></header>')).toBe(true);
+    expect(hasMenuToggle('<header><button :aria-expanded="open">Menu</button></header>')).toBe(true);
+  });
+
+  // Arm test 3: a dead Menu button with a static attribute silenced E-116.
+  it('does not count a static aria-expanded that nothing changes', () => {
+    expect(hasMenuToggle('<header><button class="nav-button" aria-label="menu" aria-expanded="false">menu</button></header>')).toBe(false);
   });
   it('finds a <details> disclosure inside the navigation', () => {
     expect(hasMenuToggle('<nav><details><summary>Menu</summary><a href="/">x</a></details></nav>')).toBe(true);
@@ -77,5 +85,21 @@ describe('menu-state (E-116) — the toggle itself', () => {
   // button, not the navigation, and reporting it doubled every finding.
   it('skips the menu button hidden at wide widths', () => {
     expect(menuState.run('@media (min-width: 768px) { .menu-button { display: none; } .nav-toggle { display: none; } }', 'a.css', ctx(false))).toHaveLength(0);
+  });
+});
+
+describe('menu-state (E-116) — a Menu button in markup that nothing opens', () => {
+  const page = '<header>\n  <div class="logo">Hoistline</div>\n  <button class="nav-button" aria-label="menu" aria-expanded="false">menu</button>\n</header>';
+  const inHtml = (raw: string, toggle: boolean | undefined) => menuState.run('', 'pricing.html', { ...ctx(toggle), raw });
+
+  it('fires on the arm-test-3 button, on its line', () => {
+    const f = inHtml(page, false);
+    expect(f).toHaveLength(1);
+    expect(f[0].line).toBe(3);
+  });
+
+  it('does not fire when the project changes its state, or on other buttons', () => {
+    expect(inHtml(page, true)).toHaveLength(0);
+    expect(inHtml('<button>Sign up</button><button aria-label="Close">x</button>', false)).toHaveLength(0);
   });
 });

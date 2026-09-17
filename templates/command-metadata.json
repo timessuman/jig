@@ -15,7 +15,7 @@
     "status": "available"
   },
   "decide": {
-    "description": "Write the project-wide design decisions to DECISIONS.md beside the token layer \u2014 the choices that need a reason, which the tokens hold the values for but cannot explain. Runs once per project, by interviewing you. spec, mockup, make and critique need it; nothing else does. No CLI \u2014 the agent does this.",
+    "description": "Write the project-wide design decisions to DECISIONS.md beside the token layer — the choices that need a reason, which the tokens hold the values for but cannot explain. Runs once per project, by interviewing you. spec, mockup, make and critique need it; nothing else does. No CLI — the agent does this.",
     "argumentHint": "",
     "status": "agent"
   },
@@ -29,28 +29,33 @@
     "argumentHint": "<surface>",
     "status": "available"
   },
+  "gate": {
+    "description": "Run by the Claude Code Stop hook that `install` adds: blocks finishing while `check` fails on changed files or a critique's verdict files fail. Not run by hand.",
+    "argumentHint": "",
+    "status": "available"
+  },
   "explain": {
-    "description": "Explain a rule, or find the rules you cannot name. Given an id, prints the rule's full text, its correction, the version it arrived in and who checks it \u2014 including the P-/M- pattern and mode specs, which no rule index contains. Given a word instead, searches every title and body and lists what matches. `--list` prints every id, or one section's. `--layer` names the six layers \u2014 principles, anti-patterns, tokens, components, layout, patterns \u2014 and lists one by name, which is how to find a rule when you know what you are trying to do but not its number.",
+    "description": "Explain a rule, or find the rules you cannot name. Given an id, prints the rule's full text, its correction, the version it arrived in and who checks it — including the P-/M- pattern and mode specs, which no rule index contains. Given a word instead, searches every title and body and lists what matches. `--list` prints every id, or one section's. `--layer` names the six layers — principles, anti-patterns, tokens, components, layout, patterns — and lists one by name, which is how to find a rule when you know what you are trying to do but not its number.",
     "argumentHint": "<rule-id | search term | layer name> [--list] [--layer]",
     "status": "available"
   },
   "spec": {
-    "description": "Say exactly what is being built \u2014 a page, feature or functionality \u2014 scoped to its smallest useful version and specified at every screen size, then confirmed. Writes .jig/specs/<surface>.spec.md. No CLI \u2014 the agent does this.",
+    "description": "Say exactly what is being built — a page, feature or functionality — scoped to its smallest useful version and specified at every screen size, then confirmed. Writes .jig/specs/<surface>.spec.md. No CLI — the agent does this.",
     "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   },
   "mockup": {
-    "description": "Low-fidelity design: a grayscale drawing of the confirmed spec at every screen size, reviewed before any code. Asks whether to draw it in HTML, Figma or Google Stitch, and tells you to connect that tool's MCP server if needed. No CLI \u2014 the agent does this.",
+    "description": "Low-fidelity design: a grayscale drawing of the confirmed spec at every screen size, reviewed before any code. Asks whether to draw it in HTML, Figma or Google Stitch, and tells you to connect that tool's MCP server if needed. No CLI — the agent does this.",
     "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   },
   "make": {
-    "description": "High-fidelity: build the actual page or feature from its confirmed spec and approved mockup \u2014 matching the mockup's structure, never copying its markup \u2014 recording any deviation back into the spec. No CLI \u2014 the agent does this.",
+    "description": "High-fidelity: build the actual page or feature from its confirmed spec and approved mockup — matching the mockup's structure, never copying its markup — recording any deviation back into the spec. No CLI — the agent does this.",
     "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   },
   "critique": {
-    "description": "Scrutinise what was built against the rules, its spec and its mockup: render it, judge what check cannot, and report by rule id. Needs DECISIONS.md. No CLI \u2014 the agent does this.",
+    "description": "Scrutinise what was built against the rules, its spec and its mockup: render it, judge what check cannot, and report by rule id. Needs DECISIONS.md. No CLI — the agent does this.",
     "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   }
