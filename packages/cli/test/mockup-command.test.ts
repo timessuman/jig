@@ -251,3 +251,28 @@ describe('decide names exactly what it blocks', () => {
     expect(decide).toMatch(/`init`\s+comes first/);
   });
 });
+
+/**
+ * Arm test 3: every spec wrote "menu button, top right" at all three sizes from
+ * a decision that only said where the button sits, and every page hid five
+ * links behind a menu at 1280px.
+ */
+describe('nav is decided per size by P-14, not copied from a placement decision', () => {
+  const t = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
+  const p = readFileSync(join(repoRoot, 'rules/03-patterns.md'), 'utf8');
+
+  it('spec runs P-14 per size and refuses a menu button where the links fit', () => {
+    expect(t).toMatch(/decided by `P-14`'s table\s+at that width, not copied/);
+    expect(t).toMatch(/A menu button where the links fit is refused/);
+    expect(t).toMatch(/it does not\s+override `P-14`/);
+  });
+
+  it('decide records placement as where the button sits when it appears', () => {
+    expect(t).toMatch(/where the thing\s+sits \*\*when it appears\*\*/);
+    expect(t).toMatch(/never as "a menu button on every page"/);
+  });
+
+  it('P-14 says the decision is position, never existence', () => {
+    expect(p).toMatch(/The decision is where it sits, never whether it exists/);
+  });
+});
