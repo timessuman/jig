@@ -635,6 +635,11 @@ const LIGHT_BACKGROUNDS = {
   claim('README judgment count in the split', readme, /\*\*(\d+) are judgment\*\*/, judgment);
   claim('README "only the CLI" count', readme, /only the CLI gets you the (\d+)\b/, detected);
   claim('README "only the agent" count', readme, /only the agent gets you the (\d+)\b/, judgment);
+  // 01-modes.md told every installed agent the anti-pattern file held "87 rules"
+  // while it held 90, and nothing checked the sentence: it was prose outside any
+  // id, which `explain` could not reach either. Both are now covered.
+  claim("01-modes' anti-pattern count", read('rules/01-modes.md'), /All (\d+) rules in it apply everywhere/,
+        (antiPatterns.match(/^### [A-Z]-\d+/gm) ?? []).length);
   claim("README's 00-anti-patterns row", readme, /\| (\d+) universal rules/,
         (antiPatterns.match(/^### [A-Z]-\d+/gm) ?? []).length);
   claim('house-positions pattern count', housePositions, /These (\d+) cover/,
