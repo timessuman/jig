@@ -220,15 +220,15 @@ shape for it and principles are `R-`, not a rule in `00`.
 | B53 | Things connected by lines or boxes are read as related | `L-01` common region, ranked last for its clutter cost | covered |
 | B54 | Things in clear view are more likely to be used | `E-61`, `E-62` off-screen content with no affordance, `E-31` | covered |
 | B55 | Uncommon things are recalled better | Same candidate as `B30` — the mechanism behind emphasis working | open |
-| B56 | People need to know where they are, where they can go, and how to get back | **Nothing covers this.** `E-61` says navigation must not hide when it fits; nothing says a screen must answer *where am I*. For a multi-page site that is a real omission, and `jig explain "where am i"` returns nothing | open |
+| B56 | People need to know where they are, where they can go, and how to get back | `P-14` — the current page carries `aria-current="page"`, is styled from that attribute, and is marked the same way inside an open menu; the page `<h1>` answers *where am I* when the menu is closed. **Adopted by owner decision, not by the control:** the standalone wayfinding rule tested one-for-one across two floor rounds, and the owner ruled that current-location marking belongs in the navigation pattern regardless | adopted |
 | B57 | An interrupted task produces intrusive thoughts until it is finished | `P-08` loading, `E-30` empty states — the UI halves of it | covered |
 | B58 | Thirteen entries teaching persuasion: scarcity, reciprocity, framing, conditioning, left-digit pricing, sunk cost | **No principle forbids manufacturing urgency.** `A-09` and `A-10` are adjacent and narrower. An agent following these thirteen would build what Jig should refuse | open |
 
-**58 positions read, 0 adopted, 7 open.**
+**58 positions read, 1 adopted, 6 open.**
 
 ### What this source was worth
 
-150 entries, 93 triaged out before reading, 58 rowed, **0 adopted, 7 open, 1
+150 entries, 93 triaged out before reading, 58 rowed, **1 adopted, 6 open, 1
 argued divergence.**
 
 The divergence is the sharpest thing in it. `B27` puts the primary action in the
@@ -243,6 +243,9 @@ argument: **how to order information** (`B22`), **control-to-thing mapping**
 (`B58`). None is typography, spacing or colour — Jig's dense areas. All four are
 about structure and intent, which is where a system built from anti-patterns
 would be thin, and is exactly what the six-layer restructure predicted.
+
+*Since then, 2026-09-17: `B56` wayfinding was adopted into `P-14` by owner decision,
+leaving three of these four open.*
 
 `B30` and `B55` reopen `A17` from the typography source. Two independent sources
 now take the same position on emphasis, which is the difference between a stray
@@ -285,6 +288,10 @@ is the useful part — confidence in drafting predicted nothing.
 > the *position is correct*; whether the *rule* is needed is decided at the floor,
 > and the floor was never run. Pending that, `B22`, `B38` and `B56` stay `open`
 > above rather than moving to a closed status.
+>
+> **Update, 2026-09-17:** `B56` is no longer pending. The owner adopted
+> current-location marking into `P-14`, and the row above records that it entered
+> by decision rather than by the control.
 
 **Ordering failed on a strict reading, and the strict reading is right.** Both
 arms ordered the plans cheapest-first. The rule changed what the agent *wrote

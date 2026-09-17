@@ -293,6 +293,10 @@ describe('explain — methods (L-)', () => {
     expect(explain({ ruleId: 'hamburger', version })).toContain('P-14');
     expect(explain({ ruleId: 'mobile nav', version })).toContain('P-14');
     expect(explain({ ruleId: 'E-61', version })).toContain('P-14');
+    // The ledger recorded the wayfinding gap as this exact search returning
+    // nothing. It is the search that has to work now.
+    expect(explain({ ruleId: 'where am i', version })).toContain('P-14');
+    expect(explain({ ruleId: 'aria-current', version })).toContain('P-14');
   });
 
   it('surfaces the method first when searching for layout', () => {
