@@ -55,6 +55,11 @@ the answer and the CLI is not. So, first:
 Where there is genuinely one surface, say so and move on; the point is that the
 mode was chosen rather than defaulted into.
 
+**Surfaces declared after `init` do not reach the page until `init` runs again.**
+Writing a mode into `{{config_file}}` changes what agents read; the token files the
+page imports still carry the mode `init` wrote. Run `{{scripts_path}} init` again after
+any change to `surfaces`, and `check` will say when the two disagree.
+
 Afterwards, report what it detected, the brand colour it derived and where that
 came from, and the surfaces it used — the output says whether they came from
 `jig.config.json` or from the default.
@@ -202,7 +207,8 @@ Stop and say which of these is missing, rather than proceeding:
   `{{command_prefix}}spec` with no argument is not a request to invent one.
 
 Read `DECISIONS.md` before asking anything. Do not re-ask what it already records;
-cite it instead.
+cite it instead. If the screen touches an item in its **Unresolved** section, ask the user
+about it by name; do not settle it in the spec.
 
 ### 1. Ask, two or three questions at a time
 
@@ -333,6 +339,21 @@ to the spec, never the spec to the decisions.
   a sentence that implies a rule exists when it does not. The same run wrote
   "FAQ arranged per DECISIONS.md rules" where no such rule existed — and the next
   agent would have gone looking for it, found nothing, and invented one.
+- **"The design system decides" is not a value.** When the user defers — "you decide",
+  "whatever Jig says", "leave it to the system" — that is an instruction to look the
+  answer up, not a phrase to copy into the spec. Search in this order: the `P-`
+  pattern for the component (`{{command_prefix}}explain <component>`), `L-01`'s five
+  steps, then the rules. Write the composition that lookup gives — "stacked, Pro
+  first", "Menu button, links in a vertical list" — and cite the id it came from.
+  Three of six specs in a live run wrote "arrangement decided by design system" into
+  the frontmatter, and the build that read it had nothing to build from.
+- **Before asking for confirmation, read every field back and refuse any value that
+  names nobody.** "Decided by the design system", "as appropriate", "per best
+  practice", "TBD", "standard layout" each hand the decision to no one. Replace each
+  with the looked-up composition. Only when the lookup genuinely finds nothing does
+  the field say `unspecified — make chooses one it can defend, and records it`; and
+  say in the confirmation message which fields those are, so the user can decide
+  them instead.
 
 ### 4. Get it confirmed
 
@@ -555,10 +576,39 @@ review then validates the page against fiction and reports it clean.
 
 ### Finish
 
-Run `check`, then the self-check at the end of `{{rules_path}}/00-anti-patterns.md`,
-and say which fields of the spec the built page satisfies and which it does not —
-**at each size**. A page that satisfies `desktop` and was never looked at on a
-phone has satisfied a third of its spec.
+You are not done until all three of these hold. They are steps, not advice: in a
+live run one build skipped `check` and shipped 53 errors, another offered 36 as
+"non-blocking", and a third drew no phone navigation where its approved mockup had a
+menu and reported "matched exactly".
+
+**1. `check` passes.** Run `{{scripts_path}} check --all` and paste its
+`JIG_CHECK:` line into your report, as printed. `mechanical=fail:<n>` means not done:
+fix every error and run it again. No mechanical finding is non-blocking, and you do
+not get to decide one is. Warnings are listed and either fixed or explained one by
+one. A report with no `JIG_CHECK:` line, or one you typed yourself, is not a finished
+build.
+
+**2. The build matches the approved mockup at each size.** Skip only when
+`mockup: skipped`. Render the page at 360px, 768px and 1280px — with a browser, not in
+your head — and set each render beside the mockup at the same width. Go region by
+region, in the mockup's order:
+
+| Size | Mockup region | In the build? | Same place and order? |
+| --- | --- | --- | --- |
+| phone | header: name + Menu button | yes | yes |
+| phone | plan cards, stacked | yes | no — Pro first |
+
+Every **no** is either fixed now or appended to `deviations:` with a `why`. Never
+write "matches" without the table: the claim is what the table is for. A control the
+mockup draws — a Menu button, a toggle — is in the build only if it works: tap it.
+
+**3. Each size's spec fields are accounted for.** Say which fields the built page
+satisfies and which it does not — **at each size**. A page that satisfies `desktop`
+and was never looked at on a phone has satisfied a third of its spec. Then run the
+self-check at the end of `{{rules_path}}/00-anti-patterns.md`.
+
+Report the `JIG_CHECK:` line, the table, and any new deviations. Then suggest
+`{{command_prefix}}critique`.
 
 ## critique
 
@@ -896,6 +946,12 @@ look complete. Round 3 asks for the one kind of decision a user does not volunte
 unprompted — the ones with a history — and a live run skipped it for exactly that
 reason. In the arm that did ask, round 3 is where the unresolved items surfaced.
 
+**Round 3 also asks, by name, what is still undecided.** "Is there anything the team
+has not settled yet — something still argued about, or waiting on someone?" Ask it
+even when nothing so far suggests there is. Whatever the answer names goes in the
+**Unresolved** section below, not into a decision the user did not make. Four of six
+files in a live run dropped the one open item the owner had named.
+
 **Write each decision as a named rule with its reason attached**, in the project's
 own vocabulary:
 
@@ -914,7 +970,36 @@ wrong.
 A name gives the team something to cite in review. A reason lets a future agent
 tell when the rule does not apply, which a bare instruction never can.
 
+**The reason is the owner's, or it is not written.** Write the `Why:` the user gave,
+in their words or close to them. If they gave none, ask for it. If they still give
+none, write `**Why:** not given` — never a reason you supplied. A live run invented
+reasons for two real reversals; an invented reason is worse than none, because the
+next agent weighs it as the team's and applies the rule where the team never would.
+
+**Record what is still open in its own section, at the end:**
+
+```markdown
+## Unresolved
+
+- **Annual discount on the pricing page.** Undecided between showing it on the
+  toggle and only at checkout; waiting on finance. Until settled, specs do not
+  commit to either — they ask.
+```
+
+Each item says what is undecided, between what, and what it is waiting on. This
+section is not a placeholder and does not fail the gate: an honest "not decided yet"
+is information. `spec` reads it, and asks the user instead of choosing when a screen
+touches an unresolved item. If round 3 surfaced nothing, write `None named by the
+owner.` under the heading, so a reader can tell it was asked.
+
 ### Finish
+
+**Before you show it, account for every answer.** List each thing the user said,
+round by round, and the section of the file it went to — a named decision, its
+`Why:`, or **Unresolved**. An answer that went nowhere is either added or shown to
+the user as left out on purpose, with the reason. Then go the other way: every
+`Why:` in the file must trace to something the user said; delete any that does not,
+and ask. Include this mapping in your message, below the file.
 
 Show it and ask the user to confirm it is right before you stop. Leave no
 `[TODO]` markers — the gate treats them as an unwritten file, correctly, because
