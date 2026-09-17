@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { navProblems, newestSpec, specProblems } from '../check/spec-shape.js';
 import { check } from './check.js';
 import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
@@ -30,6 +31,85 @@ export const MAX_BLOCKS = 3;
 export interface GateInput {
   session_id?: string;
   stop_hook_active?: boolean;
+  /** Claude Code's session transcript. It records which slash command ran, so
+   *  the gate can check that command's own output — see `lastJigCommand`. */
+  transcript_path?: string;
+}
+
+/**
+ * The `/jig` subcommand this session last ran, from the transcript.
+ *
+ * Arm test 4: every step whose output a later check needs — the spec's shape,
+ * the critique's verdict files — was skipped, and each skip was invisible
+ * because the gate could only check output that existed. The transcript says
+ * which command the user asked for, so a command that produced nothing is
+ * exactly as visible as one that produced something wrong.
+ */
+export function lastJigCommand(transcriptPath: string | undefined): string | undefined {
+  if (!transcriptPath || !existsSync(transcriptPath)) return undefined;
+  let text: string;
+  try {
+    text = readFileSync(transcriptPath, 'utf8');
+  } catch {
+    return undefined;
+  }
+  let found: string | undefined;
+  for (const line of text.split('\n')) {
+    if (!line.includes('/jig')) continue;
+    const name = /<command-name>\/?jig<\/command-name>[\s\S]{0,200}?<command-args>([^<]*)<\/command-args>/.exec(line);
+    const plain = /(?:^|["\s>])\/jig\s+([a-z]+)/.exec(line);
+    const arg = (name?.[1] ?? plain?.[1] ?? '').trim().split(/\s+/)[0];
+    if (arg) found = arg.toLowerCase();
+  }
+  return found;
+}
+
+/** What each command must have left behind, checked after it ran. */
+function commandProblems(root: string, command: string): string[] {
+  const problems: string[] = [];
+  const spec = newestSpec(root);
+
+  if (command === 'decide') {
+    const file = ['jig/DECISIONS.md', 'DECISIONS.md', '.jig/DECISIONS.md'].map((p) => join(root, p)).find((p) => existsSync(p));
+    if (!file) problems.push('decide wrote no DECISIONS.md beside the token layer.');
+    else {
+      const body = readFileSync(file, 'utf8');
+      if (!/^##\s+Unresolved\s*$/im.test(body)) {
+        problems.push('DECISIONS.md has no `## Unresolved` section. Round 3 asks by name what is still undecided; write what the owner named, or `None named by the owner.`');
+      }
+      if (/\[TODO\]/.test(body)) problems.push('DECISIONS.md still contains [TODO] markers.');
+    }
+  }
+
+  if (command === 'spec' || command === 'mockup' || command === 'make' || command === 'critique') {
+    if (!spec) problems.push(`${command} needs a spec: there is no file in .jig/specs/.`);
+    else {
+      problems.push(...specProblems(spec));
+      if (problems.length === 0) problems.push(...navProblems(spec));
+    }
+  }
+
+  if (command === 'mockup' && spec) {
+    const front = spec.body.split(/^---\s*$/m)[1] ?? '';
+    const mockup = /^\s*mockup\s*:\s*(.+)$/im.exec(front)?.[1]?.trim() ?? '';
+    if (/^pending/i.test(mockup) || !mockup) problems.push(`${spec.path}: \`mockup:\` is still pending. It records the user's own word — approved, or skipped with their reason.`);
+    const at = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '') ?? '';
+    if (/^approved/i.test(mockup)) {
+      if (!at) problems.push(`${spec.path}: \`mockup_at:\` is empty. Record where the approved drawing is.`);
+      else if (!/^https?:/i.test(at) && !existsSync(join(root, at))) problems.push(`${spec.path}: \`mockup_at: ${at}\` does not exist.`);
+      else if (!/^https?:/i.test(at) && !at.startsWith('.jig/mockups/')) problems.push(`The drawing is at ${at}. A mockup lives in .jig/mockups/, outside what check scans and outside what ships.`);
+    }
+  }
+
+  if (command === 'critique') {
+    const dir = join(root, '.jig', 'critique');
+    const surfaces = existsSync(dir) ? readdirSync(dir).filter((s) => existsSync(join(dir, s, 'screen.json')) || existsSync(join(dir, s, 'code.json'))) : [];
+    if (surfaces.length === 0) {
+      problems.push('critique wrote no verdict files. Each reader arm writes .jig/critique/<surface>/screen.json or code.json, and `jig verdicts <surface>` — not your own count — decides whether the review is complete. A report without them is not a review.');
+    }
+  }
+
+  return problems;
 }
 
 export interface GateResult {
@@ -43,7 +123,8 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
     return { block: false, reason: '' };
   }
 
-  const problems: string[] = [];
+  const command = lastJigCommand(opts.input.transcript_path);
+  const problems: string[] = command ? commandProblems(root, command).map((p) => `/jig ${command}: ${p}`) : [];
 
   const selection = selectFiles(root, false);
   const changedStyles = selection.mode === 'changed' && selection.files.some((f) => isStyleBearing(f));
