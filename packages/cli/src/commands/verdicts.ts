@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { citableIds } from '../rules/citations.js';
+import { probeContradictions, readProbes } from '../probe/check.js';
 
 /**
  * Verifies a critique's verdict files, and computes its counts.
@@ -153,6 +154,23 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
     else if (absent.length) errors.push(`screen.json says rendered: true, but these artefacts do not exist: ${absent.join(', ')}.`);
     else rendered = true;
   }
+
+  // A rendered review is measured, not only described. See probe/script.ts.
+  const probes = readProbes(dir, errors);
+  if (screenFile && screenFile.rendered === true) {
+    const widths = new Set(probes.map((p) => p.width));
+    const missing = [360, 768, 1280].filter((w) => !widths.has(w));
+    if (missing.length) {
+      errors.push(`screen.json says rendered: true, but there is no probe at ${missing.join(', ')}px. At each width run \`jig probe\` in the browser and save its output as probe-<width>.json.`);
+      rendered = false;
+    }
+  }
+  const screenVerdicts = Array.isArray(screenFile?.verdicts) ? (screenFile!.verdicts as Verdict[]) : [];
+  const verdictOf = (id: string) => {
+    const v = screenVerdicts.find((x) => typeof x.id === 'string' && x.id.trim().toUpperCase() === id);
+    return typeof v?.verdict === 'string' ? v.verdict : undefined;
+  };
+  errors.push(...probeContradictions(probes, verdictOf));
 
   const field = (a: ArmResult) => (a.state === 'ran' ? `ran:${a.judged}` : `${a.state}:${a.judged}${a.state === 'incomplete' ? `/${a.total}` : ''}`);
   const line =

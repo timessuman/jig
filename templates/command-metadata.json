@@ -29,6 +29,11 @@
     "argumentHint": "<surface>",
     "status": "available"
   },
+  "probe": {
+    "description": "Print the render probe: a script the critique runs in a browser at 360, 768 and 1280px. It opens the phone menu, presses Escape, measures sideways scroll and whether styles and tokens applied; `verdicts` refuses verdicts it contradicts.",
+    "argumentHint": "",
+    "status": "available"
+  },
   "gate": {
     "description": "Run by the Claude Code Stop hook that `install` adds: blocks finishing while `check` fails on changed files or a critique's verdict files fail. Not run by hand.",
     "argumentHint": "",

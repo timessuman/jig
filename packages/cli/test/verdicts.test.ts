@@ -36,6 +36,10 @@ describe('jig verdicts', () => {
   it('passes a complete review and computes the counts itself', () => {
     write('screen.json', { rendered: true, artefacts: ['shots/360.png'], verdicts: all(screenIds) });
     write('code.json', { verdicts: all(codeIds) });
+    // A rendered review carries a probe at each width (see probe.test.ts).
+    for (const width of [360, 768, 1280]) {
+      write(`probe-${width}.json`, { jigProbe: 1, width, sidewaysScroll: false, scrollWidth: width, clientWidth: width, defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5, menu: null });
+    }
     const r = run();
     expect(r.errors).toEqual([]);
     expect(r.ok).toBe(true);
