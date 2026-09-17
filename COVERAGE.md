@@ -334,3 +334,34 @@ Two flaws, one fixed and one found:
   arm. Both attested `mechanical=skipped:0` rather than claiming a pass —
   correct behaviour by both agents, and a setup mistake. This round tested the
   judgment half only.
+
+## The floor round — 2026-09-15
+
+The three rejections above were marked provisional because both arms ran on the
+strongest model. This round ran the missing half: Haiku 4.5 in both arms, the full
+command chain from `install` to `critique`, installed from real tarballs, with a
+decisions file produced by `decide` interviewing the owner. Four candidates, one
+run per arm, measured on the page `make` produced before `critique` changed it.
+
+| candidate | control | treatment | verdict |
+|---|---|---|---|
+| en dash in a range (`A27`) | `2–10`, `10–50` | `2–10`, `10–50` | **both produced it unaided.** Four runs across two rounds, from a brief that writes the ranges as "2 to 10" |
+| control placement (`B38`) | billing switch above the plans | the same | **both produced it unaided**, at the ceiling and now the floor |
+| ordering (`B22`) | cheapest first, from a brief listing them out of order | the same | **void.** The owner's correction to both specs — "choose an order it can defend" — was this candidate's own self-check |
+| current location (`B56`) | marked by a class, no `aria-current` | `aria-current="page"` | differed — **but the previous round showed the reverse**, so across two rounds the attribute appeared once in each arm |
+
+**Dashes and control placement stay out of the corpus.** Both-yes at the floor is
+the one result the corrected bar treats as a deletion: the behaviour arrives
+without the rule even in a weak model. Their rows stay `open`, because the corpus
+is still silent — that silence has now been shown twice to cost nothing.
+
+**The position of a navigation control was ruled taste by the owner**, not a
+system rule, and belongs in a project's `DECISIONS.md`. That settles the part of
+`B38` a system could have legislated.
+
+**Ordering needs a fresh fixture** in which the owner never touches order.
+
+**Current location entered `P-14` by owner decision**, recorded on the `B56` row.
+One positive and one negative run is not evidence either way, and the ledger says
+so rather than counting it as a pass.
+
