@@ -98,8 +98,14 @@ changed since, do not re-run it.
 Before you finish a task that generated or modified UI, emit this line:
 
 ```text
-JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judgment=<ran|skipped>:<n> files=<n> styled=<n>
+JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> warnings=<n> judgment=<ran|skipped>:<n> files=<n> styled=<n>
 ```
+
+`warnings=` counts the findings `check` reported as warnings. `mechanical=pass`
+means no errors, and nothing more: a page that is not usable on a phone can
+carry `pass:0` with several warnings, because the mobile detectors warn rather
+than fail CI. A record that says `pass` with warnings above zero is not a clean
+page — say what the warnings were.
 
 `jig check` emits this same line for the half it can do, with
 `judgment=not-run`. Take `mechanical=` from its output rather than counting by

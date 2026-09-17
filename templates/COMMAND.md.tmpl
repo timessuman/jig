@@ -87,10 +87,17 @@ Do the other half yourself:
 Then emit the attestation with both halves filled in:
 
 ```text
-JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judgment=<ran|skipped>:<n>
+JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> warnings=<n> judgment=<ran|skipped>:<n> files=<n> styled=<n>
 ```
 
-Take `mechanical=` from the CLI's own line. If `check` could not run, that is
+Take `mechanical=`, `warnings=`, `files=` and `styled=` from the CLI's own line.
+`warnings=` counts the findings `check` reported as warnings. `mechanical=pass`
+means no errors, and nothing more: a page that is not usable on a phone can
+carry `pass:0` with several warnings, because the mobile detectors warn rather
+than fail CI. A record that says `pass` with warnings above zero is not a clean
+page — say what the warnings were.
+
+If `check` could not run, that is
 `mechanical=skipped:0` — never `pass`, which would report a clean result for a
 check that inspected nothing.
 
@@ -534,7 +541,7 @@ preserve while fixing them.
 Then the attestation:
 
 ```text
-JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> mechanical=<pass|fail|skipped>:<n>
+JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> mechanical=<pass|fail|skipped>:<n> warnings=<n>
 ```
 
 Three counts because there are three arms, and each can fail independently.

@@ -89,6 +89,27 @@ describe('the report says what it looked at', () => {
     expect(out).not.toMatch(/^\s*No findings\.\s*$/m);
   });
 
+  // A page failing every mobile detector used to attest `mechanical=pass:0`,
+  // because the record counted errors only and those detectors are warnings.
+  // That is how two phone-broken pages read as clean. `pass` still means no
+  // errors — CI behaviour does not change — but the warnings are in the record.
+  it('counts warnings in the JIG_CHECK record without turning them into a fail', () => {
+    const out = formatReport(
+      [
+        f({ ruleId: 'D-111', severity: 'warning', bucket: 'mechanical', detector: 'fixed-width' }),
+        f({ ruleId: 'D-112', severity: 'warning', bucket: 'mechanical', detector: 'viewport-height' }),
+        f({ ruleId: 'A-01', severity: 'warning', bucket: 'hybrid', detector: 'violet-band-hue' }),
+      ],
+      { totalRules: 111, version: '0.10.0', scanned: 3, withStyles: 1 },
+    );
+    expect(out).toMatch(/JIG_CHECK:.*mechanical=pass:0 warnings=3 /);
+  });
+
+  it('reports warnings=0 rather than dropping the field', () => {
+    const out = formatReport([], { totalRules: 111, version: '0.10.0', scanned: 3, withStyles: 1 });
+    expect(out).toMatch(/JIG_CHECK:.*warnings=0 /);
+  });
+
   it('carries the counts into the JIG_CHECK record', () => {
     const out = formatReport([], { totalRules: 104, version: '0.7.1', scanned: 41, withStyles: 4 });
     expect(out).toMatch(/JIG_CHECK:.*files=41/);

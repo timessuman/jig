@@ -218,6 +218,12 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
 
   const mechanicalErrors = findings.filter((f) => f.bucket === 'mechanical' && f.severity === 'error').length;
   const mechStatus = `${mechanicalErrors > 0 ? 'fail' : 'pass'}:${mechanicalErrors}`;
+  // `warnings` is the same count the summary line prints above, so the record
+  // and the human-readable report cannot disagree. It is reported beside
+  // `mechanical=` rather than folded into it, so `pass` keeps meaning "no
+  // errors" and CI behaviour does not change. Before it, a page that tripped
+  // every mobile detector — all of them warnings — attested
+  // `mechanical=pass:0`, indistinguishable from a clean page.
   // One label, one record. The CLI can determine version, mode and the
   // mechanical result; it cannot run the judgment rules, so it reports
   // `judgment=not-run` rather than omitting the field. An agent completing a
@@ -233,7 +239,7 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
   // registers as a duplicate of it.
   lines.push(
     `  JIG_CHECK: version=${meta.version} mode=${meta.mode ?? 'unknown'} ` +
-      `mechanical=${mechStatus} judgment=not-run ` +
+      `mechanical=${mechStatus} warnings=${warnings} judgment=not-run ` +
       `files=${meta.scanned ?? 'unknown'} styled=${meta.withStyles ?? 'unknown'}`,
   );
 

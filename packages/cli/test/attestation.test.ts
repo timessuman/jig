@@ -20,7 +20,10 @@ import { repoRoot } from './helpers/registered-commands.js';
 // without them: `mechanical=pass:0 judgment=ran` over zero files reads exactly
 // like a clean review of a real codebase. That was misread that way on Jig's
 // own docs site.
-const FIELDS = ['version', 'mode', 'mechanical', 'judgment', 'files', 'styled'];
+// `warnings` joined after a page failing every mobile detector attested
+// `mechanical=pass:0`: the record counted errors only, and those detectors are
+// warnings.
+const FIELDS = ['version', 'mode', 'mechanical', 'warnings', 'judgment', 'files', 'styled'];
 
 function fieldsOf(text: string): string[] {
   return [...text.matchAll(/(\w+)=/g)].map((m) => m[1]);
@@ -45,6 +48,20 @@ describe('the JIG_CHECK attestation line', () => {
   it('is documented in the skill template with the agreed fields, in order', () => {
     const tmpl = readFileSync(join(repoRoot, 'templates/SKILL.md.tmpl'), 'utf8');
     expect(fieldsOf(attestationIn(tmpl, /\n/))).toEqual(FIELDS);
+  });
+
+  // The contract used to be checked in two places, and the record is written
+  // out in four. The check command's own instructions and the README both kept
+  // an older shape — no counts, no files=, no styled= — for releases, because
+  // nothing compared them.
+  it('is documented in the check command with the agreed fields, in order', () => {
+    const tmpl = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
+    expect(fieldsOf(attestationIn(tmpl, /\n/))).toEqual(FIELDS);
+  });
+
+  it('is documented in the README with the agreed fields, in order', () => {
+    const readme = readFileSync(join(repoRoot, 'README.md'), 'utf8');
+    expect(fieldsOf(attestationIn(readme, /\n/))).toEqual(FIELDS);
   });
 
   it('is emitted by the CLI with the same fields, in the same order', () => {
