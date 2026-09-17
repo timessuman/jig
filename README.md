@@ -186,6 +186,16 @@ on the result — the CLI reports, the agent applies the judgment half.
 | `/jig explain contrast` | `jig explain contrast` — every rule matching a word, when you do not have an id |
 | `/jig install --agent cursor` | `jig install --agent cursor` |
 | `/jig update` | `jig update` |
+| `/jig decide` | No CLI. Interviews you and writes `DECISIONS.md` — what holds on every screen, and why |
+| `/jig spec create an invoice` | No CLI. Scopes the next feature to its smallest useful version and specifies it at every screen size |
+| `/jig mockup` | No CLI. Draws that spec in grayscale at every size, for your review before any code exists |
+| `/jig make` | No CLI. Builds the feature's first version from the confirmed spec |
+| `/jig critique` | No CLI. Renders what was built and judges it against the spec and the rules |
+
+The last five run as a loop, one feature at a time: `decide` once, then `spec` →
+`mockup` → `make` → `critique` for each feature, with what `critique` finds and
+what `spec` deferred feeding the next pass. Designing the whole product before
+building any of it is what the loop is there to prevent.
 
 Where each lands:
 

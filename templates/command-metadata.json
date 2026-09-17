@@ -30,12 +30,17 @@
     "status": "available"
   },
   "spec": {
-    "description": "Plan a screen before building it: run the layout method, record the result, and get it confirmed. Writes .jig/specs/<surface>.spec.md. No CLI \u2014 the agent does this.",
-    "argumentHint": "<surface, in your own words>",
+    "description": "Plan the next feature before building it: scope it to the smallest useful version, run the layout method at every screen size, record what was cut, and get it confirmed. Writes .jig/specs/<surface>.spec.md. No CLI \u2014 the agent does this.",
+    "argumentHint": "<feature, in your own words>",
+    "status": "agent"
+  },
+  "mockup": {
+    "description": "Draw the confirmed spec in grayscale at every screen size, for review before any code exists. Disposable: whatever the review changes goes back into the spec. Writes .jig/mockups/<surface>.html. No CLI \u2014 the agent does this.",
+    "argumentHint": "<feature, in your own words>",
     "status": "agent"
   },
   "make": {
-    "description": "Build a screen from its confirmed spec, recording any deviation back into it. Refuses to start without one. No CLI \u2014 the agent does this.",
+    "description": "Build a feature from its confirmed spec \u2014 V1 only, from the spec rather than the mockup's markup \u2014 recording any deviation back into it. Refuses to start without a confirmed spec and a reviewed or explicitly skipped mockup. No CLI \u2014 the agent does this.",
     "argumentHint": "<surface, in your own words>",
     "status": "agent"
   },
