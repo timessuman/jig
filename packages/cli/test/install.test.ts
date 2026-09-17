@@ -140,6 +140,13 @@ describe('install', () => {
     expect(existsSync(join(project, '.claude'))).toBe(false);
   });
 
+  it('adds the Stop hook for Claude at project scope only', () => {
+    expect(install(opts()).stopHook).toBe(true);
+    const settings = JSON.parse(readFileSync(join(project, '.claude', 'settings.json'), 'utf8'));
+    expect(settings.hooks.Stop[0].hooks[0].command).toMatch(/^npx --yes jig-ui@.+ gate$/);
+    expect(install({ ...opts(), agent: 'codex' }).stopHook).toBeUndefined();
+  });
+
   it('prefixes each vendored rule file with an attribution header', () => {
     install(opts());
     const body = readFileSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'), 'utf8');
@@ -475,7 +482,9 @@ describe('installing a second agent does not orphan the first', () => {
       for (const entry of readdirSync(join(project, rel), { withFileTypes: true })) {
         const next = rel ? `${rel}/${entry.name}` : entry.name;
         if (entry.isDirectory()) walk(next);
-        else if (entry.name !== 'manifest.json') onDisk.push(next);
+        // `.claude/settings.json` is the user's file; install merges a Stop
+        // hook into it and `update` re-merges it, so no manifest owns it.
+        else if (entry.name !== 'manifest.json' && next !== '.claude/settings.json') onDisk.push(next);
       }
     };
     walk('');

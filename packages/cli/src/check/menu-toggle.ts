@@ -14,17 +14,33 @@
  * toggle records its state.
  */
 const NAV_REGION_RE = /<(nav|header)\b[\s\S]*?<\/\1\s*>/gi;
-const STATE_RE = /\baria-expanded\b|<details\b/i;
+const DETAILS_RE = /<details\b/i;
+// `aria-expanded` whose value is bound to state by a framework: JSX
+// `aria-expanded={open}`, Vue/Alpine `:aria-expanded`, Angular
+// `[attr.aria-expanded]`, Svelte/Handlebars/Blade `aria-expanded="{...}"`.
+const BOUND_RE = /(?::|x-bind:|\[attr\.)aria-expanded\b|\baria-expanded\s*=\s*(?:\{|["'][^"']*[{$@])/i;
 const EXPANDED_TAG_RE = /<[a-z][\w-]*\b[^>]*\baria-expanded\b[^>]*>/gi;
 const NAMES_MENU_RE = /menu|nav/i;
-const SCRIPT_STATE_RE = /setAttribute\(\s*['"]aria-expanded['"]|\.ariaExpanded\s*=/;
+const SCRIPT_STATE_RE = /setAttribute\(\s*['"`]aria-expanded['"`]|toggleAttribute\(\s*['"`]aria-expanded|\.ariaExpanded\s*=|dataset\.expanded|\[['"]aria-expanded['"]\]\s*=/;
 
+/**
+ * Whether the navigation's open state is recorded AND changes.
+ *
+ * A static `aria-expanded="false"` is not a toggle. In arm test 3 a phone menu
+ * button carried exactly that, with no handler anywhere, and silenced this
+ * check while the menu could not be opened. So the attribute counts only when
+ * something changes it: a script that sets it, or a framework binding. A
+ * `<details>` disclosure changes itself.
+ */
 export function hasMenuToggle(raw: string): boolean {
+  const scripted = SCRIPT_STATE_RE.test(raw);
   for (const region of raw.match(NAV_REGION_RE) ?? []) {
-    if (STATE_RE.test(region)) return true;
+    if (DETAILS_RE.test(region)) return true;
+    if (/\baria-expanded\b/i.test(region) && (scripted || BOUND_RE.test(region))) return true;
   }
   for (const tag of raw.match(EXPANDED_TAG_RE) ?? []) {
-    if (NAMES_MENU_RE.test(tag.replace(/\baria-expanded\b/i, ''))) return true;
+    if (!NAMES_MENU_RE.test(tag.replace(/\baria-expanded\b/i, ''))) continue;
+    if (scripted || BOUND_RE.test(tag)) return true;
   }
-  return SCRIPT_STATE_RE.test(raw);
+  return scripted;
 }

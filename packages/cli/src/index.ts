@@ -9,6 +9,7 @@ import { explain } from './commands/explain.js';
 import { check } from './commands/check.js';
 import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
+import { gate } from './commands/gate.js';
 import { adapterNames } from './adapters/registry.js';
 
 const packageRoot = getPackageRoot();
@@ -59,6 +60,8 @@ program
       warnIfUnpublishedPin();
       for (const f of result.written) console.log(`  + ${f}`);
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
+      if (result.stopHook === true) console.log('  + .claude/settings.json (Stop hook: jig gate blocks finishing while check or a critique fails)');
+      if (result.stopHook === false) console.log('  ! .claude/settings.json is not valid JSON — the Stop hook was not added. Fix the file and run install again.');
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);
@@ -162,6 +165,26 @@ program
       console.error((err as Error).message);
       process.exit(1);
     }
+  });
+
+program
+  .command('gate')
+  .description('Run by the Claude Code Stop hook: block stopping while check or a critique fails.')
+  .action(() => {
+    let input = {};
+    try {
+      if (!process.stdin.isTTY) input = JSON.parse(readFileSync(0, 'utf8') || '{}');
+    } catch { /* run by hand, or no hook payload */ }
+    const cwd = (input as { cwd?: string }).cwd ?? process.cwd();
+    try {
+      const result = gate({ projectRoot: findProjectRoot(cwd), version, input });
+      if (result.block) console.log(JSON.stringify({ decision: 'block', reason: result.reason }));
+      else if (result.reason) console.error(result.reason);
+    } catch (err) {
+      // A gate that crashes must not block the agent; it says why and lets go.
+      console.error(`jig gate: ${(err as Error).message}`);
+    }
+    process.exit(0);
   });
 
 program

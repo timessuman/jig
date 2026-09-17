@@ -97,7 +97,9 @@ function checkArm(
 
     const pass = otherPass.get(id);
     if (!required.includes(id) && !extraAllowed.has(id)) {
-      errors.push(pass
+      errors.push(pass === 'mechanical'
+        ? `${name}.json: ${id} is a mechanical rule — \`jig check\` decides it, so it has no verdict here. Remove it.`
+        : pass
         ? `${name}.json: ${id} is a pass: ${pass} rule — it belongs to the other arm.`
         : `${name}.json: ${written} is not a rule or spec in this corpus. Run \`jig explain ${written}\`; an id that does not resolve is not a verdict.`);
       continue;
@@ -127,7 +129,12 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   const judgment = index.filter((r) => r.bucket === 'judgment');
   const screenIds = judgment.filter((r) => r.pass === 'screen').map((r) => r.id);
   const codeIds = judgment.filter((r) => r.pass === 'code').map((r) => r.id);
-  const passOf = new Map(judgment.map((r) => [r.id, r.pass ?? '']));
+  // Mechanical ids are real rules; a verdict naming one is misfiled, not
+  // invented, and saying "not a rule" sent an agent to look for a typo.
+  const passOf = new Map([
+    ...index.filter((r) => r.bucket === 'mechanical').map((r) => [r.id, 'mechanical'] as [string, string]),
+    ...judgment.map((r) => [r.id, r.pass ?? ''] as [string, string]),
+  ]);
   const specIds = new Set(citableIds(root).filter((id) => /^[PMLRT]-\d+$/.test(id)));
 
   const dir = join(opts.projectRoot, '.jig', 'critique', opts.surface);

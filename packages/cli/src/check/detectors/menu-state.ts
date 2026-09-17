@@ -1,4 +1,4 @@
-import { leafBlocks, lineOfOffset, sourceLine } from '../css.js';
+import { buildLineIndex, leafBlocks, lineForOffset, lineOfOffset, sourceLine } from '../css.js';
 import { isStyleBearing } from '../ext.js';
 import { mkFinding } from '../finding.js';
 import type { Detector, Finding } from '../types.js';
@@ -38,12 +38,40 @@ function navSelectors(selectorList: string): string[] {
     .filter((s) => s.split(/\s+|>|\+|~/).some((c) => NAV_SELECTOR_RE.test(c)));
 }
 
+// A button named as the menu control, in markup. Arm test 3 shipped
+// `<button aria-label="menu" aria-expanded="false">menu</button>` with no nav
+// links and no handler: nothing was hidden, so the stylesheet case above never
+// saw it.
+const MENU_BUTTON_RE = /<button\b([^>]*)>([\s\S]{0,200}?)<\/button>/gi;
+const MENU_NAME_RE = /^\s*(?:open |toggle |show )?(?:the )?(?:site |main )?(?:menu|navigation|nav)\s*$/i;
+
+function deadMenuButtons(raw: string): number[] {
+  const offsets: number[] = [];
+  for (const m of raw.matchAll(MENU_BUTTON_RE)) {
+    const label = /\baria-label\s*=\s*["']([^"']*)["']/i.exec(m[1]!)?.[1];
+    const text = m[2]!.replace(/<[^>]*>/g, '').trim();
+    if (MENU_NAME_RE.test(label ?? '') || MENU_NAME_RE.test(text)) offsets.push(m.index!);
+  }
+  return offsets;
+}
+
 export const menuState: Detector = {
   name: 'menu-state',
   appliesTo: (file) => isStyleBearing(file),
   run(source, file, ctx) {
     if (ctx.projectMenuToggle !== false) return [];
     const findings: Finding[] = [];
+    if (/\.(html?|vue|svelte|astro|jsx|tsx|php|erb|twig|hbs)$/i.test(file)) {
+      const starts = buildLineIndex(ctx.raw);
+      for (const offset of deadMenuButtons(ctx.raw)) {
+        const line = lineForOffset(starts, offset);
+        findings.push(
+          mkFinding(ctx, 'menu-state', file, line,
+            'a Menu button that nothing opens — no script or binding ever changes aria-expanded, and no <details>',
+            sourceLine(ctx.raw, line)),
+        );
+      }
+    }
     for (const block of leafBlocks(source)) {
       const hidden = HIDDEN_RE.exec(block.body);
       if (!hidden) continue;
