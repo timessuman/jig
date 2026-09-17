@@ -499,13 +499,41 @@ look. So the drawing contains:
   h1 { font-size: 28px; margin: 0 0 12px; }
   h2 { font-size: 22px; margin: 0 0 8px; }
   h3 { font-size: 18px; margin: 0 0 8px; }
+  .dims { font-variant-numeric: tabular-nums; color: #555; }
 </style>
+<script>
+  // Jig wireframe. Labels every region with its measured size, e.g.
+  // "navigation · 326 × 48". Measured from the drawing, never typed by hand.
+  function jigDims() {
+    document.querySelectorAll('.region > .name').forEach((label) => {
+      const box = label.parentElement.getBoundingClientRect();
+      let dims = label.querySelector('.dims');
+      if (!dims) { dims = document.createElement('span'); dims.className = 'dims'; label.append(dims); }
+      dims.textContent = ` · ${Math.round(box.width)} × ${Math.round(box.height)}`;
+    });
+  }
+  addEventListener('load', jigDims);
+  addEventListener('resize', jigDims);
+</script>
 ```
 
 Each frame is a `<section class="frame" data-size="phone">`, preceded by a
-`<p class="size">` naming the size and its width. Regions carry the names the spec
-uses, in a `.name` label, so the drawing and the spec can be read against each
-other.
+`<p class="size">` naming the size and its width. **Every region is labelled** —
+navigation, header, each group, the primary action — with the name the spec uses,
+in a `.name` label, so the drawing and the spec can be read against each other.
+
+**Every label carries the region's dimensions in px**, width × height at that frame's
+width: `navigation · 326 × 48`. In HTML the script above writes them; do not type
+them yourself, because a number that was not measured is a guess the reviewer will
+trust. In Figma, put the frame's own width and height in the layer's label. In
+Stitch, ask for the labels in the prompt, and where the screen does not show them,
+say so in review rather than supplying numbers.
+
+**The dimensions describe the drawing; they are not the build's values.** A
+navigation 326px wide at 360 is the phone width minus the frame's padding and border, not a width to
+hard-code — `make` still sizes with tokens and fluid widths (`D-111`). What they are
+for is review: is the header taking a sixth of the phone? Is a tap target under
+`--size-touch-target`? Is the hero pushing the plans below the first screen?
 
 ### 3. Put it in front of the user
 

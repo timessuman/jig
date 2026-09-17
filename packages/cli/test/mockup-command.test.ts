@@ -84,6 +84,17 @@ describe('mockup', () => {
     expect(style).not.toMatch(/\b(rgb|hsl|oklch)a?\(|var\(--/);
   });
 
+  // Owner: every section labelled with clear dimensions. Measured by the page,
+  // because a hand-typed number reads exactly like a measured one.
+  it('labels every region with measured dimensions, not typed ones', () => {
+    const m = mockup();
+    expect(wireframe()).toMatch(/getBoundingClientRect/);
+    expect(wireframe()).toMatch(/\.region > \.name/);
+    expect(m).toMatch(/Every label carries the region's dimensions in px/);
+    expect(m).toMatch(/do not type\s+them yourself/);
+    expect(m).toMatch(/The dimensions describe the drawing; they are not the build's values/);
+  });
+
   it('draws every size, phone first', () => {
     const style = wireframe();
     const phone = style.indexOf('data-size="phone"');
