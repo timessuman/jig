@@ -18,13 +18,26 @@ describe('the command loop runs one feature at a time', () => {
   it('says outright that the whole product is not designed up front', () => {
     expect(tmpl().split('\n## ')[0]).toMatch(/never the whole product at once/);
   });
+
+  it('states each role simply: decide once, then low fidelity, high fidelity, and scrutiny', () => {
+    const head = tmpl().split('\n## ')[0];
+    expect(head).toMatch(/`decide` runs once per project/);
+    expect(head).toMatch(/for each page, feature or\s+functionality/);
+    expect(head).toMatch(/mockup\s+low-fidelity design/);
+    expect(head).toMatch(/make\s+high-fidelity/);
+    expect(head).toMatch(/critique\s+scrutinises what was built against the rules/);
+  });
 });
 
-describe('spec starts from a feature and scopes it down', () => {
+describe('spec starts from what is being built and scopes it down', () => {
   const spec = () => section('spec', 'mockup');
-  it('asks for a task, not a screen', () => {
-    expect(spec()).toMatch(/Start with a feature, not a layout/);
-    expect(spec()).toMatch(/State it as a task/);
+  it('accepts a page, feature or functionality, and starts from what it is for', () => {
+    expect(spec()).toMatch(/a page, a feature, or a piece of\s+functionality/);
+    expect(spec()).toMatch(/Start with what it is for, not how it is laid out/);
+  });
+
+  it('refuses to start without DECISIONS.md', () => {
+    expect(spec()).toMatch(/No `DECISIONS\.md` with substance → run `\/jig decide` first|No `DECISIONS\.md` with substance → run `\{\{command_prefix\}\}decide` first/);
   });
   it('cuts to the smallest useful version and records what was cut', () => {
     expect(spec()).toMatch(/smallest version that is useful on its own/);
@@ -47,7 +60,7 @@ describe('mockup', () => {
   const wireframe = () => mockup().split('```html')[1].split('```')[0];
 
   it('draws one specified feature, and refuses the whole app', () => {
-    expect(mockup()).toMatch(/draws \*\*one feature\*\*/);
+    expect(mockup()).toMatch(/draws \*\*what one spec defines\*\*/);
     expect(mockup()).toMatch(/mock up the app/);
   });
 
@@ -149,7 +162,7 @@ describe('the loop is documented where people and agents look', () => {
   });
   it('the skill routes a new feature through spec, mockup, make and critique', () => {
     const skill = readFileSync(join(repoRoot, 'templates/SKILL.md.tmpl'), 'utf8');
-    expect(skill).toMatch(/Building a new feature\?/);
+    expect(skill).toMatch(/Building a page, feature or functionality\?/);
     expect(skill).toMatch(/mockup/);
   });
 });
@@ -167,5 +180,19 @@ describe('the installed slash command offers the agent procedures', () => {
       expect(subcommands, `${c} not offered`).toContain(c);
       expect(listed, `${c} missing from "Available subcommands"`).toContain(c);
     }
+  });
+});
+
+// decide said "every other command is blocked until this exists". That was
+// broader than true — install, init, check, explain and critique do not need it,
+// and init has to run first — and an agent taking it literally would refuse to
+// run check on a project with no decisions yet.
+describe('decide names exactly what it blocks', () => {
+  it('blocks designing and building only, and says what it does not block', () => {
+    const decide = tmpl().split('\n## decide\n')[1];
+    expect(decide).not.toMatch(/Every other command is blocked/);
+    expect(decide).toMatch(/Designing and building are blocked until this exists/);
+    expect(decide).toMatch(/`install`, `init`, `check`, `explain` and `critique` all run without it/);
+    expect(decide).toMatch(/`init`\s+comes first/);
   });
 });

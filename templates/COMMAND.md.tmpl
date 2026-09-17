@@ -16,19 +16,17 @@ findings are ordered by severity, not position, so `head`, `tail`, `grep` and
 the section below **is** the command. A CLI can check what these produce; it
 cannot do their work, because the work is judgment and authorship.
 
-They run as a loop, one feature at a time — never the whole product at once:
+`decide` runs once per project. The other four run for each page, feature or
+functionality, one at a time — never the whole product at once:
 
 ```text
-decide    what holds on every screen, and why         durable
-spec      the next feature, its smallest useful version, at every size   durable
-mockup    a grayscale drawing of that spec, for review before code        disposable
-make      the feature, built from the spec             durable
-critique  what the built feature got wrong             feeds the next spec
-```
+decide     project-wide decisions, and the reason for each      once per project
 
-Designing the whole product before building any of it is the failure the loop
-exists to prevent. Each pass is small enough that what building reveals can
-still change the next one.
+spec       what exactly is being built: its smallest useful version, at every screen size
+mockup     low-fidelity design of that spec, reviewed before any code
+make       high-fidelity: the actual page or feature, built from the spec
+critique   scrutinises what was built against the rules and its spec
+```
 
 ## init
 
@@ -182,14 +180,14 @@ rule you deliberately break with the reason, in one line.
 
 ## spec
 
-Plan the next feature before building it. This command writes no markup and no
+Say exactly what is being built — a page, a feature, or a piece of
+functionality — before any of it is designed. This command writes no markup and no
 CSS.
 
-**Start with a feature, not a layout.** "The user needs to create an invoice" is a
-spec. "The dashboard" is not — it is a container for features nobody has specified
-yet, and designing it first means deciding a sidebar, a container width and a
-navigation structure before there is anything to put in them. Those shell decisions
-get easy once real features exist, and are guesses until then.
+**Start with what it is for, not how it is laid out.** "A page where the user
+creates an invoice" is a spec. "A dashboard with a sidebar" is a layout with
+nothing in it yet: a sidebar, a container width and a navigation structure are
+guesses until there is something real to put in them.
 
 ### Refuse rather than guess
 
@@ -197,9 +195,11 @@ Stop and say which of these is missing, rather than proceeding:
 
 - `{{config_file}}` does not exist → run `init` first. Without it there is no
   mode and no token layer, so there is nothing for a spec to be specific to.
-- The user named no feature → ask what the user of the product needs to be able to
-  do. `{{command_prefix}}spec` with no argument is not a request to invent one, and
-  "the home page" is a surface, not a feature — ask what it is for.
+- No `DECISIONS.md` with substance → run `{{command_prefix}}decide` first. A spec
+  implements the project's decisions, and cannot check itself against ones that
+  do not exist.
+- The user named nothing → ask which page, feature or functionality.
+  `{{command_prefix}}spec` with no argument is not a request to invent one.
 
 Read `DECISIONS.md` before asking anything. Do not re-ask what it already records;
 cite it instead.
@@ -217,10 +217,10 @@ settled at `init` and live in `{{config_file}}` and the token layer; re-deciding
 them per screen creates a second source of truth for the values Jig exists to
 centralise. If the user raises appearance, record it and move on.
 
-- Round 1 — what does the user need to do? State it as a task ("create an
-  invoice"), not a screen. Who arrives to do it, and what is the single most
-  important thing they must be able to see or do?
-- **Then scope it — be a pessimist.** Of everything this feature could include,
+- Round 1 — what is it for? What does the user need to do there ("create an
+  invoice")? Who arrives, and what is the single most important thing they must be
+  able to see or do?
+- **Then scope it — be a pessimist.** Of everything this could include,
   what is the smallest version that is useful on its own? Ask that plainly and
   expect to cut. "Comments with attachments, mentions, reactions, editing,
   threading and notifications" is a wishlist; "text and a submit button" might be
@@ -348,20 +348,19 @@ they confirm.
 
 ## mockup
 
-Draw the confirmed spec in grayscale, at every size it names, and get it looked at
-**before** any code is written. The drawing is disposable. The spec is the durable
+**Low-fidelity design.** Draw the confirmed spec in grayscale, at every size it
+names, and get it looked at **before** any code is written. The drawing is disposable. The spec is the durable
 record, and everything the review changes goes back into it.
 
-This is not a wireframe of the product. It draws **one feature** — the V1 the spec
-defines — and nothing the spec deferred to `later:`.
+It draws **what one spec defines** — its V1 — and nothing deferred to `later:`.
+Never the whole product.
 
 ### Refuse rather than guess
 
 - No `.jig/specs/<surface>.spec.md` → run `{{command_prefix}}spec` first.
 - `confirmed: false` → nobody has agreed to what you would be drawing. Ask, and stop.
-- The request is "mock up the app", "the whole site", or a surface with no feature
-  → say that a mockup draws one specified feature, and offer to run `spec` for the
-  next one.
+- The request is "mock up the app" or "the whole site" → say that a mockup draws
+  one specified page, feature or functionality, and offer to run `spec` for it.
 
 ### 1. Ask the user how they want it drawn
 
@@ -493,7 +492,8 @@ Then stop. The next step is `{{command_prefix}}make`.
 
 ## make
 
-Build the screen from its confirmed spec.
+**High-fidelity.** Build the actual page or feature from its confirmed spec — the
+real tokens, components and copy, working.
 
 ### Refuse rather than guess
 
@@ -552,7 +552,7 @@ phone has satisfied a third of its spec.
 
 ## critique
 
-Review a built screen. This is **not** a second `check`, and the difference is
+Scrutinise what was built against the rules and its spec. This is **not** a second `check`, and the difference is
 not effort — it is evidence.
 
 `check` reads files. `critique` looks at the page **and** reads the source
@@ -773,8 +773,10 @@ did not see the page.
 Write `DECISIONS.md` beside the token layer — `jig/DECISIONS.md` by default, or
 wherever `brand` in `{{config_file}}` puts the token files.
 
-Every other command is blocked until this exists, so it is worth being exact
-about what it is for.
+Designing and building are blocked until this exists: `spec` refuses to start
+without it, and `mockup` and `make` need a confirmed spec. Nothing else is blocked —
+`install`, `init`, `check`, `explain` and `critique` all run without it. `init`
+comes first, because this file sits beside the token files `init` writes.
 
 ### What belongs in it, and what does not
 

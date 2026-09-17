@@ -186,16 +186,14 @@ on the result — the CLI reports, the agent applies the judgment half.
 | `/jig explain contrast` | `jig explain contrast` — every rule matching a word, when you do not have an id |
 | `/jig install --agent cursor` | `jig install --agent cursor` |
 | `/jig update` | `jig update` |
-| `/jig decide` | No CLI. Interviews you and writes `DECISIONS.md` — what holds on every screen, and why |
-| `/jig spec create an invoice` | No CLI. Scopes the next feature to its smallest useful version and specifies it at every screen size |
-| `/jig mockup` | No CLI. Draws that spec in grayscale at every size, for your review before any code exists — asks whether you want HTML, Figma or Google Stitch, and tells you to connect that tool's MCP server if you have not |
-| `/jig make` | No CLI. Builds the feature's first version from the confirmed spec |
-| `/jig critique` | No CLI. Renders what was built and judges it against the spec and the rules |
+| `/jig decide` | No CLI. Once per project: interviews you and writes the project-wide decisions, with a reason for each |
+| `/jig spec invoice page` | No CLI. What exactly is being built — a page, feature or functionality — at its smallest useful version, at every screen size |
+| `/jig mockup` | No CLI. Low-fidelity design of that spec, reviewed before code — in HTML, Figma or Google Stitch, whichever you choose |
+| `/jig make` | No CLI. High-fidelity: builds the actual page or feature from the spec |
+| `/jig critique` | No CLI. Scrutinises what was built against the rules and its spec |
 
-The last five run as a loop, one feature at a time: `decide` once, then `spec` →
-`mockup` → `make` → `critique` for each feature, with what `critique` finds and
-what `spec` deferred feeding the next pass. Designing the whole product before
-building any of it is what the loop is there to prevent.
+`decide` runs once. The other four run for each page, feature or functionality, one
+at a time — never the whole product at once.
 
 Where each lands:
 

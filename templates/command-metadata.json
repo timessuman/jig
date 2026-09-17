@@ -15,7 +15,7 @@
     "status": "available"
   },
   "decide": {
-    "description": "Write the project's design decisions to DECISIONS.md beside the token layer \u2014 the choices that needed a reason, which the tokens hold the values for but cannot explain. Required before any UI work. No CLI \u2014 the agent does this.",
+    "description": "Write the project-wide design decisions to DECISIONS.md beside the token layer \u2014 the choices that need a reason, which the tokens hold the values for but cannot explain. Runs once per project, by interviewing you. spec, mockup and make need it; nothing else does. No CLI \u2014 the agent does this.",
     "argumentHint": "",
     "status": "agent"
   },
@@ -30,23 +30,23 @@
     "status": "available"
   },
   "spec": {
-    "description": "Plan the next feature before building it: scope it to the smallest useful version, run the layout method at every screen size, record what was cut, and get it confirmed. Writes .jig/specs/<surface>.spec.md. No CLI \u2014 the agent does this.",
-    "argumentHint": "<feature, in your own words>",
+    "description": "Say exactly what is being built \u2014 a page, feature or functionality \u2014 scoped to its smallest useful version and specified at every screen size, then confirmed. Writes .jig/specs/<surface>.spec.md. No CLI \u2014 the agent does this.",
+    "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   },
   "mockup": {
-    "description": "Draw the confirmed spec in grayscale at every screen size, for review before any code exists. Asks how to draw it \u2014 HTML at .jig/mockups/<surface>.html, Figma, or Google Stitch \u2014 and tells the user to connect that tool's MCP server if it is not connected. Disposable: whatever the review changes goes back into the spec. No CLI \u2014 the agent does this.",
-    "argumentHint": "<feature, in your own words>",
+    "description": "Low-fidelity design: a grayscale drawing of the confirmed spec at every screen size, reviewed before any code. Asks whether to draw it in HTML, Figma or Google Stitch, and tells you to connect that tool's MCP server if needed. No CLI \u2014 the agent does this.",
+    "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   },
   "make": {
-    "description": "Build a feature from its confirmed spec \u2014 V1 only, from the spec rather than the drawing or code generated from it \u2014 recording any deviation back into it. Refuses to start without a confirmed spec and a reviewed or explicitly skipped mockup. No CLI \u2014 the agent does this.",
-    "argumentHint": "<surface, in your own words>",
+    "description": "High-fidelity: build the actual page or feature from its confirmed spec \u2014 never from the mockup \u2014 recording any deviation back into the spec. No CLI \u2014 the agent does this.",
+    "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   },
   "critique": {
-    "description": "Review a built screen the way check cannot: render it, compare it to its spec, and judge the rules that only the composed page can answer. No CLI \u2014 the agent does this.",
-    "argumentHint": "<surface, in your own words>",
+    "description": "Scrutinise what was built against the rules and its spec: render it, judge what check cannot, and report by rule id. No CLI \u2014 the agent does this.",
+    "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   }
 }
