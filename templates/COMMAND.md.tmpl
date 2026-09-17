@@ -468,6 +468,13 @@ look. So the drawing contains:
   detail: a phone composition that is only the desktop one narrower is the failure
   specs are written per size to prevent. A `same-as:` size is drawn anyway, so the
   claim can be seen to hold.
+- **Navigation at every size, exactly as the spec's `nav:` says for that size.** On
+  the phone that usually means the Menu button, drawn where `DECISIONS.md` puts it —
+  and, because an open menu changes the structure, a second phone frame labelled
+  `phone — menu open` showing the links as a vertical list and the button reading as
+  close (`P-14`). A phone frame with no way to the other pages is not a simpler
+  drawing; it is a missing region. A live run approved exactly that in Figma, and the
+  build copied the gap.
 - **The primary state, plus any state that changes the structure.** An empty state
   that replaces a table, or an error that moves a form, is drawn. The rest stay
   listed in the spec. Do not draw what building will reveal: 2,000 contacts, a
@@ -492,15 +499,49 @@ look. So the drawing contains:
   h1 { font-size: 28px; margin: 0 0 12px; }
   h2 { font-size: 22px; margin: 0 0 8px; }
   h3 { font-size: 18px; margin: 0 0 8px; }
+  .dims { font-variant-numeric: tabular-nums; color: #555; }
 </style>
+<script>
+  // Jig wireframe. Labels every region with its measured size, e.g.
+  // "navigation · 326 × 48". Measured from the drawing, never typed by hand.
+  function jigDims() {
+    document.querySelectorAll('.region > .name').forEach((label) => {
+      const box = label.parentElement.getBoundingClientRect();
+      let dims = label.querySelector('.dims');
+      if (!dims) { dims = document.createElement('span'); dims.className = 'dims'; label.append(dims); }
+      dims.textContent = ` · ${Math.round(box.width)} × ${Math.round(box.height)}`;
+    });
+  }
+  addEventListener('load', jigDims);
+  addEventListener('resize', jigDims);
+</script>
 ```
 
 Each frame is a `<section class="frame" data-size="phone">`, preceded by a
-`<p class="size">` naming the size and its width. Regions carry the names the spec
-uses, in a `.name` label, so the drawing and the spec can be read against each
-other.
+`<p class="size">` naming the size and its width. **Every region is labelled** —
+navigation, header, each group, the primary action — with the name the spec uses,
+in a `.name` label, so the drawing and the spec can be read against each other.
+
+**Every label carries the region's dimensions in px**, width × height at that frame's
+width: `navigation · 326 × 48`. In HTML the script above writes them; do not type
+them yourself, because a number that was not measured is a guess the reviewer will
+trust. In Figma, put the frame's own width and height in the layer's label. In
+Stitch, ask for the labels in the prompt, and where the screen does not show them,
+say so in review rather than supplying numbers.
+
+**The dimensions describe the drawing; they are not the build's values.** A
+navigation 326px wide at 360 is the phone width minus the frame's padding and border, not a width to
+hard-code — `make` still sizes with tokens and fluid widths (`D-111`). What they are
+for is review: is the header taking a sixth of the phone? Is a tap target under
+`--size-touch-target`? Is the hero pushing the plans below the first screen?
 
 ### 3. Put it in front of the user
+
+**Check the drawing against the spec before anyone sees it.** For each size, go
+down the spec's `regions:` and its `nav:` and find each one in that frame. A region
+the spec names and the frame lacks is drawn now, not raised in review. This matters
+most on the phone, where a region dropped for space is easy to miss and the reviewer
+is looking at what is there, not at what is not.
 
 Tell the user where the drawing is — the file path, or the Figma or Stitch link —
 and how to open it. If the harness can render —

@@ -84,6 +84,17 @@ describe('mockup', () => {
     expect(style).not.toMatch(/\b(rgb|hsl|oklch)a?\(|var\(--/);
   });
 
+  // Owner: every section labelled with clear dimensions. Measured by the page,
+  // because a hand-typed number reads exactly like a measured one.
+  it('labels every region with measured dimensions, not typed ones', () => {
+    const m = mockup();
+    expect(wireframe()).toMatch(/getBoundingClientRect/);
+    expect(wireframe()).toMatch(/\.region > \.name/);
+    expect(m).toMatch(/Every label carries the region's dimensions in px/);
+    expect(m).toMatch(/do not type\s+them yourself/);
+    expect(m).toMatch(/The dimensions describe the drawing; they are not the build's values/);
+  });
+
   it('draws every size, phone first', () => {
     const style = wireframe();
     const phone = style.indexOf('data-size="phone"');
@@ -126,6 +137,19 @@ describe('mockup', () => {
   it('generates a Stitch screen for every size, not only the phone', () => {
     expect(mockup()).toMatch(/`MOBILE` for 360, `TABLET`\s+for 768, `DESKTOP` for 1280/);
     expect(mockup()).toMatch(/confirm there is a screen for \*\*each\*\* size/);
+  });
+
+  // A Figma phone frame with no menu button was approved, and the build copied it.
+  it('draws navigation at every size, including the phone menu open', () => {
+    const m = mockup();
+    expect(m).toMatch(/Navigation at every size, exactly as the spec's `nav:` says/);
+    expect(m).toMatch(/`phone — menu open`/);
+    expect(m).toMatch(/it is a missing region/);
+  });
+
+  it('checks every region and nav in each frame against the spec before review', () => {
+    expect(mockup()).toMatch(/Check the drawing against the spec before anyone sees it/);
+    expect(mockup()).toMatch(/go\s+down the spec's `regions:` and its `nav:`/);
   });
 
   it('can review an existing design, for structure only', () => {
