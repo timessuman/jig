@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { loadRules, type LoadedRule } from '../rules/load.js';
 import { loadSpecs, type Spec } from '../rules/specs.js';
+import { loadSections, type Section } from '../rules/sections.js';
 import { loadLayers, layerOf } from '../rules/layers.js';
 
 export interface ExplainOptions {
@@ -111,9 +112,12 @@ function renderSpec(spec: Spec): string {
  * fork of it.
  */
 export interface SearchEntry {
+  /** A rule or spec id, or a section's anchor (`01-modes.md#the-two-switches`). */
   id: string;
   title: string;
   text: string;
+  /** Set for prose that belongs to no id. */
+  section?: Section;
 }
 
 /**
@@ -126,7 +130,7 @@ export interface SearchEntry {
  * were already searched whole. Exported so a test can hold the whole corpus to
  * it, line by line, rather than trusting a sample of searches.
  */
-export function searchEntries(rules: LoadedRule[], specs: Spec[]): SearchEntry[] {
+export function searchEntries(rules: LoadedRule[], specs: Spec[], sections: Section[] = []): SearchEntry[] {
   return [
     ...rules.map((r) => ({
       id: r.id,
@@ -134,7 +138,12 @@ export function searchEntries(rules: LoadedRule[], specs: Spec[]): SearchEntry[]
       text: [...r.preamble, r.wrong, r.correction, ...r.notes].join('\n'),
     })),
     ...specs.map((s) => ({ id: s.id, title: s.title, text: s.body })),
+    ...sections.map((s) => ({ id: s.anchor, title: s.heading, text: s.body, section: s })),
   ];
+}
+
+function renderSection(s: Section): string {
+  return [s.heading, '', s.body, '', `   ${s.anchor}`].join('\n');
 }
 
 export function explain(opts: ExplainOptions): string {
@@ -144,7 +153,8 @@ export function explain(opts: ExplainOptions): string {
 
   const rules = loadRules(rulesDir, join(root, 'rules.index.json'));
   const specs = loadSpecs(rulesDir);
-  const entries = searchEntries(rules, specs);
+  const sections = loadSections(rulesDir);
+  const entries = searchEntries(rules, specs, sections);
 
   // ---- The six layers ----
   //
@@ -245,10 +255,26 @@ export function explain(opts: ExplainOptions): string {
   }
 
   const needle = opts.ruleId.trim();
-  const inTitle = entries.filter((e) => matches(e.title, needle) || matches(e.id, needle));
-  const inBody = entries.filter((e) => !inTitle.includes(e) && matches(e.text, needle));
-  const hits = [...inTitle.sort((a, b) => byNumber(a.id, b.id)),
-                ...inBody.sort((a, b) => byNumber(a.id, b.id))];
+
+  // A section has no id, so its anchor is how it is asked for by name — the
+  // form the search results print.
+  const byAnchor = sections.find((sec) => sec.anchor === needle.toLowerCase());
+  if (byAnchor) return renderSection(byAnchor);
+
+  // Ids first, sections after. An id is the unit the system reasons in, so a
+  // search for `layout` must still lead with the layout method; the prose around
+  // the ids is there to be found, not to outrank them. A section is matched on
+  // its heading and body, never its anchor — every section in 01-modes.md would
+  // otherwise match `modes`.
+  const ids = entries.filter((e) => !e.section);
+  const secs = entries.filter((e) => e.section);
+  const idTitle = ids.filter((e) => matches(e.title, needle) || matches(e.id, needle));
+  const idBody = ids.filter((e) => !idTitle.includes(e) && matches(e.text, needle));
+  const secTitle = secs.filter((e) => matches(e.title, needle));
+  const secBody = secs.filter((e) => !secTitle.includes(e) && matches(e.text, needle));
+  const hits = [...idTitle.sort((a, b) => byNumber(a.id, b.id)),
+                ...idBody.sort((a, b) => byNumber(a.id, b.id)),
+                ...secTitle, ...secBody];
 
   if (hits.length === 0) {
     throw new Error(
@@ -259,6 +285,7 @@ export function explain(opts: ExplainOptions): string {
   // Exactly one hit is not ambiguous, so answer the question rather than
   // making the reader run a second command to get the same rule.
   if (hits.length === 1) {
+    if (hits[0].section) return renderSection(hits[0].section);
     const rule = rules.find((r) => r.id === hits[0].id);
     return rule ? renderRule(rule) : renderSpec(specs.find((s) => s.id === hits[0].id)!);
   }
@@ -270,7 +297,7 @@ export function explain(opts: ExplainOptions): string {
     // otherwise C-19 sitting above A-02 reads as a sorting bug.
     `${hits.length} entries match '${needle}' — title matches first:`,
     '',
-    ...hits.map((e) => `${e.id.padEnd(6)} ${e.title}`),
+    ...hits.map((e) => (e.section ? `${e.id}  ${e.title}` : `${e.id.padEnd(6)} ${e.title}`)),
     '',
     `Run 'jig explain <id>' for any of them.`,
   ].join('\n');

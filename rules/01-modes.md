@@ -14,7 +14,7 @@ This system has two orthogonal axes. Keep them separate.
 | Values | `editorial` · `product` · `operator` | Per-client identity |
 | Varies | Between surfaces *within* one project | Between projects, constant within one |
 | Controls | Density, rhythm, type scale, motion budget, colour *usage* | Palette, typeface, radius personality, elevation personality |
-| Defined in | This file | `03-brand.md` (per project) |
+| Defined in | This file | The brand file `jig init` writes — the path `brand` names in `jig.config.json` (per project) |
 
 A token is resolved as **brand × mode**. Brand says the accent is `oklch(0.55 0.13 25)`; mode says whether it appears on large surfaces or only on the primary action.
 
@@ -190,18 +190,18 @@ Attempting to vary these by mode is a category error:
 - **Accessibility floors.** Contrast, focus indication, target size, semantic markup. Identical in all three. `operator` being dense does not license a 24px tap target or a 3:1 body contrast.
 - **Brand identity.** Palette, typeface, logo, voice.
 - **State completeness.** Every mode renders loading, empty, error and disabled.
-- **The anti-pattern file.** All 87 rules in it apply everywhere.
+- **The anti-pattern file.** All 94 rules in it apply everywhere.
 
 ---
 
-## `03-brand.md` — stub
+## The brand file
 
-Per project, one file supplying:
+Per project, one token file — the path `brand` names in `jig.config.json`, written by `jig init` — supplying:
 
 - **Palette** — neutral ramp (12 steps, warm/cool/true declared), one accent ramp, semantic set (danger, warning, success, info) tuned to the accent's temperature.
 - **Typeface** — display and text families, and whether they differ. Numeric font-feature settings.
 - **Radius personality** — the brand-scale radius options (`sm`, `md`, `lg`, `full`) that each mode selects from, not a fixed derivation. This carries more brand character than colour does.
 - **Elevation personality** — border-led or shadow-led. Pick one; do not mix within a project.
-- **Voice** — sentence case or title case, contraction policy, error-message tone.
+- **Voice is not in it.** Sentence case, contraction policy and error-message tone are not tokens; they belong in `DECISIONS.md`, and the defaults are in `05-copy.md`.
 
 Default when no brand is supplied: warm neutral ramp anchored on `--color-bg-base` (`oklch(0.980 0.004 95)`, a warm off-white), no accent, 8px base radius (`--radius-sm`), border-led elevation. Greyscale output plus a stated question beats an invented purple (`A-01`).
