@@ -580,6 +580,10 @@ Then stop. The next step is `{{command_prefix}}make`.
 **High-fidelity.** Build the actual page or feature from its confirmed spec and its
 approved mockup — the real tokens, components and copy, working.
 
+**After a critique,** `make` is how its findings get fixed: read the report, fix
+each finding, run the finish again, and then `critique` runs again. See step 5 of
+`critique`.
+
 ### Refuse rather than guess
 
 - No `.jig/specs/<surface>.spec.md` → say so and run `{{command_prefix}}spec`
@@ -869,7 +873,10 @@ source and imagining the page is not a render.
   composition. The same layout with smaller numbers is not.
 - Check the page is styled at all. A stylesheet that 404s renders a page that
   passes every file-based check ever written.
-- Run the squint test from `L-01` against the render, not the analogue. The
+- Run the squint test from `L-01` against the render, not the analogue: render
+  each size once more with `filter: grayscale(1)` on the root, and check that the
+  primary action, the headings and the groups still read in order without colour.
+  Keep the grayscale screenshots with the others; they are artefacts too. The
   analogue exists for when there is no browser.
 
 If no browser is available, say so in one line and use `L-01`'s analogue. Never
@@ -938,6 +945,24 @@ of this command emitted `rendered=yes` on a machine with no browser installed an
 no image written anywhere — turning an honest limitation into a false assurance,
 on the one field a reader leans on hardest. If you did not see the page, say you
 did not see the page.
+
+### 5. Then the cycle goes round again
+
+A critique with findings is not the end of the feature. It is the middle of it.
+Designing every case in advance does not work; fixing a page you can use does. So:
+
+1. Tell the user the findings, and that the next step is `{{command_prefix}}make`
+   to fix them — not the next feature.
+2. `make` fixes them, runs its finish again, and records any spec change in
+   `deviations:`.
+3. Run `{{command_prefix}}critique` again on the same surface.
+4. Repeat until the report has no errors or warnings, or the user has accepted each
+   one that is left **by id, in their own words** ("leave E-65 for now"). Your
+   judgment that a finding is minor is not acceptance.
+
+Only then suggest `{{command_prefix}}spec` for the next feature. Starting the next one
+with findings open means the second feature is built on top of the first one's
+problems, and nobody goes back for them.
 
 ## verdicts
 
