@@ -13,6 +13,7 @@ import { applyExemptions, readExemptions } from '../check/exempt.js';
 import { maskNonStyleRegions } from '../check/styles.js';
 import { maskComments } from '../check/css.js';
 import { isResponsive } from '../check/responsive.js';
+import { hasMenuToggle } from '../check/menu-toggle.js';
 import { auditTokenLayer } from '../check/token-audit.js';
 import type { Finding } from '../check/types.js';
 
@@ -201,6 +202,17 @@ export function check(opts: CheckOptions): CheckResult {
     }
   });
 
+  // Whether the navigation records an open state anywhere in the project. The
+  // rule hiding the links and the button that shows them live in different
+  // files. See `E-116`.
+  const projectMenuToggle = stylesheets.some((f) => {
+    try {
+      return hasMenuToggle(readFileSync(join(opts.projectRoot, f), 'utf8'));
+    } catch {
+      return false;
+    }
+  });
+
   // How many of the selected files actually carried a style region.
   //
   // `.ts`, `.tsx` and friends are style-bearing by EXTENSION, so `files.length`
@@ -222,7 +234,7 @@ export function check(opts: CheckOptions): CheckResult {
   // Resolved once and shared: the report names it, and A-09 gates on it.
   const resolvedMode = resolveMode(opts.projectRoot);
 
-  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive, viewportFitCover);
+  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive, viewportFitCover, projectMenuToggle);
 
   // The token layer's OWN declarations, which no detector reads: `.jig/tokens/`
   // is not in the scanned set, so until this ran, a brand file edited after

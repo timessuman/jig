@@ -8,6 +8,7 @@ import { update } from './commands/update.js';
 import { explain } from './commands/explain.js';
 import { check } from './commands/check.js';
 import { init } from './commands/init.js';
+import { verifyVerdicts } from './commands/verdicts.js';
 import { adapterNames } from './adapters/registry.js';
 
 const packageRoot = getPackageRoot();
@@ -109,6 +110,24 @@ program
       );
       for (const f of result.updated) console.log(`  ~ ${f}`);
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('verdicts')
+  .description("Verify a critique's verdict files and compute its counts.")
+  .argument('<surface>', 'the surface slug the critique wrote under .jig/critique/')
+  .action((surface: string) => {
+    const projectRoot = findProjectRoot(process.cwd());
+    try {
+      const result = verifyVerdicts({ projectRoot, surface });
+      for (const error of result.errors) console.error(`  ✗ ${error}`);
+      if (result.ok) console.log(`  Every rule in both passes has a verdict.`);
+      console.log(`  ${result.line}`);
+      process.exit(result.ok ? 0 : 1);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);

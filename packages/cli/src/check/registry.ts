@@ -13,6 +13,7 @@ import { fixedWidth } from './detectors/fixed-width.js';
 import { viewportHeight } from './detectors/viewport-height.js';
 import { inputZoom } from './detectors/input-zoom.js';
 import { safeArea } from './detectors/safe-area.js';
+import { menuState } from './detectors/menu-state.js';
 
 /**
  * Every detector `check` knows how to run, keyed by the `detector` name
@@ -35,6 +36,7 @@ const DETECTORS: Detector[] = [
   viewportHeight,
   inputZoom,
   safeArea,
+  menuState,
 ];
 
 export function getDetector(name: string): Detector | undefined {

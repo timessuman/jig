@@ -779,5 +779,12 @@
     "severity": "warning",
     "since": "0.10.0",
     "pass": "screen"
+  },
+  {
+    "id": "E-116",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.10.0",
+    "detector": "menu-state"
   }
 ]

@@ -6,7 +6,7 @@ these, say so, list them, and stop.
 
 There are two kinds of subcommand, and they are not run the same way.
 
-**CLI-backed** — `install`, `update`, `init`, `check`, `explain`. Run the
+**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`. Run the
 matching command with `{{scripts_path}}`, passing the flags through unchanged,
 then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
@@ -606,7 +606,7 @@ conversation that built the page. Running them in one head anchors them to each
 other; do not shortcut it for cost, speed or context size.
 
 - **A — the reader.** Delegate to a subagent. Give it the URL or file, the spec,
-  the approved mockup (from `mockup_at:`), `DECISIONS.md`, and the corpus. It judges the `pass: screen` rules against the render. Do
+  the approved mockup (from `mockup_at:`), `DECISIONS.md`, and the corpus. It judges the `pass: screen` rules against the render, **and the `P-` patterns the spec's regions use** — a navigation region means `P-14`. Those patterns are not in `rules.index.json`, so walking the index alone never reaches them. It writes its verdicts to `.jig/critique/<surface>/screen.json` (step 1c). Do
   **not** give it the build conversation. If it needs that conversation, it is
   not reviewing the page, it is agreeing with itself.
 - **B — the machine.** Run `check`. Deterministic, same input same output. It
@@ -615,7 +615,8 @@ other; do not shortcut it for cost, speed or context size.
   rest of the corpus, not a formality.
 - **C — the source reader.** A second subagent, separate from A. Give it the
   source files, the spec, and the corpus, and no render. It judges every
-  `pass: code` judgment rule — the group `check` cannot reach.
+  `pass: code` judgment rule — the group `check` cannot reach — and writes its
+  verdicts to `.jig/critique/<surface>/code.json` (step 1c).
 
 **If you cannot delegate an arm, it is skipped. You do not run it yourself.** No
 subagent available, a subagent that cannot read the project's files — either way
@@ -693,14 +694,44 @@ arm said, in one report, that a toggle hard-codes `60px`/`34px` instead of token
 on the same file are not a disagreement to report; they are an instrument that
 cannot be trusted, and every other verdict it returned is suspect with them.
 
-**Check the count before merging the arms.** Compare each arm's `<n>` against the
-length of the filtered index. They should be equal. When they are not, name the
-missing ids rather than reporting the total alone: one run reported
-`rules_evaluated=67` against 69, and the two it had skipped were the two ids most
-recently added to the corpus — the only two that could not be recalled from prior
-knowledge of Jig. An arm asked to walk the index may walk its memory of the
-index, and the ids it drops are the newest ones, which are the ones most in need
-of enforcement. The id list is what exposes this; the total alone hides it.
+### 1c. Verdicts go in files, and the CLI counts them
+
+Each reader arm writes its own file. The arm reports back only that it wrote it.
+
+```json
+{
+  "rendered": true,
+  "artefacts": [".jig/critique/pricing/360.png", ".jig/critique/pricing/768.png", ".jig/critique/pricing/1280.png"],
+  "verdicts": [
+    { "id": "D-115", "verdict": "ok", "reason": "no sideways scroll at 360, 768 or 1280" },
+    { "id": "P-14", "verdict": "finding", "reason": "menu button at 360 does not open; aria-expanded never set" },
+    { "id": "A-60", "verdict": "n/a", "reason": "A-60 is about competing icons; this page has none" }
+  ]
+}
+```
+
+`screen.json` carries `rendered` and `artefacts`; `code.json` needs only `verdicts`.
+Then run:
+
+```
+{{scripts_path}} verdicts <surface>
+```
+
+**It decides whether the review is complete, not you.** It fails on an id that is not
+in the corpus, names every id in the arm's pass that has no verdict, rejects a rule
+filed by the wrong arm or judged twice, rejects an `n/a` whose reason says the rule
+was not read, requires `P-14` when the spec has navigation, and refuses
+`rendered: true` without artefacts that exist. It ends with a `JIG_VERDICTS:` line.
+
+When it fails, **re-run the arm it names**. Do not edit the file to make it pass, and
+do not report an incomplete arm as having run. A live Haiku run of this command
+before it existed produced invented rule ids, `screen=ran:1` filed as a review,
+`code=ran:97` against 67, `ran:100` against both, and arms that reported to the
+wrong agent entirely. Every one of those was forbidden here in prose. Prose did not
+hold; a check does.
+
+The merge reads the two files — not a summary an arm sent back. An arm's message can
+go astray; its file cannot.
 
 ### 2. Look at the page
 
@@ -708,6 +739,12 @@ If a browser is available this is **required**, not optional. Use whatever the
 harness provides — a browse skill, Playwright, a headless browser. Reading the
 source and imagining the page is not a render.
 
+- **Operate the page, don't only look at it.** At 360px, open the navigation
+  menu: the links must appear, `aria-expanded` must change, and the control's label
+  or icon must show that it now closes. Use the billing control, the FAQ, anything
+  that changes state, and check it changes. A menu button that renders is not a menu
+  that works: in a live run four of six pages shipped a phone menu that did not open,
+  or no menu at all, and every review that only looked passed them.
 - **Render at every size the spec names** — phone at 360px, tablet at 768px,
   desktop at 1280px — and judge each size's fields against its own render. A
   `same-as:` claim is checked like any other field: render that size and see
@@ -759,6 +796,10 @@ Then the attestation:
 JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> mockup=<approved|skipped|missing> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> mechanical=<pass|fail|skipped>:<n> warnings=<n>
 ```
 
+**Take `screen=`, `code=` and `rendered=` from `jig verdicts`, never from your own
+count.** If it reported an arm incomplete, that arm is `skipped` here with the reason,
+until it is re-run and passes.
+
 Three counts because there are three arms, and each can fail independently.
 `mechanical=` is `check`'s result and uses `check`'s own field name deliberately,
 so the two records line up. `screen=` and `code=` are the two reader arms, and
@@ -785,6 +826,15 @@ of this command emitted `rendered=yes` on a machine with no browser installed an
 no image written anywhere — turning an honest limitation into a false assurance,
 on the one field a reader leans on hardest. If you did not see the page, say you
 did not see the page.
+
+## verdicts
+
+Run `{{scripts_path}} verdicts <surface>`, passing the argument through, and report its
+output unchanged — every `✗` line and the closing `JIG_VERDICTS:` line.
+
+It exists so that `critique`'s counts are computed rather than written. Read its
+errors as instructions to re-run the arm they name. It never fixes a verdict file,
+and neither do you: a file edited until it passes records nothing about the page.
 
 ## decide
 

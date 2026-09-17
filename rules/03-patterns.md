@@ -452,6 +452,12 @@ Compose it for the phone first. Mobile navigation is a different control — not
 
 **Rules**
 - **The menu control is named.** A `<button>` with `aria-expanded` reflecting its state, and the accessible name "Menu" — as visible text, or as `aria-label` on an icon. The three-line hamburger icon is widely read as a menu now, so whether the word is visible is the project's choice. Whether assistive technology can name the control is not (`E-34`).
+- **The menu control works, and shows which way it is.** This is behaviour, not markup, and a screenshot cannot show it (`E-116`):
+  - Tapping it opens the menu: the links become visible.
+  - `aria-expanded` is `"false"` while closed and `"true"` while open.
+  - While open, its visible label or icon reads as close — the word **Close**, or a cross — and its accessible name says so. Tapping it again closes the menu.
+  - `Escape` closes an open menu and returns focus to the button.
+  - `<details>`/`<summary>` gives the first three for free; a hand-rolled button has to do each one.
 - **Where the menu button sits is the project's decision.** Top right, top left, centred — that is taste, and it belongs in `DECISIONS.md`, not here. What the system asks is only that it stays in the same place on every screen and at every width it appears.
 - **Mark where the reader is, the same way at every width.** Every screen has to answer *where am I?* without the reader remembering how they arrived.
   - The link to the current page carries `aria-current="page"`. A section link whose child page is open may carry `aria-current="true"`.

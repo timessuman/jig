@@ -76,6 +76,13 @@ export interface DetectorContext {
    * silent.
    */
   viewportFitCover?: boolean;
+  /**
+   * Whether the project's navigation records an open state — `aria-expanded`
+   * on its menu control, or a `<details>` inside `<nav>`/`<header>`. See
+   * `check/menu-toggle.ts`. `undefined` when never computed; `E-116` is then
+   * silent.
+   */
+  projectMenuToggle?: boolean;
 }
 
 export interface Detector {

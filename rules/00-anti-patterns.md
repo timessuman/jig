@@ -425,6 +425,12 @@ Reaching for red at every confirmation spends it, and a red button on "delete th
 ✅ Start-align the primary, ordered most to least important. Right-aligned actions get missed on wide screens and by screen-magnifier users, and sit further from the fields they submit.
 On multi-step forms put **"Back" as a tertiary button at the top left** — away from the primary, where it cannot be hit by mistake and lose everything just entered.
 
+### E-116 A menu that cannot be opened, or does not say it is open
+❌ The nav links hidden at phone width (`display: none` in a `max-width` query, or by default until a `min-width` one), and a Menu button with no `aria-expanded` — or no button at all
+✅ The button that shows the links records it: `aria-expanded="false"` while closed, `"true"` while open, and its visible label or icon changes to **Close** while the menu is open. In `editorial`, `<details>` with `<summary>Menu</summary>` inside the `<nav>` does all of this with no script (`P-14`).
+A Menu button that does nothing looks finished in every screenshot. On a phone it is the only way to the rest of the site, so the reader who taps it and sees nothing change has nowhere to go. A button that opens the menu without `aria-expanded` is the same failure for a screen reader: it announces "Menu, button" before and after, and the reader never learns anything happened.
+`jig check` catches the hidden navigation with no recorded open state anywhere in the project. It cannot tell whether the button actually opens the menu — `critique` operates it on a render at 360px: tap it, and the links appear, `aria-expanded` changes, and the label or icon reads as close.
+
 ---
 
 ## F. Forms
