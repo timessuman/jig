@@ -310,9 +310,16 @@ deviations: []             # `make` writes here; `spec` leaves it empty
 - **No shell before there are features.** If the product has no navigation yet,
   `nav:` says `none yet` — it is decided once there is more than one feature to
   move between, not invented for the first one.
-- **`nav:` at every size, on any screen with navigation.** It is the field most
-  likely to be written once and copied, and most likely to be genuinely different
-  at every size on a page that works.
+- **`nav:` at every size, on any screen with navigation — decided by `P-14`'s table
+  at that width, not copied.** It is the field most likely to be written once and
+  copied, and most likely to be genuinely different at every size on a page that
+  works. Count the destinations and run the table for each size: five links fit on
+  one row at 768px and 1280px, so there the value is the links in a row, and the
+  Menu button exists only at the widths where they do not fit. In a live run all
+  four specs wrote "menu button, top right" at phone, tablet **and** desktop, citing
+  a `DECISIONS.md` entry that said only where the button sits. Every page then hid
+  five links behind a menu on a 1280px screen, and every later step faithfully
+  built and approved it.
 
 Every frontmatter field must be answerable by looking at the built page at that
 size. If a field cannot be, it is prose — put it below the frontmatter, where it
@@ -333,6 +340,11 @@ to the spec, never the spec to the decisions.
 - Check **every size's** fields against each one. A field that contradicts a
   decision is fixed now, before confirmation. It is not a deviation — deviations
   record what building revealed, not what writing got wrong.
+- **A menu button where the links fit is refused.** Before confirmation, read `nav:`
+  at every size. If it says a menu button at a width where `P-14`'s table says the
+  destinations fit, fix it now. A decision about where the menu button sits is
+  about position, not about whether a button exists at that width — it does not
+  override `P-14`.
 - **Every reference must resolve.** A decision is cited by its name; a rule by an
   id that `{{command_prefix}}explain` returns. Where nothing decides something,
   write `unspecified — make chooses one it can defend, and records it`. Never write
@@ -1045,7 +1057,12 @@ page's FAQ and arrival paths under `decide`, the other under `spec`.
 
 One kind of placement **is** a decision: something that must sit in the same
 place on every screen, such as where the menu button lives. That is taste, not
-something a rule can settle, and it belongs here once. Placement on a single
+something a rule can settle, and it belongs here once. Write it as where the thing
+sits **when it appears** — "the Menu button, wherever it appears, sits top right" —
+never as "a menu button on every page". Whether a menu button exists at a width is
+`P-14`'s, decided per size in `spec`: at widths where the links fit there is none. A
+live run recorded "Menu button: top right, same on every page", and all four specs
+read it as a menu button at desktop width too. Placement on a single
 screen is not — and do not ask the owner where an element should go on a screen
 at all. If the design system has a position, it is in the rules; if it has none,
 `spec` settles it.

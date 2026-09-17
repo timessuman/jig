@@ -458,7 +458,7 @@ Compose it for the phone first. Mobile navigation is a different control — not
   - While open, its visible label or icon reads as close — the word **Close**, or a cross — and its accessible name says so. Tapping it again closes the menu.
   - `Escape` closes an open menu and returns focus to the button.
   - `<details>`/`<summary>` gives the first three for free; a hand-rolled button has to do each one.
-- **Where the menu button sits is the project's decision.** Top right, top left, centred — that is taste, and it belongs in `DECISIONS.md`, not here. What the system asks is only that it stays in the same place on every screen and at every width it appears.
+- **Where the menu button sits is the project's decision.** Top right, top left, centred — that is taste, and it belongs in `DECISIONS.md`, not here. What the system asks is only that it stays in the same place on every screen and at every width it appears. **The decision is where it sits, never whether it exists:** at a width where every destination fits, the table above shows the links and there is no menu button, whatever `DECISIONS.md` says about its position.
 - **Mark where the reader is, the same way at every width.** Every screen has to answer *where am I?* without the reader remembering how they arrived.
   - The link to the current page carries `aria-current="page"`. A section link whose child page is open may carry `aria-current="true"`.
   - Style the mark from that attribute — `[aria-current="page"]` in CSS — not from a separate `.active` or `.current` class. One source for both what is seen and what is announced means the two cannot drift apart; a class alone looks marked and tells a screen reader nothing.
