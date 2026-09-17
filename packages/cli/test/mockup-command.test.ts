@@ -113,6 +113,21 @@ describe('mockup', () => {
     expect(mockup()).toMatch(/it is not a mockup/);
   });
 
+  // All three Stitch runs timed out, retried, and switched tools while their
+  // screens were already saved in the project.
+  it('treats a Stitch timeout as still running: no retry, poll the screens, then ask', () => {
+    const m = mockup();
+    expect(m).toMatch(/A timeout is not a failure/);
+    expect(m).toMatch(/Do not call it again\.\*\* A second request is a second screen/);
+    expect(m).toMatch(/every 30 seconds or so, for up to 10 minutes/);
+    expect(m).toMatch(/Only when 10 minutes pass with nothing, tell the user/);
+  });
+
+  it('generates a Stitch screen for every size, not only the phone', () => {
+    expect(mockup()).toMatch(/`MOBILE` for 360, `TABLET`\s+for 768, `DESKTOP` for 1280/);
+    expect(mockup()).toMatch(/confirm there is a screen for \*\*each\*\* size/);
+  });
+
   it('can review an existing design, for structure only', () => {
     expect(mockup()).toMatch(/An existing design the user already has/);
     expect(mockup()).toMatch(/reviews structure only/);

@@ -417,6 +417,27 @@ choose.
   — brand colour, imagery, decoration — it is not a mockup. Ask Stitch again for a
   wireframe. If it still will not produce one, tell the user and ask whether to
   switch to HTML. Do not review a finished-looking screen as though it were one.
+
+  **One screen per size, one request each:** `deviceType` `MOBILE` for 360, `TABLET`
+  for 768, `DESKTOP` for 1280. A live run asked once per project and got phone
+  screens only.
+
+  **A timeout is not a failure.** Generating a screen takes minutes, longer than the
+  call waits, so the call often times out while Stitch keeps working and saves the
+  screen afterwards. In a live run all three agents took the timeout as "Stitch made
+  nothing", retried — which made a duplicate — and switched tools, while their
+  screens were sitting in the project. So, when the call times out or drops:
+  1. **Do not call it again.** A second request is a second screen.
+  2. List the project's screens every 30 seconds or so, for up to 10 minutes. The
+     list of projects does not show screens; only listing one project's screens
+     does.
+  3. When the screen appears, carry on with it. If the project already holds a
+     screen for that size from an earlier attempt, use it rather than generating
+     another.
+  4. Only when 10 minutes pass with nothing, tell the user, and ask whether to try
+     again or switch to HTML or Figma. Do not switch on their behalf.
+
+  Before review, confirm there is a screen for **each** size, not only the phone.
 - **An existing design the user already has** for this feature, in either tool, can
   stand in for drawing one. Read it through the server, and compare its structure
   to the spec at every size. It will usually be high fidelity, so say plainly that
