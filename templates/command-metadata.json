@@ -15,7 +15,7 @@
     "status": "available"
   },
   "decide": {
-    "description": "Write the project's design decisions to DECISIONS.md beside the token layer \u2014 the choices that needed a reason, which the tokens hold the values for but cannot explain. Required before any UI work. No CLI \u2014 the agent does this.",
+    "description": "Write the project-wide design decisions to DECISIONS.md beside the token layer \u2014 the choices that need a reason, which the tokens hold the values for but cannot explain. Runs once per project, by interviewing you. spec, mockup, make and critique need it; nothing else does. No CLI \u2014 the agent does this.",
     "argumentHint": "",
     "status": "agent"
   },
@@ -30,18 +30,23 @@
     "status": "available"
   },
   "spec": {
-    "description": "Plan a screen before building it: run the layout method, record the result, and get it confirmed. Writes .jig/specs/<surface>.spec.md. No CLI \u2014 the agent does this.",
-    "argumentHint": "<surface, in your own words>",
+    "description": "Say exactly what is being built \u2014 a page, feature or functionality \u2014 scoped to its smallest useful version and specified at every screen size, then confirmed. Writes .jig/specs/<surface>.spec.md. No CLI \u2014 the agent does this.",
+    "argumentHint": "<page, feature or functionality, in your own words>",
+    "status": "agent"
+  },
+  "mockup": {
+    "description": "Low-fidelity design: a grayscale drawing of the confirmed spec at every screen size, reviewed before any code. Asks whether to draw it in HTML, Figma or Google Stitch, and tells you to connect that tool's MCP server if needed. No CLI \u2014 the agent does this.",
+    "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   },
   "make": {
-    "description": "Build a screen from its confirmed spec, recording any deviation back into it. Refuses to start without one. No CLI \u2014 the agent does this.",
-    "argumentHint": "<surface, in your own words>",
+    "description": "High-fidelity: build the actual page or feature from its confirmed spec and approved mockup \u2014 matching the mockup's structure, never copying its markup \u2014 recording any deviation back into the spec. No CLI \u2014 the agent does this.",
+    "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   },
   "critique": {
-    "description": "Review a built screen the way check cannot: render it, compare it to its spec, and judge the rules that only the composed page can answer. No CLI \u2014 the agent does this.",
-    "argumentHint": "<surface, in your own words>",
+    "description": "Scrutinise what was built against the rules, its spec and its mockup: render it, judge what check cannot, and report by rule id. Needs DECISIONS.md. No CLI \u2014 the agent does this.",
+    "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   }
 }

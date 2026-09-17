@@ -104,9 +104,11 @@ export function buildSkillBody(
 /**
  * The slash-command body, plus the subcommands it offers.
  *
- * Only commands the CLI actually registers are offered: a `/jig explain` that
- * errors out is worse than no `/jig explain` at all, which is the same reason
- * the skill's own command table marks planned entries rather than hiding them.
+ * Offered: commands the CLI registers, and agent procedures, whose section in
+ * the body is the command itself. Hidden: planned commands — a `/jig explain`
+ * that errors out is worse than no `/jig explain` at all, which is the same
+ * reason the skill's own command table marks planned entries rather than hiding
+ * them.
  *
  * `argsPlaceholder` is the harness's own — `$ARGUMENTS` for the markdown
  * harnesses, `{{args}}` for Gemini's TOML — so the body is rendered per
@@ -121,8 +123,14 @@ export function buildCommandBody(
   const metadata = JSON.parse(
     readFileSync(join(packageRoot, 'templates', 'command-metadata.json'), 'utf8'),
   ) as CommandMetadata;
+  // `agent` commands are offered too. They have no binary to error out — the
+  // section in the body IS the command — and leaving them out was not caution
+  // but a defect: the body tells the agent that anything outside this list is to
+  // be refused ("say so, list them, and stop"), so `/jig decide`, `/jig spec`,
+  // `/jig make` and `/jig critique` were each installed with an instruction to
+  // decline them. Only `planned` stays hidden.
   const subcommands = Object.entries(metadata)
-    .filter(([, meta]) => meta.status === 'available')
+    .filter(([, meta]) => meta.status === 'available' || meta.status === 'agent')
     .map(([name]) => name)
     .sort();
   // A build without the template writes no slash commands rather than failing

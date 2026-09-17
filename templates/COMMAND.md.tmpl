@@ -12,18 +12,30 @@ then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
 `jq` drop the ones that matter.
 
-**Agent procedures** — `decide`, `spec`, `make`, `critique`. There is no binary. Do not try to run one:
+**Agent procedures** — `decide`, `spec`, `mockup`, `make`, `critique`. There is no binary. Do not try to run one:
 the section below **is** the command. A CLI can check what these produce; it
 cannot do their work, because the work is judgment and authorship.
+
+`decide` runs once per project. The other four run for each page, feature or
+functionality, one at a time — never the whole product at once:
+
+```text
+decide     project-wide decisions, and the reason for each      once per project
+
+spec       what exactly is being built: its smallest useful version, at every screen size
+mockup     low-fidelity design of that spec, reviewed before any code
+make       high-fidelity: the actual page or feature, built from the spec & mockup
+critique   scrutinises what was built against the rules, its spec & mockup
+```
 
 ## init
 
 **Settle the surfaces before you run it.** Mode is the most consequential thing
-`init` writes and the thing it is worst at choosing: with `--yes` it takes
-`'/' → product` without reading the project at all, and `{{rules_path}}/01-modes.md`
-rule 1 then makes that config outrank your own reading of the project from then
-on. A default chosen in a second binds the project indefinitely, and density is
-expensive to reverse.
+`init` writes and the thing it cannot choose: with `--yes` it has nobody to ask, so
+it declares no surface mapping at all, and every mode-gated rule stays silent until
+someone does. A mode written into `{{config_file}}` then outranks your own reading
+of the project from then on (`{{rules_path}}/01-modes.md` rule 1), so it has to be
+chosen deliberately — and density is expensive to reverse.
 
 You are the half that can fix this, because you are talking to someone who knows
 the answer and the CLI is not. So, first:
@@ -168,7 +180,14 @@ rule you deliberately break with the reason, in one line.
 
 ## spec
 
-Plan the screen before building it. This command writes no markup and no CSS.
+Say exactly what is being built — a page, a feature, or a piece of
+functionality — before any of it is designed. This command writes no markup and no
+CSS.
+
+**Start with what it is for, not how it is laid out.** "A page where the user
+creates an invoice" is a spec. "A dashboard with a sidebar" is a layout with
+nothing in it yet: a sidebar, a container width and a navigation structure are
+guesses until there is something real to put in them.
 
 ### Refuse rather than guess
 
@@ -176,8 +195,11 @@ Stop and say which of these is missing, rather than proceeding:
 
 - `{{config_file}}` does not exist → run `init` first. Without it there is no
   mode and no token layer, so there is nothing for a spec to be specific to.
-- The user named no surface → ask which screen. `{{command_prefix}}spec` with no
-  argument is not a request to invent one.
+- No `DECISIONS.md` with substance → run `{{command_prefix}}decide` first. A spec
+  implements the project's decisions, and cannot check itself against ones that
+  do not exist.
+- The user named nothing → ask which page, feature or functionality.
+  `{{command_prefix}}spec` with no argument is not a request to invent one.
 
 Read `DECISIONS.md` before asking anything. Do not re-ask what it already records;
 cite it instead.
@@ -195,8 +217,15 @@ settled at `init` and live in `{{config_file}}` and the token layer; re-deciding
 them per screen creates a second source of truth for the values Jig exists to
 centralise. If the user raises appearance, record it and move on.
 
-- Round 1 — what is this screen for, who arrives at it, and what must they be
-  able to do? What is the single most important thing on it?
+- Round 1 — what is it for? What does the user need to do there ("create an
+  invoice")? Who arrives, and what is the single most important thing they must be
+  able to see or do?
+- **Then scope it — be a pessimist.** Of everything this could include,
+  what is the smallest version that is useful on its own? Ask that plainly and
+  expect to cut. "Comments with attachments, mentions, reactions, editing,
+  threading and notifications" is a wishlist; "text and a submit button" might be
+  V1. What is cut goes in `later:`, by name — deferred on the record, not
+  forgotten. Everything after this designs V1 only.
 - Round 2 — what content and states does it carry? Empty, loading, error,
   first-run, and the realistic range (0 items, 5, 500)?
 - Round 3 — only what is still unresolved: entry points, where it leads, what
@@ -227,6 +256,7 @@ phone as a squeezed desktop.
 
 ```yaml
 ---
+feature: sign in to an existing account      # the task, not the screen
 surface: login page
 mode: product              # from {{config_file}} — state it, never leave it implied
 confirmed: false           # only the user sets this to true; see below
@@ -254,6 +284,9 @@ sizes:                     # phone first. Each size is a whole composition, not 
     nav: none on this screen
 states: [default, loading, error, success]
 decisions: [The Engineer Reads First]     # every DECISIONS.md entry this screen implements, by name
+later: [social sign-in, remember this device]   # cut from V1, by name — the next specs start here
+mockup: pending            # `mockup` sets approved or skipped, from the user's own words
+mockup_at:                 # where the approved drawing is: a .jig/mockups path, or a Figma or Stitch link
 deviations: []             # `make` writes here; `spec` leaves it empty
 ---
 ```
@@ -268,6 +301,9 @@ deviations: []             # `make` writes here; `spec` leaves it empty
   fall.** The CSS breaks wherever the content needs it, and there may be more
   breakpoints than sizes. A navigation row, for example, breaks at the width where
   its labels fit.
+- **No shell before there are features.** If the product has no navigation yet,
+  `nav:` says `none yet` — it is decided once there is more than one feature to
+  move between, not invented for the first one.
 - **`nav:` at every size, on any screen with navigation.** It is the field most
   likely to be written once and copied, and most likely to be genuinely different
   at every size on a page that works.
@@ -310,9 +346,156 @@ spec is not a weaker spec — it is not a spec, and `make` will refuse it.
 If the user changes something, revise and ask again. The run is incomplete until
 they confirm.
 
+## mockup
+
+**Low-fidelity design.** Draw the confirmed spec in grayscale, at every size it
+names, and get it looked at **before** any code is written. Once approved, the
+drawing is what `make` builds to and what `critique` checks against, alongside the
+spec. The spec stays the durable record, and everything the review changes goes
+back into it first, so the two never disagree.
+
+It draws **what one spec defines** — its V1 — and nothing deferred to `later:`.
+Never the whole product.
+
+### Refuse rather than guess
+
+- No `.jig/specs/<surface>.spec.md` → run `{{command_prefix}}spec` first.
+- `confirmed: false` → nobody has agreed to what you would be drawing. Ask, and stop.
+- The request is "mock up the app" or "the whole site" → say that a mockup draws
+  one specified page, feature or functionality, and offer to run `spec` for it.
+
+### 1. Ask the user how they want it drawn
+
+**Ask every time, before drawing anything.** Three ways, and the choice is the
+user's:
+
+1. **HTML** — you draw it as `.jig/mockups/<surface-slug>.html`. Needs nothing
+   connected. `.jig/` is outside what `check` scans and outside what ships, which
+   is where a working drawing belongs.
+2. **Figma** — drawn on a Figma canvas through Figma's MCP server.
+3. **Google Stitch** — generated through Stitch's MCP server.
+
+Jig ships neither tool and writes nothing for either. They are MCP servers the user
+connects to their own agent, and the user decides whether to.
+
+**If they choose Figma or Stitch, check that its server is among your tools.** If it
+is not, tell them plainly: that tool's MCP server is not connected to this agent;
+they need to connect it — Figma's through its official MCP server, Stitch's with a
+Stitch API key — and some agents only see a newly added server after a restart.
+Then **stop and wait**. When they say it is connected, check your tools again
+before drawing. Do not switch to HTML on their behalf; offer it, and let them
+choose.
+
+- **Drawing in Figma.** One page named for the feature, one frame per size at the
+  spec's widths — 360, 768, 1280 — phone first. Grey fills and strokes only; no
+  library components, styles or variables from the product's design system, for
+  the same reason the HTML carries no tokens.
+- **Drawing in Stitch.** Ask for a low-fidelity grayscale wireframe of this one
+  feature, at each size, with the spec's regions in order and its real labels.
+  Stitch leans towards finished, coloured screens: if what comes back is polished
+  — brand colour, imagery, decoration — it is not a mockup. Ask Stitch again for a
+  wireframe. If it still will not produce one, tell the user and ask whether to
+  switch to HTML. Do not review a finished-looking screen as though it were one.
+- **An existing design the user already has** for this feature, in either tool, can
+  stand in for drawing one. Read it through the server, and compare its structure
+  to the spec at every size. It will usually be high fidelity, so say plainly that
+  this step reviews structure only, and do not take up its colours or type as
+  decisions — those belong to the tokens and `DECISIONS.md`.
+
+The rules below apply whichever of the three it is. They are written for HTML; in
+Figma or Stitch they apply to the frames.
+
+### 2. Draw it — structure only
+
+**Low fidelity means low detail.** The purpose is to judge structure before
+appearance, and appearance wins every time it is allowed in: a reviewer shown
+finished colour and type stops evaluating the layout and starts reacting to the
+look. So the drawing contains:
+
+- **Grayscale only.** No brand colour, no accent, no status colours — unless colour
+  *is* the feature (a colour picker, a status legend), and then only there.
+- **No tokens and no project CSS.** Use the wireframe stylesheet below, pasted into
+  the file's `<style>`. The mockup must not look like the product; if it does, it
+  has become a design review.
+- **No icons, imagery, shadows or decoration.** An image is a labelled box that says
+  what goes there. An icon is its name in brackets: `[search]`.
+- **Real words, not lorem ipsum.** Labels, headings and button text are part of the
+  structure — "Create invoice" versus "Submit" is a decision worth reviewing.
+- **Every size the spec names, as its own frame** — phone, then tablet, then desktop,
+  stacked top to bottom, each drawn with its own markup. Size is structure, not
+  detail: a phone composition that is only the desktop one narrower is the failure
+  specs are written per size to prevent. A `same-as:` size is drawn anyway, so the
+  claim can be seen to hold.
+- **The primary state, plus any state that changes the structure.** An empty state
+  that replaces a table, or an error that moves a form, is drawn. The rest stay
+  listed in the spec. Do not draw what building will reveal: 2,000 contacts, a
+  thirty-character name, a slow network — unless the feature is about exactly that.
+
+```html
+<style>
+  /* Jig wireframe. Structure only: do not add colour, fonts, shadows or images. */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; font: 16px/1.5 system-ui, sans-serif; color: #222; background: #f4f4f4; }
+  .size { margin: 0 0 8px; font-size: 13px; color: #666; }
+  .frame { background: #fff; border: 1px solid #999; margin: 0 0 40px; padding: 16px; overflow: hidden; }
+  .frame[data-size="phone"] { width: 360px; }
+  .frame[data-size="tablet"] { width: 768px; }
+  .frame[data-size="desktop"] { width: 1280px; }
+  .region { border: 1px dashed #aaa; padding: 12px; margin: 0 0 12px; }
+  .region > .name { display: block; font-size: 12px; color: #777; margin: 0 0 8px; }
+  .media { background: #ddd; color: #555; display: grid; place-items: center; min-height: 120px; }
+  .field { display: block; width: 100%; min-height: 40px; border: 1px solid #888; background: #fff; }
+  button { font: inherit; padding: 8px 16px; border: 1px solid #555; background: #fff; }
+  button.primary { background: #444; color: #fff; border-color: #444; }
+  h1 { font-size: 28px; margin: 0 0 12px; }
+  h2 { font-size: 22px; margin: 0 0 8px; }
+  h3 { font-size: 18px; margin: 0 0 8px; }
+</style>
+```
+
+Each frame is a `<section class="frame" data-size="phone">`, preceded by a
+`<p class="size">` naming the size and its width. Regions carry the names the spec
+uses, in a `.name` label, so the drawing and the spec can be read against each
+other.
+
+### 3. Put it in front of the user
+
+Tell the user where the drawing is — the file path, or the Figma or Stitch link —
+and how to open it. If the harness can render —
+a browse skill, Playwright, a headless browser — render each frame and show them the
+images; a drawing nobody looked at has not been reviewed.
+
+Then ask **structural** questions, not whether they like it: is the most important
+thing the first thing seen at each size? Does anything belong in a different group?
+Is anything here that V1 does not need?
+
+### 4. Every change goes into the spec first
+
+When the review moves, adds, cuts or regroups anything, **edit the spec**, then
+redraw from it. Never adjust the drawing alone. A mockup changed in review and not in
+the spec has quietly become the real specification, and `make` would build from a
+document that no longer describes what was approved.
+
+A request for more — "add reactions while you're at it" — goes to `later:`, unless
+the user explicitly moves it into V1. Then the spec's scope changes, and it is
+confirmed again.
+
+### 5. Record the outcome in the user's words
+
+- The user approves → set `mockup: approved` in the spec, and `confirmed: true` if
+  review changed it. Record where the approved drawing is in `mockup_at:` — the
+  file path, or the Figma or Stitch link. Only their own response counts; your summary of the drawing,
+  or no objection, does not.
+- The user says to skip it → `mockup: skipped — <their reason>`. For a change small
+  enough that drawing it costs more than building it, that is a reasonable call; it
+  is still theirs to make.
+
+Then stop. The next step is `{{command_prefix}}make`.
+
 ## make
 
-Build the screen from its confirmed spec.
+**High-fidelity.** Build the actual page or feature from its confirmed spec and its
+approved mockup — the real tokens, components and copy, working.
 
 ### Refuse rather than guess
 
@@ -322,8 +505,29 @@ Build the screen from its confirmed spec.
   prevent.
 - `confirmed: false` → the spec exists but nobody has agreed to it. Ask for
   confirmation and stop.
+- `mockup: pending` → the feature has not been looked at. Run
+  `{{command_prefix}}mockup`, or ask the user whether to skip it. Do not decide to
+  skip it yourself.
 
 ### Build
+
+**Build from the spec and the mockup, never by copying the mockup.** The spec says
+what is being built; the approved mockup shows its structure at each size — what
+comes first, what is grouped with what, what stacks on the phone. Match that
+structure at high fidelity.
+
+What you do not do is paste the mockup's HTML into the product, or take the code a
+Figma or Stitch frame will generate for you. The drawing has fixed frame widths, grey
+boxes and no tokens; pasted in, it carries none of the rules or tokens the product is
+built on. Read it; do not copy it.
+
+If the spec and the approved mockup disagree, the spec was not updated during review.
+Stop and ask the user which is right, fix the spec, and continue — do not choose
+between them yourself.
+
+If `mockup: skipped`, build from the spec alone.
+
+Build V1 only. Nothing in `later:`, however little extra it looks.
 
 Build the **phone** composition first, then add what `tablet` and `desktop`
 change. Write base styles for the phone and add width as it is available — not
@@ -358,7 +562,7 @@ phone has satisfied a third of its spec.
 
 ## critique
 
-Review a built screen. This is **not** a second `check`, and the difference is
+Scrutinise what was built against the rules and its spec. This is **not** a second `check`, and the difference is
 not effort — it is evidence.
 
 `check` reads files. `critique` looks at the page **and** reads the source
@@ -387,7 +591,10 @@ competing verdicts on one id.
 
 ### Refuse rather than guess
 
-- The user named no surface → ask which screen.
+- No `DECISIONS.md` with substance → run `{{command_prefix}}decide` first. `critique`
+  judges the page against the project's decisions as well as the rules, and has
+  nothing to judge that half against without them.
+- The user named nothing → ask which page, feature or functionality.
 - There is no `.jig/specs/<surface>.spec.md` → say so and continue **rules-only**,
   reporting `spec=missing`. Do not invent the spec the page should have had; a
   spec written after the page, from the page, agrees with it by construction.
@@ -399,7 +606,7 @@ conversation that built the page. Running them in one head anchors them to each
 other; do not shortcut it for cost, speed or context size.
 
 - **A — the reader.** Delegate to a subagent. Give it the URL or file, the spec,
-  and the corpus. It judges the `pass: screen` rules against the render. Do
+  the approved mockup (from `mockup_at:`), `DECISIONS.md`, and the corpus. It judges the `pass: screen` rules against the render. Do
   **not** give it the build conversation. If it needs that conversation, it is
   not reviewing the page, it is agreeing with itself.
 - **B — the machine.** Run `check`. Deterministic, same input same output. It
@@ -519,13 +726,21 @@ source and imagining the page is not a render.
 If no browser is available, say so in one line and use `L-01`'s analogue. Never
 skip it silently, and never report a render you did not do.
 
-### 3. Compare the page to its spec
+### 3. Compare the page to its spec and its mockup
 
-For each size, for each frontmatter field, say whether the page rendered at that
-size satisfies it. A difference
-is a finding **unless** `deviations:` already explains it — that is what the
-recorded deviation is for. A difference explained by neither is the more serious
-finding, because it means the spec has quietly stopped describing the page.
+**The spec**, field by field: for each size, say whether the page rendered at that
+size satisfies each frontmatter field.
+
+**The mockup**, size by size: set each rendered size beside the approved drawing
+at the same width and compare the structure — the regions and their order, what is
+grouped with what, what stacks or moves on the phone. Not the colour, type or
+polish: the mockup is grayscale and low-fidelity on purpose, so its appearance is
+not a target.
+
+A difference from either is a finding **unless** `deviations:` already explains it
+— that is what the recorded deviation is for. A difference explained by neither is
+the more serious finding, because it means the spec has quietly stopped describing
+the page. If `mockup: skipped`, compare to the spec alone and say so.
 
 ### 4. Report
 
@@ -541,7 +756,7 @@ preserve while fixing them.
 Then the attestation:
 
 ```text
-JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> mechanical=<pass|fail|skipped>:<n> warnings=<n>
+JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> mockup=<approved|skipped|missing> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> mechanical=<pass|fail|skipped>:<n> warnings=<n>
 ```
 
 Three counts because there are three arms, and each can fail independently.
@@ -576,8 +791,10 @@ did not see the page.
 Write `DECISIONS.md` beside the token layer — `jig/DECISIONS.md` by default, or
 wherever `brand` in `{{config_file}}` puts the token files.
 
-Every other command is blocked until this exists, so it is worth being exact
-about what it is for.
+`spec`, `mockup`, `make` and `critique` are blocked until this exists: `spec` and
+`critique` refuse to start without it, and `mockup` and `make` need a confirmed spec.
+Nothing else is blocked — `install`, `init`, `check` and `explain` run without it.
+`init` comes first, because this file sits beside the token files `init` writes.
 
 ### What belongs in it, and what does not
 

@@ -70,7 +70,7 @@ export interface Adapter {
 }
 
 export const COMMAND_DESCRIPTION =
-  'Run a Jig design-system command: set the project up, review the UI against the rules, or refresh the install.';
+  'Run a Jig design-system command: set the project up, plan and build one feature at a time (decide, spec, mockup, make, critique), check the UI against the rules, or refresh the install.';
 
 export const SKILL_DESCRIPTION =
   'Design system rules for generating and reviewing UI. Load before building any interface.';
