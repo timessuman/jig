@@ -287,6 +287,13 @@ The converse also holds: two elements that do the same job should look the same.
 
 ---
 
+### D-111 A page that never adapts to the viewport
+❌ Cards in a row, a nav of links in a row, or a fixed page width — and nothing anywhere in the project that changes them when the screen is narrow
+✅ Compose for the phone first, then add columns as width allows: a single column that becomes a grid, a nav that becomes a different control, not a smaller copy of the desktop. Use a width breakpoint, a container query, or an intrinsic grid (`repeat(auto-fit, minmax(…))`) — any of them, as long as something responds.
+The phone is not the edge case. It is the most common screen a page is read on, and a layout composed for a wide screen and left alone arrives there as a horizontal scroll, a nav whose last links are off the edge, and three cards crushed to a third of 375px each.
+This is decided for the whole project, not per file, because the grid and the query that collapses it routinely live in different stylesheets. It only reports what is laid out side by side: a single column of text with a `max-width` works on a phone with no breakpoint at all, and is not a finding.
+Two things do **not** count as adapting, and both are traps. A `prefers-reduced-motion` query is about the user, not the width — and `L-04` asks every page for one, so counting it would let a fixed-width page pass by following the self-check. And shrinking is not adapting: the same three columns at a smaller size are still three columns. That second failure is `critique`'s to judge on a render; this rule catches only the page that never responds at all.
+
 ## E. States and interaction
 
 Agents render the happy path. This section exists because that is the single most common gap in generated UI.

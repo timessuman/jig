@@ -12,13 +12,13 @@ Installed as `npx jig-ui` — the bare name was taken on npm.
 Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
 They are two halves of the same thing, and the split is not arbitrary:
 
-- Of the 106 rules, **7 can be decided by a machine** — a hard-coded colour, a
+- Of the 107 rules, **11 can be decided by a machine** — a hard-coded colour, a
   contrast ratio below the floor, a removed focus ring. The CLI decides those.
-- The other **97 are judgment** — whether an empty state says anything useful,
+- The other **96 are judgment** — whether an empty state says anything useful,
   whether a label reads as an instruction, whether motion earns its place. No
   regex settles those. An agent reads the rules and applies them.
 
-Running only the CLI gets you the 7. Running only the agent gets you the 97 with
+Running only the CLI gets you the 11. Running only the agent gets you the 96 with
 no verification. **A clean `jig check` is not a clean review**, and the skill
 says so to every agent that reads it.
 
@@ -330,7 +330,7 @@ treatment.
 
 | File | Contents |
 | --- | --- |
-| `rules/00-anti-patterns.md` | 89 universal rules with corrections |
+| `rules/00-anti-patterns.md` | 90 universal rules with corrections |
 | `rules/01-modes.md` | `editorial` / `product` / `operator` profiles |
 | `rules/02-tokens.md` | Token contract, naming, consumption |
 | `rules/03-patterns.md` | Component anatomy and behaviour |
