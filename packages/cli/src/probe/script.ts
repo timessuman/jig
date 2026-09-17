@@ -39,6 +39,8 @@ export const PROBE_SCRIPT = `(async () => {
     }
   }
   const navLinks = () => [...document.querySelectorAll('nav a, header a, [role=navigation] a')].filter(vis).length;
+  // Measured before anything is clicked: what a reader sees on arrival.
+  const navAtRest = navLinks();
   // The menu control: inside the header or navigation, or named as the menu.
   // Not any disclosure — an FAQ <summary> is not a menu.
   const inChrome = (b) => !!b.closest('header, nav, [role=navigation], [role=banner]');
@@ -81,7 +83,7 @@ export const PROBE_SCRIPT = `(async () => {
     unresolvedTokens: [...unresolved],
     junkText: junk,
     brokenImages: [...document.images].filter((i) => i.complete && i.naturalWidth === 0).length,
-    navLinksVisible: navLinks(),
+    navLinksVisible: navAtRest,
     menu,
   });
 })()`;

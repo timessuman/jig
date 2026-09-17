@@ -24,7 +24,8 @@ describe('the probe script', () => {
 /** tw-1 in arm test 3: 31 verdicts, all prose, passed; the page was broken. */
 describe('probeContradictions', () => {
   it('accepts a page whose measurements agree with ok verdicts', () => {
-    expect(probeContradictions([probe(), probe({ width: 768 }), probe({ width: 1280 })], verdicts({ 'P-14': 'ok', 'D-115': 'ok' }))).toEqual([]);
+    const wide = (width: number) => probe({ width, menu: null, navLinksVisible: 5 });
+    expect(probeContradictions([probe(), wide(768), wide(1280)], verdicts({ 'P-14': 'ok', 'D-115': 'ok' }))).toEqual([]);
   });
 
   it('refuses P-14 ok when the menu did not open, change to close, or close on Escape', () => {
@@ -40,6 +41,23 @@ describe('probeContradictions', () => {
   it('leaves a P-14 finding alone — it already says what the probe says', () => {
     const m = { ...probe().menu!, opened: false };
     expect(probeContradictions([probe({ menu: m })], verdicts({ 'P-14': 'finding' }))).toEqual([]);
+  });
+
+  // Arm test 3 at 1280px: css-2 and tw-2 hid five links behind a hamburger,
+  // tw-1 showed its links and a menu button too, css-1 had no navigation.
+  it('refuses a clean nav verdict when a wide screen hides links that fit, shows a dead menu, or has no navigation', () => {
+    const wide = (over: Partial<ProbeResult>) => probe({ width: 1280, ...over });
+    const hidden = wide({ navLinksVisible: 0, menu: { ...probe().menu!, linksBefore: 3, linksAfter: 8 } });
+    const redundant = wide({ navLinksVisible: 5, menu: { ...probe().menu!, opened: false, linksBefore: 8, linksAfter: 8 } });
+    const none = wide({ navLinksVisible: 0, menu: null });
+    const v = verdicts({ 'P-14': 'ok', 'E-61': 'ok' });
+    expect(probeContradictions([hidden], v)[0]).toMatch(/at 1280px .* behind a menu — 5 link\(s\) that fit/);
+    expect(probeContradictions([redundant], v)[0]).toMatch(/menu button beside navigation links that already show — it opens nothing/);
+    // tw-1: links showing, and a menu that opens a second copy.
+    const duplicate = wide({ navLinksVisible: 6, menu: { ...probe().menu!, linksBefore: 13, linksAfter: 18 } });
+    expect(probeContradictions([duplicate], v)[0]).toMatch(/it opens a second copy of them/);
+    expect(probeContradictions([none], v)[0]).toMatch(/no visible navigation links and no menu/);
+    expect(probeContradictions([wide({ menu: null, navLinksVisible: 5 })], v)).toEqual([]);
   });
 
   it('refuses D-115 ok when the page scrolls sideways', () => {
@@ -76,7 +94,7 @@ describe('jig verdicts reads the probes', () => {
   });
 
   it('passes with agreeing probes, and fails when one contradicts a verdict', () => {
-    for (const w of [360, 768, 1280]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify(probe({ width: w })));
+    for (const w of [360, 768, 1280]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify(w === 360 ? probe() : probe({ width: w, menu: null })));
     expect(run().errors).toEqual([]);
     writeFileSync(join(dir(), 'probe-768.json'), JSON.stringify(probe({ width: 768, sidewaysScroll: true, scrollWidth: 800, clientWidth: 768 })));
     expect(run().errors.join('\n')).toMatch(/D-115 is "ok"/);

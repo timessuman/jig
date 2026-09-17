@@ -66,6 +66,24 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf)
     }
   }
 
+  // Wide screens. Arm test 3: three of four pages hid five links behind a menu
+  // at 1280px, where they fit with room to spare, and the fourth showed its
+  // links AND a menu button that opened nothing. P-14's first row — every
+  // destination fits, show them all — is measurable here, so it is measured.
+  const navClean = clean('P-14') || clean('E-61');
+  const cite = [clean('P-14') && `P-14 is "${verdictOf('P-14')}"`, clean('E-61') && `E-61 is "${verdictOf('E-61')}"`].filter(Boolean).join(' and ');
+  for (const p of probes.filter((x) => x.width >= 768)) {
+    if (!navClean) continue;
+    const m = p.menu;
+    if (m && p.navLinksVisible > 0) {
+      errors.push(`${cite}, but at ${p.width}px ${at(p)} found a menu button beside navigation links that already show — ${m.opened ? 'it opens a second copy of them' : 'it opens nothing'}. At a width where the links show, there is no menu button.`);
+    } else if (m && m.opened && m.linksAfter - m.linksBefore <= 8) {
+      errors.push(`${cite}, but at ${p.width}px ${at(p)} found the navigation behind a menu — ${m.linksAfter - m.linksBefore} link(s) that fit on one row at this width. Show them.`);
+    } else if (p.navLinksVisible === 0 && !(m && m.opened)) {
+      errors.push(`${cite}, but at ${p.width}px ${at(p)} found no visible navigation links and no menu that opens.`);
+    }
+  }
+
   const phone = probes.filter((p) => p.width <= 480).sort((a, b) => a.width - b.width)[0];
   if (phone && clean('P-14')) {
     const m = phone.menu;
