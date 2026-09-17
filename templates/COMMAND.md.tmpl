@@ -6,7 +6,7 @@ these, say so, list them, and stop.
 
 There are two kinds of subcommand, and they are not run the same way.
 
-**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`, `gate`. Run the
+**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`, `gate`, `probe`. Run the
 matching command with `{{scripts_path}}`, passing the flags through unchanged,
 then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
@@ -827,6 +827,23 @@ Each reader arm writes its own file. The arm reports back only that it wrote it.
 ```
 
 `screen.json` carries `rendered` and `artefacts`; `code.json` needs only `verdicts`.
+
+**A rendered review is measured, not only described.** At 360, 768 and 1280px, run the
+probe in the browser and save what it returns beside the verdicts:
+
+```
+{{scripts_path}} probe > .jig/probe.js
+# at each width: set the viewport, open the page, evaluate .jig/probe.js, save the
+# JSON it returns as .jig/critique/<surface>/probe-<width>.json
+```
+
+The probe opens the phone menu, presses Escape, measures sideways scroll, and reads
+whether the styles and tokens actually applied. `verdicts` refuses `rendered: true`
+without a probe at each width, and refuses an `ok` the probe contradicts — a `P-14`
+"ok" on a menu that did not open, a `D-115` "ok" on a page that scrolls sideways. It
+also fails a page that renders in the browser's default font, or shows `${` to
+readers, whatever the verdicts say. Never write a probe file yourself: when it
+disagrees with you, it is the review that is wrong.
 Then run:
 
 ```
@@ -963,6 +980,12 @@ Designing every case in advance does not work; fixing a page you can use does. S
 Only then suggest `{{command_prefix}}spec` for the next feature. Starting the next one
 with findings open means the second feature is built on top of the first one's
 problems, and nobody goes back for them.
+
+## probe
+
+Run `{{scripts_path}} probe`. It prints one JavaScript expression — the render probe —
+for the critique's screen arm to evaluate in a browser at each width. See step 1c of
+`critique`. It changes nothing on its own.
 
 ## gate
 

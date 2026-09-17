@@ -10,6 +10,7 @@ import { check } from './commands/check.js';
 import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
 import { gate } from './commands/gate.js';
+import { PROBE_SCRIPT } from './probe/script.js';
 import { adapterNames } from './adapters/registry.js';
 
 const packageRoot = getPackageRoot();
@@ -165,6 +166,13 @@ program
       console.error((err as Error).message);
       process.exit(1);
     }
+  });
+
+program
+  .command('probe')
+  .description("Print the render probe: run it in a browser at each width and save its output for `jig verdicts`.")
+  .action(() => {
+    console.log(PROBE_SCRIPT);
   });
 
 program
