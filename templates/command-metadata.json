@@ -35,12 +35,12 @@
     "status": "agent"
   },
   "mockup": {
-    "description": "Draw the confirmed spec in grayscale at every screen size, for review before any code exists. Disposable: whatever the review changes goes back into the spec. Writes .jig/mockups/<surface>.html. No CLI \u2014 the agent does this.",
+    "description": "Draw the confirmed spec in grayscale at every screen size, for review before any code exists \u2014 as .jig/mockups/<surface>.html by default, or in Figma or Google Stitch when the user has connected either. Disposable: whatever the review changes goes back into the spec. No CLI \u2014 the agent does this.",
     "argumentHint": "<feature, in your own words>",
     "status": "agent"
   },
   "make": {
-    "description": "Build a feature from its confirmed spec \u2014 V1 only, from the spec rather than the mockup's markup \u2014 recording any deviation back into it. Refuses to start without a confirmed spec and a reviewed or explicitly skipped mockup. No CLI \u2014 the agent does this.",
+    "description": "Build a feature from its confirmed spec \u2014 V1 only, from the spec rather than the drawing or code generated from it \u2014 recording any deviation back into it. Refuses to start without a confirmed spec and a reviewed or explicitly skipped mockup. No CLI \u2014 the agent does this.",
     "argumentHint": "<surface, in your own words>",
     "status": "agent"
   },

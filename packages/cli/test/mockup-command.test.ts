@@ -32,6 +32,7 @@ describe('spec starts from a feature and scopes it down', () => {
   });
   it('leaves the mockup pending for the next command', () => {
     expect(spec()).toMatch(/^mockup: pending/m);
+    expect(spec()).toMatch(/^mockup_at:/m);
     expect(spec()).toMatch(/^feature: /m);
   });
   it('does not invent a navigation shell for the first feature', () => {
@@ -79,6 +80,24 @@ describe('mockup', () => {
     expect(mockup()).toMatch(/Size is structure, not\s+detail/);
   });
 
+  // Design-to-code parity through a design tool is in scope. Jig ships neither
+  // tool and writes nothing for either: they are MCP servers the user connects.
+  it('draws in HTML by default, and in Figma or Stitch when the user has connected one', () => {
+    expect(mockup()).toMatch(/By default, draw it yourself as an HTML file/);
+    expect(mockup()).toMatch(/Figma or Google Stitch, when the user has connected one/);
+    expect(mockup()).toMatch(/Jig ships neither and\s+writes nothing for either/);
+    expect(mockup()).toMatch(/do not ask the user to go and\s+connect one/);
+  });
+
+  it('refuses a polished Stitch screen as a mockup', () => {
+    expect(mockup()).toMatch(/it is not a mockup/);
+  });
+
+  it('can review an existing design, for structure only', () => {
+    expect(mockup()).toMatch(/An existing design the user already has/);
+    expect(mockup()).toMatch(/reviews structure only/);
+  });
+
   it('puts every review change into the spec before redrawing', () => {
     expect(mockup()).toMatch(/Every change goes into the spec first/);
     expect(mockup()).toMatch(/Never adjust the drawing alone/);
@@ -97,9 +116,10 @@ describe('make and critique honour the mockup without depending on it', () => {
     expect(make).toMatch(/`mockup: pending`/);
     expect(make).toMatch(/Do not decide to\s+skip it yourself/);
   });
-  it('make builds from the spec, never the mockup markup, and V1 only', () => {
+  it('make builds from the spec, never the drawing or code generated from it, and V1 only', () => {
     const make = section('make', 'critique');
-    expect(make).toMatch(/From the spec, never from the mockup's markup/);
+    expect(make).toMatch(/From the spec, never from the drawing/);
+    expect(make).toMatch(/code\s+generated from a Figma or Stitch frame/);
     expect(make).toMatch(/Build V1 only/);
   });
   it('critique judges the page against the spec, not the drawing', () => {

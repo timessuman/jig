@@ -286,6 +286,7 @@ states: [default, loading, error, success]
 decisions: [The Engineer Reads First]     # every DECISIONS.md entry this screen implements, by name
 later: [social sign-in, remember this device]   # cut from V1, by name — the next specs start here
 mockup: pending            # `mockup` sets approved or skipped, from the user's own words
+mockup_at:                 # where the approved drawing is: a .jig/mockups path, or a Figma or Stitch link
 deviations: []             # `make` writes here; `spec` leaves it empty
 ---
 ```
@@ -362,10 +363,39 @@ defines — and nothing the spec deferred to `later:`.
   → say that a mockup draws one specified feature, and offer to run `spec` for the
   next one.
 
-### 1. Draw it — structure only
+### 1. Choose where to draw it
 
-Write `.jig/mockups/<surface-slug>.html`. `.jig/` is outside what `check` scans and
+**By default, draw it yourself as an HTML file** —
+`.jig/mockups/<surface-slug>.html`. `.jig/` is outside what `check` scans and
 outside what ships, which is where a disposable file belongs.
+
+**Figma or Google Stitch, when the user has connected one.** Jig ships neither and
+writes nothing for either; they are MCP servers a user connects to their own agent.
+Look at the tools available to you. If a Figma or Stitch server is among them, ask
+the user once which they want this mockup in — that tool, or the HTML default. If
+neither is connected, draw the HTML without asking; do not ask the user to go and
+connect one.
+
+- **Drawing in Figma.** One page named for the feature, one frame per size at the
+  spec's widths — 360, 768, 1280 — phone first. Grey fills and strokes only; no
+  library components, styles or variables from the product's design system, for
+  the same reason the HTML carries no tokens.
+- **Drawing in Stitch.** Ask for a low-fidelity grayscale wireframe of this one
+  feature, at each size, with the spec's regions in order and its real labels.
+  Stitch leans towards finished, coloured screens: if what comes back is polished
+  — brand colour, imagery, decoration — it is not a mockup. Ask again for a
+  wireframe, or fall back to HTML. Do not review a finished-looking screen as
+  though it were one.
+- **An existing design the user already has** for this feature, in either tool, can
+  stand in for drawing one. Read it through the server, and compare its structure
+  to the spec at every size. It will usually be high fidelity, so say plainly that
+  this step reviews structure only, and do not take up its colours or type as
+  decisions — those belong to the tokens and `DECISIONS.md`.
+
+The rules below apply whichever of the three it is. They are written for the HTML
+default; in Figma or Stitch they apply to the frames.
+
+### 2. Draw it — structure only
 
 **Low fidelity means low detail.** The purpose is to judge structure before
 appearance, and appearance wins every time it is allowed in: a reviewer shown
@@ -418,9 +448,10 @@ Each frame is a `<section class="frame" data-size="phone">`, preceded by a
 uses, in a `.name` label, so the drawing and the spec can be read against each
 other.
 
-### 2. Put it in front of the user
+### 3. Put it in front of the user
 
-Tell the user where the file is and how to open it. If the harness can render —
+Tell the user where the drawing is — the file path, or the Figma or Stitch link —
+and how to open it. If the harness can render —
 a browse skill, Playwright, a headless browser — render each frame and show them the
 images; a drawing nobody looked at has not been reviewed.
 
@@ -428,7 +459,7 @@ Then ask **structural** questions, not whether they like it: is the most importa
 thing the first thing seen at each size? Does anything belong in a different group?
 Is anything here that V1 does not need?
 
-### 3. Every change goes into the spec first
+### 4. Every change goes into the spec first
 
 When the review moves, adds, cuts or regroups anything, **edit the spec**, then
 redraw from it. Never adjust the drawing alone. A mockup changed in review and not in
@@ -439,10 +470,11 @@ A request for more — "add reactions while you're at it" — goes to `later:`, 
 the user explicitly moves it into V1. Then the spec's scope changes, and it is
 confirmed again.
 
-### 4. Record the outcome in the user's words
+### 5. Record the outcome in the user's words
 
 - The user approves → set `mockup: approved` in the spec, and `confirmed: true` if
-  review changed it. Only their own response counts; your summary of the drawing,
+  review changed it. Record where the approved drawing is in `mockup_at:` — the
+  file path, or the Figma or Stitch link. Only their own response counts; your summary of the drawing,
   or no objection, does not.
 - The user says to skip it → `mockup: skipped — <their reason>`. For a change small
   enough that drawing it costs more than building it, that is a reasonable call; it
@@ -468,9 +500,11 @@ Build the screen from its confirmed spec.
 
 ### Build
 
-**From the spec, never from the mockup's markup.** The mockup's HTML is a drawing:
-fixed frame widths, a throwaway stylesheet, grey boxes. Copying it into the product
-is the one way a disposable file becomes a permanent one. If the spec and the
+**From the spec, never from the drawing.** Not the mockup's HTML, and not code
+generated from a Figma or Stitch frame — both tools will offer that. The drawing
+has fixed frame widths, grey boxes and no tokens. Turning it into the product is the
+one way a disposable drawing becomes permanent code, carrying none of the rules or
+tokens the spec was written against. If the spec and the
 approved drawing disagree, the spec was not updated during review — stop and fix the
 spec, rather than choosing between them.
 
