@@ -468,6 +468,13 @@ look. So the drawing contains:
   detail: a phone composition that is only the desktop one narrower is the failure
   specs are written per size to prevent. A `same-as:` size is drawn anyway, so the
   claim can be seen to hold.
+- **Navigation at every size, exactly as the spec's `nav:` says for that size.** On
+  the phone that usually means the Menu button, drawn where `DECISIONS.md` puts it —
+  and, because an open menu changes the structure, a second phone frame labelled
+  `phone — menu open` showing the links as a vertical list and the button reading as
+  close (`P-14`). A phone frame with no way to the other pages is not a simpler
+  drawing; it is a missing region. A live run approved exactly that in Figma, and the
+  build copied the gap.
 - **The primary state, plus any state that changes the structure.** An empty state
   that replaces a table, or an error that moves a form, is drawn. The rest stay
   listed in the spec. Do not draw what building will reveal: 2,000 contacts, a
@@ -501,6 +508,12 @@ uses, in a `.name` label, so the drawing and the spec can be read against each
 other.
 
 ### 3. Put it in front of the user
+
+**Check the drawing against the spec before anyone sees it.** For each size, go
+down the spec's `regions:` and its `nav:` and find each one in that frame. A region
+the spec names and the frame lacks is drawn now, not raised in review. This matters
+most on the phone, where a region dropped for space is easy to miss and the reviewer
+is looking at what is there, not at what is not.
 
 Tell the user where the drawing is — the file path, or the Figma or Stitch link —
 and how to open it. If the harness can render —

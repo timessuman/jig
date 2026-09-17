@@ -128,6 +128,19 @@ describe('mockup', () => {
     expect(mockup()).toMatch(/confirm there is a screen for \*\*each\*\* size/);
   });
 
+  // A Figma phone frame with no menu button was approved, and the build copied it.
+  it('draws navigation at every size, including the phone menu open', () => {
+    const m = mockup();
+    expect(m).toMatch(/Navigation at every size, exactly as the spec's `nav:` says/);
+    expect(m).toMatch(/`phone — menu open`/);
+    expect(m).toMatch(/it is a missing region/);
+  });
+
+  it('checks every region and nav in each frame against the spec before review', () => {
+    expect(mockup()).toMatch(/Check the drawing against the spec before anyone sees it/);
+    expect(mockup()).toMatch(/go\s+down the spec's `regions:` and its `nav:`/);
+  });
+
   it('can review an existing design, for structure only', () => {
     expect(mockup()).toMatch(/An existing design the user already has/);
     expect(mockup()).toMatch(/reviews structure only/);
