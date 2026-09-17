@@ -234,10 +234,13 @@ that plainly involves UI usually loads it. If it does not, say so once —
 Every finished piece of UI work ends with an attestation line:
 
 ```text
-JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judgment=<ran|skipped>
+JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> warnings=<n> judgment=<ran|skipped>:<n> files=<n> styled=<n>
 ```
 
 `jig check` emits the same line for the half it can do, with `judgment=not-run`.
+`mechanical=pass` means no errors; `warnings=` is counted beside it, because the
+mobile detectors warn rather than fail CI and a page can carry `pass:0` while
+not working on a phone.
 If an agent reports `judgment=ran`, it ran the self-check at the end of
 `rules/00-anti-patterns.md`; if it says `skipped`, it must say why.
 
