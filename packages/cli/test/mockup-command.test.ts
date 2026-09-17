@@ -82,11 +82,18 @@ describe('mockup', () => {
 
   // Design-to-code parity through a design tool is in scope. Jig ships neither
   // tool and writes nothing for either: they are MCP servers the user connects.
-  it('draws in HTML by default, and in Figma or Stitch when the user has connected one', () => {
-    expect(mockup()).toMatch(/By default, draw it yourself as an HTML file/);
-    expect(mockup()).toMatch(/Figma or Google Stitch, when the user has connected one/);
-    expect(mockup()).toMatch(/Jig ships neither and\s+writes nothing for either/);
-    expect(mockup()).toMatch(/do not ask the user to go and\s+connect one/);
+  // The owner's ruling: ask every time — HTML, Figma or Stitch — and when a
+  // chosen tool's MCP server is missing, tell the user to connect it and wait.
+  it('asks the user every time whether to draw in HTML, Figma or Stitch', () => {
+    expect(mockup()).toMatch(/Ask every time, before drawing anything/);
+    for (const way of ['HTML', 'Figma', 'Google Stitch']) expect(mockup()).toContain(`**${way}**`);
+    expect(mockup()).toMatch(/Jig ships neither tool and writes nothing for either/);
+  });
+
+  it('tells the user to connect a missing server, waits, and does not switch for them', () => {
+    expect(mockup()).toMatch(/they need to connect it/);
+    expect(mockup()).toMatch(/stop and wait/);
+    expect(mockup()).toMatch(/Do not switch to HTML on their behalf/);
   });
 
   it('refuses a polished Stitch screen as a mockup', () => {

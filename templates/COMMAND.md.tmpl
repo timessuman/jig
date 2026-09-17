@@ -363,18 +363,27 @@ defines — and nothing the spec deferred to `later:`.
   → say that a mockup draws one specified feature, and offer to run `spec` for the
   next one.
 
-### 1. Choose where to draw it
+### 1. Ask the user how they want it drawn
 
-**By default, draw it yourself as an HTML file** —
-`.jig/mockups/<surface-slug>.html`. `.jig/` is outside what `check` scans and
-outside what ships, which is where a disposable file belongs.
+**Ask every time, before drawing anything.** Three ways, and the choice is the
+user's:
 
-**Figma or Google Stitch, when the user has connected one.** Jig ships neither and
-writes nothing for either; they are MCP servers a user connects to their own agent.
-Look at the tools available to you. If a Figma or Stitch server is among them, ask
-the user once which they want this mockup in — that tool, or the HTML default. If
-neither is connected, draw the HTML without asking; do not ask the user to go and
-connect one.
+1. **HTML** — you draw it as `.jig/mockups/<surface-slug>.html`. Needs nothing
+   connected. `.jig/` is outside what `check` scans and outside what ships, which
+   is where a disposable file belongs.
+2. **Figma** — drawn on a Figma canvas through Figma's MCP server.
+3. **Google Stitch** — generated through Stitch's MCP server.
+
+Jig ships neither tool and writes nothing for either. They are MCP servers the user
+connects to their own agent, and the user decides whether to.
+
+**If they choose Figma or Stitch, check that its server is among your tools.** If it
+is not, tell them plainly: that tool's MCP server is not connected to this agent;
+they need to connect it — Figma's through its official MCP server, Stitch's with a
+Stitch API key — and some agents only see a newly added server after a restart.
+Then **stop and wait**. When they say it is connected, check your tools again
+before drawing. Do not switch to HTML on their behalf; offer it, and let them
+choose.
 
 - **Drawing in Figma.** One page named for the feature, one frame per size at the
   spec's widths — 360, 768, 1280 — phone first. Grey fills and strokes only; no
@@ -383,17 +392,17 @@ connect one.
 - **Drawing in Stitch.** Ask for a low-fidelity grayscale wireframe of this one
   feature, at each size, with the spec's regions in order and its real labels.
   Stitch leans towards finished, coloured screens: if what comes back is polished
-  — brand colour, imagery, decoration — it is not a mockup. Ask again for a
-  wireframe, or fall back to HTML. Do not review a finished-looking screen as
-  though it were one.
+  — brand colour, imagery, decoration — it is not a mockup. Ask Stitch again for a
+  wireframe. If it still will not produce one, tell the user and ask whether to
+  switch to HTML. Do not review a finished-looking screen as though it were one.
 - **An existing design the user already has** for this feature, in either tool, can
   stand in for drawing one. Read it through the server, and compare its structure
   to the spec at every size. It will usually be high fidelity, so say plainly that
   this step reviews structure only, and do not take up its colours or type as
   decisions — those belong to the tokens and `DECISIONS.md`.
 
-The rules below apply whichever of the three it is. They are written for the HTML
-default; in Figma or Stitch they apply to the frames.
+The rules below apply whichever of the three it is. They are written for HTML; in
+Figma or Stitch they apply to the frames.
 
 ### 2. Draw it — structure only
 

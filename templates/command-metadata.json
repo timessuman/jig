@@ -35,7 +35,7 @@
     "status": "agent"
   },
   "mockup": {
-    "description": "Draw the confirmed spec in grayscale at every screen size, for review before any code exists \u2014 as .jig/mockups/<surface>.html by default, or in Figma or Google Stitch when the user has connected either. Disposable: whatever the review changes goes back into the spec. No CLI \u2014 the agent does this.",
+    "description": "Draw the confirmed spec in grayscale at every screen size, for review before any code exists. Asks how to draw it \u2014 HTML at .jig/mockups/<surface>.html, Figma, or Google Stitch \u2014 and tells the user to connect that tool's MCP server if it is not connected. Disposable: whatever the review changes goes back into the spec. No CLI \u2014 the agent does this.",
     "argumentHint": "<feature, in your own words>",
     "status": "agent"
   },

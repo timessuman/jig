@@ -188,7 +188,7 @@ on the result — the CLI reports, the agent applies the judgment half.
 | `/jig update` | `jig update` |
 | `/jig decide` | No CLI. Interviews you and writes `DECISIONS.md` — what holds on every screen, and why |
 | `/jig spec create an invoice` | No CLI. Scopes the next feature to its smallest useful version and specifies it at every screen size |
-| `/jig mockup` | No CLI. Draws that spec in grayscale at every size, for your review before any code exists — as an HTML file, or in Figma or Google Stitch if you have connected either to your agent |
+| `/jig mockup` | No CLI. Draws that spec in grayscale at every size, for your review before any code exists — asks whether you want HTML, Figma or Google Stitch, and tells you to connect that tool's MCP server if you have not |
 | `/jig make` | No CLI. Builds the feature's first version from the confirmed spec |
 | `/jig critique` | No CLI. Renders what was built and judges it against the spec and the rules |
 
