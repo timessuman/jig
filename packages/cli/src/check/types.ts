@@ -57,6 +57,25 @@ export interface DetectorContext {
    * which case a mode-gated detector stays silent rather than guessing.
    */
   mode?: string;
+  /**
+   * Whether anything in the project adapts its composition to the viewport — a
+   * width media query, a container query, an intrinsic grid, a wrapping row, or
+   * a Tailwind breakpoint prefix. See `check/responsive.ts`.
+   *
+   * A project fact for the same reason `projectParticipates` is: the grid and
+   * the query that collapses it routinely live in different files, and a
+   * per-file answer would flag the grid wrongly. `undefined` when it was never
+   * computed, in which case `D-111` stays silent rather than guessing.
+   */
+  projectResponsive?: boolean;
+  /**
+   * Whether the project extends the page under the notch and home indicator —
+   * `viewport-fit=cover` in a viewport meta tag, or Next's
+   * `viewportFit: 'cover'`. A project fact: the tag lives in markup, the pinned
+   * bars live in stylesheets. `undefined` when never computed; `D-114` is then
+   * silent.
+   */
+  viewportFitCover?: boolean;
 }
 
 export interface Detector {

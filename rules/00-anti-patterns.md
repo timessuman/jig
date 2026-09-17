@@ -287,6 +287,31 @@ The converse also holds: two elements that do the same job should look the same.
 
 ---
 
+### D-111 A page that never adapts to the viewport
+❌ Cards in a row, a nav of links in a row, or a fixed page width — and nothing anywhere in the project that changes them when the screen is narrow
+✅ Compose for the phone first, then add columns as width allows: a single column that becomes a grid, a nav that becomes a different control, not a smaller copy of the desktop. Use a width breakpoint, a container query, or an intrinsic grid (`repeat(auto-fit, minmax(…))`) — any of them, as long as something responds.
+The phone is not the edge case. It is the most common screen a page is read on, and a layout composed for a wide screen and left alone arrives there as a horizontal scroll, a nav whose last links are off the edge, and three cards crushed to a third of 375px each.
+This is decided for the whole project, not per file, because the grid and the query that collapses it routinely live in different stylesheets. It only reports what is laid out side by side: a single column of text with a `max-width` works on a phone with no breakpoint at all, and is not a finding.
+Two things do **not** count as adapting, and both are traps. A `prefers-reduced-motion` query is about the user, not the width — and `L-04` asks every page for one, so counting it would let a fixed-width page pass by following the self-check. And shrinking is not adapting: the same three columns at a smaller size are still three columns. That second failure is `critique`'s to judge on a render; this rule catches only the page that never responds at all.
+
+### D-112 A full-height section sized with `100vh`
+❌ `min-height: 100vh` on a hero, a sign-in screen or an app shell
+✅ `min-height: 100svh`. Use `dvh` only for an element that must follow the browser bars as they show and hide. If older browsers matter, keep `100vh` as the line **before** it, as a fallback.
+On a phone, `100vh` is the height with the browser's bars hidden. While they are showing — which is when the page first loads — the bottom of a "full-height" section is under the toolbar, and the call to action placed at its foot is exactly what cannot be seen.
+`svh` is the default because it does not change: `dvh` resizes as the bars move, which makes the content jump while the reader scrolls.
+
+### D-114 A pinned bar under the notch or the home indicator
+❌ `position: fixed; bottom: 0` on a tab bar, on a page whose viewport meta tag sets `viewport-fit=cover`
+✅ Pad the pinned edge with its inset — `padding-bottom: env(safe-area-inset-bottom)` for a bottom bar, and the matching inset for any other edge it touches.
+`viewport-fit=cover` extends the page under the notch and the gesture bar. That is what makes an edge-to-edge design possible, and it also means a bar at `bottom: 0` has its labels sitting beneath the home indicator, where a swipe meant for the tab closes the app instead.
+Without `viewport-fit=cover`, the browser keeps the page inside the safe area on its own, and there is nothing to do.
+
+### D-115 The page scrolls sideways on a phone
+❌ At phone width the whole page is wider than the screen — a data table, a long URL, an image, a `width: 100vw` element or a fixed-width block pushes it out, and the reader can drag the page left and right
+✅ At every width, nothing makes the page wider than the screen. Content that is genuinely wider — a data table, a code block — scrolls inside its own container with a visible edge (`E-62`), and the page itself never does. `editorial` goes further and allows no scrolling regions on mobile at all (`M-01`).
+Judge it on a render, not in the source: at 360px, `document.documentElement.scrollWidth` must not be greater than `document.documentElement.clientWidth`. The usual causes are each one line to fix — `overflow-wrap: anywhere` on text the author does not control, `max-width: 100%` on media, `width: 100%` instead of `100vw` (which includes the scrollbar), and a wrapper with `overflow-x: auto` around anything tabular.
+A page that scrolls sideways is not merely untidy. The reader's vertical swipes drift, the page slides half off the screen, and every line of text needs re-centring before it can be read.
+
 ## E. States and interaction
 
 Agents render the happy path. This section exists because that is the single most common gap in generated UI.
@@ -465,6 +490,12 @@ Where people must *browse* to decide, split the list into two dependent fields �
 ✅ "Email". The input field already tells people to type in it.
 
 ---
+
+### F-113 Form text small enough to make the phone zoom
+❌ An input, select or textarea whose text is below 16px — including `operator`'s 14px `--text-body`, and `--text-caption` in every mode
+✅ At least 16px on touch screens. To keep a denser size on desktop, raise it only where it matters: `@media (pointer: coarse) { input, select, textarea { font-size: max(16px, var(--text-body)); } }`
+iOS Safari zooms the whole page when a field whose text is below 16px takes focus, and it does not zoom back out when the field loses it. The reader is left with a form wider than the screen, scrolling sideways to find the next field (`D-115`).
+Setting `maximum-scale=1` on the viewport to stop it is not the fix. That disables pinch zoom for everyone, which is an accessibility failure in its own right.
 
 ## G. Motion
 

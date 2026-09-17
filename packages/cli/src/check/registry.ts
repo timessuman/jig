@@ -9,6 +9,10 @@ import { contrastFloor } from './detectors/contrast-floor.js';
 import { focusRemoved } from './detectors/focus-removed.js';
 import { hardcodedValue } from './detectors/hardcoded-value.js';
 import { violetBandHue } from './detectors/violet-band-hue.js';
+import { fixedWidth } from './detectors/fixed-width.js';
+import { viewportHeight } from './detectors/viewport-height.js';
+import { inputZoom } from './detectors/input-zoom.js';
+import { safeArea } from './detectors/safe-area.js';
 
 /**
  * Every detector `check` knows how to run, keyed by the `detector` name
@@ -27,6 +31,10 @@ const DETECTORS: Detector[] = [
   focusRemoved,
   hardcodedValue,
   violetBandHue,
+  fixedWidth,
+  viewportHeight,
+  inputZoom,
+  safeArea,
 ];
 
 export function getDetector(name: string): Detector | undefined {

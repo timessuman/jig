@@ -24,6 +24,8 @@ export function runChecks(
   bucketFilter?: (bucket: Bucket) => boolean,
   projectParticipates = false,
   mode?: string,
+  projectResponsive?: boolean,
+  viewportFitCover?: boolean,
 ): Finding[] {
   const findings: Finding[] = [];
 
@@ -61,7 +63,7 @@ export function runChecks(
     const source = maskComments(maskNonStyleRegions(raw, file));
 
     for (const { entry, detector } of applicable) {
-      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw, mode };
+      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw, mode, projectResponsive, viewportFitCover };
       findings.push(...detector.run(source, file, ctx));
     }
   }

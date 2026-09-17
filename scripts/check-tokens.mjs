@@ -623,6 +623,18 @@ const LIGHT_BACKGROUNDS = {
   claim('package.json description rule count',
         read('packages/cli/package.json'), /(\d+) numbered UI rules/, index.length);
   claim('README judgment count', readme, /(\d+) judgment\b/, index.filter((r) => r.bucket === 'judgment').length);
+  // The split paragraph near the top of the README carried "7 can be decided by
+  // a machine" and "97 are judgment" from the 104-rule release until 0.10.0,
+  // while the claim above stayed green: its pattern needs a digit directly
+  // before "judgment", and that sentence says "97 are judgment", so the guard
+  // was pinned to a different sentence while this one rotted. Every number in
+  // that paragraph is now claimed individually, by the words it actually uses.
+  const detected = index.filter((r) => r.detector).length;
+  const judgment = index.filter((r) => r.bucket === 'judgment').length;
+  claim('README machine-decidable count', readme, /\*\*(\d+) can be decided by a machine\*\*/, detected);
+  claim('README judgment count in the split', readme, /\*\*(\d+) are judgment\*\*/, judgment);
+  claim('README "only the CLI" count', readme, /only the CLI gets you the (\d+)\b/, detected);
+  claim('README "only the agent" count', readme, /only the agent gets you the (\d+)\b/, judgment);
   claim("README's 00-anti-patterns row", readme, /\| (\d+) universal rules/,
         (antiPatterns.match(/^### [A-Z]-\d+/gm) ?? []).length);
   claim('house-positions pattern count', housePositions, /These (\d+) cover/,
