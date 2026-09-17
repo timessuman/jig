@@ -118,7 +118,16 @@ export function explain(opts: ExplainOptions): string {
   const rules = loadRules(rulesDir, join(root, 'rules.index.json'));
   const specs = loadSpecs(rulesDir);
   const entries: Array<{ id: string; title: string; text: string }> = [
-    ...rules.map((r) => ({ id: r.id, title: r.title, text: `${r.wrong}\n${r.correction}` })),
+    // Search reads everything `renderRule` prints. It read only the ❌/✅ pair:
+    // when the reasoning was restored to the output (see `renderRule`), the
+    // search was left behind, so a word from a rule's argument — the half that
+    // says when it applies — printed on every lookup and could never be found
+    // by one. Specs were already searched whole.
+    ...rules.map((r) => ({
+      id: r.id,
+      title: r.title,
+      text: [...r.preamble, r.wrong, r.correction, ...r.notes].join('\n'),
+    })),
     ...specs.map((s) => ({ id: s.id, title: s.title, text: s.body })),
   ];
 

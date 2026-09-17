@@ -289,6 +289,13 @@ describe('explain — methods (L-)', () => {
   // replacement. Searching "hamburger" used to return only E-61 — do not build
   // one — and "mobile nav" returned nothing, so an agent reaching for either
   // never met the pattern it should build. Both searches now reach P-14.
+  // A rule's reasoning is printed on every lookup, and was never searched: the
+  // index held only the ❌/✅ pair. 'silhouette' appears only in B-106's
+  // argument, so it proves the prose is now part of what a search reads.
+  it('finds a rule by a word that appears only in its reasoning', () => {
+    expect(explain({ ruleId: 'silhouette', version })).toContain('B-106');
+  });
+
   it('reaches the navigation pattern from the words an agent actually searches', () => {
     expect(explain({ ruleId: 'hamburger', version })).toContain('P-14');
     expect(explain({ ruleId: 'mobile nav', version })).toContain('P-14');
