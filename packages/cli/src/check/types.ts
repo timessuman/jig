@@ -68,6 +68,14 @@ export interface DetectorContext {
    * computed, in which case `D-111` stays silent rather than guessing.
    */
   projectResponsive?: boolean;
+  /**
+   * Whether the project extends the page under the notch and home indicator —
+   * `viewport-fit=cover` in a viewport meta tag, or Next's
+   * `viewportFit: 'cover'`. A project fact: the tag lives in markup, the pinned
+   * bars live in stylesheets. `undefined` when never computed; `D-114` is then
+   * silent.
+   */
+  viewportFitCover?: boolean;
 }
 
 export interface Detector {

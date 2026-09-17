@@ -189,6 +189,18 @@ export function check(opts: CheckOptions): CheckResult {
     }
   });
 
+  // Whether the page extends under the notch. Read from raw markup across the
+  // whole project, because the viewport meta tag and the pinned bars it affects
+  // live in different files. See `D-114`.
+  const viewportFitCover = stylesheets.some((f) => {
+    if (!isStyleBearing(f)) return false;
+    try {
+      return /viewport-fit\s*=\s*cover|viewportFit\s*:\s*['"]cover['"]/i.test(readFileSync(join(opts.projectRoot, f), 'utf8'));
+    } catch {
+      return false;
+    }
+  });
+
   // How many of the selected files actually carried a style region.
   //
   // `.ts`, `.tsx` and friends are style-bearing by EXTENSION, so `files.length`
@@ -210,7 +222,7 @@ export function check(opts: CheckOptions): CheckResult {
   // Resolved once and shared: the report names it, and A-09 gates on it.
   const resolvedMode = resolveMode(opts.projectRoot);
 
-  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive);
+  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive, viewportFitCover);
 
   // The token layer's OWN declarations, which no detector reads: `.jig/tokens/`
   // is not in the scanned set, so until this ran, a brand file edited after

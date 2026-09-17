@@ -751,5 +751,33 @@
     "severity": "warning",
     "since": "0.10.0",
     "detector": "fixed-width"
+  },
+  {
+    "id": "D-112",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.10.0",
+    "detector": "viewport-height"
+  },
+  {
+    "id": "F-113",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.10.0",
+    "detector": "input-zoom"
+  },
+  {
+    "id": "D-114",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.10.0",
+    "detector": "safe-area"
+  },
+  {
+    "id": "D-115",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.10.0",
+    "pass": "screen"
   }
 ]

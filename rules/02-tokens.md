@@ -245,6 +245,9 @@ its durations are shorter: a curve with a long tail makes a 100ms animation feel
 slower than it is.
 
 **`--size-touch-target` is 48px in every mode and is not a density decision.**
+It is the minimum tap target — the hit area a finger needs — for anything that can be
+pressed. 48px is deliberately above both the 44px of the iOS guidance and the 24px
+minimum of WCAG 2.2.
 It is an accessibility floor, so it is excluded from the table above — there is
 nothing per-mode about it to resolve. The same is true of `--focus-ring-width`
 and `--focus-ring-offset`, which live in the brand file for that reason.
