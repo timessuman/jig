@@ -544,6 +544,12 @@ Deletion is a real answer and the easy one to miss, because the correction point
 ❌ Scroll listeners for sticky positioning; scripted accordions and dialogs that have native equivalents
 ✅ Platform first: `position: sticky`, `<details>`, `<dialog>`, `:has()`, container queries, `scroll-behavior`, `popover`. Reach for a framework when the platform genuinely lacks the capability.
 
+### H-117 A token name nothing declares
+❌ `font-family: var(--font-body)`, `padding: var(--space-lg)` — in a project whose token layer declares neither
+✅ Use the names the token layer declares — `02-tokens.md` lists them, and the token files in the project are the source. If the value you need has no token, that is a finding to report or a value to delete (`H-47`), never a name to make up.
+The browser does not warn. A `var()` that cannot resolve makes its whole declaration invalid, so the property falls back to its initial value: the font becomes the browser default serif, padding becomes 0, the border disappears. The page still renders, the source still looks tokenised, and every file-based review passes it. In a live run three of four pages invented their token names this way and shipped mostly unstyled.
+`jig check` reads every custom property the project declares — the token layer, its own stylesheets, a Tailwind `@theme`, `style` attributes — and reports each reference to one that is not there. A reference with a fallback, `var(--x, 1rem)`, resolves, and is not reported.
+
 ---
 
 ## I. Copy

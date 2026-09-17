@@ -83,6 +83,12 @@ export interface DetectorContext {
    * silent.
    */
   projectMenuToggle?: boolean;
+  /**
+   * Every custom property the project declares. See
+   * `check/declared-properties.ts`. `undefined` when never computed; `H-117`
+   * is then silent.
+   */
+  declaredProperties?: import('./declared-properties.js').DeclaredProperties;
 }
 
 export interface Detector {

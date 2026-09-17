@@ -226,7 +226,13 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
   if (meta.modeUnwired && meta.modeUnwired.length > 0) {
     lines.push('');
     for (const p of meta.modeUnwired) lines.push(`  ⚠ ${p.message}.`);
-    lines.push(`  Run 'jig init' again: it rewrites the token layer for the modes jig.config.json declares.`);
+    // `init` leaves a hand-edited config alone, so re-running it cannot fix a
+    // config problem — only the file can. The two need different advice.
+    if (meta.modeUnwired.some((p) => p.barrel === 'jig.config.json')) {
+      lines.push(`  Fix jig.config.json by hand — init leaves an edited config alone — then run 'jig init' again.`);
+    } else {
+      lines.push(`  Run 'jig init' again: it rewrites the token layer for the modes jig.config.json declares.`);
+    }
   }
 
   const mechanicalErrors = findings.filter((f) => f.bucket === 'mechanical' && f.severity === 'error').length;

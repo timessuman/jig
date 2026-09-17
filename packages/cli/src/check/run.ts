@@ -5,6 +5,7 @@ import { maskComments } from './css.js';
 import { maskNonStyleRegions } from './styles.js';
 import { getDetector } from './registry.js';
 import type { Bucket, Finding } from './types.js';
+import type { DeclaredProperties } from './declared-properties.js';
 
 /**
  * Runs every detector whose rule is BOTH present in the consumer's
@@ -27,6 +28,7 @@ export function runChecks(
   projectResponsive?: boolean,
   viewportFitCover?: boolean,
   projectMenuToggle?: boolean,
+  declaredProperties?: DeclaredProperties,
 ): Finding[] {
   const findings: Finding[] = [];
 
@@ -64,7 +66,7 @@ export function runChecks(
     const source = maskComments(maskNonStyleRegions(raw, file));
 
     for (const { entry, detector } of applicable) {
-      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw, mode, projectResponsive, viewportFitCover, projectMenuToggle };
+      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw, mode, projectResponsive, viewportFitCover, projectMenuToggle, declaredProperties };
       findings.push(...detector.run(source, file, ctx));
     }
   }
