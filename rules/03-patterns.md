@@ -520,7 +520,9 @@ Main containers align to a 12-column grid; small elements *inside* them do not �
 
 Blur the design, zoom out, or step back. You should still be able to tell what the screen is for and which element matters most. If everything reads at one weight the hierarchy has failed; if elements smear together the white space is too tight.
 
-An agent cannot squint, so use the analogue: **if all type were one size and one colour, would the layout still communicate its order?** If the hierarchy depends entirely on type styling, it is too weak.
+**When the page can be rendered, test it without colour.** Render it with `filter: grayscale(1)` on the root element — in a browser tool, one line of script — and look again at every size. Spacing, contrast and size should carry the order on their own: the primary action still reads first, the heading still leads its section, what belongs together still sits together. Colour is added on top of a hierarchy that already works; it does not make one. If the primary action is only findable by its hue, the hierarchy is too weak (`E-91` is the same failure on a single button). Then blur it — add `blur(2px)` — and ask what the screen is for and which element matters most.
+
+**When nothing can render it, use the analogue:** if all type were one size and one colour, would the layout still communicate its order? If the hierarchy depends entirely on type styling, it is too weak. The analogue is a fallback, not an equal — a reading of the source is not a look at the page.
 
 ---
 
