@@ -24,8 +24,8 @@ describe('the command loop runs one feature at a time', () => {
     expect(head).toMatch(/`decide` runs once per project/);
     expect(head).toMatch(/for each page, feature or\s+functionality/);
     expect(head).toMatch(/mockup\s+low-fidelity design/);
-    expect(head).toMatch(/make\s+high-fidelity/);
-    expect(head).toMatch(/critique\s+scrutinises what was built against the rules/);
+    expect(head).toMatch(/make\s+high-fidelity: the actual page or feature, built from the spec & mockup/);
+    expect(head).toMatch(/critique\s+scrutinises what was built against the rules, its spec & mockup/);
   });
 });
 
@@ -136,14 +136,29 @@ describe('make and critique honour the mockup without depending on it', () => {
     expect(make).toMatch(/`mockup: pending`/);
     expect(make).toMatch(/Do not decide to\s+skip it yourself/);
   });
-  it('make builds from the spec, never the drawing or code generated from it, and V1 only', () => {
+  // Owner ruling: make builds from the spec AND the approved mockup. It uses the
+  // mockup's structure; it still never pastes the mockup's HTML or the code a
+  // Figma or Stitch frame generates, which carry no tokens.
+  it('make builds from the spec and the mockup, never by copying the mockup, and V1 only', () => {
     const make = section('make', 'critique');
-    expect(make).toMatch(/From the spec, never from the drawing/);
-    expect(make).toMatch(/code\s+generated from a Figma or Stitch frame/);
+    expect(make).toMatch(/from its confirmed spec and its\s+approved mockup/);
+    expect(make).toMatch(/Build from the spec and the mockup, never by copying the mockup/);
+    expect(make).toMatch(/Read it; do not copy it/);
+    expect(make).toMatch(/Stop and ask the user which is right/);
     expect(make).toMatch(/Build V1 only/);
   });
-  it('critique judges the page against the spec, not the drawing', () => {
-    expect(tmpl().split('\n## critique\n')[1]).toMatch(/Compare the page to its spec — not to the mockup/);
+  // Owner ruling: critique scrutinises against the rules, the spec AND the mockup,
+  // and belongs to the family that needs DECISIONS.md.
+  it('critique compares the page to its spec and its mockup, structure not appearance', () => {
+    const c = tmpl().split('\n## critique\n')[1];
+    expect(c).toMatch(/Compare the page to its spec and its mockup/);
+    expect(c).toMatch(/Not the colour, type or\s+polish/);
+    expect(c).toMatch(/mockup=<approved\|skipped\|missing>/);
+  });
+
+  it('critique refuses to start without DECISIONS.md', () => {
+    const c = tmpl().split('\n## critique\n')[1];
+    expect(c).toMatch(/No `DECISIONS\.md` with substance → run `\{\{command_prefix\}\}decide` first/);
   });
 });
 
@@ -184,15 +199,16 @@ describe('the installed slash command offers the agent procedures', () => {
 });
 
 // decide said "every other command is blocked until this exists". That was
-// broader than true — install, init, check, explain and critique do not need it,
-// and init has to run first — and an agent taking it literally would refuse to
-// run check on a project with no decisions yet.
+// broader than true — install, init, check and explain do not need it, and init
+// has to run first — and an agent taking it literally would refuse to run check
+// on a project with no decisions yet. critique is in the family that does need
+// it, by owner ruling: it judges against the project's decisions too.
 describe('decide names exactly what it blocks', () => {
   it('blocks designing and building only, and says what it does not block', () => {
     const decide = tmpl().split('\n## decide\n')[1];
     expect(decide).not.toMatch(/Every other command is blocked/);
-    expect(decide).toMatch(/Designing and building are blocked until this exists/);
-    expect(decide).toMatch(/`install`, `init`, `check`, `explain` and `critique` all run without it/);
+    expect(decide).toMatch(/`spec`, `mockup`, `make` and `critique` are blocked until this exists/);
+    expect(decide).toMatch(/`install`, `init`, `check` and `explain` run without it/);
     expect(decide).toMatch(/`init`\s+comes first/);
   });
 });

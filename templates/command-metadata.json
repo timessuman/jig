@@ -15,7 +15,7 @@
     "status": "available"
   },
   "decide": {
-    "description": "Write the project-wide design decisions to DECISIONS.md beside the token layer \u2014 the choices that need a reason, which the tokens hold the values for but cannot explain. Runs once per project, by interviewing you. spec, mockup and make need it; nothing else does. No CLI \u2014 the agent does this.",
+    "description": "Write the project-wide design decisions to DECISIONS.md beside the token layer \u2014 the choices that need a reason, which the tokens hold the values for but cannot explain. Runs once per project, by interviewing you. spec, mockup, make and critique need it; nothing else does. No CLI \u2014 the agent does this.",
     "argumentHint": "",
     "status": "agent"
   },
@@ -40,12 +40,12 @@
     "status": "agent"
   },
   "make": {
-    "description": "High-fidelity: build the actual page or feature from its confirmed spec \u2014 never from the mockup \u2014 recording any deviation back into the spec. No CLI \u2014 the agent does this.",
+    "description": "High-fidelity: build the actual page or feature from its confirmed spec and approved mockup \u2014 matching the mockup's structure, never copying its markup \u2014 recording any deviation back into the spec. No CLI \u2014 the agent does this.",
     "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   },
   "critique": {
-    "description": "Scrutinise what was built against the rules and its spec: render it, judge what check cannot, and report by rule id. No CLI \u2014 the agent does this.",
+    "description": "Scrutinise what was built against the rules, its spec and its mockup: render it, judge what check cannot, and report by rule id. Needs DECISIONS.md. No CLI \u2014 the agent does this.",
     "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
   }

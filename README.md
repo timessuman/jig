@@ -189,8 +189,8 @@ on the result — the CLI reports, the agent applies the judgment half.
 | `/jig decide` | No CLI. Once per project: interviews you and writes the project-wide decisions, with a reason for each |
 | `/jig spec invoice page` | No CLI. What exactly is being built — a page, feature or functionality — at its smallest useful version, at every screen size |
 | `/jig mockup` | No CLI. Low-fidelity design of that spec, reviewed before code — in HTML, Figma or Google Stitch, whichever you choose |
-| `/jig make` | No CLI. High-fidelity: builds the actual page or feature from the spec |
-| `/jig critique` | No CLI. Scrutinises what was built against the rules and its spec |
+| `/jig make` | No CLI. High-fidelity: builds the actual page or feature from the spec and mockup |
+| `/jig critique` | No CLI. Scrutinises what was built against the rules, its spec and its mockup |
 
 `decide` runs once. The other four run for each page, feature or functionality, one
 at a time — never the whole product at once.

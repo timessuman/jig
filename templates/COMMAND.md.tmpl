@@ -24,8 +24,8 @@ decide     project-wide decisions, and the reason for each      once per project
 
 spec       what exactly is being built: its smallest useful version, at every screen size
 mockup     low-fidelity design of that spec, reviewed before any code
-make       high-fidelity: the actual page or feature, built from the spec
-critique   scrutinises what was built against the rules and its spec
+make       high-fidelity: the actual page or feature, built from the spec & mockup
+critique   scrutinises what was built against the rules, its spec & mockup
 ```
 
 ## init
@@ -349,8 +349,10 @@ they confirm.
 ## mockup
 
 **Low-fidelity design.** Draw the confirmed spec in grayscale, at every size it
-names, and get it looked at **before** any code is written. The drawing is disposable. The spec is the durable
-record, and everything the review changes goes back into it.
+names, and get it looked at **before** any code is written. Once approved, the
+drawing is what `make` builds to and what `critique` checks against, alongside the
+spec. The spec stays the durable record, and everything the review changes goes
+back into it first, so the two never disagree.
 
 It draws **what one spec defines** — its V1 — and nothing deferred to `later:`.
 Never the whole product.
@@ -369,7 +371,7 @@ user's:
 
 1. **HTML** — you draw it as `.jig/mockups/<surface-slug>.html`. Needs nothing
    connected. `.jig/` is outside what `check` scans and outside what ships, which
-   is where a disposable file belongs.
+   is where a working drawing belongs.
 2. **Figma** — drawn on a Figma canvas through Figma's MCP server.
 3. **Google Stitch** — generated through Stitch's MCP server.
 
@@ -492,8 +494,8 @@ Then stop. The next step is `{{command_prefix}}make`.
 
 ## make
 
-**High-fidelity.** Build the actual page or feature from its confirmed spec — the
-real tokens, components and copy, working.
+**High-fidelity.** Build the actual page or feature from its confirmed spec and its
+approved mockup — the real tokens, components and copy, working.
 
 ### Refuse rather than guess
 
@@ -509,13 +511,21 @@ real tokens, components and copy, working.
 
 ### Build
 
-**From the spec, never from the drawing.** Not the mockup's HTML, and not code
-generated from a Figma or Stitch frame — both tools will offer that. The drawing
-has fixed frame widths, grey boxes and no tokens. Turning it into the product is the
-one way a disposable drawing becomes permanent code, carrying none of the rules or
-tokens the spec was written against. If the spec and the
-approved drawing disagree, the spec was not updated during review — stop and fix the
-spec, rather than choosing between them.
+**Build from the spec and the mockup, never by copying the mockup.** The spec says
+what is being built; the approved mockup shows its structure at each size — what
+comes first, what is grouped with what, what stacks on the phone. Match that
+structure at high fidelity.
+
+What you do not do is paste the mockup's HTML into the product, or take the code a
+Figma or Stitch frame will generate for you. The drawing has fixed frame widths, grey
+boxes and no tokens; pasted in, it carries none of the rules or tokens the product is
+built on. Read it; do not copy it.
+
+If the spec and the approved mockup disagree, the spec was not updated during review.
+Stop and ask the user which is right, fix the spec, and continue — do not choose
+between them yourself.
+
+If `mockup: skipped`, build from the spec alone.
 
 Build V1 only. Nothing in `later:`, however little extra it looks.
 
@@ -581,7 +591,10 @@ competing verdicts on one id.
 
 ### Refuse rather than guess
 
-- The user named no surface → ask which screen.
+- No `DECISIONS.md` with substance → run `{{command_prefix}}decide` first. `critique`
+  judges the page against the project's decisions as well as the rules, and has
+  nothing to judge that half against without them.
+- The user named nothing → ask which page, feature or functionality.
 - There is no `.jig/specs/<surface>.spec.md` → say so and continue **rules-only**,
   reporting `spec=missing`. Do not invent the spec the page should have had; a
   spec written after the page, from the page, agrees with it by construction.
@@ -593,7 +606,7 @@ conversation that built the page. Running them in one head anchors them to each
 other; do not shortcut it for cost, speed or context size.
 
 - **A — the reader.** Delegate to a subagent. Give it the URL or file, the spec,
-  and the corpus. It judges the `pass: screen` rules against the render. Do
+  the approved mockup (from `mockup_at:`), `DECISIONS.md`, and the corpus. It judges the `pass: screen` rules against the render. Do
   **not** give it the build conversation. If it needs that conversation, it is
   not reviewing the page, it is agreeing with itself.
 - **B — the machine.** Run `check`. Deterministic, same input same output. It
@@ -713,16 +726,21 @@ source and imagining the page is not a render.
 If no browser is available, say so in one line and use `L-01`'s analogue. Never
 skip it silently, and never report a render you did not do.
 
-### 3. Compare the page to its spec — not to the mockup
+### 3. Compare the page to its spec and its mockup
 
-The mockup was disposable and anything the review decided went into the spec, so
-the spec is the only thing a built page answers to.
+**The spec**, field by field: for each size, say whether the page rendered at that
+size satisfies each frontmatter field.
 
-For each size, for each frontmatter field, say whether the page rendered at that
-size satisfies it. A difference
-is a finding **unless** `deviations:` already explains it — that is what the
-recorded deviation is for. A difference explained by neither is the more serious
-finding, because it means the spec has quietly stopped describing the page.
+**The mockup**, size by size: set each rendered size beside the approved drawing
+at the same width and compare the structure — the regions and their order, what is
+grouped with what, what stacks or moves on the phone. Not the colour, type or
+polish: the mockup is grayscale and low-fidelity on purpose, so its appearance is
+not a target.
+
+A difference from either is a finding **unless** `deviations:` already explains it
+— that is what the recorded deviation is for. A difference explained by neither is
+the more serious finding, because it means the spec has quietly stopped describing
+the page. If `mockup: skipped`, compare to the spec alone and say so.
 
 ### 4. Report
 
@@ -738,7 +756,7 @@ preserve while fixing them.
 Then the attestation:
 
 ```text
-JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> mechanical=<pass|fail|skipped>:<n> warnings=<n>
+JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> mockup=<approved|skipped|missing> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> mechanical=<pass|fail|skipped>:<n> warnings=<n>
 ```
 
 Three counts because there are three arms, and each can fail independently.
@@ -773,10 +791,10 @@ did not see the page.
 Write `DECISIONS.md` beside the token layer — `jig/DECISIONS.md` by default, or
 wherever `brand` in `{{config_file}}` puts the token files.
 
-Designing and building are blocked until this exists: `spec` refuses to start
-without it, and `mockup` and `make` need a confirmed spec. Nothing else is blocked —
-`install`, `init`, `check`, `explain` and `critique` all run without it. `init`
-comes first, because this file sits beside the token files `init` writes.
+`spec`, `mockup`, `make` and `critique` are blocked until this exists: `spec` and
+`critique` refuse to start without it, and `mockup` and `make` need a confirmed spec.
+Nothing else is blocked — `install`, `init`, `check` and `explain` run without it.
+`init` comes first, because this file sits beside the token files `init` writes.
 
 ### What belongs in it, and what does not
 
