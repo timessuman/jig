@@ -15,6 +15,7 @@ import { maskComments } from '../check/css.js';
 import { isResponsive } from '../check/responsive.js';
 import { hasMenuToggle } from '../check/menu-toggle.js';
 import { modeWiringProblems } from '../check/mode-wiring.js';
+import { collectDeclaredProperties } from '../check/declared-properties.js';
 import { auditTokenLayer } from '../check/token-audit.js';
 import type { Finding } from '../check/types.js';
 
@@ -214,6 +215,11 @@ export function check(opts: CheckOptions): CheckResult {
     }
   });
 
+  // Every custom property the project declares, so a var() naming one that
+  // does not exist can be reported. Whole project, never the diff: the token
+  // layer is almost never in the change set. See `H-117`.
+  const declaredProperties = collectDeclaredProperties(opts.projectRoot, stylesheets, Object.keys(tokens));
+
   // How many of the selected files actually carried a style region.
   //
   // `.ts`, `.tsx` and friends are style-bearing by EXTENSION, so `files.length`
@@ -235,7 +241,7 @@ export function check(opts: CheckOptions): CheckResult {
   // Resolved once and shared: the report names it, and A-09 gates on it.
   const resolvedMode = resolveMode(opts.projectRoot);
 
-  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive, viewportFitCover, projectMenuToggle);
+  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive, viewportFitCover, projectMenuToggle, declaredProperties);
 
   // The token layer's OWN declarations, which no detector reads: `.jig/tokens/`
   // is not in the scanned set, so until this ran, a brand file edited after

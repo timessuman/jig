@@ -786,5 +786,12 @@
     "severity": "warning",
     "since": "0.10.0",
     "detector": "menu-state"
+  },
+  {
+    "id": "H-117",
+    "bucket": "mechanical",
+    "severity": "error",
+    "since": "0.10.0",
+    "detector": "undeclared-token"
   }
 ]

@@ -14,6 +14,7 @@ import { viewportHeight } from './detectors/viewport-height.js';
 import { inputZoom } from './detectors/input-zoom.js';
 import { safeArea } from './detectors/safe-area.js';
 import { menuState } from './detectors/menu-state.js';
+import { undeclaredToken } from './detectors/undeclared-token.js';
 
 /**
  * Every detector `check` knows how to run, keyed by the `detector` name
@@ -37,6 +38,7 @@ const DETECTORS: Detector[] = [
   inputZoom,
   safeArea,
   menuState,
+  undeclaredToken,
 ];
 
 export function getDetector(name: string): Detector | undefined {
