@@ -14,6 +14,7 @@ import { maskNonStyleRegions } from '../check/styles.js';
 import { maskComments } from '../check/css.js';
 import { isResponsive } from '../check/responsive.js';
 import { hasMenuToggle } from '../check/menu-toggle.js';
+import { modeWiringProblems } from '../check/mode-wiring.js';
 import { auditTokenLayer } from '../check/token-audit.js';
 import type { Finding } from '../check/types.js';
 
@@ -295,6 +296,7 @@ export function check(opts: CheckOptions): CheckResult {
     exempt,
     exemptPatterns: byPattern,
     scope: selection.mode,
+    modeUnwired: modeWiringProblems(opts.projectRoot),
   });
 
   return { findings, report, hasError };

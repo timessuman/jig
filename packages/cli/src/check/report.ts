@@ -62,6 +62,9 @@ export interface ReportMeta {
    * and merely outside the narrowed set.
    */
   scope?: 'changed' | 'all';
+  /** Modes `jig.config.json` declares that the token layer does not import.
+   *  See `check/mode-wiring.ts`. */
+  modeUnwired?: Array<{ mode: string; barrel: string; message: string }>;
 }
 
 /** Rows beyond this many, for one rule in one file, collapse into a count.
@@ -141,7 +144,9 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
   }
 
   const errors = findings.filter((f) => f.severity === 'error').length;
-  const warnings = findings.filter((f) => f.severity === 'warning').length;
+  // An unwired mode counts as a warning: it is printed as one, and a record
+  // saying `warnings=0` beside it would let an attestation skip past it.
+  const warnings = findings.filter((f) => f.severity === 'warning').length + (meta.modeUnwired?.length ?? 0);
   const notes = findings.filter((f) => f.severity === 'note').length;
   const summaryParts = [plural(errors, 'error')];
   if (warnings > 0) summaryParts.push(plural(warnings, 'warning'));
@@ -214,6 +219,14 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
         `for them, so any CSS they carry is invisible to this check and a clean result above does ` +
         `not cover it.`,
     );
+  }
+
+  // Printed on every run, findings or not: the mode is wrong for every page,
+  // so no finding points at it, and a clean report would hide it entirely.
+  if (meta.modeUnwired && meta.modeUnwired.length > 0) {
+    lines.push('');
+    for (const p of meta.modeUnwired) lines.push(`  ⚠ ${p.message}.`);
+    lines.push(`  Run 'jig init' again: it rewrites the token layer for the modes jig.config.json declares.`);
   }
 
   const mechanicalErrors = findings.filter((f) => f.bucket === 'mechanical' && f.severity === 'error').length;

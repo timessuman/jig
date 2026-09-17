@@ -625,8 +625,10 @@ export async function init(opts: InitOptions): Promise<InitResult> {
             `--yes has nobody to ask and a guess written there cannot be told from a ` +
             `decision. Mode-gated rules stay silent until you declare one. Token files ` +
             `are written at ${inEffect[0]?.mode ?? 'product'} as a baseline. Add ` +
-            `"surfaces": [{"match": "/", "mode": "..."}] to jig.config.json, or run ` +
-            `jig init without --yes (modes: ${MODES.join('/')}).`,
+            `"surfaces": [{"match": "/", "mode": "..."}] to jig.config.json and run ` +
+            `jig init again — the config alone changes what agents read, not the ` +
+            `token files the page imports — or run jig init without --yes ` +
+            `(modes: ${MODES.join('/')}).`,
     );
   }
 
