@@ -95,12 +95,24 @@ describe('the two commands divide the work rather than overlapping', () => {
     expect(c).toMatch(/build conversation/i);
   });
 
-  it('critique requires rendering at two widths when a browser exists', () => {
+  // Was two widths, 400px and 1280px. Specs now carry a whole composition per
+  // size — phone, tablet, desktop — so critique renders every size the spec
+  // names and judges each against its own fields.
+  it('critique renders every size the spec names, and measures sideways scroll', () => {
     const c = tmpl().split('\n## critique\n')[1];
-    expect(c).toMatch(/400/);
-    expect(c).toMatch(/1280/);
+    expect(c).toMatch(/360px/);
+    expect(c).toMatch(/768px/);
+    expect(c).toMatch(/1280px/);
+    expect(c).toMatch(/every size the spec names/i);
+    expect(c).toMatch(/scrollWidth/);
     // composition vs dimensions is the decidable form of RESPONSIVE-03
     expect(c).toMatch(/composition/i);
+  });
+
+  it('critique skips an arm it cannot delegate rather than running it itself', () => {
+    const c = tmpl().split('\n## critique\n')[1];
+    expect(c).toMatch(/cannot delegate an arm, it is skipped/i);
+    expect(c).toMatch(/contradicts itself is re-run/i);
   });
 
   it('critique carries rendered= in its attestation', () => {
@@ -111,5 +123,41 @@ describe('the two commands divide the work rather than overlapping', () => {
     // A spec derived from the page agrees with the page by construction.
     const c = tmpl().split('\n## critique\n')[1];
     expect(c).toMatch(/by construction/i);
+  });
+});
+
+describe('spec writes a whole composition per screen size', () => {
+  const spec = () => tmpl().split('\n## spec\n')[1].split('\n## make\n')[0];
+
+  it('carries phone, tablet and desktop, phone first', () => {
+    const block = spec();
+    const phone = block.indexOf('phone:');
+    const tablet = block.indexOf('tablet:');
+    const desktop = block.indexOf('desktop:');
+    expect(phone).toBeGreaterThan(-1);
+    expect(tablet).toBeGreaterThan(phone);
+    expect(desktop).toBeGreaterThan(tablet);
+    // The old schema's single narrow: diff is the thing this replaces.
+    expect(block).not.toMatch(/^narrow:/m);
+  });
+
+  it('lets a size repeat another only with a stated reason', () => {
+    expect(spec()).toMatch(/same-as: phone/);
+    expect(spec()).toMatch(/why:/);
+  });
+
+  it('checks the spec against DECISIONS.md before confirmation', () => {
+    expect(spec()).toMatch(/Check it against the decisions/);
+    expect(spec()).toMatch(/Every reference must resolve/);
+  });
+});
+
+describe('decide stays product-wide and runs every round', () => {
+  const decide = () => tmpl().split('\n## decide\n')[1];
+  it('sends per-screen questions to spec', () => {
+    expect(decide()).toMatch(/`decide` is product-wide\. `spec` is per screen\./);
+  });
+  it('does not stop after round 2', () => {
+    expect(decide()).toMatch(/All three rounds run/);
   });
 });
