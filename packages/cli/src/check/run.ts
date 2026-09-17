@@ -26,6 +26,7 @@ export function runChecks(
   mode?: string,
   projectResponsive?: boolean,
   viewportFitCover?: boolean,
+  projectMenuToggle?: boolean,
 ): Finding[] {
   const findings: Finding[] = [];
 
@@ -63,7 +64,7 @@ export function runChecks(
     const source = maskComments(maskNonStyleRegions(raw, file));
 
     for (const { entry, detector } of applicable) {
-      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw, mode, projectResponsive, viewportFitCover };
+      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw, mode, projectResponsive, viewportFitCover, projectMenuToggle };
       findings.push(...detector.run(source, file, ctx));
     }
   }

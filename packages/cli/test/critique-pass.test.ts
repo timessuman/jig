@@ -161,3 +161,58 @@ describe('decide stays product-wide and runs every round', () => {
     expect(decide()).toMatch(/All three rounds run/);
   });
 });
+
+/**
+ * A live Haiku run of critique invented rule ids, filed `screen=ran:1` as a
+ * review and counted 97 rules against 67. Every one of those was forbidden in
+ * prose. These pin the parts that moved the count out of the agent's hands.
+ */
+describe('critique hands its counts to `jig verdicts`', () => {
+  it('has each arm write a verdict file', () => {
+    expect(tmpl()).toMatch(/\.jig\/critique\/<surface>\/screen\.json/);
+    expect(tmpl()).toMatch(/\.jig\/critique\/<surface>\/code\.json/);
+  });
+
+  it('runs the verdicts command and re-runs a failing arm rather than editing the file', () => {
+    expect(tmpl()).toMatch(/\{\{scripts_path\}\} verdicts <surface>/);
+    expect(tmpl()).toMatch(/re-run the arm it names/i);
+    expect(tmpl()).toMatch(/Do not edit the file to make it pass/);
+  });
+
+  it('takes the attested counts from the CLI, never from the agent', () => {
+    expect(tmpl()).toMatch(/Take `screen=`, `code=` and `rendered=` from `jig verdicts`,\s+never from your own/);
+  });
+
+  it('judges the P- patterns the spec uses, since walking the index never reaches them', () => {
+    expect(tmpl()).toMatch(/a navigation region means `P-14`/);
+  });
+
+  it('operates the menu at 360px instead of only looking at it', () => {
+    const t = tmpl();
+    expect(t).toMatch(/Operate the page, don't only look at it/);
+    expect(t).toMatch(/`aria-expanded`\s+must\s+change/);
+    expect(t).toMatch(/label\s+or\s+icon\s+must\s+show\s+that\s+it\s+now\s+closes/);
+  });
+
+  it('documents verdicts as its own procedure section', () => {
+    expect(tmpl()).toMatch(/^## verdicts$/m);
+  });
+});
+
+describe('P-14 states how the menu behaves, not only how it is marked up', () => {
+  const patterns = () => readFileSync(join(repoRoot, 'rules/03-patterns.md'), 'utf8');
+
+  it('requires the control to open, record its state, read as close, and close on Escape', () => {
+    const p = patterns();
+    expect(p).toMatch(/The menu control works, and shows which way it is/);
+    expect(p).toMatch(/`aria-expanded` is `"false"` while closed and `"true"` while open/);
+    expect(p).toMatch(/visible label or icon reads as close/);
+    expect(p).toMatch(/`Escape` closes an open menu and returns focus to the button/);
+  });
+
+  it('is backed by a mechanical rule', () => {
+    const e116 = index().find((r) => r.id === 'E-116');
+    expect(e116?.bucket).toBe('mechanical');
+    expect(e116?.detector).toBe('menu-state');
+  });
+});
