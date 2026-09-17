@@ -172,6 +172,9 @@ Stop and say which of these is missing, rather than proceeding:
 - The user named no surface → ask which screen. `{{command_prefix}}spec` with no
   argument is not a request to invent one.
 
+Read `DECISIONS.md` before asking anything. Do not re-ask what it already records;
+cite it instead.
+
 ### 1. Ask, two or three questions at a time
 
 **This is a required interaction, not a suggestion.** Ask two or three questions,
@@ -192,6 +195,11 @@ centralise. If the user raises appearance, record it and move on.
 - Round 3 — only what is still unresolved: entry points, where it leads, what
   must not happen here.
 
+**Ask about the phone by name.** What does the reader see first on a phone, and
+what moves, stacks, or goes behind a control? If the conversation only ever
+describes the wide screen, the phone composition will be derived from it rather
+than designed — and a derived phone composition is a squeezed desktop.
+
 ### 2. Run `L-01`
 
 Read `L-01 · Layout method` in `{{rules_path}}/03-patterns.md` and run its five
@@ -199,38 +207,89 @@ steps against the answers. The spec's structural half **is** that output — gro
 order by importance, space from the inside out, align to a grid, and state the
 hierarchy plainly enough that the squint question can be answered against it.
 
-### 3. Write it down
+### 3. Write it down — one composition per screen size
 
 `.jig/specs/<surface-slug>.spec.md`. Frontmatter carries what can be compared to
 a built page; prose carries the reasoning that no check can read.
+
+**Write a whole composition for every size, starting with the phone.** A spec
+with one set of regions and a note about what changes when it is narrow is one
+spec doing the work of three. It is always the wide composition that gets
+designed and the narrow one that gets derived, which is how a page arrives on a
+phone as a squeezed desktop.
 
 ```yaml
 ---
 surface: login page
 mode: product              # from {{config_file}} — state it, never leave it implied
 confirmed: false           # only the user sets this to true; see below
-regions:                   # in order
-  - brand: wordmark only
-  - form: the single primary task
-  - recovery: secondary, below the action
-hierarchy: [form, brand, recovery]        # most important first
-grouping:                                 # which of L-01's four tools, per group
-  form: proximity
-  recovery: continuity
-grid: { wide: 12, narrow: 4, container: --measure-form }
-narrow:                    # must name a COMPOSITION change, not only a size change
-  - recovery moves below the submit control
+sizes:                     # phone first. Each size is a whole composition, not a diff.
+  phone:                   # judged at 360px
+    regions:               # in order, top to bottom
+      - brand: wordmark only
+      - form: the single primary task
+      - recovery: secondary, below the action
+    hierarchy: [form, brand, recovery]    # most important first
+    grouping: { form: proximity, recovery: continuity }
+    grid: { columns: 4 }
+    nav: none on this screen
+  tablet:                  # judged at 768px
+    same-as: phone
+    why: "one centred form; a second column would hold nothing"
+  desktop:                 # judged at 1280px
+    regions:
+      - brand: left column — wordmark and one line on what the product does
+      - form: right column, the single primary task
+      - recovery: below the action, in the form column
+    hierarchy: [form, brand, recovery]
+    grouping: { form: proximity, brand: common region }
+    grid: { columns: 12, form: 5, brand: 6 }
+    nav: none on this screen
 states: [default, loading, error, success]
+decisions: [The Engineer Reads First]     # every DECISIONS.md entry this screen implements, by name
 deviations: []             # `make` writes here; `spec` leaves it empty
 ---
 ```
 
-Every frontmatter field must be answerable by looking at the built page. If a
-field cannot be, it is prose — put it below the frontmatter, where it belongs.
-"Feels focused" is prose. "Three regions, form first" is a field.
+- **`phone` is written first, and in full.** It is the most common screen, and the
+  one a derived composition fails on worst.
+- **`tablet` and `desktop` are written in full too.** `same-as: <size>` is allowed
+  when nothing changes, but only with `why:`. It is a claim that the composition
+  holds at that width — `critique` checks it on a render — not a way to leave the
+  size out.
+- **The widths are where a composition is judged, not where breakpoints must
+  fall.** The CSS breaks wherever the content needs it, and there may be more
+  breakpoints than sizes. A navigation row, for example, breaks at the width where
+  its labels fit.
+- **`nav:` at every size, on any screen with navigation.** It is the field most
+  likely to be written once and copied, and most likely to be genuinely different
+  at every size on a page that works.
 
-Add fields the surface needs (`form: { steps, validation }` for a form, `nav:`
-for a screen with navigation). Do not add fields nothing can check.
+Every frontmatter field must be answerable by looking at the built page at that
+size. If a field cannot be, it is prose — put it below the frontmatter, where it
+belongs. "Feels focused" is prose. "Three regions, form first" is a field.
+
+Add fields the surface needs (`form: { steps, validation }` for a form). Do not
+add fields nothing can check.
+
+### 3b. Check it against the decisions before anyone confirms it
+
+A live run produced a spec that ranked the price above the plan limits, on a
+product whose confirmed `DECISIONS.md` said the limits are the headline and the
+price never dominates. The agent had written that decision itself, one command
+earlier. Nothing in the chain would have caught it: `critique` compares the page
+to the spec, never the spec to the decisions.
+
+- List every `DECISIONS.md` entry the screen implements in `decisions:`, by name.
+- Check **every size's** fields against each one. A field that contradicts a
+  decision is fixed now, before confirmation. It is not a deviation — deviations
+  record what building revealed, not what writing got wrong.
+- **Every reference must resolve.** A decision is cited by its name; a rule by an
+  id that `{{command_prefix}}explain` returns. Where nothing decides something,
+  write `unspecified — make chooses one it can defend, and records it`. Never write
+  a sentence that implies a rule exists when it does not. The same run wrote
+  "FAQ arranged per DECISIONS.md rules" where no such rule existed — and the next
+  agent would have gone looking for it, found nothing, and invented one.
 
 ### 4. Get it confirmed
 
@@ -259,9 +318,13 @@ Build the screen from its confirmed spec.
 
 ### Build
 
-Follow the spec's structure. Then the ordinary rules apply: tokens by semantic
-name, the relevant `03-patterns.md` section for each component, `05-copy.md` for
-every string.
+Build the **phone** composition first, then add what `tablet` and `desktop`
+change. Write base styles for the phone and add width as it is available — not
+the desktop layout with overrides that take it apart again. A layout built wide
+and subtracted from ends up correct at exactly the widths somebody checked.
+
+Then the ordinary rules apply: tokens by semantic name, the relevant
+`03-patterns.md` section for each component, `05-copy.md` for every string.
 
 ### Record what you changed
 
@@ -270,7 +333,7 @@ Building reveals that a spec was wrong somewhere — that is normal and expected
 
 ```yaml
 deviations:
-  - field: form.steps
+  - field: sizes.phone.form.steps
     from: 1
     to: 2
     why: "password reset needs an email round-trip; one screen cannot hold both"
@@ -282,7 +345,9 @@ review then validates the page against fiction and reports it clean.
 ### Finish
 
 Run `check`, then the self-check at the end of `{{rules_path}}/00-anti-patterns.md`,
-and say which fields of the spec the built page satisfies and which it does not.
+and say which fields of the spec the built page satisfies and which it does not —
+**at each size**. A page that satisfies `desktop` and was never looked at on a
+phone has satisfied a third of its spec.
 
 ## critique
 
@@ -338,6 +403,14 @@ other; do not shortcut it for cost, speed or context size.
   source files, the spec, and the corpus, and no render. It judges every
   `pass: code` judgment rule — the group `check` cannot reach.
 
+**If you cannot delegate an arm, it is skipped. You do not run it yourself.** No
+subagent available, a subagent that cannot read the project's files — either way
+the arm reports `skipped` with the reason, in words, in the report. A live run had
+an agent build a page and then run the reader arm on it in its own head; every
+verdict it wrote cited what the spec *intended* rather than what the page *did*,
+and its one finding asked the builder to confirm it. A skipped arm is an honest
+gap. A self-run arm is a false review that looks like a real one.
+
 Each reader is a subagent for the same reason a writer does not proofread their
 own copy. An agent that built the page knows what it meant, and what it meant is
 invisible in the artifact — which is the one thing a reviewer must not have.
@@ -372,12 +445,63 @@ and by mode where a rule is mode-gated. Nothing else. An arm that decides in
 advance which rules are worth checking has reintroduced search with extra
 steps.
 
+### 1b. What makes a verdict real
+
+Every one of these was produced by a live run of this command, by arms that had
+been told to walk the index and believed they were doing it.
+
+**An `n/a` must name what the rule is about.** Not "does not apply" — *what* does
+not apply. `n/a, D-27 is about optical alignment and this page has no icons` is a
+verdict. `n/a, rule context unavailable` is an absence wearing a verdict's shape,
+and the difference is mechanically checkable: run
+`{{command_prefix}}explain <id>` and the rule either resolves or it does not.
+
+One run returned `C-68 — rule not found in accessible corpus` and
+`D-27 — rule context unavailable`. Both resolve instantly. A third described
+`D-25` as being about label spacing; it is about proximity hierarchy. None of
+the three had been read. `C-68` is *non-interactive elements styled like
+interactive ones* — adjacent to the only real finding that arm had raised.
+
+**An id you cannot resolve is a hard stop.** If `explain` fails on an id that is
+in the index, that is a corpus or install defect. Say so, loudly, and stop.
+Recording it as a rule that happens not to apply buries a broken install inside a
+clean-looking report.
+
+**Never treat the count as a target.** The instruction is *return a verdict for
+every id*; `<n>` is the consequence. An arm asked to reach a number will reach
+it — that is how the three fabrications above were produced, in one turn, after a
+reviewer asked for a short pass to be completed. **A pass that comes back short
+is re-run, not topped up.**
+
+**An arm that contradicts itself is re-run, not merged.** A live run's reader
+arm said, in one report, that a toggle hard-codes `60px`/`34px` instead of tokens
+(`A-07`) and that nothing on the page is hard-coded (`H-47`). Two opposite verdicts
+on the same file are not a disagreement to report; they are an instrument that
+cannot be trusted, and every other verdict it returned is suspect with them.
+
+**Check the count before merging the arms.** Compare each arm's `<n>` against the
+length of the filtered index. They should be equal. When they are not, name the
+missing ids rather than reporting the total alone: one run reported
+`rules_evaluated=67` against 69, and the two it had skipped were the two ids most
+recently added to the corpus — the only two that could not be recalled from prior
+knowledge of Jig. An arm asked to walk the index may walk its memory of the
+index, and the ids it drops are the newest ones, which are the ones most in need
+of enforcement. The id list is what exposes this; the total alone hides it.
+
 ### 2. Look at the page
 
-If a browser is available this is **required**, not optional:
+If a browser is available this is **required**, not optional. Use whatever the
+harness provides — a browse skill, Playwright, a headless browser. Reading the
+source and imagining the page is not a render.
 
-- Render at a narrow width (~400px) and a wide one (~1280px).
-- Compare them. Did narrow width change the **composition**, or only the
+- **Render at every size the spec names** — phone at 360px, tablet at 768px,
+  desktop at 1280px — and judge each size's fields against its own render. A
+  `same-as:` claim is checked like any other field: render that size and see
+  whether the composition really does hold.
+- At every size, measure `document.documentElement.scrollWidth` against
+  `clientWidth`. Greater means the page scrolls sideways at that width, which is a
+  finding however good the rest of it looks.
+- Compare the sizes. Did the phone change the **composition**, or only the
   **dimensions**? Reordering, stacking, collapsing, a different control — that is
   composition. The same layout with smaller numbers is not.
 - Check the page is styled at all. A stylesheet that 404s renders a page that
@@ -390,7 +514,8 @@ skip it silently, and never report a render you did not do.
 
 ### 3. Compare the page to its spec
 
-For each frontmatter field, say whether the built page satisfies it. A difference
+For each size, for each frontmatter field, say whether the page rendered at that
+size satisfies it. A difference
 is a finding **unless** `deviations:` already explains it — that is what the
 recorded deviation is for. A difference explained by neither is the more serious
 finding, because it means the spec has quietly stopped describing the page.
@@ -428,6 +553,17 @@ report looked complete.
 good" when it can only mean "the files are good" — and a page whose stylesheet
 never loaded satisfies every file-based check there is.
 
+`rendered=yes` means **every size the spec names** was rendered. If only some
+were, the report names which, and says what was not seen.
+
+**`rendered=yes` requires an artefact.** A screenshot, a rendered dump, something
+that exists because a browser ran. Reading the source and reasoning about how it
+would look is the `L-01` analogue, and the analogue is `rendered=no`. A live run
+of this command emitted `rendered=yes` on a machine with no browser installed and
+no image written anywhere — turning an honest limitation into a false assurance,
+on the one field a reader leans on hardest. If you did not see the page, say you
+did not see the page.
+
 ## decide
 
 Write `DECISIONS.md` beside the token layer — `jig/DECISIONS.md` by default, or
@@ -453,6 +589,19 @@ The test: **could this be derived from the tokens, the mode, or a numbered rule?
 If yes, it is already written down somewhere better. If no, it is a decision, and
 this is where it lives.
 
+**`decide` is product-wide. `spec` is per screen.** Ask what holds on every
+screen. What one screen contains, who arrives at it, what its FAQ asks, where
+something sits on it — those are `spec`'s questions. Asking them here makes the
+user answer them twice, and a live run did exactly that: one agent gathered a
+page's FAQ and arrival paths under `decide`, the other under `spec`.
+
+One kind of placement **is** a decision: something that must sit in the same
+place on every screen, such as where the menu button lives. That is taste, not
+something a rule can settle, and it belongs here once. Placement on a single
+screen is not — and do not ask the owner where an element should go on a screen
+at all. If the design system has a position, it is in the rules; if it has none,
+`spec` settles it.
+
 ### How to write it
 
 **Interview, do not infer.** Two or three questions per round, then wait. What
@@ -467,6 +616,11 @@ something, or will have to:
 - Round 3 — what has the team already argued about, or reversed? A decision with
   a history is the one most worth recording, because it is the one most likely to
   be re-made wrongly.
+
+**All three rounds run.** Do not write the file after round 2 because the answers
+look complete. Round 3 asks for the one kind of decision a user does not volunteer
+unprompted — the ones with a history — and a live run skipped it for exactly that
+reason. In the arm that did ask, round 3 is where the unresolved items surfaced.
 
 **Write each decision as a named rule with its reason attached**, in the project's
 own vocabulary:

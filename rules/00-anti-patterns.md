@@ -521,6 +521,12 @@ Load `05-copy.md` whenever writing or reviewing a user-facing string.
 
 Run this against what you produced. Any "no" is a defect to fix, not a note to mention.
 
+**Answer every item** — yes, no, or n/a with the reason. A number you skip reads
+exactly like a pass. **A yes cites where**: `pricing.css:41`, not "✓". A live run
+answered this list from memory and reported interactive states and a
+reduced-motion path as present; neither existed anywhere in the stylesheet, and
+only a reviewer that had never seen the build found that out.
+
 1. **The generic-AI tells, named rather than gestured at.** This used to read
    "would this look different from a generic template if the accent colour were
    removed?", which an agent that has just produced a generic template answers
@@ -578,3 +584,8 @@ Run this against what you produced. Any "no" is a defect to fix, not a note to m
     against it. **Saying nothing is the failure this item exists to stop**: a
     report that lists what was checked and stays silent about what was not reads
     as a clean result, and a reader cannot tell the two apart.
+13. **Was it looked at on a phone?** At 360px: does the composition change rather
+    than shrink, is the navigation a control designed for that width rather than
+    the desktop row squeezed, and does the page stay inside the screen — no
+    sideways scroll? "The CSS has a media query" is not an answer; what the page
+    does at that width is.

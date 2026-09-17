@@ -103,7 +103,14 @@ JIG_CHECK: version=<version> mode=<mode> mechanical=<pass|fail|skipped>:<n> judg
 
 `jig check` emits this same line for the half it can do, with
 `judgment=not-run`. Take `mechanical=` from its output rather than counting by
-hand; fill `judgment=` yourself. If `check` could not run at all, that is
+hand; fill `judgment=` yourself.
+
+**The line you emit is your own, not a copy of the CLI's.** `judgment=not-run` is
+the CLI truthfully describing itself — it cannot judge. If you did the judgment
+work, your line says `ran:` with the number of rules you gave a verdict. A live run
+copied the CLI's line verbatim after doing the work, and dropped `files=` and
+`styled=` as well, so its record claimed less than it had done and could not be
+compared with any other. If `check` could not run at all, that is
 `mechanical=skipped:0` — never `pass`, which would report a clean result for a
 check that never inspected anything.
 
