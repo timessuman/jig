@@ -114,7 +114,13 @@ describe('explain — finding a rule you cannot name', () => {
   it('prints the whole rule when the search finds exactly one', () => {
     // One hit is not ambiguous, so answer the question rather than making the
     // reader run a second command to get the same rule.
-    const out = explain({ ruleId: 'hamburger', version });
+    //
+    // This used 'hamburger', which was a single hit only because nothing but
+    // E-61 mentioned it — the prohibition, with no pattern behind it. P-14 now
+    // answers that search too, deliberately, so the word no longer exercises
+    // the one-hit path. 'halation' is a single hit for a reason that is not
+    // itself a defect.
+    const out = explain({ ruleId: 'halation', version });
     expect(out).toMatch(/❌/);
     expect(out).toMatch(/✅/);
     expect(out).toMatch(/detector:|judgment|mechanical|hybrid/);
@@ -277,6 +283,27 @@ describe('explain — methods (L-)', () => {
     const out = explain({ ruleId: 'L-01', version });
     expect(out).toMatch(/method/i);
     expect(out).not.toMatch(/component anatomy/i);
+  });
+
+  // A prohibition with no pattern behind it leaves the agent to invent the
+  // replacement. Searching "hamburger" used to return only E-61 — do not build
+  // one — and "mobile nav" returned nothing, so an agent reaching for either
+  // never met the pattern it should build. Both searches now reach P-14.
+  // A rule's reasoning is printed on every lookup, and was never searched: the
+  // index held only the ❌/✅ pair. 'silhouette' appears only in B-106's
+  // argument, so it proves the prose is now part of what a search reads.
+  it('finds a rule by a word that appears only in its reasoning', () => {
+    expect(explain({ ruleId: 'silhouette', version })).toContain('B-106');
+  });
+
+  it('reaches the navigation pattern from the words an agent actually searches', () => {
+    expect(explain({ ruleId: 'hamburger', version })).toContain('P-14');
+    expect(explain({ ruleId: 'mobile nav', version })).toContain('P-14');
+    expect(explain({ ruleId: 'E-61', version })).toContain('P-14');
+    // The ledger recorded the wayfinding gap as this exact search returning
+    // nothing. It is the search that has to work now.
+    expect(explain({ ruleId: 'where am i', version })).toContain('P-14');
+    expect(explain({ ruleId: 'aria-current', version })).toContain('P-14');
   });
 
   it('surfaces the method first when searching for layout', () => {

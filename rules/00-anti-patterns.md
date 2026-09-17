@@ -363,7 +363,7 @@ People arrive with a mental model built from every other product they use (Jakob
 
 ### E-61 Important navigation hidden when it fits
 ❌ A hamburger menu on a viewport with room for three visible links
-✅ Show what fits. People do not use what they cannot see, and every tap behind a menu is a tap some users will not make. Collapse only under genuine space pressure.
+✅ Show what fits. People do not use what they cannot see, and every tap behind a menu is a tap some users will not make. Collapse only under genuine space pressure. When the space pressure is real, `P-14` is what to build instead — a prohibition alone leaves you to invent the replacement.
 
 ### E-62 Off-screen content with no affordance
 ❌ A horizontally scrolling row that ends flush at the viewport edge

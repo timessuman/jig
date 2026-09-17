@@ -437,6 +437,38 @@ done, and `G-42` applies instead.
 
 ---
 
+## P-14 · Site navigation
+
+Compose it for the phone first. Mobile navigation is a different control — not the wide row made smaller (`D-111`).
+
+**Choose by what fits at the narrowest width you support** (360px if nothing is decided). Stop at the first row that works:
+
+| At that width | Use |
+| --- | --- |
+| Every destination fits, each at least `--size-touch-target` | Show them all. Wrapping to a second row is fine (`E-61`) |
+| The one or two most important fit beside the site name, the rest do not | Show those, plus a button labelled **Menu** for the rest |
+| Nothing fits beside the site name | A button labelled **Menu** for all of them |
+| `product`, three to five top-level sections used repeatedly | A bar of labelled items along the bottom edge — the same items, in the same order, on every screen, padded with `env(safe-area-inset-bottom)` so the phone's home indicator does not sit on it |
+
+**Rules**
+- **The menu control is named.** A `<button>` with `aria-expanded` reflecting its state, and the accessible name "Menu" — as visible text, or as `aria-label` on an icon. The three-line hamburger icon is widely read as a menu now, so whether the word is visible is the project's choice. Whether assistive technology can name the control is not (`E-34`).
+- **Where the menu button sits is the project's decision.** Top right, top left, centred — that is taste, and it belongs in `DECISIONS.md`, not here. What the system asks is only that it stays in the same place on every screen and at every width it appears.
+- **Mark where the reader is, the same way at every width.** Every screen has to answer *where am I?* without the reader remembering how they arrived.
+  - The link to the current page carries `aria-current="page"`. A section link whose child page is open may carry `aria-current="true"`.
+  - Style the mark from that attribute — `[aria-current="page"]` in CSS — not from a separate `.active` or `.current` class. One source for both what is seen and what is announced means the two cannot drift apart; a class alone looks marked and tells a screen reader nothing.
+  - The visible cue is not colour alone (`C-20`): weight, an underline or bar, or a filled state. Which one is the project's decision.
+  - Inside an open menu, the current item is marked the same way. When the menu is closed nothing in the navigation is visible, so the page's `<h1>` is what tells the reader where they are — every page has one, and it names the page.
+- **It works with no JavaScript** (`F-41`). The links are ordinary links in the page and render visibly by default; script, if there is any, only adds the collapse. In `editorial`, where the script budget is zero (`M-01`), use `<details>` with `<summary>Menu</summary>` — a disclosure the browser provides with no script at all.
+- **Never let a row that does not fit scroll sideways.** Its last items go past the edge where nobody sees them (`E-62`), and `editorial` forbids horizontal scrolling on mobile outright. An open menu is a vertical list.
+- **Same destinations, same order, at every width.** The phone may show fewer at once. It never shows different ones, and never reorders them — `product` fixes navigation position across the app (`M-02`), and a reader who learned the order on one screen should not have to relearn it on another.
+- **Every item is at least `--size-touch-target` tall**, made with padding rather than a larger font. The target grows; the text does not.
+- **An open menu does not cover the page unless it has to.** If it does cover the page, it is a dialog and `P-07` applies: focus moves into it, `Escape` closes it, and focus returns to the button. A menu that opens inline needs none of that — but `Escape` still closes it and returns focus to the button.
+- **A sticky header at phone width is one row.** Two sticky rows permanently spend a sixth of a phone's height on chrome.
+- **The wide row appears where the labels fit, not at a device width.** Set the breakpoint from the content — the width at which every destination sits on one line at full touch size — so a longer label moves the breakpoint instead of breaking the row.
+- **`operator`:** the wide screen is the real case. At phone width, one **Menu** button for everything is enough, and keyboard operation of the open menu is mandatory (`M-03`).
+
+---
+
 ## L-01 · Layout method
 
 Not a component. The procedure for structuring any screen, before styling anything.

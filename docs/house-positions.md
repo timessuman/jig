@@ -55,10 +55,11 @@ What follows is that content, unchanged. Only its audience is.
 - `P-03` help-text-before-control. Contested — many systems put it after. Placing it before means it is read before the user commits to typing, which matters more in forms people fill once.
 - `P-04` one-column forms, and the no-JS baseline for the primary action.
 - `P-06` stable row identity, absolute timestamps, no hover-only truncation. The procurement instinct again: the record is evidence before it is a convenience.
+- `P-14` the current page is styled from `aria-current`, never from a class, and a nav row that does not fit never scrolls sideways. Contested — an `.active` class is the default almost everywhere, and a scrolling tab row is common on phones. The attribute is kept as the single source because a class and an attribute can disagree and a class alone announces nothing; the scroll is refused because its last items go past the edge where nobody looks. The menu button's position and whether its label is visible are deliberately left to the project. Phone-first composition is the premise: the narrow control is designed, not derived.
 
 **Deliberately absent.** Navigation, cards, tabs, and toasts-as-a-component. Navigation and cards vary too much by project to have decidable rules yet — they would produce prose, not constraints. Add them once you have built enough to see the invariant.
 
-**Worth testing before extending.** These 12 cover most of what generated UI gets wrong. Point an agent at a form and a table with `00`, `01`, `02` and `03` loaded, and compare against the same task with nothing loaded. If `P-03` and `P-05` do not visibly change the output, the rules are not decidable enough and the fix is more specificity, not more patterns.
+**Worth testing before extending.** These 13 cover most of what generated UI gets wrong. Point an agent at a form and a table with `00`, `01`, `02` and `03` loaded, and compare against the same task with nothing loaded. If `P-03` and `P-05` do not visibly change the output, the rules are not decidable enough and the fix is more specificity, not more patterns.
 
 ## From `rules/04-principles.md`
 
