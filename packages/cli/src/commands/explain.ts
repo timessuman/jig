@@ -110,19 +110,24 @@ function renderSpec(spec: Spec): string {
  * been edited, and `explain` should describe the system, not one project's
  * fork of it.
  */
-export function explain(opts: ExplainOptions): string {
-  const raw = opts.ruleId.trim().toUpperCase();
-  const root = opts.packageRoot ?? assetRoot();
-  const rulesDir = join(root, 'rules');
+export interface SearchEntry {
+  id: string;
+  title: string;
+  text: string;
+}
 
-  const rules = loadRules(rulesDir, join(root, 'rules.index.json'));
-  const specs = loadSpecs(rulesDir);
-  const entries: Array<{ id: string; title: string; text: string }> = [
-    // Search reads everything `renderRule` prints. It read only the ❌/✅ pair:
-    // when the reasoning was restored to the output (see `renderRule`), the
-    // search was left behind, so a word from a rule's argument — the half that
-    // says when it applies — printed on every lookup and could never be found
-    // by one. Specs were already searched whole.
+/**
+ * Everything a search can reach, one entry per id.
+ *
+ * Search reads everything `renderRule` prints. It read only the ❌/✅ pair:
+ * when the reasoning was restored to the output (see `renderRule`), the search
+ * was left behind, so a word from a rule's argument — the half that says when
+ * it applies — printed on every lookup and could never be found by one. Specs
+ * were already searched whole. Exported so a test can hold the whole corpus to
+ * it, line by line, rather than trusting a sample of searches.
+ */
+export function searchEntries(rules: LoadedRule[], specs: Spec[]): SearchEntry[] {
+  return [
     ...rules.map((r) => ({
       id: r.id,
       title: r.title,
@@ -130,6 +135,16 @@ export function explain(opts: ExplainOptions): string {
     })),
     ...specs.map((s) => ({ id: s.id, title: s.title, text: s.body })),
   ];
+}
+
+export function explain(opts: ExplainOptions): string {
+  const raw = opts.ruleId.trim().toUpperCase();
+  const root = opts.packageRoot ?? assetRoot();
+  const rulesDir = join(root, 'rules');
+
+  const rules = loadRules(rulesDir, join(root, 'rules.index.json'));
+  const specs = loadSpecs(rulesDir);
+  const entries = searchEntries(rules, specs);
 
   // ---- The six layers ----
   //
