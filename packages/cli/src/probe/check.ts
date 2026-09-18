@@ -21,6 +21,9 @@ export interface ProbeResult {
   emDashes?: string[];
   brokenImages: number;
   navLinksVisible: number;
+  contentWidth?: number;
+  contentMaxWidth?: string;
+  longestLine?: { width: number; chars: number; text: string } | null;
   landmarks?: string[];
   orderInversions?: Array<{ markupFirst: string; seenFirst: string }>;
   menu: null | {
@@ -108,6 +111,13 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf)
     // every route ends, whatever built the string.
     if (p.emDashes?.length) {
       errors.push(`${at(p)}: the rendered page shows an em dash in ${p.emDashes.map((t) => `"${t}"`).join(', ')} (I-118) — use a full stop, a comma, a colon, or a second element.`);
+    }
+    // B-11 at the width that shows it. A line past 90 characters is beyond
+    // every mode's measure (68ch editorial, 60 product, 72 operator) with room
+    // for the approximation, and it is a wide screen that produces it.
+    const line = p.longestLine;
+    if (line && line.chars > 90 && clean('B-11')) {
+      errors.push(`B-11 is "${verdictOf('B-11')}", but ${at(p)} measured a line of about ${line.chars} characters ("${line.text}…") — past every mode's measure. Cap prose at \`--measure-prose\`.`);
     }
     if (p.junkText.length) {
       errors.push(`${at(p)}: the rendered text contains ${p.junkText.map((j) => `"${j}"`).join(', ')} — template code or a failed value is showing to readers.`);

@@ -128,6 +128,9 @@ sizes:
   desktop:
     regions: [nav, plans]
     nav: five links in a row
+  wide:
+    same-as: desktop
+    why: content is capped, so 1600 adds margin and nothing else
 confirmed: true
 mockup: approved
 mockup_at: .jig/mockups/pricing.html
@@ -153,6 +156,8 @@ Prose.`;
     jigProject();
     spec(goodSpec.replace(/  desktop:[\s\S]*?nav: five links in a row\n/, ''));
     expect(runAfter('spec').reason).toMatch(/no `desktop:` composition/);
+    spec(goodSpec.replace(/  wide:[\s\S]*?and nothing else\n/, ''));
+    expect(runAfter('spec').reason).toMatch(/no `wide:` composition/);
     spec(goodSpec);
     expect(runAfter('spec').block).toBe(false);
   });

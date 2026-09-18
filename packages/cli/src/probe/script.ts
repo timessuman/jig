@@ -17,7 +17,7 @@
  * `browse js "<script>"`, Playwright's `page.evaluate(script)` and a devtools
  * console all run it unchanged.
  */
-export const PROBE_VERSION = 3;
+export const PROBE_VERSION = 4;
 
 export const PROBE_SCRIPT = `(async () => {
   const doc = document.documentElement;
@@ -80,6 +80,20 @@ export const PROBE_SCRIPT = `(async () => {
       }
     }
   }
+  // What a wide screen exposes: a layout with no upper bound, and the lines it
+  // stretches. Measured rather than guessed — a paragraph's own width and font
+  // size give its length in characters, which is what B-11 is written about.
+  const region = document.querySelector('main') || document.body;
+  const prose = [...document.querySelectorAll('p, li, dd, blockquote')].filter(vis)
+    .map((el) => {
+      const r = el.getBoundingClientRect();
+      const size = parseFloat(getComputedStyle(el).fontSize) || 16;
+      const text = (el.textContent || '').trim();
+      // 0.5em per character is the usual approximation for a text face.
+      return { width: Math.round(r.width), chars: Math.round(r.width / (size * 0.5)), text: text.slice(0, 40), long: text.length > 80 };
+    })
+    .filter((p) => p.long)
+    .sort((a, b) => b.chars - a.chars)[0] || null;
   const navLinks = () => [...document.querySelectorAll('nav a, header a, [role=navigation] a')].filter(vis).length;
   // Measured before anything is clicked: what a reader sees on arrival.
   const navAtRest = navLinks();
@@ -127,6 +141,9 @@ export const PROBE_SCRIPT = `(async () => {
     emDashes: [...new Set((text.match(/[^.!?\\n]{0,28}\u2014[^.!?\\n]{0,28}/g) || []).map((t) => t.trim()))].slice(0, 5),
     brokenImages: [...document.images].filter((i) => i.complete && i.naturalWidth === 0).length,
     navLinksVisible: navAtRest,
+    contentWidth: Math.round(region.getBoundingClientRect().width),
+    contentMaxWidth: getComputedStyle(region).maxWidth,
+    longestLine: prose,
     landmarks: landmarks.map(describe),
     orderInversions: inversions.slice(0, 5),
     menu,
