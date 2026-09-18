@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.11.0
+
+One release, one lesson: a measurement an agent can type is not a
+measurement. Everything here came from two live runs at the capability
+floor the day 0.10.0 shipped.
+
+### Added
+
+- **`jig probe --save <surface>`.** The CLI writes the probe file now. It
+  reads what the probe returned on stdin, checks it is probe output for a
+  page inside the project, and stamps it with that page's checksum and the
+  time. A run had written its own probe file by hand — five links and an
+  Escape key that closed a menu with thirteen links and no Escape handler —
+  and its review passed on those numbers.
+- **`install --hook` / `--no-hook`.** The Stop hook is opt-in. An
+  interactive install offers it once and takes silence as no; `--yes` never
+  adds it, because that is the path an agent takes and nobody is there to
+  consent. `update` moves an existing hook and never adds one.
+
+### Changed
+
+- **Probe files are version 2.** `jig verdicts` rejects a probe with no
+  stamp — nothing measured it — and one whose page changed after it was
+  taken. Version 1 files no longer validate.
+- **README and `init` say which directory to commit, and why.** The tokens
+  live in `<css dir>/jig/`; `.jig/` holds `state.json`, specs, mockups and
+  critique verdicts. Both are warned about separately, each with what
+  ignoring it costs. Since 0.7.0 both had said `.jig/` holds the tokens.
+
 ## 0.10.0
 
 Mobile-first, and a design loop that a weak model cannot skip. Everything here
