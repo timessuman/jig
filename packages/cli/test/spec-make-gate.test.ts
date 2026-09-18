@@ -110,3 +110,36 @@ describe('the dispatcher distinguishes the two kinds of subcommand', () => {
     expect(header).toMatch(/CLI-backed/);
   });
 });
+
+/**
+ * The loop assumes a page being built. Most work in an existing repository is
+ * a page that already exists, and a critique with no spec has only the rules
+ * to check against — the weakest half of what Jig knows about a project.
+ */
+describe('spec describes a page that already exists', () => {
+  const tmpl = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
+
+  it('reads and renders the page, and writes the spec from what is there', () => {
+    expect(tmpl).toMatch(/If the page already exists, describe it before you change anything/);
+    expect(tmpl).toMatch(/render it at each size the spec will name/);
+  });
+
+  it('is neither a redesign nor a rubber stamp', () => {
+    expect(tmpl).toMatch(/It is not a redesign/);
+    expect(tmpl).toMatch(/a page that\s+contradicts `DECISIONS\.md` is described accurately/);
+  });
+});
+
+describe('spec separates describing a page from redesigning one', () => {
+  const tmpl = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
+
+  it('treats the old page as content and constraints, never as the shape', () => {
+    expect(tmpl).toMatch(/Asked to redesign it instead, run this command normally/);
+    expect(tmpl).toMatch(/its content is the brief/);
+    expect(tmpl).toMatch(/the redesign is the same page in new colours/);
+  });
+
+  it('asks which parts genuinely have to survive', () => {
+    expect(tmpl).toMatch(/Anything that genuinely must\s+survive is a constraint and belongs in the spec by name/);
+  });
+});
