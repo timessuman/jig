@@ -999,6 +999,11 @@ source and imagining the page is not a render.
 - At every size, measure `document.documentElement.scrollWidth` against
   `clientWidth`. Greater means the page scrolls sideways at that width, which is a
   finding however good the rest of it looks.
+- **Judge the collapse, not only the sizes** (`L-01` step 6). Between one width
+  and the next: did the column count drop rather than the columns shrink, did the
+  reading order hold, did an emphasised item stay distinguishable once everything
+  was in one column, did anything genuinely wider scroll inside itself rather
+  than taking the page with it?
 - Compare the sizes. Did the phone change the **composition**, or only the
   **dimensions**? Reordering, stacking, collapsing, a different control — that is
   composition. The same layout with smaller numbers is not.

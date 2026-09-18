@@ -524,6 +524,40 @@ Blur the design, zoom out, or step back. You should still be able to tell what t
 
 **When nothing can render it, use the analogue:** if all type were one size and one colour, would the layout still communicate its order? If the hierarchy depends entirely on type styling, it is too weak. The analogue is a fallback, not an equal — a reading of the source is not a look at the page.
 
+### Step 6 — Decide how it collapses
+
+A spec writes a composition per size. This step is what happens **between** them:
+the same content, arranged for less room. Six rules, and the first is the one
+everything else follows from.
+
+1. **Reduce the count, never the size.** Four columns become two, then one; each
+   column keeps its own minimum width. Three columns at a third of the width are
+   still three columns, and that is the failure `D-111` names — a shrunken
+   desktop rather than a composition. The same applies to a row of controls: it
+   wraps, stacks or moves behind one control, and it does not get smaller.
+2. **Order survives.** What is read first at the widest size is read first at the
+   narrowest. Collapsing rearranges space, not meaning, and the markup order is
+   the reading order at every width (`H-119`).
+3. **Distinction survives.** If one item was emphasised — a recommended plan, a
+   current step — it is still distinguishable after the collapse. Emphasis
+   carried by position alone disappears the moment everything is in one column,
+   so it needs structure too (`E-91`).
+4. **Type comes from the scale, not from breakpoints.** The heading tokens are
+   fluid: they track the viewport between a floor and a ceiling with no media
+   query at all. A hand-written ladder of sizes per breakpoint reintroduces the
+   jumps the scale exists to remove, and goes stale the moment the scale changes.
+5. **Content that is genuinely wider scrolls inside itself.** A code block, a
+   wide table, a long identifier: its own container scrolls with a visible edge
+   (`E-62`), keeps its type size, and the page never scrolls sideways (`D-115`).
+   `editorial` allows no scrolling region on mobile at all (`M-01`).
+6. **Each transition happens where the content needs it.** The width at which
+   three columns stop fitting is a property of the columns, not of a device. Set
+   it from the content, and expect the numbers to differ per component.
+
+A collapse that satisfies all six looks like the same page with less room. One
+that fails them looks like a different, worse page that happens to share its
+content.
+
 ---
 
 ## L-02 · Building modularly

@@ -103,3 +103,34 @@ describe('H-119 catches two more cases from the source', () => {
     expect(run(page('<main><div class="card">a</div><div class="card">b</div></main>'))).toHaveLength(0);
   });
 });
+
+/**
+ * A spec writes a composition per size; nothing said what happens between
+ * them. The pieces existed — reduce vs shrink inside D-111, overflow in E-62,
+ * navigation in P-14 — and no step put them together.
+ */
+describe('L-01 says how a layout collapses', () => {
+  const patterns = readFileSync(join(repoRoot, 'rules/03-patterns.md'), 'utf8');
+  const t = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
+
+  it('reduces the count rather than the size, and keeps order and distinction', () => {
+    expect(patterns).toMatch(/### Step 6 — Decide how it collapses/);
+    expect(patterns).toMatch(/Reduce the count, never the size/);
+    expect(patterns).toMatch(/Order survives/);
+    expect(patterns).toMatch(/Distinction survives/);
+  });
+
+  it('takes type from the fluid scale, not a ladder of breakpoints', () => {
+    expect(patterns).toMatch(/Type comes from the scale, not from breakpoints/);
+    expect(patterns).toMatch(/hand-written ladder of sizes per breakpoint/);
+  });
+
+  it('scrolls wider content inside itself, and sets each transition from content', () => {
+    expect(patterns).toMatch(/Content that is genuinely wider scrolls inside itself/);
+    expect(patterns).toMatch(/Each transition happens where the content needs it/);
+  });
+
+  it('is judged by critique between one width and the next', () => {
+    expect(t).toMatch(/Judge the collapse, not only the sizes/);
+  });
+});
