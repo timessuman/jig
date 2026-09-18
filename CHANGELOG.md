@@ -1,5 +1,68 @@
 # Changelog
 
+## 0.10.0
+
+Mobile-first, and a design loop that a weak model cannot skip. Everything here
+was measured on live runs at the capability floor (Haiku), and most of it exists
+because an instruction the agent could choose to ignore was ignored.
+
+### Added
+
+- **The loop: `decide` → `spec` → `mockup` → `make` → `critique`.** `decide`
+  runs once per project. The other four run per page, feature or functionality.
+  `mockup` is new: a low-fidelity grayscale drawing, reviewed before any code,
+  in HTML (the default), Figma or Google Stitch. Every region is labelled with
+  its measured size, and the phone frame draws the menu open as well as closed.
+- **`jig verdicts <surface>`.** A critique's reader arms write one verdict per
+  rule to `.jig/critique/<surface>/screen.json` and `code.json`; this command
+  decides whether the review is complete and computes the counts the attestation
+  reports. It refuses invented ids, a rule filed by the wrong arm, a rule judged
+  twice, an `n/a` whose reason says the rule was never read, and `rendered: true`
+  with no artefact. A screen pass with no render is `skipped`, not `ran`.
+- **`jig probe`.** One expression the critique evaluates in any browser at 360,
+  768 and 1280. It operates the phone menu (does it open, does `aria-expanded`
+  change, does the label read as close, does Escape close it), measures sideways
+  scroll, and reads whether the styles and tokens actually applied. `verdicts`
+  refuses a verdict the probe contradicts.
+- **`jig gate`, run by a Stop hook** that `install` adds for Claude Code at
+  project scope. It blocks an agent from finishing while the files it changed
+  fail `check`, or while the `/jig` command it just ran left its work
+  unfinished. After three attempts it lets go and says the work is not done.
+- **Six mobile rules.** `D-111` a page that never adapts, `D-112` `100vh`,
+  `F-113` form text that zooms on iOS, `D-114` a bar under the notch,
+  `D-115` a page that scrolls sideways, `E-116` a menu that cannot be opened or
+  cannot say it is open.
+- **`H-117` a token name nothing declares.** A `var()` naming a property no file
+  declares makes its whole declaration invalid, so the page silently loses its
+  font, spacing and borders. Three of four live builds shipped exactly that,
+  and every file-based check passed them.
+- **`P-14` site navigation**, composed for the phone first: what to show at each
+  width, a named menu control whose state is visible and announced, `aria-current`
+  styled from the attribute, and no sideways-scrolling nav row.
+
+### Changed
+
+- **`spec` writes a whole composition per screen size**, phone first, with
+  `regions:` and `nav:` at each — not one composition and a note about narrow
+  screens. A menu button at a width where the links fit is refused: where the
+  button sits is the project's decision, whether it exists at that width is not.
+- **`make` finishes on three gates**: a pasted `JIG_CHECK` with no mechanical
+  errors, a region-by-region comparison with the approved mockup at each width,
+  and each size's spec fields accounted for.
+- **`critique` operates the page** instead of only looking at it, judges the
+  `P-` patterns the spec uses, and sends its findings back to `make` until the
+  page is clean or the user accepts what is left, by id.
+- **`decide` records what is still open** in an `Unresolved` section, and writes
+  only reasons the owner gave.
+- **`explain` searches every line of every rule**, and the free sections of the
+  reference, not only titles and preambles.
+- **`check` warns** when `jig.config.json` is unreadable or declares a mode the
+  token layer does not import, and counts those warnings in `JIG_CHECK`.
+- **`L-01`'s squint test runs on a grayscale render** where a browser exists;
+  reading the source is the fallback, not the equal.
+- **`init --yes` says what it did not decide** — no surface mapping, and
+  re-running `init` after you declare one.
+
 ## 0.9.0
 
 One new rule and one amended correction, both from the same afternoon of
