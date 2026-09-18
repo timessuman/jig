@@ -12,13 +12,13 @@ Installed as `npx jig-ui` — the bare name was taken on npm.
 Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
 They are two halves of the same thing, and the split is not arbitrary:
 
-- Of the 113 rules, **16 can be decided by a machine** — a hard-coded colour, a
+- Of the 114 rules, **17 can be decided by a machine** — a hard-coded colour, a
   contrast ratio below the floor, a removed focus ring. The CLI decides those.
 - The other **97 are judgment** — whether an empty state says anything useful,
   whether a label reads as an instruction, whether motion earns its place. No
   regex settles those. An agent reads the rules and applies them.
 
-Running only the CLI gets you the 16. Running only the agent gets you the 97 with
+Running only the CLI gets you the 17. Running only the agent gets you the 97 with
 no verification. **A clean `jig check` is not a clean review**, and the skill
 says so to every agent that reads it.
 

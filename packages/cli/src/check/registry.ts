@@ -15,6 +15,7 @@ import { inputZoom } from './detectors/input-zoom.js';
 import { safeArea } from './detectors/safe-area.js';
 import { menuState } from './detectors/menu-state.js';
 import { undeclaredToken } from './detectors/undeclared-token.js';
+import { emDash } from './detectors/em-dash.js';
 
 /**
  * Every detector `check` knows how to run, keyed by the `detector` name
@@ -39,6 +40,7 @@ const DETECTORS: Detector[] = [
   safeArea,
   menuState,
   undeclaredToken,
+  emDash,
 ];
 
 export function getDetector(name: string): Detector | undefined {
