@@ -574,6 +574,61 @@ Load `05-copy.md` whenever writing or reviewing a user-facing string.
 
 ---
 
+## J. Search and sharing
+
+What a stranger meets **before** the page: the search result, the link preview in
+a message, the card a colleague pastes into a channel. Nobody reads `<head>`, so
+it is the surface that drifts, and it is the one that is read first.
+
+**Which pages this section applies to is decided by mode, not by taste.**
+`editorial` is first-visit content and is indexable. `product` and `operator` are
+what somebody reaches after signing in, and are not: an admin screen in a search
+result is an invitation, and a login page in one invites credential stuffing. A
+spec overrides the default per page — a CV shared by link, a thank-you page, a
+not-found page — and says why.
+
+### J-120 Metadata that no longer matches the page
+❌ A title or description still carrying positioning the page dropped, changed in a later commit "when there is time"
+✅ Change the metadata **in the same change as the copy**. A page's title, description and preview text are copy, written by whoever wrote the headline, reviewed the same way.
+This is the whole reason the section exists. A copy pass reads pages; nobody reads `<head>`. One site rewrote every visible page and served the old positioning to search for a day — including a metaphor whose explanation had been deleted the day before, so the stranger who met it had nowhere left to resolve it. The comment above that line already said "metadata is copy, when the positioning moves this moves with it". It had caught the problem once before and did not catch it again, because a comment is not a check.
+
+### J-121 An indexable page with no title or description of its own
+❌ A route inheriting the site-wide title, or carrying none, so the result page shows a truncated URL or an excerpt of the navigation
+✅ Every indexable page has its own `<title>` and meta description. The home page owns the site default; nothing else inherits it silently.
+A missing description does not leave the slot empty. The search engine writes one, from whatever text it finds first, which is usually the navigation.
+
+### J-122 Metadata past its budget
+❌ A 78-character title, a 210-character description, both eyeballed
+✅ Title ≤ 60 characters, description ≤ 155, measured. Past the budget the end is cut, and the cut lands mid-sentence.
+The budget is not a style preference; it is the width of the box someone else renders. Write the important half first, so a cut costs the least.
+
+### J-123 A page that must not be indexed and does not say so
+❌ An admin screen, a sign-in page, an internal tool with no robots directive, kept out of search by nothing but obscurity
+✅ `noindex` on the page itself, from its own metadata. In `product` and `operator` this is the default and its absence is the defect.
+`robots.txt` is not this. It is public, advisory, and read by strangers as a list of interesting places: naming `/admin` there tells everyone where it is. A path is safe to name only when something else protects it — a session guard, an authenticating API — and never because the file asked politely.
+
+### J-124 A sitemap that contradicts the page
+❌ A route listed in the sitemap whose own metadata says `noindex`; a sitemap entry for a page that does not exist
+✅ One answer per route. The sitemap lists what is indexable, and nothing else.
+Contradicting yourself in two files tells a crawler you do not know which is true, and it will decide for you.
+
+### J-125 Invented facts in metadata
+❌ `lastModified: new Date()` in a sitemap; a `datePublished` filled in because the field existed; an author, rating or price nobody supplied
+✅ Emit a field only where a real value exists in the content. Leave it out otherwise.
+A date that is today's on every request is false on every request, and repeated daily it teaches the crawler to disbelieve the field. Structured data is a claim about facts, and a wrong one is worse than a missing one.
+
+### J-126 Structured data retyped instead of read
+❌ A name, email or description written as a literal in JSON-LD beside the same value in the content model
+✅ Build it from the same source the page renders from. One value, one place.
+A second copy of the positioning is a second thing to keep in step by hand, which is `J-120` again wearing a different hat.
+
+### J-127 A list served as a fact when it is empty
+❌ A sitemap that renders with no entries because a content read failed, asserting the site has nothing
+✅ Concatenate the static routes unconditionally, and let a failed read yield the stale list rather than an empty one. When a list is genuinely empty, prove it before shipping.
+An empty sitemap is not a missing sitemap. It is a positive claim, and the crawler believes it.
+
+---
+
 ## L-04 · Self-check before finishing
 
 Run this against what you produced. Any "no" is a defect to fix, not a note to mention.

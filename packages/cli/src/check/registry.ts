@@ -17,6 +17,7 @@ import { menuState } from './detectors/menu-state.js';
 import { undeclaredToken } from './detectors/undeclared-token.js';
 import { emDash } from './detectors/em-dash.js';
 import { semanticElement } from './detectors/semantic-element.js';
+import { metadata } from './detectors/metadata.js';
 
 /**
  * Every detector `check` knows how to run, keyed by the `detector` name
@@ -43,6 +44,7 @@ const DETECTORS: Detector[] = [
   undeclaredToken,
   emDash,
   semanticElement,
+  metadata,
 ];
 
 export function getDetector(name: string): Detector | undefined {

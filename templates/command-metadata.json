@@ -24,6 +24,11 @@
     "argumentHint": "[--all] [--ci] [--json]",
     "status": "available"
   },
+  "seo": {
+    "description": "Audit what a search engine and a link preview read, across the whole project: a noindex route in the sitemap, two pages with one title, indexable pages with no sitemap, a sitemap that lists nothing. The per-page half lives in spec, make and check.",
+    "argumentHint": "[--json]",
+    "status": "available"
+  },
   "verdicts": {
     "description": "Verify a critique's verdict files: every rule in each pass judged once, no id that does not exist, no rule in the wrong arm, rendered only with a screenshot. Computes the counts the critique reports, so the agent never writes them.",
     "argumentHint": "<surface>",

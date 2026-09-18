@@ -9,7 +9,7 @@ import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 const probe = (over: Partial<ProbeResult> = {}): ProbeResult => ({
-  jigProbe: 4, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
+  jigProbe: 5, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
   defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5,
   menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 },
   ...over,
@@ -59,6 +59,24 @@ describe('probeContradictions', () => {
     expect(probeContradictions([duplicate], v)[0]).toMatch(/it opens a second copy of them/);
     expect(probeContradictions([none], v)[0]).toMatch(/no visible navigation links and no menu/);
     expect(probeContradictions([wide({ menu: null, navLinksVisible: 5 })], v)).toEqual([]);
+  });
+
+  // J-121 to J-123 in the one place the answer is certain: what was served.
+  // Most frameworks build the head, so no file check can settle it.
+  it('reports a served page with no title or description, and one past its budget', () => {
+    const head = { title: '', description: '', canonical: '', robots: '', ogTitle: '', ogImage: '' };
+    const errors = probeContradictions([probe({ head })], verdicts({}));
+    expect(errors.join('\n')).toMatch(/served no <title>/);
+    expect(errors.join('\n')).toMatch(/served no meta description/);
+    const long = probeContradictions([probe({ head: { ...head, title: 'x'.repeat(61), description: 'd' } })], verdicts({}));
+    expect(long.join('\n')).toMatch(/title served is 61 characters/);
+  });
+
+  it('asks a page that is not meant to be found for noindex instead', () => {
+    const head = { title: 'Admin', description: '', canonical: '', robots: '', ogTitle: '', ogImage: '' };
+    expect(probeContradictions([probe({ head })], verdicts({}), false).join('\n')).toMatch(/served no noindex/);
+    const quiet = probeContradictions([probe({ head: { ...head, robots: 'noindex, nofollow' } })], verdicts({}), false);
+    expect(quiet).toEqual([]);
   });
 
   // I-118 where the source cannot reach: a string built by a script, or by a
@@ -186,7 +204,7 @@ describe('jig probe --save stamps the page it measured', () => {
   });
 
   it('rejects output that is not a probe, and a page outside the project', () => {
-    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 4 probe output/);
+    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 5 probe output/);
     expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: output({ url: 'file:///etc/hosts' }) })).toThrow(/not a file in this project/);
   });
 

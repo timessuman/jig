@@ -64,6 +64,24 @@ function readJson(path: string, errors: string[]): { rendered?: unknown; artefac
   }
 }
 
+/**
+ * Whether this surface is meant to be found: the spec's `indexable:` when it
+ * says, otherwise the mode — `editorial` is first-visit content, `product` and
+ * `operator` are what somebody reaches after signing in.
+ */
+function specIndexable(projectRoot: string, surface: string): boolean {
+  const path = join(projectRoot, '.jig', 'specs', `${surface}.spec.md`);
+  let front = '';
+  try {
+    front = readFileSync(path, 'utf8').split(/^---\s*$/m)[1] ?? '';
+  } catch { /* no spec: fall through to the mode */ }
+  const declared = /^\s*indexable\s*:\s*(\w+)/im.exec(front)?.[1]?.toLowerCase();
+  if (declared === 'true' || declared === 'yes') return true;
+  if (declared === 'false' || declared === 'no') return false;
+  const mode = /^\s*mode\s*:\s*(\w+)/im.exec(front)?.[1]?.toLowerCase();
+  return mode !== 'product' && mode !== 'operator';
+}
+
 /** A navigation region in any size of the spec requires a verdict on P-14. */
 function specNeedsNav(projectRoot: string, surface: string): boolean {
   const path = join(projectRoot, '.jig', 'specs', `${surface}.spec.md`);
@@ -226,7 +244,7 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
     const v = screenVerdicts.find((x) => typeof x.id === 'string' && x.id.trim().toUpperCase() === id);
     return typeof v?.verdict === 'string' ? v.verdict : undefined;
   };
-  errors.push(...probeContradictions(probes, verdictOf));
+  errors.push(...probeContradictions(probes, verdictOf, specIndexable(opts.projectRoot, opts.surface)));
 
   // The screen pass is defined as judged on a render. Three live critiques
   // returned 30 screen verdicts each with `rendered: false` — read from the

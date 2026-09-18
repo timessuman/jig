@@ -807,5 +807,61 @@
     "severity": "warning",
     "since": "0.13.0",
     "detector": "semantic-element"
+  },
+  {
+    "id": "J-120",
+    "bucket": "judgment",
+    "severity": "error",
+    "since": "0.14.0",
+    "pass": "code"
+  },
+  {
+    "id": "J-121",
+    "bucket": "mechanical",
+    "severity": "error",
+    "since": "0.14.0",
+    "detector": "metadata"
+  },
+  {
+    "id": "J-122",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.14.0",
+    "detector": "metadata"
+  },
+  {
+    "id": "J-123",
+    "bucket": "mechanical",
+    "severity": "error",
+    "since": "0.14.0",
+    "detector": "metadata"
+  },
+  {
+    "id": "J-124",
+    "bucket": "judgment",
+    "severity": "error",
+    "since": "0.14.0",
+    "pass": "code"
+  },
+  {
+    "id": "J-125",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.14.0",
+    "detector": "metadata"
+  },
+  {
+    "id": "J-126",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.14.0",
+    "pass": "code"
+  },
+  {
+    "id": "J-127",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.14.0",
+    "pass": "code"
   }
 ]

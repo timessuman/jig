@@ -10,6 +10,7 @@ import { check } from './commands/check.js';
 import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
 import { gate, surfacePage } from './commands/gate.js';
+import { seo } from './commands/seo.js';
 import { PROBE_SCRIPT } from './probe/script.js';
 import { critiquedSurfaces, ensureProbes, runAndSaveProbes, saveProbe } from './probe/save.js';
 import { adapterNames } from './adapters/registry.js';
@@ -195,6 +196,29 @@ program
   });
 
 program
+  .command('seo')
+  .description("Audit what a search engine and a link preview read, across the whole project.")
+  .option('--json', 'emit findings as JSON', false)
+  .action((opts: { json: boolean }) => {
+    const projectRoot = findProjectRoot(process.cwd());
+    try {
+      const result = seo({ projectRoot, mode: resolveSurfaceMode(projectRoot) });
+      if (opts.json) {
+        console.log(JSON.stringify(result.findings, null, 2));
+      } else {
+        const symbol = { error: '✗', warning: '⚠', note: '·' };
+        for (const f of result.findings) console.log(`  ${symbol[f.severity]} ${f.ruleId} ${f.message}  ${f.file}`);
+        if (result.findings.length === 0) console.log('  Nothing to fix in what a search engine reads.');
+        console.log(`  ${result.line}`);
+      }
+      process.exit(result.findings.some((f) => f.severity === 'error') ? 1 : 0);
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
+  });
+
+program
   .command('probe')
   .description("Print the render probe. With --save, read what it returned on stdin and record it for `jig verdicts`.")
   .option('--save <surface>', "record the probe's output (piped in) under .jig/critique/<surface>/")
@@ -289,5 +313,16 @@ program
       process.exit(1);
     }
   });
+
+/** The one mode a project declares, when it declares exactly one. */
+function resolveSurfaceMode(projectRoot: string): string | undefined {
+  try {
+    const config = JSON.parse(readFileSync(join(projectRoot, 'jig.config.json'), 'utf8')) as { surfaces?: Array<{ mode?: string }> };
+    const modes = [...new Set((config.surfaces ?? []).map((s) => s.mode).filter(Boolean))];
+    return modes.length === 1 ? modes[0] : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 program.parse();
