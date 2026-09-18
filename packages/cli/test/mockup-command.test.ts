@@ -301,3 +301,24 @@ describe('decide asks what the project is for, and how it breaks a tie', () => {
     expect(decide()).toMatch(/### When two options conflict/);
   });
 });
+
+// A question someone has to decode gets a worse answer than one they can react
+// to, and the example also shows the shape: a sentence about this product,
+// never an adjective.
+describe('decide asks with an example attached', () => {
+  const decide = () => tmpl().split('\n## decide\n')[1];
+
+  it('says to attach one, and says it is an example not a suggestion', () => {
+    expect(decide()).toMatch(/Ask every question with an example answer attached/);
+    expect(decide()).toMatch(/it is an example, not a suggestion/);
+  });
+
+  it('carries one for every round', () => {
+    const examples = (decide().match(/> \*For example:/g) ?? []).length;
+    expect(examples).toBeGreaterThanOrEqual(6);
+  });
+
+  it('shows the north star in checkable form beside the form it rejects', () => {
+    expect(decide()).toMatch(/which limit they would\s+> hit first" — not "they feel confident"/);
+  });
+});

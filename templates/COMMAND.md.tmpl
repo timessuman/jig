@@ -258,9 +258,17 @@ settled at `init` and live in `{{config_file}}` and the token layer; re-deciding
 them per screen creates a second source of truth for the values Jig exists to
 centralise. If the user raises appearance, record it and move on.
 
+**Every question carries an example answer**, for the same reason `decide`'s do: a
+question someone has to decode gets a worse answer than one they can react to, and
+the example shows the shape. Say it is an example, not a suggestion.
+
 - Round 1 — what is it for? What does the user need to do there ("create an
   invoice")? Who arrives, and what is the single most important thing they must be
   able to see or do?
+  > *For example: "comprehension first, sign-up second. They arrive from the
+  > product page having already decided to try it, so no explainer above the
+  > cards. The most important thing is the limits — the price matters equally and
+  > must never dominate."*
 - **Then scope it — be a pessimist.** Of everything this could include,
   what is the smallest version that is useful on its own? Ask that plainly and
   expect to cut. "Comments with attachments, mentions, reactions, editing,
@@ -269,11 +277,20 @@ centralise. If the user raises appearance, record it and move on.
   forgotten. Everything after this designs V1 only.
 - Round 2 — what content and states does it carry? Empty, loading, error,
   first-run, and the realistic range (0 items, 5, 500)?
+  > *For example: "three plans, a monthly/annual choice, four FAQ questions, a
+  > footer. The billing choice is the only state — the page is static, nothing
+  > loads, nothing fails."*
 - Round 3 — only what is still unresolved: entry points, where it leads, what
   must not happen here.
+  > *For example: "they arrive from the product page or a docs search, and every
+  > plan goes straight to sign-up. Nothing on this page may ask for a sales
+  > call."*
 
 **Ask about the phone by name.** What does the reader see first on a phone, and
-what moves, stacks, or goes behind a control? If the conversation only ever
+what moves, stacks, or goes behind a control?
+> *For example: "the plans come first on the phone" — that is the answer this
+> question wants, and everything else about the narrow composition is the
+> system's to settle.* If the conversation only ever
 describes the wide screen, the phone composition will be derived from it rather
 than designed — and a derived phone composition is a squeezed desktop.
 
@@ -1230,15 +1247,30 @@ at all. If the design system has a position, it is in the rules; if it has none,
 you are looking for is the places where this project has already chosen
 something, or will have to:
 
+**Ask every question with an example answer attached.** A question someone has to
+decode gets a worse answer than one they can react to, and the example shows the
+shape you need — a sentence about this product, not an adjective. Say plainly
+that it is an example, not a suggestion.
+
 - Round 1 — what is this product, and who is it for in a sentence the team would
   recognise? What should it never look like? Name real products, not adjectives.
+  > *For example: "hosted log search — you point it at your cluster and ask in
+  > plain text. For a backend engineer who has tried grep over SSH. It must never
+  > look like an enterprise console: no SKU matrix, no 'contact us' pricing.
+  > Closer to Fly.io than to a Datadog dashboard."*
 - Round 1b — **what must be true for the reader, and what do you give up for
   it?** Two questions, and both answers have to be checkable against a page:
   - *"When someone leaves this screen, what do they know or have that they did
     not before?"* That is the project's north star, and it is worth recording
     because every later argument is settled by asking which option serves it.
+    > *For example: "they know which plan fits them and which limit they would
+    > hit first" — not "they feel confident", which no page can be checked
+    > against.*
   - *"When two good options conflict here, which side do you take?"* Fast over
     complete, plain over clever, fewer choices over more, density over comfort.
+    > *For example: "comprehension wins over persuasion — if the clearer page
+    > converts worse, we ship the clearer page", or "recovery wins over speed:
+    > every destructive action is undoable, even where that costs a step".*
     Jig's own tiebreakers settle the system's conflicts; this settles the
     project's, and without it the agent settles them alone. In a live run a
     decision about where the accent may appear collided with a component rule
@@ -1252,9 +1284,16 @@ something, or will have to:
 - Round 2 — for each thing the tokens already set, is there a rule about *how* it
   is used? Where does the brand colour go, and where is it forbidden? What earns
   emphasis?
+  > *For example: "the accent appears exactly twice per page, both clickable —
+  > the primary action and the active side of a control. Never on a checkmark, a
+  > limit number or a feature list. Emphasis is earned by the one thing the
+  > reader came to do."*
 - Round 3 — what has the team already argued about, or reversed? A decision with
   a history is the one most worth recording, because it is the one most likely to
   be re-made wrongly.
+  > *For example: "we shipped a 'most popular' badge for six weeks. Conversion
+  > rose slightly; wrong-plan signups and support tickets rose more. We pulled
+  > it, and that covers the effect, not the widget — no raised card either."*
 
 **All three rounds run.** Do not write the file after round 2 because the answers
 look complete. Round 3 asks for the one kind of decision a user does not volunteer
@@ -1263,7 +1302,10 @@ reason. In the arm that did ask, round 3 is where the unresolved items surfaced.
 
 **Round 3 also asks, by name, what is still undecided.** "Is there anything the team
 has not settled yet — something still argued about, or waiting on someone?" Ask it
-even when nothing so far suggests there is. Whatever the answer names goes in the
+even when nothing so far suggests there is.
+> *For example: "whether we publish a public status page. It is between showing
+> uptime on the pricing page and not mentioning it at all, and it waits on
+> whether support can staff it."* Whatever the answer names goes in the
 **Unresolved** section below, not into a decision the user did not make. Four of six
 files in a live run dropped the one open item the owner had named.
 
