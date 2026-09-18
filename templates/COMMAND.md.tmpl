@@ -1258,14 +1258,17 @@ that it is an example, not a suggestion.
   > plain text. For a backend engineer who has tried grep over SSH. It must never
   > look like an enterprise console: no SKU matrix, no 'contact us' pricing.
   > Closer to Fly.io than to a Datadog dashboard."*
-- Round 1b — **what must be true for the reader, and what do you give up for
-  it?** Two questions, and both answers have to be checkable against a page:
-  - *"When someone leaves this screen, what do they know or have that they did
-    not before?"* That is the project's north star, and it is worth recording
-    because every later argument is settled by asking which option serves it.
-    > *For example: "they know which plan fits them and which limit they would
-    > hit first" — not "they feel confident", which no page can be checked
-    > against.*
+- Round 1b — **what the product is for, and what you give up for it.** This file
+  is project-wide, so both answers are about the product, not a page. A page's
+  own purpose is `spec`'s question, and it inherits its direction from here.
+  - *"If this product works, what can someone do that they could not before?"*
+    That is the north star: one outcome, in the product's own words, that every
+    later argument is settled against. A design direction without one drifts
+    screen by screen, each change defensible on its own.
+    > *For example: "an engineer finds the line in their logs without learning a
+    > query language" — not "be the best log tool", which no screen can serve or
+    > fail. The test: could you look at a design and say whether it moves toward
+    > that sentence?*
   - *"When two good options conflict here, which side do you take?"* Fast over
     complete, plain over clever, fewer choices over more, density over comfort.
     > *For example: "comprehension wins over persuasion — if the clearer page
@@ -1281,6 +1284,37 @@ that it is an example, not a suggestion.
   "premium" cannot be checked against a page, and every decision in this file is
   now judged against one. Push for the form that can: what it is closer to, what
   it would rather be than, what it refuses.
+- Round 1c — **the personality, asked through the four things that produce it.**
+  Every interface has one whether it was chosen or not, and it is not a mood
+  board: it is decided by type, colour, corners and language, each of which is a
+  value this project is about to set. Ask about all four, one question each, and
+  say what each answer will become.
+  - **Type.** Serif reads classic or editorial; a rounded sans reads friendly; a
+    neutral sans stays out of the way and lets everything else carry the
+    personality. Which is this? *(Becomes `--font-text` and `--font-display`.)*
+  - **Colour.** Which colour is this product's, and what does it mean here? The
+    psychology matters less than the reason: blue is familiar and safe, gold
+    reads expensive, pink reads unserious. *(Becomes `--color-brand`, and the
+    contrast floors still apply — a palette that fails them is not a
+    personality.)*
+  - **Corners.** Square reads formal or technical, a small radius is neutral,
+    a large one reads playful. One answer for the whole interface: mixing square
+    and round in one screen looks worse than either. *(Becomes the `--radius-*`
+    scale.)*
+  - **Language.** Official and impersonal, or plain and conversational? Words
+    appear in every screen, so this decides more of the personality than any
+    single visual choice. *(Becomes a voice decision here, applied by
+    `05-copy.md`.)*
+  > *For example: "neutral sans — the type should disappear. One colour, a muted
+  > olive, because it is the one thing on the page that is not a plan or a price.
+  > Square corners; this is a tool, not a toy. Lowercase and technical: ingest,
+  > retention, seat — plain words, undefined, no throat-clearing."*
+
+  **When they have no gut feeling, ask what the reader already uses.** The sites
+  this audience spends its day in set the expectation; matching that is cheaper
+  than teaching a new one. Take the direction, never the design: a project that
+  borrows from a direct competitor looks like a second-rate version of it, which
+  is also `A-01`'s point about invented decoration seen from the other side.
 - Round 2 — for each thing the tokens already set, is there a rule about *how* it
   is used? Where does the brand colour go, and where is it forbidden? What earns
   emphasis?

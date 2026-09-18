@@ -286,9 +286,27 @@ describe('nav is decided per size by P-14, not copied from a placement decision'
 describe('decide asks what the project is for, and how it breaks a tie', () => {
   const decide = () => tmpl().split('\n## decide\n')[1];
 
-  it('asks what the reader leaves with, and which side wins a conflict', () => {
-    expect(decide()).toMatch(/what do they know or have that they did\s+not before\?/);
+  it('asks the north star about the product, not a page', () => {
+    expect(decide()).toMatch(/If this product works, what can someone do that they could not before\?/);
+    expect(decide()).toMatch(/A page's\s+own purpose is `spec`'s question/);
     expect(decide()).toMatch(/When two good options conflict here, which side do you take\?/);
+  });
+
+  // Personality is not a mood board: it is type, colour, corners and language,
+  // and each answer becomes a value this project is about to set.
+  it('asks personality through the four things that produce it, and names what each becomes', () => {
+    const d = decide();
+    for (const [lever, token] of [['Type', '--font-text'], ['Colour', '--color-brand'], ['Corners', '--radius-'], ['Language', 'voice decision']]) {
+      expect(d, lever).toMatch(new RegExp(`\\*\\*${lever}\\.\\*\\*`));
+      expect(d, token).toContain(token);
+    }
+    expect(d).toMatch(/a palette that fails them is not a\s+personality/);
+    expect(d).toMatch(/mixing square\s+and round in one screen looks worse than either/);
+  });
+
+  it('sends them to what the reader already uses, and away from the competitor', () => {
+    expect(decide()).toMatch(/ask what the reader already uses/);
+    expect(decide()).toMatch(/looks like a second-rate version of it/);
   });
 
   it('refuses an adjective, because every decision is judged against a page', () => {
@@ -319,6 +337,7 @@ describe('decide asks with an example attached', () => {
   });
 
   it('shows the north star in checkable form beside the form it rejects', () => {
-    expect(decide()).toMatch(/which limit they would\s+> hit first" — not "they feel confident"/);
+    expect(decide()).toMatch(/without learning a\s+> query language" — not "be the best log tool"/);
+    expect(decide()).toMatch(/could you look at a design and say whether it moves toward\s+> that sentence\?/);
   });
 });
