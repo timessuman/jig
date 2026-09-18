@@ -49,6 +49,14 @@ Paste the line for your agent and let it run the command.
 Add `--scope global` to install once for every project instead of just this one.
 Every agent supports both scopes.
 
+**Claude Code also gets a Stop hook.** A project-scope install adds one entry to
+`.claude/settings.json`, keeping everything already in it. It runs `jig gate` when
+the agent tries to finish, and holds it there while the files it changed fail
+`check`, or the `/jig` command it just ran left its work incomplete — a spec that is
+prose, a critique with no verdicts, a review that never rendered the page. After
+three attempts it lets the agent stop and says the work is unfinished. This exists
+because the weakest models skip any step they are merely asked to run.
+
 | Agent | Project scope | Global scope |
 | --- | --- | --- |
 | Claude Code | `.claude/skills/jig/SKILL.md` | `~/.claude/skills/jig/SKILL.md` |
@@ -154,6 +162,9 @@ overwrites a config or brand file you have edited.
 | `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. The only command that writes into your repo. |
 | `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
+| `verdicts <surface>` | Verifies a critique's verdict files and computes its counts: every rule in each pass judged once, no id that does not exist, no rule in the wrong arm, and no verdict the render probe contradicts. |
+| `probe` | Prints the render probe — one expression the critique runs in a browser at each width. It operates the menu, measures sideways scroll, and reads whether the styles and tokens applied. |
+| `gate` | Run by the Stop hook `install` adds for Claude Code, not by hand. Blocks an agent from finishing while `check` fails on the files it changed, or the step it just ran left its work unfinished. |
 | `explain <rule-id \| word> [--list]` | Given an id, prints a rule in full — what it forbids, what to do instead, the version it arrived in, and who checks it. Also resolves the `P-` pattern and `M-` mode specs, which no rule index contains. Given a **word**, searches every title and body and lists what matches, so you can find a rule you cannot name. `--list` prints every id, or one section's. |
 
 Flags worth knowing:
@@ -190,7 +201,7 @@ on the result — the CLI reports, the agent applies the judgment half.
 | `/jig spec invoice page` | No CLI. What exactly is being built — a page, feature or functionality — at its smallest useful version, at every screen size |
 | `/jig mockup` | No CLI. Low-fidelity design of that spec, reviewed before code — in HTML, Figma or Google Stitch, whichever you choose |
 | `/jig make` | No CLI. High-fidelity: builds the actual page or feature from the spec and mockup |
-| `/jig critique` | No CLI. Scrutinises what was built against the rules, its spec and its mockup |
+| `/jig critique` | `jig verdicts` + `jig probe`. Scrutinises what was built against the rules, its spec and its mockup: two reader arms write their verdicts to files, the CLI decides whether the review is complete, and a browser probe checks the verdicts against what the page actually does |
 
 `decide` runs once. The other four run for each page, feature or functionality, one
 at a time — never the whole product at once.
