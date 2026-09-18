@@ -3,12 +3,13 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PROBE_SCRIPT } from '../src/probe/script.js';
-import { probeContradictions, type ProbeResult } from '../src/probe/check.js';
+import { probeContradictions, readProbes, type ProbeResult } from '../src/probe/check.js';
+import { saveProbe } from '../src/probe/save.js';
 import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 const probe = (over: Partial<ProbeResult> = {}): ProbeResult => ({
-  jigProbe: 1, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
+  jigProbe: 2, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
   defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5,
   menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 },
   ...over,
@@ -94,9 +95,16 @@ describe('jig verdicts reads the probes', () => {
   });
 
   it('passes with agreeing probes, and fails when one contradicts a verdict', () => {
-    for (const w of [360, 768, 1280]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify(w === 360 ? probe() : probe({ width: w, menu: null })));
+    // Recorded through the CLI, as a real critique does: a hand-written file is
+    // refused outright now (see the --save tests below).
+    const page = join(project, 'pricing.html');
+    writeFileSync(page, '<html><body><a href="/">home</a></body></html>');
+    const record = (over: Partial<ProbeResult>) =>
+      saveProbe({ projectRoot: project, surface: 'pricing', json: JSON.stringify({ ...probe(), url: `file://${page}`, ...over }) });
+    record({});
+    for (const width of [768, 1280]) record({ width, menu: null, navLinksVisible: 5 });
     expect(run().errors).toEqual([]);
-    writeFileSync(join(dir(), 'probe-768.json'), JSON.stringify(probe({ width: 768, sidewaysScroll: true, scrollWidth: 800, clientWidth: 768 })));
+    record({ width: 768, menu: null, navLinksVisible: 5, sidewaysScroll: true, scrollWidth: 800, clientWidth: 768 });
     expect(run().errors.join('\n')).toMatch(/D-115 is "ok"/);
   });
 
@@ -112,6 +120,11 @@ describe('jig verdicts reads the probes', () => {
     for (const w of [360, 768, 1280]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify({ width: w, ok: true }));
     expect(run().errors.join('\n')).toMatch(/is not output of `jig probe`/);
   });
+
+  it('rejects probe files nothing stamped, so a review cannot invent its measurements', () => {
+    for (const w of [360, 768, 1280]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify(probe({ width: w })));
+    expect(run().errors.join('\n')).toMatch(/was not written by `jig probe --save`/);
+  });
 });
 
 describe('critique tells the screen arm to probe', () => {
@@ -120,5 +133,50 @@ describe('critique tells the screen arm to probe', () => {
     expect(t).toMatch(/A rendered review is measured, not only described/);
     expect(t).toMatch(/\{\{scripts_path\}\} probe > \.jig\/probe\.js/);
     expect(t).toMatch(/Never write a probe file yourself/);
+  });
+});
+
+/**
+ * A live run wrote its own probe file: five links and Escape closing a menu
+ * that really has thirteen links and no Escape handler. The shape was right,
+ * so the review passed on numbers nobody measured.
+ */
+describe('jig probe --save stamps the page it measured', () => {
+  let project: string;
+  const dir = () => join(project, '.jig', 'critique', 'pricing');
+  const pagePath = () => join(project, 'pricing.html');
+  const output = (over: Partial<ProbeResult> = {}) => JSON.stringify({ ...probe(), url: `file://${pagePath()}`, ...over });
+
+  beforeEach(() => {
+    project = mkdtempSync(join(tmpdir(), 'jig-save-'));
+    writeFileSync(join(project, 'pricing.html'), '<html><body><a href="/">home</a></body></html>');
+  });
+
+  it('records the file, and verdicts accepts it', () => {
+    const saved = saveProbe({ projectRoot: project, surface: 'pricing', json: output() });
+    expect(saved.path).toBe('.jig/critique/pricing/probe-360.json');
+    const written = JSON.parse(readFileSync(join(dir(), 'probe-360.json'), 'utf8'));
+    expect(written.pageFile).toBe('pricing.html');
+    expect(written.pageChecksum).toMatch(/^sha256:/);
+    expect(readProbes(project, dir(), [])).toHaveLength(1);
+  });
+
+  it('rejects output that is not a probe, and a page outside the project', () => {
+    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 2 probe output/);
+    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: output({ url: 'file:///etc/hosts' }) })).toThrow(/not a file in this project/);
+  });
+
+  it('refuses a hand-written probe file, and one taken before the page changed', () => {
+    mkdirSync(dir(), { recursive: true });
+    writeFileSync(join(dir(), 'probe-360.json'), output());
+    const byHand: string[] = [];
+    expect(readProbes(project, dir(), byHand)).toHaveLength(0);
+    expect(byHand[0]).toMatch(/was not written by `jig probe --save`/);
+
+    saveProbe({ projectRoot: project, surface: 'pricing', json: output() });
+    writeFileSync(pagePath(), '<html><body><a href="/">home</a><a href="/docs">docs</a></body></html>');
+    const stale: string[] = [];
+    expect(readProbes(project, dir(), stale)).toHaveLength(0);
+    expect(stale[0]).toMatch(/taken on an older pricing\.html/);
   });
 });

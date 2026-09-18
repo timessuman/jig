@@ -11,6 +11,7 @@ import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
 import { gate } from './commands/gate.js';
 import { PROBE_SCRIPT } from './probe/script.js';
+import { saveProbe } from './probe/save.js';
 import { adapterNames } from './adapters/registry.js';
 
 const packageRoot = getPackageRoot();
@@ -195,9 +196,30 @@ program
 
 program
   .command('probe')
-  .description("Print the render probe: run it in a browser at each width and save its output for `jig verdicts`.")
-  .action(() => {
-    console.log(PROBE_SCRIPT);
+  .description("Print the render probe. With --save, read what it returned on stdin and record it for `jig verdicts`.")
+  .option('--save <surface>', "record the probe's output (piped in) under .jig/critique/<surface>/")
+  .action(async (opts: { save?: string }) => {
+    if (!opts.save) {
+      console.log(PROBE_SCRIPT);
+      return;
+    }
+    const projectRoot = findProjectRoot(process.cwd());
+    try {
+      // Read the stream, not fd 0: a pipe can be non-blocking, and a
+      // readFileSync(0) against one fails with EAGAIN rather than waiting.
+      const json = process.stdin.isTTY ? '' : await new Promise<string>((done, fail) => {
+        let text = '';
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', (chunk) => { text += chunk; });
+        process.stdin.on('end', () => done(text));
+        process.stdin.on('error', fail);
+      });
+      const result = saveProbe({ projectRoot, surface: opts.save, json });
+      console.log(`  Recorded ${result.path} — ${result.page} at ${result.width}px.`);
+    } catch (err) {
+      console.error(`  ✗ ${(err as Error).message}`);
+      process.exit(1);
+    }
   });
 
 program

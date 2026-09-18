@@ -853,9 +853,17 @@ probe in the browser and save what it returns beside the verdicts:
 
 ```
 {{scripts_path}} probe > .jig/probe.js
-# at each width: set the viewport, open the page, evaluate .jig/probe.js, save the
-# JSON it returns as .jig/critique/<surface>/probe-<width>.json
+# at each width: set the viewport, open the page, evaluate .jig/probe.js, and pipe
+# exactly what it returned into:
+{{scripts_path}} probe --save <surface>
 ```
+
+**The CLI writes the probe file, you do not.** `--save` reads the probe's output,
+stamps it with the page's checksum, and stores it. That is what makes the file a
+measurement: `verdicts` recomputes the checksum, so a file written by hand, or one
+taken before the page's last edit, is rejected. A live run wrote a probe file itself
+— five links and Escape closing a menu that has thirteen links and no Escape handler
+— and its review passed on those numbers.
 
 The probe opens the phone menu, presses Escape, measures sideways scroll, and reads
 whether the styles and tokens actually applied. `verdicts` refuses `rendered: true`

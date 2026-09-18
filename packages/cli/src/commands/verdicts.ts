@@ -156,7 +156,7 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   }
 
   // A rendered review is measured, not only described. See probe/script.ts.
-  const probes = readProbes(dir, errors);
+  const probes = readProbes(opts.projectRoot, dir, errors);
   if (screenFile && screenFile.rendered === true) {
     const widths = new Set(probes.map((p) => p.width));
     const missing = [360, 768, 1280].filter((w) => !widths.has(w));
