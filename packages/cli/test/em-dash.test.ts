@@ -45,3 +45,57 @@ describe('em-dash (I-118)', () => {
     expect(run('export const Banner = () => <p>Free — forever</p>;', 'Banner.tsx')).toHaveLength(1);
   });
 });
+
+/**
+ * Jig is framework-agnostic, and a copy rule has to be too. The first version
+ * of this detector carried its own list of extensions — HTML, JSX, Vue and a
+ * few others — so a Razor view, a Liquid template or a Nunjucks page was
+ * invisible to it, and markdown, which Astro, Next, Docusaurus, Eleventy and
+ * Hugo all render as pages, was excluded outright.
+ */
+describe('em-dash reaches every place a reader sees text', () => {
+  it('reads every template language the suite knows, not a hand-picked few', () => {
+    for (const file of ['page.razor', 'page.liquid', 'page.njk', 'page.ejs', 'page.heex', 'page.pug', 'page.haml', 'page.slim', 'page.twig', 'page.astro', 'page.vue']) {
+      expect(emDash.appliesTo(file), file).toBe(true);
+    }
+  });
+
+  it('reads the markdown a framework renders as a page', () => {
+    expect(emDash.appliesTo('src/content/docs/getting-started.md')).toBe(true);
+    expect(emDash.appliesTo('content/posts/hello.mdx')).toBe(true);
+    expect(run('# Pricing\n\nFree — forever.\n', 'src/content/pricing.md')).toHaveLength(1);
+  });
+
+  it('leaves repository documents alone: they are written for whoever works here', () => {
+    for (const file of ['README.md', 'CHANGELOG.md', 'docs/AGENTS.md', 'CONTRIBUTING.md']) {
+      expect(emDash.appliesTo(file), file).toBe(false);
+    }
+  });
+
+  it('does not read a code sample in markdown as prose', () => {
+    expect(run('Text.\n\n```js\nconst a = "x — y";\n```\n\nAnd `a — b` inline.\n', 'page.md')).toHaveLength(0);
+    expect(run('See [the docs](https://x.test/a—b) for more.\n', 'page.md')).toHaveLength(0);
+  });
+
+  it('reports markdown prose and frontmatter, each line once', () => {
+    const f = run('---\ntitle: Pricing — plans\n---\n\nFree — forever, and — again.\n', 'page.md');
+    expect(f.map((x) => x.line)).toEqual([2, 5]);
+  });
+});
+
+describe('em-dash does not read code as copy', () => {
+  it('leaves a build script that logs a sentence alone', () => {
+    expect(run('console.log("fetch-corpus: wrote 3 files — done");\n', 'scripts/fetch.mjs')).toHaveLength(0);
+    expect(run('// a — b\nconst note = "x — y";\n', 'lib/util.ts')).toHaveLength(0);
+  });
+
+  it('still reads the markup inside a script file', () => {
+    expect(run('render(<p>Free — forever</p>);\n', 'App.tsx')).toHaveLength(1);
+    expect(run('const t = html`<p>Free — forever</p>`;\n', 'card.ts')).toHaveLength(1);
+  });
+
+  it('reads an indentation template line, but not its code lines', () => {
+    expect(run('p Free — forever\n', 'page.pug')).toHaveLength(1);
+    expect(run('- const label = "a — b"\n', 'page.pug')).toHaveLength(0);
+  });
+});

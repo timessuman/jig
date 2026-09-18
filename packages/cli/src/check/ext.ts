@@ -38,3 +38,30 @@ export const STYLE_HOST_EXTENSIONS = [
 export function isStyleBearing(file: string): boolean {
   return hasExtension(file, CSS_EXTENSIONS) || hasExtension(file, STYLE_HOST_EXTENSIONS);
 }
+
+/** Markdown, which every static-site framework renders as pages: Astro's
+ *  `src/content`, Next's MDX routes, Docusaurus, Eleventy, Hugo, Jekyll. */
+export const MARKDOWN_EXTENSIONS = ['.md', '.markdown', '.mdx'];
+
+/** A repository document rather than a page: README, CHANGELOG, AGENTS,
+ *  CONTRIBUTING, LICENSE, and their kin. The convention is the same in every
+ *  ecosystem — an all-caps basename — so this needs no list to maintain and no
+ *  framework to recognise. A page is `getting-started.md`, never `NOTES.md`. */
+export function isRepoDocument(file: string): boolean {
+  const base = file.split('/').pop() ?? file;
+  const name = base.replace(/\.[^.]+$/, '');
+  return /^[A-Z0-9][A-Z0-9._-]*$/.test(name);
+}
+
+/**
+ * Whether this file carries text a reader of the built product sees.
+ *
+ * Wider than `isStyleBearing`, and deliberately so: a copy rule has to reach
+ * the markdown a framework renders as a page, which carries no styles at all.
+ * Narrower at the other end: a README is written for whoever works on the
+ * repository, and the copy rules are not about that.
+ */
+export function isReaderText(file: string): boolean {
+  if (hasExtension(file, MARKDOWN_EXTENSIONS)) return !isRepoDocument(file);
+  return hasExtension(file, STYLE_HOST_EXTENSIONS);
+}

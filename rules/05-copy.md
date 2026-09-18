@@ -88,7 +88,7 @@ Whichever you choose, be consistent across sibling elements — a list where thr
 ✅ A full stop, a comma, a colon or a new element. "Your plan renews monthly, including every seat." "Free forever." "Deleted. This cannot be undone."
 Interface text is read in fragments, at a glance, in a space someone else's content has to fit too. An em dash is a pause the reader has to interpret: it stands in for a comma, a colon, a bracket or a full stop, and which one it is only becomes clear after reading past it. The punctuation that says exactly one thing is faster.
 It is also the clearest tell of machine-written copy. Generated text reaches for the em dash far more often than a person does, and readers have learned to notice. Copy that reads as generated is copy the reader trusts less, whatever it says.
-This is about interface strings — labels, buttons, headings, errors, empty states, help text, and the prose a page ships. It is not a rule about your documentation, your commit messages or this file.
+This is about interface strings: labels, buttons, headings, errors, empty states, help text, and the prose a page ships. Markdown counts where a framework renders it as a page, which is most of them (`src/content`, `content/`, MDX routes). A repository document does not: `README.md`, `CHANGELOG.md`, `AGENTS.md` and their kin are written for whoever works on the code, and so are your commit messages and this file.
 The en dash keeps its one job: ranges, where it is read as "to" (`2–10 seats`, `Mon–Fri`). That is not a pause, and it is not affected.
 
 ### I-87 Inconsistent vocabulary
