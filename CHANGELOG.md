@@ -1,5 +1,68 @@
 # Changelog
 
+## 0.14.0
+
+What a stranger meets before the page, what the page must not hand them, and a
+project that states its own direction.
+
+### Added
+
+- **`J-120` to `J-127`, search and sharing.** A page a stranger reaches through
+  a search result or a pasted link is judged on what that reader meets first: a
+  title that names this page and not the site, a description that says what the
+  page holds, a canonical URL where more than one address serves the same
+  content, and a share image where a link is meant to be shared. A page that
+  must not be indexed says so in the page, not only in `robots.txt` — an
+  operator surface is the case the rules were written around.
+- **`jig seo`.** A project-level audit the page rules cannot do from one file:
+  a `noindex` route listed in the sitemap, two pages claiming the same title, a
+  site with no sitemap or no `robots.txt`, a sitemap with nothing in it. It
+  reads metadata wherever the framework puts it, and it does not require
+  `DECISIONS.md` — a project without one still gets the audit.
+- **`K-128` to `K-134`, safety at the interface.** This is not a security
+  review, and nothing here should be read as one. It is the set of interface
+  decisions that are also safety decisions: markup built from text a reader
+  supplied, a link opened into a new context, a form that submits across
+  origins, a credential or a token rendered into the page, an error that quotes
+  the system back at the reader. There is no `jig secure` command, because a
+  command implies a guarantee this cannot make.
+- **`L-01` Step 6, how the layout collapses.** A composition is not finished
+  until you have said what happens to it at each width where the content needs
+  it: reduce the count, never the size; order survives; distinction survives;
+  type comes from the fluid scale, not from a breakpoint; content wider than
+  the screen scrolls inside itself rather than pushing the page sideways.
+- **A fourth judged width: 1600.** Three widths never asked what an unbounded
+  layout does with room it was never given. A measure that keeps growing, a
+  row that keeps stretching and a page that turns into a gutter with a line of
+  text in it only show themselves past the desktop width. `jig probe` renders
+  360, 768, 1280 and 1600, and `spec` composes for all four.
+- **The project's own decisions are judged, one verdict each.** `DECISIONS.md`
+  is the file the agent is most likely to read once and then drift from, so
+  `jig verdicts` now carries a `decisions=` arm: every decision in the file is
+  judged against the page, and an unjudged decision is a failure like any other.
+
+### Changed
+
+- **`/jig decide` asks for the north star and the personality.** The north star
+  is the product's, not a page's — what someone can do that they could not
+  before, and what the product gives up to do it. A page's own purpose stays
+  `spec`'s question and inherits its direction from here. Personality is asked
+  through the four things that produce it, each named with the token it
+  becomes: type, colour, corners, language. An owner with no gut feeling is
+  asked what the reader already uses — and pointed away from direct
+  competitors, because a project that borrows from one looks like a
+  second-rate version of it.
+- **Every question in `decide` and `spec` carries an example answer**, in the
+  form that can be checked beside the form that cannot. A question that takes
+  five minutes of thought to parse gets a worse answer than the same question
+  with an example attached.
+- **Adopting Jig in a project that already has CSS.** The README now says
+  plainly what happens: the rules are read before anything is written, the
+  token layer is wired how you choose, and there are four ways in — one page
+  start to finish, a large codebase, only the new pages, and a page you
+  already have. Redesigning an existing page is its own path, and `spec` asks
+  different questions when the page exists.
+
 ## 0.13.0
 
 Meaning before presentation, and one fewer step anyone can skip.
