@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.13.0
+
+Meaning before presentation, and one fewer step anyone can skip.
+
+### Added
+
+- **`H-119` A generic element where a native one says what the content is.**
+  The rule carries a decision order: what is this content, is there a native
+  element whose meaning is that, does it describe it accurately, does order or
+  relationship matter, can CSS do the presentation, and only then a generic
+  container. It is not a rule against `div` — a `div` is right where nothing
+  more specific is true, and an approximate element is worse than a generic
+  one because it asserts something untrue. Presentation must not be required
+  to understand the content.
+  Its detector decides what the source can: a page with no `<main>`, a row of
+  destinations in a header or footer with no `<nav>`, a generic element named
+  or styled as a heading, and a repeated set on a page with no list or table.
+- **`jig probe --run <page> --save <surface>`.** The CLI renders the page
+  itself, at 360, 768 and 1280, in a headless Chrome, Chromium or Edge it
+  finds for itself — including the browsers Playwright or Puppeteer have
+  already downloaded. No dependency: Chrome's own debugging protocol over the
+  WebSocket client Node has had since 22. The Stop hook runs it before judging
+  a critique, so a review is measured whether or not anyone remembered to.
+- **The probe measures markup order against reading order.** A block the CSS
+  lifts above the one that precedes it in the markup is reported, whatever the
+  verdicts say. Two columns side by side are not an inversion: putting the
+  sidebar after the main content and moving it left is the correct pattern.
+- **The probe reads the rendered text for em dashes.** A string built in code —
+  a description assembled in a framework's frontmatter, a label written by a
+  script — reaches the page having passed no file check.
+
+### Changed
+
+- **`I-118` reads every place a reader sees text.** Every template language the
+  suite knows, and the markdown a framework renders as pages. Repository
+  documents are still exempt, and capitals now mean "document" only beside the
+  lockfile, so `docs/FAQ.md` is a page. Code is not copy: a script's text is
+  read only between real tags.
+- **The scan skips `.claude`, `.codex`, `.cursor`, `.opencode`, `.gemini` and
+  `.github`.** Jig's own vendored rules are not the project's interface.
+- **Probe files are version 3.** Older ones no longer validate.
+
 ## 0.12.0
 
 ### Added
