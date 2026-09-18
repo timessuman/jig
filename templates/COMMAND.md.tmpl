@@ -318,6 +318,11 @@ deviations: []             # `make` writes here; `spec` leaves it empty
 - **No shell before there are features.** If the product has no navigation yet,
   `nav:` says `none yet` — it is decided once there is more than one feature to
   move between, not invented for the first one.
+- **Regions say what the content is, not what it looks like.** `- plans: three
+  cards` describes a shape; `- plans: a comparable set, one per tier` describes
+  content, and the second is what `make` can choose an element from. `H-119` runs
+  its decision order against these lines, so a region named only by its
+  appearance leaves the element to chance.
 - **`nav:` at every size, on any screen with navigation — decided by `P-14`'s table
   at that width, not copied.** It is the field most likely to be written once and
   copied, and most likely to be genuinely different at every size on a page that
@@ -641,6 +646,14 @@ change. Write base styles for the phone and add width as it is available — not
 the desktop layout with overrides that take it apart again. A layout built wide
 and subtracted from ends up correct at exactly the widths somebody checked.
 
+**Choose every element from what its content is, before styling any of it**
+(`H-119`). For each region in the spec, run the decision order: what is this
+content — a heading, a list, a sequence, a quotation, tabular data, navigation,
+a control, a landmark? Is there a native element whose meaning is that? Does it
+describe the content accurately? Only when nothing fits is a generic container
+right. The page must read as what it is with the stylesheet off, in an order
+that makes sense; CSS then arranges it, and never the reverse.
+
 Then the ordinary rules apply: tokens by semantic name, the relevant
 `03-patterns.md` section for each component, `05-copy.md` for every string.
 
@@ -918,6 +931,13 @@ source and imagining the page is not a render.
   composition. The same layout with smaller numbers is not.
 - Check the page is styled at all. A stylesheet that 404s renders a page that
   passes every file-based check ever written.
+- **Read the markup as a document, not a layout** (`H-119`). For each region:
+  does its element say what the content is? Would the page still read correctly
+  with the stylesheet off, in this order? A row of links that is not a `<nav>`, a
+  heading that is a styled `<div>`, steps in no particular element, a comparison
+  of values that is not a table: each is a finding, and each names the element
+  the content asks for. A `<div>` is right where nothing more specific is true;
+  say so rather than inventing a fault.
 - Run the squint test from `L-01` against the render, not the analogue: render
   each size once more with `filter: grayscale(1)` on the root, and check that the
   primary action, the headings and the groups still read in order without colour.

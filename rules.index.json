@@ -800,5 +800,12 @@
     "severity": "warning",
     "since": "0.12.0",
     "detector": "em-dash"
+  },
+  {
+    "id": "H-119",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.13.0",
+    "detector": "semantic-element"
   }
 ]

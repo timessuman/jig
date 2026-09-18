@@ -99,3 +99,20 @@ describe('em-dash does not read code as copy', () => {
     expect(run('- const label = "a — b"\n', 'page.pug')).toHaveLength(0);
   });
 });
+
+describe('the scan skips the agent harnesses own files', () => {
+  it('excludes .claude and its kin, where install vendors Jig itself', async () => {
+    const { selectFiles } = await import('../src/check/files.js');
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const root = mkdtempSync(join(tmpdir(), 'jig-scan-'));
+    for (const dir of ['.claude/commands', '.cursor', 'src']) mkdirSync(join(root, dir), { recursive: true });
+    writeFileSync(join(root, '.claude', 'commands', 'jig.md'), 'A rule — with a dash.\n');
+    writeFileSync(join(root, '.cursor', 'rules.md'), 'Another — one.\n');
+    writeFileSync(join(root, 'src', 'page.md'), 'Real — copy.\n');
+    const files = selectFiles(root, true).files;
+    expect(files).toContain('src/page.md');
+    expect(files.some((f) => f.startsWith('.claude/') || f.startsWith('.cursor/'))).toBe(false);
+  });
+});
