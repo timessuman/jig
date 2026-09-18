@@ -266,6 +266,31 @@ Skipping step 2 and asking for a critique on its own leaves the review with
 nothing to check the page against except the rules, which is the weakest half of
 what Jig knows about your project.
 
+#### Redesigning a page you already have
+
+The opposite job, and the loop runs in its ordinary order. The difference is what
+the old page counts as: **content and constraints, not a target.**
+
+1. **Measure the page as it is, first.** `jig probe --run <page> --save <slug>`
+   records what it does today at each width — whether it scrolls sideways, whether
+   the menu opens, what order it reads in. Keep it. It is the only way to say
+   afterwards whether the redesign improved anything or merely changed it.
+2. **`/jig decide`**, if the project has not.
+3. **`/jig spec <page>`** as normal, designing forward. Take the **content** from
+   the old page — its copy, its real data, the questions its FAQ answers — and
+   decide the structure from the rules, not from what the markup happens to do
+   now. Anything that genuinely must survive is a constraint, so say so in the
+   spec: a URL that is linked from elsewhere, a field order the back end depends
+   on, legal wording somebody signed off. Everything else is open.
+4. **`/jig mockup`**, low fidelity, reviewed before code. This is where a
+   redesign is cheap to argue about.
+5. **`/jig make`** builds it, and **`/jig critique`** checks it against the spec,
+   the mockup and your decisions.
+
+The trap worth naming: carrying the old structure across because it is there. A
+page redesigned from its own markup ends up the same page with new colours. The
+old page is the brief's content; the rules and the spec decide its shape.
+
 Adopting Jig is additive. The pressure to move values into tokens arrives when
 you start using them, not on the day you install.
 

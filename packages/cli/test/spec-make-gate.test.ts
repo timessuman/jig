@@ -129,3 +129,17 @@ describe('spec describes a page that already exists', () => {
     expect(tmpl).toMatch(/a page that\s+contradicts `DECISIONS\.md` is described accurately/);
   });
 });
+
+describe('spec separates describing a page from redesigning one', () => {
+  const tmpl = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
+
+  it('treats the old page as content and constraints, never as the shape', () => {
+    expect(tmpl).toMatch(/Asked to redesign it instead, run this command normally/);
+    expect(tmpl).toMatch(/its content is the brief/);
+    expect(tmpl).toMatch(/the redesign is the same page in new colours/);
+  });
+
+  it('asks which parts genuinely have to survive', () => {
+    expect(tmpl).toMatch(/Anything that genuinely must\s+survive is a constraint and belongs in the spec by name/);
+  });
+});
