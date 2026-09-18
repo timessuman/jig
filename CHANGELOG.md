@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.11.1
+
+Two holes in the gate, both found by running the loop twice on 0.11.0 —
+once on Haiku, once on Sonnet.
+
+### Fixed
+
+- **The Stop hook's block budget is per failure, not per session.** A
+  headless session keeps one session id across every `/jig` step, so a run
+  that spent its three blocks on `init`, `spec` and `make` reached
+  `critique` with none left: it reported "complete and approved, zero
+  findings" having written no verdict files, and the gate that would have
+  caught it had already let go. Fixing a failure now returns its attempts,
+  a new failure starts fresh, and an agent that cannot fix a given failure
+  still gets out after three tries.
+- **`nav: horizontal bar (no menu)` is no longer read as a menu button**
+  at a width where the links fit. A false positive is how a gate gets
+  ignored.
+
 ## 0.11.0
 
 One release, one lesson: a measurement an agent can type is not a
