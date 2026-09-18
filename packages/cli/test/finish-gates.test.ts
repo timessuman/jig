@@ -28,7 +28,7 @@ describe("make's finish is a gate", () => {
   });
 
   it('compares a render to the approved mockup at each width, region by region', () => {
-    expect(make).toMatch(/360px, 768px and 1280px/);
+    expect(make).toMatch(/360px, 768px, 1280px and 1600px/);
     expect(make).toMatch(/\| Size \| Mockup region \| In the build\? \|/);
     expect(make).toMatch(/Never\s+write "matches" without the table/);
     expect(make).toMatch(/Every \*\*no\*\* is either fixed now or appended to `deviations:`/);

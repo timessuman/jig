@@ -32,7 +32,9 @@ export function specProblems(spec: { path: string; body: string }): string[] {
     if (!has(field)) problems.push(`${spec.path} frontmatter has no \`${field}:\`.`);
   }
   const sizes = front.split(/^sizes\s*:/im)[1] ?? '';
-  for (const size of ['phone', 'tablet', 'desktop']) {
+  // `landscape` is deliberately absent: optional, and judged only when a spec
+  // says the composition changes between tablet and desktop.
+  for (const size of ['phone', 'tablet', 'desktop', 'wide']) {
     const line = new RegExp(`^\\s+${size}\\s*:(.*)$`, 'im').exec(sizes);
     if (!line) {
       problems.push(`${spec.path} has no \`${size}:\` composition under \`sizes:\`. Every size is written in full, phone first; \`same-as:\` needs a \`why:\`.`);
@@ -89,7 +91,7 @@ export function navProblems(spec: { path: string; body: string }): string[] {
   const front = spec.body.split(/^---\s*$/m)[1] ?? '';
   const sizes = front.split(/^sizes\s*:/im)[1] ?? '';
   const problems: string[] = [];
-  for (const size of ['tablet', 'desktop']) {
+  for (const size of ['tablet', 'landscape', 'desktop', 'wide']) {
     const block = sizeBlock(sizes, size);
     const nav = /^\s*nav\s*:\s*(.+)$/im.exec(block)?.[1]?.trim();
     if (!nav || NONE_RE.test(nav)) continue;

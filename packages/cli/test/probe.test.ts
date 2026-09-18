@@ -9,7 +9,7 @@ import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 const probe = (over: Partial<ProbeResult> = {}): ProbeResult => ({
-  jigProbe: 3, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
+  jigProbe: 4, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
   defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5,
   menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 },
   ...over,
@@ -113,7 +113,7 @@ describe('jig verdicts reads the probes', () => {
   it('does not accept rendered: true without a probe at every width', () => {
     const r = run();
     expect(r.ok).toBe(false);
-    expect(r.errors.join('\n')).toMatch(/no probe at 360, 768, 1280px/);
+    expect(r.errors.join('\n')).toMatch(/no probe at 360, 768, 1280, 1600px/);
     expect(r.rendered).toBe(false);
   });
 
@@ -125,7 +125,7 @@ describe('jig verdicts reads the probes', () => {
     const record = (over: Partial<ProbeResult>) =>
       saveProbe({ projectRoot: project, surface: 'pricing', json: JSON.stringify({ ...probe(), url: `file://${page}`, ...over }) });
     record({});
-    for (const width of [768, 1280]) record({ width, menu: null, navLinksVisible: 5 });
+    for (const width of [768, 1280, 1600]) record({ width, menu: null, navLinksVisible: 5 });
     expect(run().errors).toEqual([]);
     record({ width: 768, menu: null, navLinksVisible: 5, sidewaysScroll: true, scrollWidth: 800, clientWidth: 768 });
     expect(run().errors.join('\n')).toMatch(/D-115 is "ok"/);
@@ -140,12 +140,12 @@ describe('jig verdicts reads the probes', () => {
   });
 
   it('rejects a probe file that is not probe output', () => {
-    for (const w of [360, 768, 1280]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify({ width: w, ok: true }));
+    for (const w of [360, 768, 1280, 1600]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify({ width: w, ok: true }));
     expect(run().errors.join('\n')).toMatch(/is not output of `jig probe`/);
   });
 
   it('rejects probe files nothing stamped, so a review cannot invent its measurements', () => {
-    for (const w of [360, 768, 1280]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify(probe({ width: w })));
+    for (const w of [360, 768, 1280, 1600]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify(probe({ width: w })));
     expect(run().errors.join('\n')).toMatch(/was not written by `jig probe --save`/);
   });
 });
@@ -186,7 +186,7 @@ describe('jig probe --save stamps the page it measured', () => {
   });
 
   it('rejects output that is not a probe, and a page outside the project', () => {
-    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 3 probe output/);
+    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 4 probe output/);
     expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: output({ url: 'file:///etc/hosts' }) })).toThrow(/not a file in this project/);
   });
 

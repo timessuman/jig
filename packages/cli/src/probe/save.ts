@@ -69,8 +69,20 @@ export function pageFile(projectRoot: string, url: string): string | undefined {
   return existsSync(abs) ? abs : undefined;
 }
 
-/** The widths every screen pass is judged at. */
-export const PROBE_WIDTHS = [360, 768, 1280];
+/**
+ * The widths every screen pass is judged at.
+ *
+ * 1600 is not a breakpoint: it is where a layout with no upper bound shows
+ * itself. Two pages built from the same brief differed exactly there — one
+ * locked its content at 1200, the other let `main` span the full viewport.
+ * Judging only to 1280 never sees it.
+ *
+ * A fifth width, 900, is judged only when a spec says the composition changes
+ * between tablet and desktop. Required everywhere, it would cost a composition,
+ * a frame, a render and a row of verdicts on every page to settle a question
+ * 768 and 1280 already answer.
+ */
+export const PROBE_WIDTHS = [360, 768, 1280, 1600];
 
 /**
  * Runs the probe here and records it, for every width, against a page in this

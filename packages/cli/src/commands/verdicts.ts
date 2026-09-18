@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { citableIds } from '../rules/citations.js';
 import { probeContradictions, readProbes } from '../probe/check.js';
+import { PROBE_WIDTHS } from '../probe/save.js';
 import { decisionNames } from '../check/decisions.js';
 
 /**
@@ -214,7 +215,7 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   const probes = readProbes(opts.projectRoot, dir, errors);
   if (screenFile && screenFile.rendered === true) {
     const widths = new Set(probes.map((p) => p.width));
-    const missing = [360, 768, 1280].filter((w) => !widths.has(w));
+    const missing = PROBE_WIDTHS.filter((w) => !widths.has(w));
     if (missing.length) {
       errors.push(`screen.json says rendered: true, but there is no probe at ${missing.join(', ')}px. At each width run \`jig probe\` in the browser and save its output as probe-<width>.json.`);
       rendered = false;
