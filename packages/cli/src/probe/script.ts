@@ -17,7 +17,7 @@
  * `browse js "<script>"`, Playwright's `page.evaluate(script)` and a devtools
  * console all run it unchanged.
  */
-export const PROBE_VERSION = 2;
+export const PROBE_VERSION = 3;
 
 export const PROBE_SCRIPT = `(async () => {
   const doc = document.documentElement;
@@ -35,6 +35,36 @@ export const PROBE_SCRIPT = `(async () => {
     for (const rule of rules) {
       for (const m of (rule.cssText || '').matchAll(/var\\(\\s*(--[\\w-]+)\\s*\\)/g)) {
         if (!getComputedStyle(doc).getPropertyValue(m[1]).trim()) unresolved.add(m[1]);
+      }
+    }
+  }
+  // Markup order against reading order (H-119). Only a vertical inversion
+  // counts: an element that sits entirely ABOVE another on screen while coming
+  // after it in the markup. Two columns side by side are not an inversion —
+  // putting the sidebar after the main content and moving it left with CSS is
+  // the correct pattern, and flagging it would punish the right answer.
+  const all = [...document.querySelectorAll('main, nav, aside, header, footer, section, article, h1, h2, h3')].filter(vis);
+  // Only the outermost regions. A nested heading inverts with its own parent
+  // and with every sibling of it, so one swapped column reported four times.
+  const landmarks = all
+    .filter((el) => !all.some((other) => other !== el && other.contains(el)))
+    .map((el, order) => {
+      const r = el.getBoundingClientRect();
+      return {
+        order,
+        tag: el.tagName.toLowerCase(),
+        name: (el.getAttribute('aria-label') || el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40),
+        top: Math.round(r.top + scrollY),
+        bottom: Math.round(r.bottom + scrollY),
+      };
+    });
+  const inversions = [];
+  for (let i = 0; i < landmarks.length; i++) {
+    for (let j = i + 1; j < landmarks.length; j++) {
+      const earlier = landmarks[i], later = landmarks[j];
+      // The later element sits wholly above the earlier one, past a rounding wobble.
+      if (later.bottom - earlier.top <= 8 && later.top < earlier.top) {
+        inversions.push({ markupFirst: earlier.tag + ' ' + earlier.name, seenFirst: later.tag + ' ' + later.name });
       }
     }
   }
@@ -84,6 +114,8 @@ export const PROBE_SCRIPT = `(async () => {
     junkText: junk,
     brokenImages: [...document.images].filter((i) => i.complete && i.naturalWidth === 0).length,
     navLinksVisible: navAtRest,
+    landmarks: landmarks.map((l) => l.tag + (l.name ? ' ' + l.name : '')),
+    orderInversions: inversions.slice(0, 5),
     menu,
   });
 })()`;

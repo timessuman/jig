@@ -9,7 +9,7 @@ import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 const probe = (over: Partial<ProbeResult> = {}): ProbeResult => ({
-  jigProbe: 2, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
+  jigProbe: 3, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
   defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5,
   menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 },
   ...over,
@@ -59,6 +59,22 @@ describe('probeContradictions', () => {
     expect(probeContradictions([duplicate], v)[0]).toMatch(/it opens a second copy of them/);
     expect(probeContradictions([none], v)[0]).toMatch(/no visible navigation links and no menu/);
     expect(probeContradictions([wide({ menu: null, navLinksVisible: 5 })], v)).toEqual([]);
+  });
+
+  // H-119: a screen reader and a keyboard user take the page in markup order.
+  // A column moved with CSS is not an inversion; a block lifted above the one
+  // that precedes it in the markup is.
+  it('reports markup order that is not the reading order, whatever the verdicts say', () => {
+    const errors = probeContradictions(
+      [probe({ orderInversions: [{ markupFirst: 'main Products', seenFirst: 'aside Filters' }] })],
+      verdicts({}),
+    );
+    expect(errors[0]).toMatch(/"aside Filters" is read first on screen but comes after "main Products" in the markup/);
+    expect(errors[0]).toMatch(/H-119/);
+  });
+
+  it('says nothing when markup order and reading order agree', () => {
+    expect(probeContradictions([probe({ orderInversions: [] })], verdicts({ 'P-14': 'ok' }))).toEqual([]);
   });
 
   it('refuses D-115 ok when the page scrolls sideways', () => {
@@ -162,7 +178,7 @@ describe('jig probe --save stamps the page it measured', () => {
   });
 
   it('rejects output that is not a probe, and a page outside the project', () => {
-    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 2 probe output/);
+    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 3 probe output/);
     expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: output({ url: 'file:///etc/hosts' }) })).toThrow(/not a file in this project/);
   });
 

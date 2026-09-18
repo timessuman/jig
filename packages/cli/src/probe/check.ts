@@ -20,6 +20,8 @@ export interface ProbeResult {
   junkText: string[];
   brokenImages: number;
   navLinksVisible: number;
+  landmarks?: string[];
+  orderInversions?: Array<{ markupFirst: string; seenFirst: string }>;
   menu: null | {
     opened: boolean; labelChanged: boolean; escapeCloses: boolean; focusReturned: boolean;
     expandedBefore: string | null; expandedAfter: string | null; linksBefore: number; linksAfter: number;
@@ -91,6 +93,13 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf)
     }
     if (p.unresolvedTokens.length) {
       errors.push(`${at(p)}: ${p.unresolvedTokens.length} token(s) have no value in the browser (${p.unresolvedTokens.slice(0, 6).join(', ')}) — every property using them is dropped (H-117).`);
+    }
+    // H-119: the markup is the document, and its order is the reading order.
+    // A screen reader, a reader-mode button and a keyboard user all take the
+    // page in markup order; when that is not what the page shows, one of the
+    // two is wrong and only a person can say which.
+    for (const inv of p.orderInversions ?? []) {
+      errors.push(`${at(p)}: "${inv.seenFirst}" is read first on screen but comes after "${inv.markupFirst}" in the markup. At this width the markup order is not the reading order (H-119) — reorder the document, or move it with CSS that leaves the order intact.`);
     }
     if (p.junkText.length) {
       errors.push(`${at(p)}: the rendered text contains ${p.junkText.map((j) => `"${j}"`).join(', ')} — template code or a failed value is showing to readers.`);
