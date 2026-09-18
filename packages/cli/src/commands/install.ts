@@ -34,6 +34,16 @@ export interface InstallOptions {
    * without ever touching the real home directory.
    */
   homeDir: string;
+  /**
+   * Whether to write the Stop hook that runs `jig gate` (Claude, project scope).
+   *
+   * Installing a design system should not quietly change how someone's editor
+   * behaves, and this hook can hold an agent back from finishing. So it is
+   * written only when the answer is yes: the CLI asks in an interactive install,
+   * and `--yes` — the agent path, where nobody can consent — skips it and says
+   * how to add it. `undefined` is no.
+   */
+  hook?: boolean;
 }
 
 export interface InstallResult {
@@ -365,7 +375,7 @@ export function install(opts: InstallOptions): InstallResult {
 
   // Not in `written`: `.claude/settings.json` is the user's file, merged into
   // rather than vendored, so no manifest owns it. `update` re-merges it.
-  const stopHook = opts.agent === 'claude' && opts.scope === 'project'
+  const stopHook = opts.hook && opts.agent === 'claude' && opts.scope === 'project'
     ? installStopHook(installRoot, opts.version)
     : undefined;
 
@@ -385,6 +395,15 @@ export function install(opts: InstallOptions): InstallResult {
  * Why a hook at all: see `commands/gate.ts`. In arm test 3 every "run check" and
  * "run verdicts" step was skippable, and Haiku skipped them.
  */
+export function hasStopHook(projectRoot: string): boolean {
+  try {
+    const settings = readFileSync(join(projectRoot, '.claude', 'settings.json'), 'utf8');
+    return /\bjig-ui@[^\s"]+ gate\b/.test(settings);
+  } catch {
+    return false;
+  }
+}
+
 export function installStopHook(projectRoot: string, version: string): boolean {
   const path = join(projectRoot, '.claude', 'settings.json');
   let settings: Record<string, unknown> = {};

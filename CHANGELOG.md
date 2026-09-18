@@ -24,10 +24,13 @@ because an instruction the agent could choose to ignore was ignored.
   change, does the label read as close, does Escape close it), measures sideways
   scroll, and reads whether the styles and tokens actually applied. `verdicts`
   refuses a verdict the probe contradicts.
-- **`jig gate`, run by a Stop hook** that `install` adds for Claude Code at
-  project scope. It blocks an agent from finishing while the files it changed
-  fail `check`, or while the `/jig` command it just ran left its work
-  unfinished. After three attempts it lets go and says the work is not done.
+- **`jig gate`, run by a Stop hook** — off unless you ask for it with
+  `install --hook`, or say yes when an interactive install offers it. It blocks
+  an agent from finishing while the files it changed fail `check`, or while the
+  `/jig` command it just ran left its work unfinished. After three attempts it
+  lets go and says the work is not done. `--yes` never adds it: that is the
+  agent's path, and nobody is there to consent. `update` moves an existing hook
+  to the new version and never adds one.
 - **Six mobile rules.** `D-111` a page that never adapts, `D-112` `100vh`,
   `F-113` form text that zooms on iOS, `D-114` a bar under the notch,
   `D-115` a page that scrolls sideways, `E-116` a menu that cannot be opened or

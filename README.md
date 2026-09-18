@@ -49,13 +49,21 @@ Paste the line for your agent and let it run the command.
 Add `--scope global` to install once for every project instead of just this one.
 Every agent supports both scopes.
 
-**Claude Code also gets a Stop hook.** A project-scope install adds one entry to
-`.claude/settings.json`, keeping everything already in it. It runs `jig gate` when
-the agent tries to finish, and holds it there while the files it changed fail
-`check`, or the `/jig` command it just ran left its work incomplete — a spec that is
-prose, a critique with no verdicts, a review that never rendered the page. After
-three attempts it lets the agent stop and says the work is unfinished. This exists
-because the weakest models skip any step they are merely asked to run.
+**Claude Code can also install a Stop hook — if you ask for it.** Add `--hook`, or
+answer yes when an interactive install offers it. It adds one entry to
+`.claude/settings.json`, keeping everything already in that file, and runs `jig gate`
+when the agent tries to finish: it holds the agent there while the files it changed
+fail `check`, or while the `/jig` command it just ran left its work incomplete — a
+spec that is prose, a critique with no verdict files, a review that never rendered
+the page. After three attempts it lets the agent stop and says the work is
+unfinished.
+
+It is off by default, and `--yes` never adds it, because that is the path an agent
+takes and nobody is there to consent. It exists because weak models skip any step
+they are merely asked to run: in live runs at the capability floor, builds shipped
+53 mechanical errors, pages rendered with no styles at all, and four reviews in a row
+wrote no verdicts. Delete the entry to remove it; `update` moves it with the version
+but never adds one.
 
 | Agent | Project scope | Global scope |
 | --- | --- | --- |
@@ -158,7 +166,7 @@ overwrites a config or brand file you have edited.
 
 | Command | What it does |
 | --- | --- |
-| `install --agent <name> [--scope project\|global]` | Puts the skill and its rules where your agent will find them. Writes nothing else into your repo. |
+| `install --agent <name> [--scope project\|global] [--hook]` | Puts the skill and its rules where your agent will find them. Writes nothing else into your repo, unless you ask for `--hook`. |
 | `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. The only command that writes into your repo. |
 | `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
@@ -177,6 +185,7 @@ Flags worth knowing:
 | `check --json` | Machine-readable findings, for tooling or for reading every finding when the terminal output elides repeats. |
 | `init --yes` | Non-interactive; accept every derived default. |
 | `install --scope global` | Install once for every project. |
+| `install --hook` | Add the Stop hook (Claude Code, project scope). Off unless asked; `--no-hook` declines without being asked. |
 
 **Run `update` unpinned:** `npx jig-ui@latest update`. The skill pins every other
 command to the version that wrote it, so the CLI and the rules always agree;

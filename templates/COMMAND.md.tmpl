@@ -136,6 +136,14 @@ Report where the skill landed and at which scope. If it warned that a global
 install already exists, do not work around it — that warning is the system
 refusing to leave two contradictory skills for one harness.
 
+**The Stop hook is the user's to accept, not yours.** In Claude Code at project
+scope, `--hook` adds an entry to `.claude/settings.json` that runs `{{scripts_path}}
+gate` when an agent tries to finish, and holds it there while the files it changed
+fail `check` or the step it just ran is unfinished. Run without the flag it is not
+added, and `--no-hook` says so outright. Do not pass `--hook` on the user's behalf:
+tell them it exists, say plainly that it can stop an agent finishing, and let them
+answer. A hook you chose for them is a change to their editor they did not make.
+
 ## explain
 
 `--layer` is the entry point for an agent that knows what it is trying to do but
