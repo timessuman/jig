@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { citableIds } from '../rules/citations.js';
 import { probeContradictions, readProbes } from '../probe/check.js';
+import { decisionNames } from '../check/decisions.js';
 
 /**
  * Verifies a critique's verdict files, and computes its counts.
@@ -33,6 +34,8 @@ export interface VerdictsResult {
   errors: string[];
   screen: ArmResult;
   code: ArmResult;
+  /** The project's own decisions, judged against the page. */
+  decisions: ArmResult;
   rendered: boolean;
   line: string;
 }
@@ -123,6 +126,58 @@ function checkArm(
   return { state: missing.length ? 'incomplete' : 'ran', judged, total, findings };
 }
 
+/**
+ * `.jig/critique/<surface>/decisions.json`: one verdict per named decision.
+ *
+ * A project with no `DECISIONS.md` has nothing to judge, and says so with
+ * `decisions=ran:0` rather than a complaint.
+ */
+function checkDecisions(projectRoot: string, dir: string, errors: string[]): ArmResult {
+  const required = decisionNames(projectRoot);
+  if (required.length === 0) return { state: 'ran', judged: 0, total: 0, findings: 0 };
+
+  const file = readJson(join(dir, 'decisions.json'), errors);
+  if (!file) {
+    errors.push(
+      `decisions.json is missing. Every decision in DECISIONS.md is judged against the built page, ` +
+        `one verdict each: ${required.slice(0, 4).join(', ')}${required.length > 4 ? `, and ${required.length - 4} more` : ''}. ` +
+        `A page can satisfy every rule and still break what this project decided.`,
+    );
+    return { state: 'missing', judged: 0, total: required.length, findings: 0 };
+  }
+
+  const list = Array.isArray(file.verdicts) ? (file.verdicts as Array<{ decision?: unknown; verdict?: unknown; reason?: unknown }>) : [];
+  if (!Array.isArray(file.verdicts)) errors.push('decisions.json has no "verdicts" array.');
+
+  const seen = new Set<string>();
+  let findings = 0;
+  for (const v of list) {
+    const name = typeof v.decision === 'string' ? v.decision.trim() : '';
+    if (!name) { errors.push('decisions.json: a verdict names no decision.'); continue; }
+    const match = required.find((r) => r.toLowerCase() === name.toLowerCase());
+    if (!match) {
+      errors.push(`decisions.json: "${name}" is not a heading in DECISIONS.md. Judge the decisions the project made, not ones you name yourself.`);
+      continue;
+    }
+    if (seen.has(match)) { errors.push(`decisions.json: "${match}" is judged more than once.`); continue; }
+    seen.add(match);
+    if (typeof v.verdict !== 'string' || !VERDICTS.includes(v.verdict)) {
+      errors.push(`decisions.json: "${match}" has verdict ${JSON.stringify(v.verdict)} — it must be ok, finding or n/a.`);
+      continue;
+    }
+    const reason = typeof v.reason === 'string' ? v.reason.trim() : '';
+    if (!reason) errors.push(`decisions.json: "${match}" has no reason. Name what on the page satisfies it, or what does not.`);
+    else if (ABSENCE.test(reason)) errors.push(`decisions.json: "${match}" — "${reason}" says the decision was not read.`);
+    if (v.verdict === 'finding') findings++;
+  }
+
+  const missing = required.filter((r) => !seen.has(r));
+  if (missing.length) {
+    errors.push(`decisions.json: ${missing.length} of ${required.length} decisions have no verdict: ${missing.join(', ')}.`);
+  }
+  return { state: missing.length ? 'incomplete' : 'ran', judged: required.length - missing.length, total: required.length, findings };
+}
+
 export function verifyVerdicts(opts: { projectRoot: string; surface: string; packageRoot?: string }): VerdictsResult {
   const root = opts.packageRoot ?? assetRoot();
   const errors: string[] = [];
@@ -177,9 +232,16 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   // source and reported as a full pass. Without a render the arm did not run.
   if (screen.state === 'ran' && !rendered) screen.state = 'skipped';
 
+  // The project's decisions are judged like the rules: the CLI cannot say
+  // whether a page honours "the accent appears exactly twice", but it can say
+  // whether anyone looked. Two pages in a live round broke a decision each and
+  // passed every rule.
+  const decisions = checkDecisions(opts.projectRoot, dir, errors);
+
   const field = (a: ArmResult) => (a.state === 'ran' ? `ran:${a.judged}` : `${a.state}:${a.judged}${a.state === 'incomplete' ? `/${a.total}` : ''}`);
   const line =
     `JIG_VERDICTS: surface=${opts.surface} screen=${field(screen)} code=${field(code)} ` +
-    `rendered=${rendered ? 'yes' : 'no'} findings=${screen.findings + code.findings}`;
-  return { ok: errors.length === 0, errors, screen, code, rendered, line };
+    `decisions=${field(decisions)} rendered=${rendered ? 'yes' : 'no'} ` +
+    `findings=${screen.findings + code.findings + decisions.findings}`;
+  return { ok: errors.length === 0, errors, screen, code, decisions, rendered, line };
 }

@@ -51,6 +51,9 @@ const REPO_DOCUMENTS = new Set([
   'readme', 'changelog', 'contributing', 'license', 'licence', 'notice',
   'code_of_conduct', 'security', 'support', 'governance', 'maintainers',
   'authors', 'agents', 'claude', 'gemini', 'copilot-instructions',
+  // Jig's own: the project's decisions live beside the token layer, in
+  // `jig/DECISIONS.md`, and are written for whoever builds here.
+  'decisions', 'reconcile', 'coverage', 'drift',
 ]);
 
 export function isRepoDocument(file: string): boolean {

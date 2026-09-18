@@ -755,7 +755,9 @@ conversation that built the page. Running them in one head anchors them to each
 other; do not shortcut it for cost, speed or context size.
 
 - **A — the reader.** Delegate to a subagent. Give it the URL or file, the spec,
-  the approved mockup (from `mockup_at:`), `DECISIONS.md`, and the corpus. It judges the `pass: screen` rules against the render, **and the `P-` patterns the spec's regions use** — a navigation region means `P-14`. Those patterns are not in `rules.index.json`, so walking the index alone never reaches them. It writes its verdicts to `.jig/critique/<surface>/screen.json` (step 1c). Do
+  the approved mockup (from `mockup_at:`), `DECISIONS.md`, and the corpus. It also
+  judges every decision in `DECISIONS.md` against the page and writes
+  `decisions.json` (step 1c). It judges the `pass: screen` rules against the render, **and the `P-` patterns the spec's regions use** — a navigation region means `P-14`. Those patterns are not in `rules.index.json`, so walking the index alone never reaches them. It writes its verdicts to `.jig/critique/<surface>/screen.json` (step 1c). Do
   **not** give it the build conversation. If it needs that conversation, it is
   not reviewing the page, it is agreeing with itself.
 - **B — the machine.** Run `check`. Deterministic, same input same output. It
@@ -860,6 +862,27 @@ Each reader arm writes its own file. The arm reports back only that it wrote it.
 ```
 
 `screen.json` carries `rendered` and `artefacts`; `code.json` needs only `verdicts`.
+
+**And the project's own decisions, one verdict each**, in
+`.jig/critique/<surface>/decisions.json`:
+
+```json
+{
+  "verdicts": [
+    { "decision": "Voice", "verdict": "finding", "reason": "headings and buttons are Title Case; the decision says lowercase" },
+    { "decision": "Trial and onboarding", "verdict": "finding", "reason": "Team and Scale say \"start free trial\"; the trial was replaced by the free Solo plan" },
+    { "decision": "Navigation", "verdict": "ok", "reason": "menu button top right at 360, five links at 768 and above" }
+  ]
+}
+```
+
+Every `##` and `###` heading in `DECISIONS.md` is a decision and gets exactly one
+verdict, judged against the built page. `Unresolved` is not a decision. The rules
+are the system's; these are the project's, and a page can satisfy all 115 rules
+while breaking the file written to hold what this project chose. In a live round
+one page shipped "start free trial" two commands after the owner had killed
+trials, and another used Title Case against a lowercase decision. Both passed
+every rule.
 
 **A rendered review is measured, not only described.** At 360, 768 and 1280px, run the
 probe in the browser and save what it returns beside the verdicts:
@@ -984,10 +1007,10 @@ preserve while fixing them.
 Then the attestation:
 
 ```text
-JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> mockup=<approved|skipped|missing> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> mechanical=<pass|fail|skipped>:<n> warnings=<n>
+JIG_CRITIQUE: version=<version> mode=<mode> surface=<name> spec=<confirmed|missing|unconfirmed> mockup=<approved|skipped|missing> rendered=<yes|no> screen=<ran|skipped>:<n> code=<ran|skipped>:<n> decisions=<ran|incomplete|missing>:<n> mechanical=<pass|fail|skipped>:<n> warnings=<n>
 ```
 
-**Take `screen=`, `code=` and `rendered=` from `jig verdicts`, never from your own
+**Take `screen=`, `code=`, `decisions=` and `rendered=` from `jig verdicts`, never from your own
 count.** If it reported an arm incomplete, that arm is `skipped` here with the reason,
 until it is re-run and passes.
 
