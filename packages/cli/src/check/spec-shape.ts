@@ -73,8 +73,11 @@ function sizeBlock(sizes: string, size: string): string {
   return lines.join('\n');
 }
 
-/** `nav:` values that name a menu control. */
-const MENU_RE = /\b(menu|hamburger|drawer|burger)\b/i;
+/** `nav:` values that name a menu control — but not ones that rule it out.
+ *  A live spec wrote `nav: horizontal bar (no menu), logo left` and was told it
+ *  had put a menu where the links fit. A false positive is how a gate gets
+ *  ignored. */
+const MENU_RE = /(?<!\b(?:no|not|without|never)\s)(?<!\bno\s\w{1,12}\s)\b(menu|hamburger|drawer|burger)\b/i;
 const NONE_RE = /^\s*(none|no navigation|n\/a|-)\b/i;
 
 /**
