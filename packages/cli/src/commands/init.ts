@@ -1061,17 +1061,28 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     }
   }
 
-  // `.jig/` holds the token files a teammate's build and a CI `jig check` both
-  // depend on. Gitignored, the system silently does not exist for anyone who
-  // did not run `init` themselves — the stylesheet `@import`s dangle, and the
-  // first sign is a broken build on someone else's machine. Say so here, where
-  // the files have just been written and the fix is one line in .gitignore.
-  if (isIgnored(opts.projectRoot, '.jig')) {
+  // Two directories, two different losses, and since 0.7.0 they are not the same
+  // directory. The token directory holds the files a teammate's build and a CI
+  // `jig check` depend on: ignored, the stylesheet `@import`s dangle and the
+  // first sign is a broken build on someone else's machine. `.jig/` holds
+  // `state.json` — what `update` reads to tell a file you edited from one it
+  // wrote — and the specs, mockups and critique verdicts the loop produces.
+  // Say so here, where the files have just been written and the fix is one line.
+  const tokenDirRel = tokensRelDir.join('/');
+  if (isIgnored(opts.projectRoot, tokenDirRel)) {
     log(
-      '\n  WARNING: .jig/ is gitignored, but it holds this project\'s tokens — ' +
+      `\n  WARNING: ${tokenDirRel}/ is gitignored, but it holds this project's tokens — ` +
         'the files your stylesheet @imports. Committed, teammates and CI get the ' +
         'same design system; ignored, their builds break on a missing import. ' +
-        'Remove the .jig/ rule from .gitignore, or commit the directory explicitly.',
+        `Remove the ${tokenDirRel}/ rule from .gitignore, or commit the directory explicitly.`,
+    );
+  }
+  if (isIgnored(opts.projectRoot, '.jig')) {
+    log(
+      '\n  WARNING: .jig/ is gitignored. It holds state.json — which `update` reads to ' +
+        'leave your edited files alone — and the specs, mockups and critique verdicts ' +
+        'this project agreed. Ignored, update cannot tell your edits from its own writes, ' +
+        'and every spec is invisible to the next agent. Commit it.',
     );
   }
 
