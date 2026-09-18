@@ -140,11 +140,12 @@ describe('install', () => {
     expect(existsSync(join(project, '.claude'))).toBe(false);
   });
 
-  it('adds the Stop hook for Claude at project scope only', () => {
-    expect(install(opts()).stopHook).toBe(true);
+  it('adds the Stop hook for Claude at project scope only, and only when asked', () => {
+    expect(install(opts()).stopHook, 'installed a hook nobody asked for').toBeUndefined();
+    expect(install({ ...opts(), hook: true }).stopHook).toBe(true);
     const settings = JSON.parse(readFileSync(join(project, '.claude', 'settings.json'), 'utf8'));
     expect(settings.hooks.Stop[0].hooks[0].command).toMatch(/^npx --yes jig-ui@.+ gate$/);
-    expect(install({ ...opts(), agent: 'codex' }).stopHook).toBeUndefined();
+    expect(install({ ...opts(), agent: 'codex', hook: true }).stopHook).toBeUndefined();
   });
 
   it('prefixes each vendored rule file with an attribution header', () => {

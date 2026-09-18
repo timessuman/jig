@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gate, MAX_BLOCKS } from '../src/commands/gate.js';
-import { installStopHook } from '../src/commands/install.js';
+import { install, installStopHook } from '../src/commands/install.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 /**
@@ -218,5 +218,37 @@ Prose.`;
     jigProject();
     spec('# prose');
     expect(gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1' } }).block).toBe(false);
+  });
+});
+
+describe('the Stop hook is written only when someone asked for it', () => {
+  const pkg = () => join(root, 'pkg');
+  const opts = (extra: Record<string, unknown> = {}) => ({
+    agent: 'claude', scope: 'project' as const, projectRoot: root, packageRoot: pkg(),
+    version: '0.10.0', homeDir: join(root, 'home'), ...extra,
+  });
+  beforeEach(() => {
+    mkdirSync(join(pkg(), 'rules'), { recursive: true });
+    mkdirSync(join(pkg(), 'templates'), { recursive: true });
+    mkdirSync(join(pkg(), 'tokens'), { recursive: true });
+    for (const t of ['brand.default.css', 'mode.editorial.css', 'mode.product.css', 'mode.operator.css']) writeFileSync(join(pkg(), 'tokens', t), ':root { --a: 1; }\n');
+    writeFileSync(join(pkg(), 'rules', '00-anti-patterns.md'), '### A-01 Rule\n');
+    writeFileSync(join(pkg(), 'rules.index.json'), JSON.stringify([{ id: 'A-01', bucket: 'judgment', severity: 'note', since: '0.1.0', pass: 'code' }]));
+    writeFileSync(join(pkg(), 'templates', 'SKILL.md.tmpl'), '{{command_prefix}} {{config_file}} {{rules_path}} {{available_commands}} {{ask_instruction}} {{scripts_path}}');
+    writeFileSync(join(pkg(), 'templates', 'command-metadata.json'), JSON.stringify({ check: { description: 'Check.', argumentHint: '' } }));
+    writeFileSync(join(pkg(), 'LICENSE'), 'Apache');
+    writeFileSync(join(pkg(), 'NOTICE'), 'Jig');
+  });
+
+  it('writes no hook unless asked, and writes one when asked', () => {
+    expect(install(opts()).stopHook).toBeUndefined();
+    expect(existsSync(join(root, '.claude', 'settings.json'))).toBe(false);
+    expect(install(opts({ hook: true })).stopHook).toBe(true);
+    expect(readFileSync(join(root, '.claude', 'settings.json'), 'utf8')).toMatch(/jig-ui@0\.10\.0 gate/);
+  });
+
+  it('adds no hook for another agent or at global scope even when asked', () => {
+    expect(install(opts({ hook: true, agent: 'codex' })).stopHook).toBeUndefined();
+    expect(install(opts({ hook: true, scope: 'global' as const })).stopHook).toBeUndefined();
   });
 });

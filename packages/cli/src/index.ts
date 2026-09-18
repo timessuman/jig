@@ -38,12 +38,33 @@ program
   .description('Install Jig rules and the agent skill file into a repository.')
   .requiredOption('--agent <name>', `target agent (${adapterNames().join(', ')})`)
   .option('--scope <scope>', 'project or global', 'project')
-  .action((opts: { agent: string; scope: string }) => {
+  .option('--hook', 'add the Stop hook that blocks finishing while check or a step fails (Claude Code, project scope)')
+  .option('--no-hook', 'do not add the Stop hook, and do not ask for it')
+  .option('--yes', 'non-interactive: ask nothing, and add no Stop hook unless --hook is given', false)
+  .action(async (opts: { agent: string; scope: string; hook?: boolean; yes: boolean }) => {
     if (opts.scope !== 'project' && opts.scope !== 'global') {
       console.error(`Invalid scope '${opts.scope}'. Use 'project' or 'global'.`);
       process.exit(1);
     }
     const projectRoot = findProjectRoot(process.cwd());
+    // The hook changes how the editor behaves, so it is never written without
+    // an answer. `--yes` is the agent path, where nobody can give one.
+    let hook = opts.hook === true;
+    const unanswered = opts.hook === undefined;
+    if (unanswered && opts.agent === 'claude' && opts.scope === 'project' && !opts.yes && process.stdin.isTTY) {
+      const { createInterface } = await import('node:readline/promises');
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      try {
+        console.log('\nClaude Code can run a Jig check when the agent tries to finish, and hold it there while');
+        console.log('the files it changed fail `check`, or the /jig step it just ran is unfinished. It adds one');
+        console.log('entry to .claude/settings.json, keeps everything else in that file, and lets go after three');
+        console.log('attempts. Weak models skip steps they are only asked to run; this is what catches that.');
+        const answer = (await rl.question('  Add it? [y/N]: ')).trim().toLowerCase();
+        hook = answer === 'y' || answer === 'yes';
+      } finally {
+        rl.close();
+      }
+    }
     try {
       const result = install({
         agent: opts.agent,
@@ -52,6 +73,7 @@ program
         packageRoot: assetRoot(),
         version,
         homeDir: homedir(),
+        hook,
       });
       if (result.warning) {
         console.warn(result.warning);
@@ -63,6 +85,9 @@ program
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
       if (result.stopHook === true) console.log('  + .claude/settings.json (Stop hook: jig gate blocks finishing while check or a critique fails)');
       if (result.stopHook === false) console.log('  ! .claude/settings.json is not valid JSON — the Stop hook was not added. Fix the file and run install again.');
+      if (result.stopHook === undefined && opts.agent === 'claude' && opts.scope === 'project') {
+        console.log('  · No Stop hook. Add it any time with: npx jig-ui@' + version + ' install --agent claude --hook');
+      }
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);
