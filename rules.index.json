@@ -863,5 +863,54 @@
     "severity": "note",
     "since": "0.14.0",
     "pass": "code"
+  },
+  {
+    "id": "K-128",
+    "bucket": "mechanical",
+    "severity": "error",
+    "since": "0.14.0",
+    "detector": "interface-safety"
+  },
+  {
+    "id": "K-129",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.14.0",
+    "detector": "interface-safety"
+  },
+  {
+    "id": "K-130",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.14.0",
+    "detector": "interface-safety"
+  },
+  {
+    "id": "K-131",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.14.0",
+    "detector": "interface-safety"
+  },
+  {
+    "id": "K-132",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.14.0",
+    "pass": "code"
+  },
+  {
+    "id": "K-133",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.14.0",
+    "pass": "code"
+  },
+  {
+    "id": "K-134",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.14.0",
+    "pass": "code"
   }
 ]

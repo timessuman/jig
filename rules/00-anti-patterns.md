@@ -629,6 +629,52 @@ An empty sitemap is not a missing sitemap. It is a positive claim, and the crawl
 
 ---
 
+## K. Safety at the interface
+
+**This is not a security review, and nothing here should be read as one.** Jig
+sees interfaces. It knows nothing about your sessions, your rate limits, your
+CORS origins, your secrets or your dependencies, and a clean run says nothing
+about any of them. What it can see is the handful of things an interface does to
+itself — the ones that ship because nobody looks at the markup with this question
+in mind.
+
+### K-128 A new-tab link that hands over the page it left
+❌ `target="_blank"` with no `rel`
+✅ `rel="noopener"` on every `target="_blank"`, `noreferrer` too when the destination has no business knowing where the reader came from.
+The opened page gets a handle on the window that opened it and can navigate it somewhere else. The reader comes back to a tab that looks like yours and is not. Modern browsers imply `noopener` for `_blank`, which is the argument for writing it rather than against: the ones that do not are the ones being attacked.
+
+### K-129 User content written as markup
+❌ `dangerouslySetInnerHTML`, `v-html`, `innerHTML =`, `{@html}` carrying anything a person typed
+✅ Render it as text. Where formatting is genuinely required, sanitise on the way in with a library that is maintained, and keep the allowed set to what the feature needs.
+The name of the React prop is a warning someone wrote on purpose. A comment, a display name, a product description: each is a place a script arrives and runs with your origin's privileges.
+
+### K-130 Credential fields that fight the password manager
+❌ `autocomplete="off"` on a password, a `paste` handler that blocks pasting, a one-time-code field with no `autocomplete`
+✅ `autocomplete="current-password"`, `"new-password"`, `"one-time-code"`, and nothing preventing paste.
+Blocking the manager does not stop an attacker; it stops the reader using a long unique password, so they type a short one they can remember and reuse it everywhere. The interface decides which of those two happens.
+
+### K-131 A frame with no sandbox, a script from anywhere
+❌ `<iframe src="https://third-party">` with no `sandbox`; a `<script src>` pointing at an origin nobody chose, on a page that takes payments or credentials
+✅ `sandbox` with only the capabilities the embed needs, and `allow` narrowed the same way. Third-party script on a sensitive page is a decision, recorded with a reason (`DECISIONS.md`), not a default.
+An embedded frame runs somebody else's code inside your page, and a script tag hands them the same origin your session lives in. Both are sometimes right; neither is ever automatic.
+
+### K-132 A secret rendered as plain text
+❌ An API key, a recovery code or a token printed into the page, sitting in the DOM for anything that reads it
+✅ Show it once, deliberately, behind an action the reader takes, with a copy control and a clear statement that it will not be shown again.
+Anything on the screen is in the DOM, in the accessibility tree, in a screenshot, and often in a session recording nobody remembered was running.
+
+### K-133 An error that describes the system
+❌ A stack trace, a database error, a file path or a framework name shown to whoever hit the page
+✅ Say what happened in the reader's terms and what to do next (`05-copy.md`). Keep the detail in the log, where it is useful and not public.
+An error is copy, and the audience is the person reading it. Naming the stack tells a stranger which list of known problems to work through.
+
+### K-134 Inline handlers on a page with a content policy
+❌ `onclick="…"` in markup, a `<script>` with no nonce, on a site that sets a Content-Security-Policy
+✅ Bind behaviour in script (`E-33` asks for a real control anyway), and let the policy's nonce cover the one bootstrap the framework emits.
+This is where a security decision made in configuration lands on whoever writes the markup: under a strict policy the inline handler simply does not run, and the page fails in the browser rather than in a check.
+
+---
+
 ## L-04 · Self-check before finishing
 
 Run this against what you produced. Any "no" is a defect to fix, not a note to mention.
