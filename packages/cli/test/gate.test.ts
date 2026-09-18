@@ -157,6 +157,14 @@ Prose.`;
     expect(runAfter('spec').block).toBe(false);
   });
 
+  // A live spec wrote `nav: horizontal bar (no menu), logo left` and was told
+  // it had put a menu where the links fit.
+  it('does not read "no menu" as a menu', () => {
+    jigProject();
+    spec(goodSpec.replace('  desktop:\n    regions: [nav, plans]\n    nav: five links in a row', '  desktop:\n    regions: [nav, plans]\n    nav: horizontal bar (no menu), logo left, five destinations right'));
+    expect(runAfter('spec').block).toBe(false);
+  });
+
   it('blocks a menu button at a width where the links fit', () => {
     jigProject();
     spec(goodSpec.replace('  desktop:\n    regions: [nav, plans]\n    nav: five links in a row', '  desktop:\n    regions: [nav, plans]\n    nav: Menu button, top right'));
@@ -250,5 +258,44 @@ describe('the Stop hook is written only when someone asked for it', () => {
   it('adds no hook for another agent or at global scope even when asked', () => {
     expect(install(opts({ hook: true, agent: 'codex' })).stopHook).toBeUndefined();
     expect(install(opts({ hook: true, scope: 'global' as const })).stopHook).toBeUndefined();
+  });
+});
+
+/**
+ * Arm test 8: `claude -p --continue` keeps one session across every /jig step,
+ * so a Haiku run that spent three blocks on its spec reached `critique` with
+ * none left — and reported a review it had never written. The budget belongs
+ * to the failure, not the session.
+ */
+describe('the block budget is per failure', () => {
+  const transcript = (command: string) => {
+    const path = join(root, `transcript-${command}.jsonl`);
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>` } }) + '\n');
+    return path;
+  };
+  const run = (command: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 'one-session', transcript_path: transcript(command) } });
+
+  it('gives a new failure its own three attempts in the same session', () => {
+    jigProject();
+    mkdirSync(join(root, 'jig'), { recursive: true });
+    writeFileSync(join(root, 'jig', 'DECISIONS.md'), '### A rule\n\nno unresolved section here\n');
+    for (let i = 0; i < 3; i++) expect(run('decide').block).toBe(true);
+    expect(run('decide').block, 'spent its three attempts').toBe(false);
+
+    // A different step, failing differently: it starts from zero.
+    mkdirSync(join(root, '.jig', 'specs'), { recursive: true });
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), '# prose, no frontmatter');
+    expect(run('spec').block, 'the next failure inherited an exhausted budget').toBe(true);
+  });
+
+  it('returns the attempts once the failure is fixed', () => {
+    jigProject();
+    mkdirSync(join(root, 'jig'), { recursive: true });
+    const decisions = join(root, 'jig', 'DECISIONS.md');
+    writeFileSync(decisions, '### A rule\n\nno unresolved section\n');
+    expect(run('decide').block).toBe(true);
+    writeFileSync(decisions, '### A rule\n\n**Why:** given.\n\n## Unresolved\n\nNone named by the owner.\n');
+    expect(run('decide').block).toBe(false);
+    expect(JSON.parse(readFileSync(join(root, '.jig', 'gate.json'), 'utf8'))).toEqual({});
   });
 });

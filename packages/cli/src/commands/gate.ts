@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { navProblems, newestSpec, specProblems } from '../check/spec-shape.js';
 import { check } from './check.js';
@@ -162,24 +163,32 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
     }
   }
 
+  // The budget is per failure, not per session. `claude -p --continue` keeps one
+  // session across every /jig step, so a run that spent three blocks on its spec
+  // reached `critique` with none left: it reported a review it had not written,
+  // and the gate — which would have caught it — had already let go. Keyed by
+  // what is wrong, a fixed failure returns its attempts and a new one starts
+  // fresh, while an agent that cannot fix THIS still gets out after three.
   const session = opts.input.session_id ?? 'unknown';
+  const key = `${session}:${createHash('sha256').update(problems.join('\n')).digest('hex').slice(0, 12)}`;
   const stateFile = join(root, '.jig', 'gate.json');
   let state: Record<string, number> = {};
   try { state = JSON.parse(readFileSync(stateFile, 'utf8')); } catch { /* first run */ }
 
   if (problems.length === 0) {
-    if (state[session]) { delete state[session]; save(stateFile, state); }
+    const mine = Object.keys(state).filter((k) => k.startsWith(`${session}:`));
+    if (mine.length) { for (const k of mine) delete state[k]; save(stateFile, state); }
     return { block: false, reason: '' };
   }
 
-  const count = (state[session] ?? 0) + 1;
+  const count = (state[key] ?? 0) + 1;
   if (count > MAX_BLOCKS) {
     return {
       block: false,
       reason: `jig gate: still failing after ${MAX_BLOCKS} attempts; letting you stop. Tell the user plainly that the work is not finished:\n${problems.join('\n\n')}`,
     };
   }
-  state[session] = count;
+  state[key] = count;
   save(stateFile, state);
   return {
     block: true,
