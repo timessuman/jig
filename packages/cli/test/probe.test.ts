@@ -100,6 +100,14 @@ describe('jig verdicts reads the probes', () => {
     expect(run().errors.join('\n')).toMatch(/D-115 is "ok"/);
   });
 
+  it('counts a screen pass with no render as skipped, not run', () => {
+    writeFileSync(join(dir(), 'screen.json'), JSON.stringify({ rendered: false, verdicts: ids('screen') }));
+    const r = run();
+    expect(r.errors).toEqual([]);
+    expect(r.screen.state).toBe('skipped');
+    expect(r.line).toMatch(/screen=skipped:\d+/);
+  });
+
   it('rejects a probe file that is not probe output', () => {
     for (const w of [360, 768, 1280]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify({ width: w, ok: true }));
     expect(run().errors.join('\n')).toMatch(/is not output of `jig probe`/);
