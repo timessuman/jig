@@ -50,10 +50,10 @@ export const metadata: Detector = {
     // Only a whole document can be said to be missing what it never delegates.
     if (isWholeDocument(raw)) {
       const indexable = ctx.mode !== 'product' && ctx.mode !== 'operator';
-      if (indexable && !found.title) {
+      if (indexable && !found.hasTitle) {
         at('J-121', 0, 'this page has no <title> — a search result then shows a truncated URL');
       }
-      if (indexable && !found.description) {
+      if (indexable && !found.hasDescription) {
         at('J-121', 0, 'this page has no meta description — the search engine writes one from whatever text it finds first, usually the navigation');
       }
       if (!indexable && !found.noindex) {

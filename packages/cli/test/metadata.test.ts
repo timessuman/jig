@@ -83,3 +83,23 @@ describe('metadata detector', () => {
     expect(run(doc('<meta charset="utf-8">'), 'J-121', 'product')).toHaveLength(0);
   });
 });
+
+/**
+ * jig-site's layout writes `<title>{title}</title>` and a conditional
+ * description. The value is a runtime question; the title is plainly there.
+ * Absence and value are different questions, and confusing them reported a
+ * correct layout as having no title at all.
+ */
+describe('absence is not the same as an unreadable value', () => {
+  it('sees a computed title and description as present', () => {
+    const layout = '<html><head>{description && <meta name="description" content={description} />}<title>{title}</title></head><body><slot /></body></html>';
+    expect(run(layout, 'J-121', 'editorial', 'BaseLayout.astro')).toHaveLength(0);
+    const m = readMetadata(layout);
+    expect(m.hasTitle).toBe(true);
+    expect(m.title).toBeUndefined();
+  });
+
+  it('still reports a document that declares neither', () => {
+    expect(run(doc('<meta charset="utf-8">'), 'J-121', 'editorial')).toHaveLength(2);
+  });
+});

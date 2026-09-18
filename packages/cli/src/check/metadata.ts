@@ -16,6 +16,11 @@ export interface MetadataStrings {
    *  ships is a runtime question — so a file with more than one is not evidence
    *  of anything a reader will see. */
   titles: Array<{ value: string; index: number }>;
+  /** Whether a title exists at all, computed or written. A layout's
+   *  `<title>{title}</title>` is a title; it is simply not a value this can
+   *  read, and absence and value are different questions. */
+  hasTitle: boolean;
+  hasDescription: boolean;
   /** Any construct that declares metadata at all, framework included. */
   declares: boolean;
   /** A title built from a value rather than written: `title: post.title`. The
@@ -40,6 +45,8 @@ const KEYED_TITLE_ALL = new RegExp(`(?:^|[\\s{,])(?:title|ogTitle|og:title)\\s*:
 const HTML_TITLE_ALL = /<title[^>]*>([\s\S]*?)<\/title\s*>/gi;
 const KEYED_DESCRIPTION = new RegExp(`(?:^|[\\s{,])(?:description|ogDescription|og:description)\\s*:\\s*${QUOTED}`, 'm');
 const COMPUTED_TITLE = /(?:^|[\s{,])(?:title|ogTitle)\s*:\s*(?!["'`])[A-Za-z_$][\w$.?[\]()]*|(?:^|[\s{,])(?:title|ogTitle)\s*:\s*`[^`]*\$\{/m;
+const ANY_TITLE = /<title[\s>]|(?:^|[\s{,])(?:title|ogTitle)\s*:|['"]title['"]\s*[,:]|titleTemplate/im;
+const ANY_DESCRIPTION = /name\s*=\s*["']description["']|(?:^|[\s{,])(?:description|ogDescription)\s*:|['"]description['"]\s*[,:]/im;
 const DECLARES = /export\s+(?:const|async\s+function|function)\s+(?:metadata|generateMetadata|meta)\b|useSeoMeta\s*\(|useHead\s*\(|defineRouteMeta\s*\(|<svelte:head|<Head\b|next\/head|react-helmet|<title[^>]*>|<meta\b/i;
 
 /** `noindex` in any of the forms a framework offers. */
@@ -77,6 +84,8 @@ export function readMetadata(source: string): MetadataStrings {
     titles,
     title: title && !/^\{|\$\{/.test(title.value) ? title : undefined,
     description: description && !/^\{|\$\{/.test(description.value) ? description : undefined,
+    hasTitle: ANY_TITLE.test(source),
+    hasDescription: ANY_DESCRIPTION.test(source),
     declares: DECLARES.test(source),
     computedTitle: COMPUTED_TITLE.test(source),
     noindex: NOINDEX.some((re) => re.test(source)),
