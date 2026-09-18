@@ -23,6 +23,16 @@ const EXCLUDE_DIRS = new Set([
   'coverage',
   '.svelte-kit',
   'vendor',
+  // Where the agent harnesses keep their own files, including the copy of
+  // Jig's rules and slash command that `install` vendors. Those are the
+  // system's own text, not the project's interface: scanning them reported
+  // 115 em dashes in Jig's command file and called them the user's copy.
+  '.claude',
+  '.codex',
+  '.cursor',
+  '.opencode',
+  '.gemini',
+  '.github',
 ]);
 
 function isGitRepo(root: string): boolean {

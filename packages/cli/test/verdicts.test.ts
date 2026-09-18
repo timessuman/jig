@@ -41,7 +41,7 @@ describe('jig verdicts', () => {
     // so it carries the page's checksum (see probe.test.ts).
     writeFileSync(join(project, 'pricing.html'), '<html><body><a href="/">home</a></body></html>', 'utf8');
     for (const width of [360, 768, 1280]) {
-      saveProbe({ projectRoot: project, surface: 'pricing', json: JSON.stringify({ jigProbe: 2, url: `file://${join(project, 'pricing.html')}`, width, sidewaysScroll: false, scrollWidth: width, clientWidth: width, defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5, menu: null }) });
+      saveProbe({ projectRoot: project, surface: 'pricing', json: JSON.stringify({ jigProbe: 3, url: `file://${join(project, 'pricing.html')}`, width, sidewaysScroll: false, scrollWidth: width, clientWidth: width, defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5, menu: null }) });
     }
     const r = run();
     expect(r.errors).toEqual([]);

@@ -30,8 +30,8 @@
     "status": "available"
   },
   "probe": {
-    "description": "Print the render probe: a script the critique runs in a browser at 360, 768 and 1280px. With --save it records what the probe returned, stamped with the page's checksum, so `verdicts` can tell a measurement from a claim.",
-    "argumentHint": "[--save <surface>]",
+    "description": "Print the render probe, or run it here. `--run <page> --save <surface>` drives a headless browser it finds for itself and records the measurement at 360, 768 and 1280, stamped with the page's checksum, so `verdicts` can tell a measurement from a claim.",
+    "argumentHint": "[--run <page>] [--save <surface>]",
     "status": "available"
   },
   "gate": {

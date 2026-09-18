@@ -544,6 +544,20 @@ Deletion is a real answer and the easy one to miss, because the correction point
 ❌ Scroll listeners for sticky positioning; scripted accordions and dialogs that have native equivalents
 ✅ Platform first: `position: sticky`, `<details>`, `<dialog>`, `:has()`, container queries, `scroll-behavior`, `popover`. Reach for a framework when the platform genuinely lacks the capability.
 
+### H-119 A generic element where a native one says what the content is
+❌ `<div class="page-title">Our products</div>`, a row of links in a `<div class="nav">`, a page whose top-level content sits in `<div class="main">`
+✅ `<h1>Our products</h1>`, `<nav>`, `<main>`. Choose the element from what the content **is**, then style it. The two versions can look identical; only one of them tells a screen reader, a search engine, a reader-mode button and a keyboard user what they are looking at.
+**The decision order**, before writing any markup:
+1. What is this content? A heading, a list, a sequence, a quotation, tabular data, navigation, a control, a landmark region?
+2. Is there a native element whose meaning is that? If yes, use it.
+3. Does it describe the content accurately, or only approximately? An approximate fit is worse than a generic container, because it asserts something untrue.
+4. Does the content have an order or a relationship that the markup should carry? Ordered steps are `<ol>`; rows and columns of related values are a `<table>`; a term and its explanation are `<dl>`.
+5. Can CSS produce the presentation without changing the element? It nearly always can.
+6. Only when no native element fits, a generic container.
+**This is not a rule against `div`.** A `div` is the right answer when nothing more specific is true: a grouping that exists for layout alone. What is forbidden is choosing an element for how it looks, or reaching for a generic one without asking steps 1 and 2.
+**Presentation must not be required to understand the content.** Turn the stylesheet off in your head: the page should still read as what it is, in an order that makes sense. A sidebar that must come first visually does not have to come first in the DOM, and usually should not (`L-01`).
+Related: `E-33` (an interactive `div`), `B-17` (heading levels), `H-48` (native elements over scripted ones), `P-14` (navigation).
+
 ### H-117 A token name nothing declares
 ❌ `font-family: var(--font-body)`, `padding: var(--space-lg)` — in a project whose token layer declares neither
 ✅ Use the names the token layer declares — `02-tokens.md` lists them, and the token files in the project are the source. If the value you need has no token, that is a finding to report or a value to delete (`H-47`), never a name to make up.

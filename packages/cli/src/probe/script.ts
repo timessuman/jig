@@ -17,7 +17,7 @@
  * `browse js "<script>"`, Playwright's `page.evaluate(script)` and a devtools
  * console all run it unchanged.
  */
-export const PROBE_VERSION = 2;
+export const PROBE_VERSION = 3;
 
 export const PROBE_SCRIPT = `(async () => {
   const doc = document.documentElement;
@@ -35,6 +35,48 @@ export const PROBE_SCRIPT = `(async () => {
     for (const rule of rules) {
       for (const m of (rule.cssText || '').matchAll(/var\\(\\s*(--[\\w-]+)\\s*\\)/g)) {
         if (!getComputedStyle(doc).getPropertyValue(m[1]).trim()) unresolved.add(m[1]);
+      }
+    }
+  }
+  // Markup order against reading order (H-119). Only a vertical inversion
+  // counts: an element that sits entirely ABOVE another on screen while coming
+  // after it in the markup. Two columns side by side are not an inversion —
+  // putting the sidebar after the main content and moving it left with CSS is
+  // the correct pattern, and flagging it would punish the right answer.
+  // What to call a region in a report: its own label, else its heading, else
+  // nothing. Its whole text content reads as gibberish inside a finding.
+  const label = (el) => {
+    const aria = (el.getAttribute('aria-label') || '').trim();
+    if (aria) return aria;
+    const id = el.getAttribute('aria-labelledby');
+    const target = id ? document.getElementById(id) : null;
+    const heading = target || (/^h[1-6]$/i.test(el.tagName) ? el : el.querySelector('h1, h2, h3, h4, h5, h6'));
+    const t = (heading ? heading.textContent : '').replace(/\\s+/g, ' ').trim();
+    return t.length > 42 ? t.slice(0, 40).trimEnd() + '\u2026' : t;
+  };
+  const all = [...document.querySelectorAll('main, nav, aside, header, footer, section, article, h1, h2, h3')].filter(vis);
+  // Only the outermost regions. A nested heading inverts with its own parent
+  // and with every sibling of it, so one swapped column reported four times.
+  const landmarks = all
+    .filter((el) => !all.some((other) => other !== el && other.contains(el)))
+    .map((el, order) => {
+      const r = el.getBoundingClientRect();
+      return {
+        order,
+        tag: el.tagName.toLowerCase(),
+        name: label(el),
+        top: Math.round(r.top + scrollY),
+        bottom: Math.round(r.bottom + scrollY),
+      };
+    });
+  const describe = (l) => '<' + l.tag + '>' + (l.name ? ' \u201c' + l.name + '\u201d' : '');
+  const inversions = [];
+  for (let i = 0; i < landmarks.length; i++) {
+    for (let j = i + 1; j < landmarks.length; j++) {
+      const earlier = landmarks[i], later = landmarks[j];
+      // The later element sits wholly above the earlier one, past a rounding wobble.
+      if (later.bottom - earlier.top <= 8 && later.top < earlier.top) {
+        inversions.push({ markupFirst: describe(earlier), seenFirst: describe(later) });
       }
     }
   }
@@ -82,8 +124,11 @@ export const PROBE_SCRIPT = `(async () => {
     defaultFont: getComputedStyle(document.body).fontFamily === defaultFont,
     unresolvedTokens: [...unresolved],
     junkText: junk,
+    emDashes: [...new Set((text.match(/[^.!?\\n]{0,28}\u2014[^.!?\\n]{0,28}/g) || []).map((t) => t.trim()))].slice(0, 5),
     brokenImages: [...document.images].filter((i) => i.complete && i.naturalWidth === 0).length,
     navLinksVisible: navAtRest,
+    landmarks: landmarks.map(describe),
+    orderInversions: inversions.slice(0, 5),
     menu,
   });
 })()`;

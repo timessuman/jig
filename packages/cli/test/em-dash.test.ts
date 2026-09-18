@@ -67,9 +67,17 @@ describe('em-dash reaches every place a reader sees text', () => {
   });
 
   it('leaves repository documents alone: they are written for whoever works here', () => {
-    for (const file of ['README.md', 'CHANGELOG.md', 'docs/AGENTS.md', 'CONTRIBUTING.md']) {
+    for (const file of ['README.md', 'CHANGELOG.md', 'docs/AGENTS.md', 'CONTRIBUTING.md', 'NOTES.md']) {
       expect(emDash.appliesTo(file), file).toBe(false);
     }
+  });
+
+  // An all-caps name means "document" beside the lockfile, and nothing at all
+  // inside a documentation site, where FAQ.md is a page like any other.
+  it('reads a page whose name happens to be capitals', () => {
+    expect(emDash.appliesTo('docs/FAQ.md')).toBe(true);
+    expect(emDash.appliesTo('src/content/GDPR.mdx')).toBe(true);
+    expect(run('# FAQ\n\nFree — forever.\n', 'docs/FAQ.md')).toHaveLength(1);
   });
 
   it('does not read a code sample in markdown as prose', () => {
@@ -97,5 +105,22 @@ describe('em-dash does not read code as copy', () => {
   it('reads an indentation template line, but not its code lines', () => {
     expect(run('p Free — forever\n', 'page.pug')).toHaveLength(1);
     expect(run('- const label = "a — b"\n', 'page.pug')).toHaveLength(0);
+  });
+});
+
+describe('the scan skips the agent harnesses own files', () => {
+  it('excludes .claude and its kin, where install vendors Jig itself', async () => {
+    const { selectFiles } = await import('../src/check/files.js');
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const root = mkdtempSync(join(tmpdir(), 'jig-scan-'));
+    for (const dir of ['.claude/commands', '.cursor', 'src']) mkdirSync(join(root, dir), { recursive: true });
+    writeFileSync(join(root, '.claude', 'commands', 'jig.md'), 'A rule — with a dash.\n');
+    writeFileSync(join(root, '.cursor', 'rules.md'), 'Another — one.\n');
+    writeFileSync(join(root, 'src', 'page.md'), 'Real — copy.\n');
+    const files = selectFiles(root, true).files;
+    expect(files).toContain('src/page.md');
+    expect(files.some((f) => f.startsWith('.claude/') || f.startsWith('.cursor/'))).toBe(false);
   });
 });

@@ -47,10 +47,20 @@ export const MARKDOWN_EXTENSIONS = ['.md', '.markdown', '.mdx'];
  *  CONTRIBUTING, LICENSE, and their kin. The convention is the same in every
  *  ecosystem — an all-caps basename — so this needs no list to maintain and no
  *  framework to recognise. A page is `getting-started.md`, never `NOTES.md`. */
+const REPO_DOCUMENTS = new Set([
+  'readme', 'changelog', 'contributing', 'license', 'licence', 'notice',
+  'code_of_conduct', 'security', 'support', 'governance', 'maintainers',
+  'authors', 'agents', 'claude', 'gemini', 'copilot-instructions',
+]);
+
 export function isRepoDocument(file: string): boolean {
   const base = file.split('/').pop() ?? file;
   const name = base.replace(/\.[^.]+$/, '');
-  return /^[A-Z0-9][A-Z0-9._-]*$/.test(name);
+  // By name wherever it sits: a README is a README in any directory.
+  if (REPO_DOCUMENTS.has(name.toLowerCase())) return true;
+  // Otherwise capitals mean "document" only beside the lockfile. A docs site's
+  // `docs/FAQ.md` is a page like any other, and was being skipped.
+  return !file.includes('/') && /^[A-Z0-9][A-Z0-9._-]*$/.test(name);
 }
 
 /**

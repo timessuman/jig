@@ -9,7 +9,7 @@ import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 const probe = (over: Partial<ProbeResult> = {}): ProbeResult => ({
-  jigProbe: 2, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
+  jigProbe: 3, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
   defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5,
   menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 },
   ...over,
@@ -59,6 +59,29 @@ describe('probeContradictions', () => {
     expect(probeContradictions([duplicate], v)[0]).toMatch(/it opens a second copy of them/);
     expect(probeContradictions([none], v)[0]).toMatch(/no visible navigation links and no menu/);
     expect(probeContradictions([wide({ menu: null, navLinksVisible: 5 })], v)).toEqual([]);
+  });
+
+  // I-118 where the source cannot reach: a string built by a script, or by a
+  // framework's frontmatter, arrives on the page having passed no file check.
+  it('reports an em dash in the rendered text, however the string was built', () => {
+    const errors = probeContradictions([probe({ emDashes: ['Team — $49 a month'] })], verdicts({}));
+    expect(errors[0]).toMatch(/the rendered page shows an em dash in "Team — \$49 a month" \(I-118\)/);
+  });
+
+  // H-119: a screen reader and a keyboard user take the page in markup order.
+  // A column moved with CSS is not an inversion; a block lifted above the one
+  // that precedes it in the markup is.
+  it('reports markup order that is not the reading order, whatever the verdicts say', () => {
+    const errors = probeContradictions(
+      [probe({ orderInversions: [{ markupFirst: '<main> “Products”', seenFirst: '<aside> “Filters”' }] })],
+      verdicts({}),
+    );
+    expect(errors[0]).toMatch(/"<aside> “Filters”" is read first on screen but comes after "<main> “Products”" in the markup/);
+    expect(errors[0]).toMatch(/H-119/);
+  });
+
+  it('says nothing when markup order and reading order agree', () => {
+    expect(probeContradictions([probe({ orderInversions: [] })], verdicts({ 'P-14': 'ok' }))).toEqual([]);
   });
 
   it('refuses D-115 ok when the page scrolls sideways', () => {
@@ -131,7 +154,8 @@ describe('critique tells the screen arm to probe', () => {
   it('runs the probe at each width and never writes a probe file by hand', () => {
     const t = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
     expect(t).toMatch(/A rendered review is measured, not only described/);
-    expect(t).toMatch(/\{\{scripts_path\}\} probe > \.jig\/probe\.js/);
+    expect(t).toMatch(/\{\{scripts_path\}\} probe --run <page> --save <surface>/);
+    expect(t).toMatch(/\{\{scripts_path\}\} probe --save <surface>/);
     expect(t).toMatch(/Never write a probe file yourself/);
   });
 });
@@ -162,7 +186,7 @@ describe('jig probe --save stamps the page it measured', () => {
   });
 
   it('rejects output that is not a probe, and a page outside the project', () => {
-    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 2 probe output/);
+    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 3 probe output/);
     expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: output({ url: 'file:///etc/hosts' }) })).toThrow(/not a file in this project/);
   });
 
@@ -179,4 +203,36 @@ describe('jig probe --save stamps the page it measured', () => {
     expect(readProbes(project, dir(), stale)).toHaveLength(0);
     expect(stale[0]).toMatch(/taken on an older pricing\.html/);
   });
+});
+
+/**
+ * The last thing an agent could skip: the render itself. Where a browser
+ * exists, the CLI drives it — no dependency, Chrome's own protocol over the
+ * WebSocket client Node has had since 22 — and the Stop hook records the
+ * probes before it judges the review.
+ */
+describe('the CLI can run the probe itself', () => {
+  it('finds a browser, or says plainly that there is none', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    const found = findChrome();
+    expect(found === undefined || typeof found === 'string').toBe(true);
+  });
+
+  it('refuses to render a page that is not in the project', async () => {
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-run-'));
+    await expect(runAndSaveProbes({ projectRoot: root, surface: 'pricing', page: 'nope.html' }))
+      .rejects.toThrow(/does not exist, so there is nothing to render/);
+  });
+
+  it('re-renders only what is missing or taken on an older page', async () => {
+    const { ensureProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-ensure-'));
+    writeFileSync(join(root, 'page.html'), '<html><body><main>x</main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'pricing'), { recursive: true });
+    // No browser reachable from here is not a failure: the gate reports the
+    // absence instead, and this must not throw.
+    const result = await ensureProbes({ projectRoot: root, surface: 'pricing', page: 'page.html' });
+    expect(Array.isArray(result.recorded)).toBe(true);
+  }, 120_000);
 });
