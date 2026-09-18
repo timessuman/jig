@@ -17,7 +17,7 @@
  * `browse js "<script>"`, Playwright's `page.evaluate(script)` and a devtools
  * console all run it unchanged.
  */
-export const PROBE_VERSION = 4;
+export const PROBE_VERSION = 5;
 
 export const PROBE_SCRIPT = `(async () => {
   const doc = document.documentElement;
@@ -141,6 +141,14 @@ export const PROBE_SCRIPT = `(async () => {
     emDashes: [...new Set((text.match(/[^.!?\\n]{0,28}\u2014[^.!?\\n]{0,28}/g) || []).map((t) => t.trim()))].slice(0, 5),
     brokenImages: [...document.images].filter((i) => i.complete && i.naturalWidth === 0).length,
     navLinksVisible: navAtRest,
+    head: {
+      title: (document.title || '').trim(),
+      description: (document.querySelector('meta[name=description]') || {}).content || '',
+      canonical: (document.querySelector('link[rel=canonical]') || {}).href || '',
+      robots: (document.querySelector('meta[name=robots]') || {}).content || '',
+      ogTitle: (document.querySelector('meta[property="og:title"]') || {}).content || '',
+      ogImage: (document.querySelector('meta[property="og:image"]') || {}).content || '',
+    },
     contentWidth: Math.round(region.getBoundingClientRect().width),
     contentMaxWidth: getComputedStyle(region).maxWidth,
     longestLine: prose,

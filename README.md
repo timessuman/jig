@@ -12,13 +12,13 @@ Installed as `npx jig-ui` — the bare name was taken on npm.
 Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
 They are two halves of the same thing, and the split is not arbitrary:
 
-- Of the 115 rules, **18 can be decided by a machine** — a hard-coded colour, a
+- Of the 123 rules, **22 can be decided by a machine** — a hard-coded colour, a
   contrast ratio below the floor, a removed focus ring. The CLI decides those.
-- The other **97 are judgment** — whether an empty state says anything useful,
+- The other **101 are judgment** — whether an empty state says anything useful,
   whether a label reads as an instruction, whether motion earns its place. No
   regex settles those. An agent reads the rules and applies them.
 
-Running only the CLI gets you the 18. Running only the agent gets you the 97 with
+Running only the CLI gets you the 22. Running only the agent gets you the 101 with
 no verification. **A clean `jig check` is not a clean review**, and the skill
 says so to every agent that reads it.
 
@@ -357,6 +357,7 @@ overwrites a config or brand file you have edited.
 | `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. The only command that writes into your repo. |
 | `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
+| `seo [--json]` | Audits what a search engine and a link preview read, across the whole project: a route whose metadata says `noindex` sitting in the sitemap, two pages claiming one title, indexable pages with no sitemap, a sitemap that lists nothing. Needs no config, no decisions and no spec. |
 | `verdicts <surface>` | Verifies a critique's verdict files and computes its counts: every rule in each pass judged once, no id that does not exist, no rule in the wrong arm, and no verdict the render probe contradicts. |
 | `probe` | Prints the render probe — one expression the critique runs in a browser at each width. It operates the menu, measures sideways scroll, and reads whether the styles and tokens applied. |
 | `gate` | Run by the Stop hook `install` adds for Claude Code, not by hand. Blocks an agent from finishing while `check` fails on the files it changed, or the step it just ran left its work unfinished. |
@@ -388,11 +389,12 @@ on the result — the CLI reports, the agent applies the judgment half.
 | Slash command | Equivalent |
 | --- | --- |
 | `/jig init` | `jig init` — then states the mode it chose and what it wired |
-| `/jig check` | `jig check` — then applies the 97 judgment rules and reports both halves |
+| `/jig check` | `jig check` — then applies the 101 judgment rules and reports both halves |
 | `/jig explain C-19` | `jig explain C-19` — prints the rule as-is, without paraphrasing it |
 | `/jig explain contrast` | `jig explain contrast` — every rule matching a word, when you do not have an id |
 | `/jig install --agent cursor` | `jig install --agent cursor` |
 | `/jig update` | `jig update` |
+| `/jig seo` | `jig seo` — then reports what a stranger meets before the page, and what one file cannot see |
 | `/jig decide` | No CLI. Once per project: interviews you and writes the project-wide decisions, with a reason for each |
 | `/jig spec invoice page` | No CLI. What exactly is being built — a page, feature or functionality — at its smallest useful version, at every screen size |
 | `/jig mockup` | No CLI. Low-fidelity design of that spec, reviewed before code — in HTML, Figma or Google Stitch, whichever you choose |
@@ -425,6 +427,30 @@ skill can be shared through your repository while a prompt stays on one machine.
 convention for *skills*, not a harness with a command system of its own, so
 there is no file to write and nothing that would read one. Ask in plain language
 instead; the skill still loads.
+
+## What a search engine reads
+
+A page's title, description and preview text are copy, and they drift because a
+copy pass reads pages and nobody reads `<head>`. Jig treats them as copy: the
+spec decides whether a page is indexable and what it claims, `make` writes the
+metadata in the same change as the headline, and `check` holds the budgets.
+
+**Which pages are meant to be found is decided by mode, not by taste.**
+`editorial` is first-visit content, so it is indexable and needs its own title
+and description. `product` and `operator` are what somebody reaches after signing
+in, so they must carry `noindex` — an admin screen in a search result is an
+invitation, and a sign-in page in one invites credential stuffing. A spec
+overrides the default per page, with a reason: a CV shared by link, a
+confirmation page, a page written for one recipient.
+
+`robots.txt` is not that mechanism. It is public and advisory, and naming a path
+in it tells strangers where to look; a path is safe to name only when something
+else protects it.
+
+`jig seo` covers what one file cannot: a route that says `noindex` and sits in
+the sitemap anyway, two pages claiming one title, a site whose pages nothing
+points at. It writes nothing and needs nothing, so it is safe to run on the first
+day, or on somebody else's codebase.
 
 ## Using it with a coding agent
 
@@ -548,7 +574,7 @@ treatment.
 
 | File | Contents |
 | --- | --- |
-| `rules/00-anti-patterns.md` | 97 universal rules with corrections |
+| `rules/00-anti-patterns.md` | 105 universal rules with corrections |
 | `rules/01-modes.md` | `editorial` / `product` / `operator` profiles |
 | `rules/02-tokens.md` | Token contract, naming, consumption |
 | `rules/03-patterns.md` | Component anatomy and behaviour |

@@ -247,7 +247,7 @@ describe('decide names exactly what it blocks', () => {
     const decide = tmpl().split('\n## decide\n')[1];
     expect(decide).not.toMatch(/Every other command is blocked/);
     expect(decide).toMatch(/`spec`, `mockup`, `make` and `critique` are blocked until this exists/);
-    expect(decide).toMatch(/`install`, `init`, `check` and `explain` run without it/);
+    expect(decide).toMatch(/`install`, `init`, `check`, `explain`, `seo`, `probe`\s*\n?and `verdicts` all run without it/);
     expect(decide).toMatch(/`init`\s+comes first/);
   });
 });

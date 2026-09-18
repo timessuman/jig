@@ -21,6 +21,7 @@ export interface ProbeResult {
   emDashes?: string[];
   brokenImages: number;
   navLinksVisible: number;
+  head?: { title: string; description: string; canonical: string; robots: string; ogTitle: string; ogImage: string };
   contentWidth?: number;
   contentMaxWidth?: string;
   longestLine?: { width: number; chars: number; text: string } | null;
@@ -77,13 +78,17 @@ export function readProbes(projectRoot: string, dir: string, errors: string[]): 
 
 type VerdictOf = (id: string) => string | undefined;
 
+/** Budgets, in the one place they are true: what the browser was served. */
+const TITLE_BUDGET = 60;
+const DESCRIPTION_BUDGET = 155;
+
 /**
  * Verdicts the measurement contradicts, plus failures no verdict may excuse.
  *
  * Only `ok` (and `n/a`) can be contradicted: a `finding` already says what the
  * probe says. Everything here was a false pass in arm test 3.
  */
-export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf): string[] {
+export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf, indexable = true): string[] {
   const errors: string[] = [];
   const clean = (id: string) => ['ok', 'n/a'].includes(verdictOf(id) ?? '');
   const at = (p: ProbeResult) => `probe-${p.width}.json`;
@@ -118,6 +123,22 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf)
     const line = p.longestLine;
     if (line && line.chars > 90 && clean('B-11')) {
       errors.push(`B-11 is "${verdictOf('B-11')}", but ${at(p)} measured a line of about ${line.chars} characters ("${line.text}…") — past every mode's measure. Cap prose at \`--measure-prose\`.`);
+    }
+    // J-121 / J-122 / J-123 against what was served, not what a file declares.
+    // Most frameworks build the head, so this is the only place the answer is
+    // certain — and `indexable` is the spec's word, defaulting from the mode.
+    const head = p.head;
+    if (head && p.width === probes[0]?.width) {
+      const noindex = /noindex/i.test(head.robots);
+      if (indexable && !noindex) {
+        if (!head.title) errors.push(`${at(p)}: the page served no <title> (J-121) — a search result then shows a truncated URL.`);
+        else if (head.title.length > TITLE_BUDGET) errors.push(`${at(p)}: the title served is ${head.title.length} characters, past the ${TITLE_BUDGET} a search result shows (J-122): "${head.title}".`);
+        if (!head.description) errors.push(`${at(p)}: the page served no meta description (J-121) — the search engine writes one from whatever text it finds first, usually the navigation.`);
+        else if (head.description.length > DESCRIPTION_BUDGET) errors.push(`${at(p)}: the description served is ${head.description.length} characters, past the ${DESCRIPTION_BUDGET} (J-122).`);
+      }
+      if (!indexable && !noindex) {
+        errors.push(`${at(p)}: this page is not indexable, and the page served no noindex (J-123). robots.txt is public and advisory, and is not this.`);
+      }
     }
     if (p.junkText.length) {
       errors.push(`${at(p)}: the rendered text contains ${p.junkText.map((j) => `"${j}"`).join(', ')} — template code or a failed value is showing to readers.`);
