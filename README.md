@@ -117,6 +117,45 @@ jig.config.json             route → mode map
 Nothing you wrote is touched beyond that one import line. Re-running `init`
 never overwrites a config or brand file you have edited.
 
+#### Look before you write anything
+
+**Start with `npx jig-ui@latest check --all`.** It reads your code as it stands
+and writes nothing at all — no files, no config, no import. You see what Jig
+would say about the project before deciding whether to adopt it.
+
+It is a quieter report than people expect, because Jig checks your code against
+its rules, never against its own naming:
+
+- **Your token names are yours.** `--ink-900`, `--paper`, `--space-4`: Jig has no
+  opinion about what you call things, and no rule asks you to rename anything.
+  What it looks for is a reference to a name that nothing in your project
+  declares, which is a bug in any codebase.
+- **Rules that need a fact about your project stay silent until they have one.**
+  Density and type scale follow the mode, and there is no mode until you declare
+  one, so those rules say nothing on a first run.
+- **Hard-coded values are only reported where a token layer exists to bypass.**
+  A project with no tokens is not told off for having none.
+
+On a tidy existing page with its own tokens, a first run typically reports a
+couple of specific things — a lone hex among a hundred `var()` calls, a repeated
+set of cards with no list element — rather than a wall.
+
+#### When you do run `init`
+
+The token layer is a set of custom property declarations. Declarations nothing
+references change no pixel, so adding it does not restyle your site.
+
+- **Different names never collide.** Your tokens and Jig's sit side by side; each
+  is used by whoever asks for it. You can adopt one token at a time, or none.
+- **If a name is the same in both, yours wins.** The import goes above your own
+  rules, and the later declaration is the one that applies.
+- **One line does more than declare a token:** `color-scheme: light dark`, which
+  tells the browser your page supports both, so scrollbars and form controls
+  follow the reader's system setting.
+
+Adopting Jig is additive. The pressure to move values into tokens arrives when
+you start using them, not on the day you install.
+
 ### A brand-new site
 
 There is no CSS to read, so there is nothing to derive from and nowhere obvious
