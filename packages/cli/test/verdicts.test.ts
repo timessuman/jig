@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { verifyVerdicts } from '../src/commands/verdicts.js';
+import { saveProbe } from '../src/probe/save.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 /**
@@ -36,9 +37,11 @@ describe('jig verdicts', () => {
   it('passes a complete review and computes the counts itself', () => {
     write('screen.json', { rendered: true, artefacts: ['shots/360.png'], verdicts: all(screenIds) });
     write('code.json', { verdicts: all(codeIds) });
-    // A rendered review carries a probe at each width (see probe.test.ts).
+    // A rendered review carries a probe at each width, recorded through the CLI
+    // so it carries the page's checksum (see probe.test.ts).
+    writeFileSync(join(project, 'pricing.html'), '<html><body><a href="/">home</a></body></html>', 'utf8');
     for (const width of [360, 768, 1280]) {
-      write(`probe-${width}.json`, { jigProbe: 1, width, sidewaysScroll: false, scrollWidth: width, clientWidth: width, defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5, menu: null });
+      saveProbe({ projectRoot: project, surface: 'pricing', json: JSON.stringify({ jigProbe: 2, url: `file://${join(project, 'pricing.html')}`, width, sidewaysScroll: false, scrollWidth: width, clientWidth: width, defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5, menu: null }) });
     }
     const r = run();
     expect(r.errors).toEqual([]);

@@ -1,9 +1,15 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { checksum } from '../install/manifest.js';
+import { pageFile } from './save.js';
 import { PROBE_VERSION } from './script.js';
 
 export interface ProbeResult {
   jigProbe: number;
+  url?: string;
+  pageFile?: string;
+  pageChecksum?: string;
+  recordedAt?: string;
   width: number;
   sidewaysScroll: boolean;
   scrollWidth: number;
@@ -20,7 +26,30 @@ export interface ProbeResult {
   };
 }
 
-export function readProbes(dir: string, errors: string[]): ProbeResult[] {
+/**
+ * A probe file the CLI did not write, or wrote for a page that has changed
+ * since, is not a measurement of what is on disk now. Both were real: one agent
+ * hand-wrote a probe file whose numbers contradicted the page it named.
+ */
+function stampProblem(projectRoot: string, file: string, p: ProbeResult): string | undefined {
+  if (!p.pageChecksum || !p.pageFile) {
+    return `${file} was not written by \`jig probe --save\`, so nothing measured it. Evaluate \`jig probe\` in the browser and pipe its output into \`jig probe --save <surface>\`.`;
+  }
+  const page = pageFile(projectRoot, p.url ?? '');
+  if (!page) return `${file} names a page outside this project (${p.url ?? 'no url'}).`;
+  let current: string;
+  try {
+    current = readFileSync(page, 'utf8');
+  } catch {
+    return `${file} was taken on ${p.pageFile}, which no longer exists.`;
+  }
+  if (checksum(current) !== p.pageChecksum) {
+    return `${file} was taken on an older ${p.pageFile} — the page changed after it. Render and probe again at that width.`;
+  }
+  return undefined;
+}
+
+export function readProbes(projectRoot: string, dir: string, errors: string[]): ProbeResult[] {
   if (!existsSync(dir)) return [];
   const probes: ProbeResult[] = [];
   for (const f of readdirSync(dir).filter((n) => /^probe-\d+\.json$/.test(n)).sort()) {
@@ -30,6 +59,8 @@ export function readProbes(dir: string, errors: string[]): ProbeResult[] {
         errors.push(`${f} is not output of \`jig probe\` (version ${PROBE_VERSION}). Re-run the probe; do not write it by hand.`);
         continue;
       }
+      const stale = stampProblem(projectRoot, f, p);
+      if (stale) { errors.push(stale); continue; }
       probes.push(p);
     } catch (e) {
       errors.push(`${f}: not valid JSON (${(e as Error).message}).`);

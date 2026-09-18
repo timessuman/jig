@@ -17,7 +17,7 @@
  * `browse js "<script>"`, Playwright's `page.evaluate(script)` and a devtools
  * console all run it unchanged.
  */
-export const PROBE_VERSION = 1;
+export const PROBE_VERSION = 2;
 
 export const PROBE_SCRIPT = `(async () => {
   const doc = document.documentElement;
