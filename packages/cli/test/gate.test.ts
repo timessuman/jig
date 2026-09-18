@@ -96,3 +96,94 @@ describe('installStopHook', () => {
     expect(existsSync(join(root, '.jig'))).toBe(false);
   });
 });
+
+/**
+ * Arm test 4: four runs, and not one wrote a spec in the procedure's shape or
+ * a single critique verdict file. Every skip was invisible, because the gate
+ * could only check output that existed. The transcript says which command ran.
+ */
+describe('the gate checks the command that just ran', () => {
+  const transcript = (command: string) => {
+    const path = join(root, 'transcript.jsonl');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>` } }) + '\n');
+    return path;
+  };
+  const runAfter = (command: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1', transcript_path: transcript(command) } });
+  const spec = (body: string) => {
+    mkdirSync(join(root, '.jig', 'specs'), { recursive: true });
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), body);
+  };
+  const goodSpec = `---
+feature: choose a plan
+surface: pricing
+mode: editorial
+sizes:
+  phone:
+    regions: [nav, plans]
+    nav: Menu button, top right
+  tablet:
+    regions: [nav, plans]
+    nav: five links in a row
+  desktop:
+    regions: [nav, plans]
+    nav: five links in a row
+confirmed: true
+mockup: approved
+mockup_at: .jig/mockups/pricing.html
+---
+Prose.`;
+
+  it('blocks a decide that left no Unresolved section', () => {
+    jigProject();
+    mkdirSync(join(root, 'jig'), { recursive: true });
+    writeFileSync(join(root, 'jig', 'DECISIONS.md'), '### The Stamp Rule\n\n**Why:** because.\n');
+    expect(runAfter('decide').reason).toMatch(/no `## Unresolved` section/);
+    writeFileSync(join(root, 'jig', 'DECISIONS.md'), '### The Stamp Rule\n\n**Why:** because.\n\n## Unresolved\n\nNone named by the owner.\n');
+    expect(runAfter('decide').block).toBe(false);
+  });
+
+  it('blocks a spec that is prose instead of the procedure\'s shape', () => {
+    jigProject();
+    spec('# Pricing Page Specification\n\nA prose document, as all four arm-test runs wrote.');
+    expect(runAfter('spec').reason).toMatch(/has no frontmatter/);
+  });
+
+  it('names a size whose composition is missing, and passes a whole spec', () => {
+    jigProject();
+    spec(goodSpec.replace(/  desktop:[\s\S]*?nav: five links in a row\n/, ''));
+    expect(runAfter('spec').reason).toMatch(/no `desktop:` composition/);
+    spec(goodSpec);
+    expect(runAfter('spec').block).toBe(false);
+  });
+
+  it('blocks a menu button at a width where the links fit', () => {
+    jigProject();
+    spec(goodSpec.replace('  desktop:\n    regions: [nav, plans]\n    nav: five links in a row', '  desktop:\n    regions: [nav, plans]\n    nav: Menu button, top right'));
+    expect(runAfter('spec').reason).toMatch(/`desktop` has `nav: Menu button, top right`/);
+  });
+
+  it('blocks a mockup drawn outside .jig/mockups, and one still pending', () => {
+    jigProject();
+    spec(goodSpec.replace('.jig/mockups/pricing.html', 'mockup.html'));
+    writeFileSync(join(root, 'mockup.html'), '<html></html>');
+    expect(runAfter('mockup').reason).toMatch(/A mockup lives in \.jig\/mockups\//);
+    spec(goodSpec.replace('mockup: approved', 'mockup: pending'));
+    expect(runAfter('mockup').reason).toMatch(/still pending/);
+  });
+
+  it('blocks a critique that wrote no verdict files at all', () => {
+    jigProject();
+    spec(goodSpec);
+    mkdirSync(join(root, '.jig', 'mockups'), { recursive: true });
+    writeFileSync(join(root, '.jig', 'mockups', 'pricing.html'), '<html></html>');
+    const r = runAfter('critique');
+    expect(r.block).toBe(true);
+    expect(r.reason).toMatch(/critique wrote no verdict files/);
+  });
+
+  it('says nothing about commands when the transcript names none', () => {
+    jigProject();
+    spec('# prose');
+    expect(gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1' } }).block).toBe(false);
+  });
+});
