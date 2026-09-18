@@ -149,13 +149,23 @@ Set `brand` in `jig.config.json` to put it somewhere else. Projects set up
 before 0.7.0 keep their `.jig/tokens/` layout; `update` does not move them, and
 `init` offers to.
 
-The mode file is the one thing genuinely copied: a stylesheet `@import` is an
-edge in a build graph and has to resolve locally, on every machine that builds.
+The mode file is the one token file copied verbatim from the package: a
+stylesheet `@import` is an edge in a build graph and has to resolve locally, on
+every machine that builds. The brand file and the barrel are generated for your
+project, not copied.
 
-**Commit `.jig/`.** It holds the token files your stylesheet imports, so a
-gitignored `.jig/` means the design system does not exist for anyone who did not
-run `init` themselves — their build breaks on a missing import, and CI's `jig
-check` sees no token layer at all. `init` warns if it finds `.jig/` ignored.
+**Commit the token directory** — `<css dir>/jig/`. It holds the files your
+stylesheet `@import`s, so ignoring it means the design system does not exist for
+anyone who did not run `init` themselves: their build breaks on a missing import,
+and CI's `jig check` sees no token layer at all.
+
+**Commit `.jig/` too.** It is not the tokens (it was, before 0.7.0). It holds
+`state.json`, which records the version and checksum of every file `init` wrote
+and is what `update` reads to know what it may refresh, plus the durable record of
+the design loop: your specs, approved mockups and critique verdicts. Ignored, a
+teammate's `update` cannot tell a file you edited from one it wrote, and every
+spec the project agreed is invisible to the next agent. `init` warns if it finds
+either directory ignored.
 
 Add `--yes` to accept every derived default non-interactively — the mode CI and
 agents run in. It states the mode it chose and where to change it, because
@@ -370,6 +380,8 @@ treatment.
 | `<css dir>/jig/brand.*.css` | Identity. One per project. |
 | `<css dir>/jig/mode.*.css` | Density, scale, rhythm, motion |
 | `<css dir>/jig/theme.css` | The barrel — brand + mode. This is what you import. |
+| `.jig/state.json` | What `init` wrote, with checksums. `update` reads it to leave your edits alone. |
+| `.jig/specs/`, `.jig/mockups/`, `.jig/critique/` | The design loop's record: what was agreed, what was drawn, what the review found. |
 
 `rules/*` and `rules.index.json` live beside your installed skill file, not
 in the project — see above.

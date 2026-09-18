@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, chmodSync, readdirSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { install } from '../src/commands/install.js';
@@ -878,5 +879,39 @@ describe('init without a terminal', () => {
     const result = await withoutTTY(() => run({ yes: true })) as { surfaces: { mode: string }[] };
     expect(result.surfaces.length).toBeGreaterThan(0);
     expect(result.surfaces.map((s) => s.mode)).toContain('operator');
+  });
+});
+
+/**
+ * Before 0.7.0 the tokens lived in `.jig/tokens/`, and one warning covered
+ * both. They are different directories now, and ignoring each loses something
+ * different: the token directory breaks a teammate's build, `.jig/` loses
+ * `state.json` and every spec.
+ */
+describe('init says which directory is ignored, and what is lost', () => {
+  const seed = (ignore: string) => {
+    writeFileSync(join(project, 'package.json'), JSON.stringify({ name: 'acme' }));
+    mkdirSync(join(project, 'src'), { recursive: true });
+    writeFileSync(join(project, 'src', 'app.css'), '.a { color: red; }\n');
+    execFileSync('git', ['init', '-q'], { cwd: project });
+    writeFileSync(join(project, '.gitignore'), ignore);
+  };
+
+  it('warns about the token directory by its real path', async () => {
+    seed('src/jig/\n');
+    const lines: string[] = [];
+    await init({ projectRoot: project, packageRoot: repoRoot, version: "0.10.0", homeDir: home, yes: true, log: (l) => lines.push(l) });
+    const out = lines.join('\n');
+    expect(out).toMatch(/src\/jig\/ is gitignored, but it holds this project's tokens/);
+    expect(out).not.toMatch(/\.jig\/ is gitignored, but it holds this project's tokens/);
+  });
+
+  it('warns about .jig/ for what it actually holds now', async () => {
+    seed('.jig/\n');
+    const lines: string[] = [];
+    await init({ projectRoot: project, packageRoot: repoRoot, version: "0.10.0", homeDir: home, yes: true, log: (l) => lines.push(l) });
+    const out = lines.join('\n');
+    expect(out).toMatch(/state\.json/);
+    expect(out).toMatch(/specs, mockups and critique verdicts/);
   });
 });
