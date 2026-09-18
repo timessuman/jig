@@ -104,6 +104,12 @@ function commandProblems(root: string, command: string): string[] {
   if (command === 'critique') {
     const dir = join(root, '.jig', 'critique');
     const surfaces = existsSync(dir) ? readdirSync(dir).filter((s) => existsSync(join(dir, s, 'screen.json')) || existsSync(join(dir, s, 'code.json'))) : [];
+    for (const surface of surfaces) {
+      const v = verifyVerdicts({ projectRoot: root, surface });
+      if (v.ok && v.screen.state === 'skipped') {
+        problems.push(`${surface}: the screen pass judged ${v.screen.judged} rules with rendered: false. Those rules are judged on a render — open the page at 360, 768 and 1280, run \`jig probe\` at each, and judge them there.`);
+      }
+    }
     if (surfaces.length === 0) {
       problems.push('critique wrote no verdict files. Each reader arm writes .jig/critique/<surface>/screen.json or code.json, and `jig verdicts <surface>` — not your own count — decides whether the review is complete. A report without them is not a review.');
     }

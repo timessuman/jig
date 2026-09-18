@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gate, MAX_BLOCKS } from '../src/commands/gate.js';
 import { installStopHook } from '../src/commands/install.js';
+import { repoRoot } from './helpers/registered-commands.js';
 
 /**
  * Arm test 3: every "run check" / "run verdicts" step was skippable, and Haiku
@@ -179,6 +180,38 @@ Prose.`;
     const r = runAfter('critique');
     expect(r.block).toBe(true);
     expect(r.reason).toMatch(/critique wrote no verdict files/);
+  });
+
+  // Arm test 6: every spec passed the shape check with `phone: 360px, stacked
+  // cards, menu button top-right` — frontmatter in shape, prose in substance.
+  it('refuses a size written as one line, and one claiming same-as with no why', () => {
+    jigProject();
+    spec(goodSpec.replace('  tablet:\n    regions: [nav, plans]\n    nav: five links in a row', '  tablet: 768px, wider cards, visible navigation'));
+    expect(runAfter('spec').reason).toMatch(/`tablet:` is a one-line description/);
+    spec(goodSpec.replace('  tablet:\n    regions: [nav, plans]\n    nav: five links in a row', '  tablet:\n    same-as: phone'));
+    expect(runAfter('spec').reason).toMatch(/claims `same-as:` with no `why:`/);
+  });
+
+  it('refuses a size with no regions or nav', () => {
+    jigProject();
+    spec(goodSpec.replace('  desktop:\n    regions: [nav, plans]\n    nav: five links in a row', '  desktop:\n    hierarchy: [plans]'));
+    const reason = runAfter('spec').reason;
+    expect(reason).toMatch(/`desktop` has no `regions:`/);
+    expect(reason).toMatch(/`desktop` has no `nav:`/);
+  });
+
+  it('blocks a critique whose screen pass judged the rules without a render', () => {
+    jigProject();
+    spec(goodSpec);
+    mkdirSync(join(root, '.jig', 'mockups'), { recursive: true });
+    writeFileSync(join(root, '.jig', 'mockups', 'pricing.html'), '<html></html>');
+    const dir = join(root, '.jig', 'critique', 'pricing');
+    mkdirSync(dir, { recursive: true });
+    const index = JSON.parse(readFileSync(join(repoRoot, 'rules.index.json'), 'utf8')) as Array<{ id: string; bucket: string; pass?: string }>;
+    const ids = (pass: string) => index.filter((r) => r.bucket === 'judgment' && r.pass === pass).map((r) => ({ id: r.id, verdict: 'ok', reason: `${r.id} holds` }));
+    writeFileSync(join(dir, 'screen.json'), JSON.stringify({ rendered: false, verdicts: [...ids('screen'), { id: 'P-14', verdict: 'ok', reason: 'nav reads as the spec says' }] }));
+    writeFileSync(join(dir, 'code.json'), JSON.stringify({ verdicts: ids('code') }));
+    expect(runAfter('critique').reason).toMatch(/judged \d+ rules with rendered: false/);
   });
 
   it('says nothing about commands when the transcript names none', () => {

@@ -33,11 +33,44 @@ export function specProblems(spec: { path: string; body: string }): string[] {
   }
   const sizes = front.split(/^sizes\s*:/im)[1] ?? '';
   for (const size of ['phone', 'tablet', 'desktop']) {
-    if (!new RegExp(`^\\s+${size}\\s*:`, 'im').test(sizes)) {
+    const line = new RegExp(`^\\s+${size}\\s*:(.*)$`, 'im').exec(sizes);
+    if (!line) {
       problems.push(`${spec.path} has no \`${size}:\` composition under \`sizes:\`. Every size is written in full, phone first; \`same-as:\` needs a \`why:\`.`);
+      continue;
+    }
+    // A size is a composition, not a sentence. In a live run every spec wrote
+    // `phone: 360px, stacked cards, menu button top-right` — frontmatter in
+    // shape, prose in substance, and nothing in it can be compared to a page.
+    if (line[1]!.trim()) {
+      problems.push(`${spec.path}: \`${size}:\` is a one-line description. A size is a composition — \`regions:\` in order, \`hierarchy:\`, \`nav:\` — each on its own line, or \`same-as:\` with a \`why:\`.`);
+      continue;
+    }
+    const block = sizeBlock(sizes, size);
+    if (/^\s*same-as\s*:/im.test(block)) {
+      if (!/^\s*why\s*:/im.test(block)) problems.push(`${spec.path}: \`${size}\` claims \`same-as:\` with no \`why:\`. The claim is checked on a render, so it says why it holds.`);
+      continue;
+    }
+    for (const field of ['regions', 'nav']) {
+      if (!new RegExp(`^\\s*${field}\\s*:`, 'im').test(block)) {
+        problems.push(`${spec.path}: \`${size}\` has no \`${field}:\`. Every size names its regions in order and what its navigation is at that width (\`nav: none\` when the screen has none).`);
+      }
     }
   }
   return problems;
+}
+
+/** The lines under one size, up to the next size or the next top-level field. */
+function sizeBlock(sizes: string, size: string): string {
+  const start = new RegExp(`^\\s+${size}\\s*:.*$`, 'im').exec(sizes);
+  if (!start) return '';
+  const rest = sizes.slice(start.index + start[0].length);
+  const indent = /^\s*/.exec(start[0])![0].length;
+  const lines: string[] = [];
+  for (const line of rest.split('\n')) {
+    if (line.trim() && /^\s*/.exec(line)![0].length <= indent) break;
+    lines.push(line);
+  }
+  return lines.join('\n');
 }
 
 /** `nav:` values that name a menu control. */
@@ -54,7 +87,7 @@ export function navProblems(spec: { path: string; body: string }): string[] {
   const sizes = front.split(/^sizes\s*:/im)[1] ?? '';
   const problems: string[] = [];
   for (const size of ['tablet', 'desktop']) {
-    const block = sizes.split(new RegExp(`^\\s+${size}\\s*:`, 'im'))[1]?.split(/^\s{2}\w[\w-]*\s*:/m)[0] ?? '';
+    const block = sizeBlock(sizes, size);
     const nav = /^\s*nav\s*:\s*(.+)$/im.exec(block)?.[1]?.trim();
     if (!nav || NONE_RE.test(nav)) continue;
     if (MENU_RE.test(nav) && !/\bopen\b|\bexpanded\b/i.test(nav)) {

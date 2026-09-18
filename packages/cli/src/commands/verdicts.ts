@@ -19,7 +19,7 @@ import { probeContradictions, readProbes } from '../probe/check.js';
  * computes are a measurement.
  */
 
-export type ArmState = 'ran' | 'incomplete' | 'missing';
+export type ArmState = 'ran' | 'incomplete' | 'missing' | 'skipped';
 
 export interface ArmResult {
   state: ArmState;
@@ -171,6 +171,11 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
     return typeof v?.verdict === 'string' ? v.verdict : undefined;
   };
   errors.push(...probeContradictions(probes, verdictOf));
+
+  // The screen pass is defined as judged on a render. Three live critiques
+  // returned 30 screen verdicts each with `rendered: false` — read from the
+  // source and reported as a full pass. Without a render the arm did not run.
+  if (screen.state === 'ran' && !rendered) screen.state = 'skipped';
 
   const field = (a: ArmResult) => (a.state === 'ran' ? `ran:${a.judged}` : `${a.state}:${a.judged}${a.state === 'incomplete' ? `/${a.total}` : ''}`);
   const line =
