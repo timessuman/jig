@@ -153,6 +153,31 @@ references change no pixel, so adding it does not restyle your site.
   tells the browser your page supports both, so scrollbars and form controls
   follow the reader's system setting.
 
+#### You decide how it is wired
+
+`init`'s default is a convenience for a project with one obvious entry point,
+not a requirement. Every part of it is yours to direct, whether you do it or
+tell your agent to:
+
+- **Where the files go.** `brand` in `jig.config.json` sets the token directory.
+  Put it wherever your CSS lives.
+- **Whether Jig wires anything at all.** It adds the import only when there is
+  one unambiguous entry stylesheet. Otherwise it writes the files, prints the
+  line to add, and leaves your CSS alone for you to place.
+- **How it is wired.** The barrel is two `@import`s, brand then mode. Skip it and
+  import the two files yourself, take only the brand file, inline them into your
+  build, or import a different barrel at each route — which is what a project
+  with more than one mode does. `init` names those extra barrels and
+  deliberately does not wire them: which entry point serves `/admin` is your
+  routing, and it cannot see it.
+- **Your edits survive.** Every file `init` writes is checksummed. Change one and
+  `update` leaves it alone and says so, rather than reverting your wiring at the
+  next version.
+- **One constraint that is not a preference.** The tokens are declared on
+  `:root`, so the layer has to reach the document globally. Imported inside a CSS
+  module or a scoped component block, the tokens exist only there. Anywhere
+  global is fine.
+
 Adopting Jig is additive. The pressure to move values into tokens arrives when
 you start using them, not on the day you install.
 
