@@ -83,6 +83,14 @@ The one legitimate use is a **short label** distinguishing itself from nearby te
 ✅ Most interface text is too short to need them. Use a full stop only where the text is a complete sentence containing commas.
 Whichever you choose, be consistent across sibling elements — a list where three items end in a stop and two do not looks like a mistake, because it is one.
 
+### I-118 Em dashes in interface text
+❌ "Your plan — including every seat — renews monthly", "Free — forever", "Deleted — this cannot be undone"
+✅ A full stop, a comma, a colon or a new element. "Your plan renews monthly, including every seat." "Free forever." "Deleted. This cannot be undone."
+Interface text is read in fragments, at a glance, in a space someone else's content has to fit too. An em dash is a pause the reader has to interpret: it stands in for a comma, a colon, a bracket or a full stop, and which one it is only becomes clear after reading past it. The punctuation that says exactly one thing is faster.
+It is also the clearest tell of machine-written copy. Generated text reaches for the em dash far more often than a person does, and readers have learned to notice. Copy that reads as generated is copy the reader trusts less, whatever it says.
+This is about interface strings — labels, buttons, headings, errors, empty states, help text, and the prose a page ships. It is not a rule about your documentation, your commit messages or this file.
+The en dash keeps its one job: ranges, where it is read as "to" (`2–10 seats`, `Mon–Fri`). That is not a pause, and it is not affected.
+
 ### I-87 Inconsistent vocabulary
 ❌ "Add to cart" beside a "Bag" icon; "Sign up" on the page and "Register" in the nav
 ✅ One word per concept, everywhere. Keep a term list in the project and follow it.

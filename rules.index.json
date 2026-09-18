@@ -793,5 +793,12 @@
     "severity": "error",
     "since": "0.10.0",
     "detector": "undeclared-token"
+  },
+  {
+    "id": "I-118",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.12.0",
+    "detector": "em-dash"
   }
 ]
