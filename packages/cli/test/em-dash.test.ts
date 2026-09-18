@@ -67,9 +67,17 @@ describe('em-dash reaches every place a reader sees text', () => {
   });
 
   it('leaves repository documents alone: they are written for whoever works here', () => {
-    for (const file of ['README.md', 'CHANGELOG.md', 'docs/AGENTS.md', 'CONTRIBUTING.md']) {
+    for (const file of ['README.md', 'CHANGELOG.md', 'docs/AGENTS.md', 'CONTRIBUTING.md', 'NOTES.md']) {
       expect(emDash.appliesTo(file), file).toBe(false);
     }
+  });
+
+  // An all-caps name means "document" beside the lockfile, and nothing at all
+  // inside a documentation site, where FAQ.md is a page like any other.
+  it('reads a page whose name happens to be capitals', () => {
+    expect(emDash.appliesTo('docs/FAQ.md')).toBe(true);
+    expect(emDash.appliesTo('src/content/GDPR.mdx')).toBe(true);
+    expect(run('# FAQ\n\nFree — forever.\n', 'docs/FAQ.md')).toHaveLength(1);
   });
 
   it('does not read a code sample in markdown as prose', () => {

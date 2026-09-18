@@ -18,6 +18,7 @@ export interface ProbeResult {
   bodyFont?: string;
   unresolvedTokens: string[];
   junkText: string[];
+  emDashes?: string[];
   brokenImages: number;
   navLinksVisible: number;
   landmarks?: string[];
@@ -100,6 +101,13 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf)
     // two is wrong and only a person can say which.
     for (const inv of p.orderInversions ?? []) {
       errors.push(`${at(p)}: "${inv.seenFirst}" is read first on screen but comes after "${inv.markupFirst}" in the markup. At this width the markup order is not the reading order (H-119) — reorder the document, or move it with CSS that leaves the order intact.`);
+    }
+    // I-118 where the source cannot reach: a string assembled in code — a
+    // description built in a framework's frontmatter, a label from a script —
+    // arrives on the page having passed no file check. The render is where
+    // every route ends, whatever built the string.
+    if (p.emDashes?.length) {
+      errors.push(`${at(p)}: the rendered page shows an em dash in ${p.emDashes.map((t) => `"${t}"`).join(', ')} (I-118) — use a full stop, a comma, a colon, or a second element.`);
     }
     if (p.junkText.length) {
       errors.push(`${at(p)}: the rendered text contains ${p.junkText.map((j) => `"${j}"`).join(', ')} — template code or a failed value is showing to readers.`);

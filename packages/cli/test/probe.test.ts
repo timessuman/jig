@@ -61,15 +61,22 @@ describe('probeContradictions', () => {
     expect(probeContradictions([wide({ menu: null, navLinksVisible: 5 })], v)).toEqual([]);
   });
 
+  // I-118 where the source cannot reach: a string built by a script, or by a
+  // framework's frontmatter, arrives on the page having passed no file check.
+  it('reports an em dash in the rendered text, however the string was built', () => {
+    const errors = probeContradictions([probe({ emDashes: ['Team — $49 a month'] })], verdicts({}));
+    expect(errors[0]).toMatch(/the rendered page shows an em dash in "Team — \$49 a month" \(I-118\)/);
+  });
+
   // H-119: a screen reader and a keyboard user take the page in markup order.
   // A column moved with CSS is not an inversion; a block lifted above the one
   // that precedes it in the markup is.
   it('reports markup order that is not the reading order, whatever the verdicts say', () => {
     const errors = probeContradictions(
-      [probe({ orderInversions: [{ markupFirst: 'main Products', seenFirst: 'aside Filters' }] })],
+      [probe({ orderInversions: [{ markupFirst: '<main> “Products”', seenFirst: '<aside> “Filters”' }] })],
       verdicts({}),
     );
-    expect(errors[0]).toMatch(/"aside Filters" is read first on screen but comes after "main Products" in the markup/);
+    expect(errors[0]).toMatch(/"<aside> “Filters”" is read first on screen but comes after "<main> “Products”" in the markup/);
     expect(errors[0]).toMatch(/H-119/);
   });
 
