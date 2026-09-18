@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.0
+
+### Added
+
+- **`I-118` Em dashes in interface text.** Use a full stop, a comma, a colon
+  or a second element. The mark is ambiguous on its own: it stands in for
+  four different ones, and the reader only learns which after reading past
+  it. It is also the clearest tell of machine-written copy, and copy that
+  reads as generated is copy the reader trusts less. The `em-dash` detector
+  reads element text and the attributes a reader hears or sees; scripts,
+  styles, comments, class names and documentation are not interface text.
+  The en dash keeps its one job, a range read as "to" (`2-10 seats`).
+
 ## 0.11.1
 
 Two holes in the gate, both found by running the loop twice on 0.11.0 —
