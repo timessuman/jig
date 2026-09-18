@@ -276,3 +276,28 @@ describe('nav is decided per size by P-14, not copied from a placement decision'
     expect(p).toMatch(/The decision is where it sits, never whether it exists/);
   });
 });
+
+/**
+ * Arm test 9: a decision about where the accent may appear collided with a
+ * component rule during `make`, and the agent resolved it alone and recorded
+ * the collision as a deviation. Nothing in decide asked what the project does
+ * when two good options conflict.
+ */
+describe('decide asks what the project is for, and how it breaks a tie', () => {
+  const decide = () => tmpl().split('\n## decide\n')[1];
+
+  it('asks what the reader leaves with, and which side wins a conflict', () => {
+    expect(decide()).toMatch(/what do they know or have that they did\s+not before\?/);
+    expect(decide()).toMatch(/When two good options conflict here, which side do you take\?/);
+  });
+
+  it('refuses an adjective, because every decision is judged against a page', () => {
+    expect(decide()).toMatch(/Refuse an adjective, ask again/);
+    expect(decide()).toMatch(/"Bold", "human", "trustworthy" and\s+"premium" cannot be checked against a page/);
+  });
+
+  it('writes both in the same shape as every other decision', () => {
+    expect(decide()).toMatch(/### What this page is for/);
+    expect(decide()).toMatch(/### When two options conflict/);
+  });
+});
