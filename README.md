@@ -178,6 +178,94 @@ tell your agent to:
   module or a scoped component block, the tokens exist only there. Anywhere
   global is fine.
 
+#### One page, start to finish
+
+A project with its own tokens, no Jig. Four steps, and the report after each is
+the real output:
+
+```
+$ npx jig-ui@latest check --all
+  ✗ H-47   Hard-coded colour `#fff` past the token layer      src/app.css:6
+  ⚠ H-119  3 sibling article.card elements are a repeated set …
+  1 error, 1 warning · 8 files, 5 with styles
+
+$ npx jig-ui@latest install --agent claude     # the skill your agent reads
+$ npx jig-ui@latest init --yes                 # writes the token layer, touches no CSS
+```
+
+`init` here found no single entry stylesheet, so it wrote the files and printed
+the import rather than editing anything. Adding that line yourself, and changing
+one value:
+
+```css
+@import "./jig/theme.css";   /* the line init printed */
+@import "./tokens.css";      /* your tokens, unchanged */
+
+.button { background: var(--accent); color: var(--color-on-brand); }
+```
+
+```
+$ npx jig-ui@latest check --all
+  ⚠ H-119  3 sibling article.card elements are a repeated set …
+  0 errors, 1 warning
+```
+
+The error is gone, `--ink-900` and `--paper` and the rest are exactly as they
+were, and the one warning is the judgment call left for you: whether those cards
+are a list. That is the whole loop. Repeat it wherever it is worth repeating.
+
+#### A large codebase
+
+The first `check --all` on a big repo is a long list, and the list is not a
+to-do. Read it in this order:
+
+1. **`check --all --ci` first.** Mechanical bucket, errors only, exit code you
+   can put in CI. It is the short list, and every line on it is decidable.
+2. **Then warnings, by rule rather than by file.** The report groups by rule id,
+   and a rule firing forty times is one decision made once, not forty.
+3. **Then one page at a time.** `check` defaults to the files you changed, so
+   once the first two passes are done it goes quiet and stays that way for
+   everything except what you touch.
+
+Nothing obliges you to reach zero. A `check` that is quiet on today's diff is
+worth more than one that was quiet on the whole repo six months ago.
+
+#### Only the new pages
+
+Adopting Jig everywhere is not the price of using it anywhere. The rules apply
+to what you point them at:
+
+- **New work follows the loop** — decide, spec, mockup, make, critique — and the
+  Stop hook holds it to that, if you asked for the hook.
+- **Old pages sit where they are.** They are not rewritten, and the default
+  `check` says nothing about a file nobody has touched.
+- **`jig.config.json` can exempt paths** you have no intention of revisiting, and
+  the report names every exemption on every run, so an exemption list cannot grow
+  quietly.
+- **The token layer works the same way.** A page adopts a token when someone
+  edits it to use one; no page changes on its own.
+
+#### A page you already have
+
+The loop assumes a page being built. For one that exists, the order changes
+slightly and the commands do not:
+
+1. **`/jig decide`** first, as always: the rules are the system's, the
+   decisions are yours, and a review with no decisions to check against is half a
+   review.
+2. **`/jig spec <page>`**, written from the page as built. Your agent
+   reads what is there and describes it — regions, hierarchy, navigation at each
+   size — and you confirm or correct it. It is a description, not a redesign.
+3. **`/jig critique`** then has what it needs: the rules, the spec it
+   just confirmed, and your decisions. It renders the page, measures it, and
+   reports.
+4. **`/jig make`** fixes what the critique found, and `critique` runs
+   again until it is clean or you accept what is left.
+
+Skipping step 2 and asking for a critique on its own leaves the review with
+nothing to check the page against except the rules, which is the weakest half of
+what Jig knows about your project.
+
 Adopting Jig is additive. The pressure to move values into tokens arrives when
 you start using them, not on the day you install.
 
