@@ -180,7 +180,7 @@ describe('critique hands its counts to `jig verdicts`', () => {
   });
 
   it('takes the attested counts from the CLI, never from the agent', () => {
-    expect(tmpl()).toMatch(/Take `screen=`, `code=` and `rendered=` from `jig verdicts`,\s+never from your own/);
+    expect(tmpl()).toMatch(/Take `screen=`, `code=`, `decisions=` and `rendered=` from `jig verdicts`,\s+never from your own/);
   });
 
   it('judges the P- patterns the spec uses, since walking the index never reaches them', () => {

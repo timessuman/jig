@@ -124,3 +124,10 @@ describe('the scan skips the agent harnesses own files', () => {
     expect(files.some((f) => f.startsWith('.claude/') || f.startsWith('.cursor/'))).toBe(false);
   });
 });
+
+// `jig/DECISIONS.md` is the project's own record, written for whoever builds
+// here. It was being read as page copy because it does not sit at the root.
+it('leaves a project document alone wherever the token layer put it', () => {
+  expect(emDash.appliesTo('jig/DECISIONS.md')).toBe(false);
+  expect(emDash.appliesTo('src/styles/jig/DECISIONS.md')).toBe(false);
+});

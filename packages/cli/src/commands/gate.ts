@@ -108,6 +108,9 @@ function commandProblems(root: string, command: string): string[] {
     const surfaces = existsSync(dir) ? readdirSync(dir).filter((s) => existsSync(join(dir, s, 'screen.json')) || existsSync(join(dir, s, 'code.json'))) : [];
     for (const surface of surfaces) {
       const v = verifyVerdicts({ projectRoot: root, surface });
+      if (v.ok && v.decisions.state !== 'ran' && v.decisions.total > 0) {
+        problems.push(`${surface}: ${v.decisions.total - v.decisions.judged} of ${v.decisions.total} decisions in DECISIONS.md have no verdict. A page can satisfy every rule and still break what this project decided.`);
+      }
       if (v.ok && v.screen.state === 'skipped') {
         problems.push(`${surface}: the screen pass judged ${v.screen.judged} rules with rendered: false. Those rules are judged on a render — open the page at 360, 768 and 1280, run \`jig probe\` at each, and judge them there.`);
       }
