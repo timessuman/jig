@@ -276,3 +276,68 @@ describe('nav is decided per size by P-14, not copied from a placement decision'
     expect(p).toMatch(/The decision is where it sits, never whether it exists/);
   });
 });
+
+/**
+ * Arm test 9: a decision about where the accent may appear collided with a
+ * component rule during `make`, and the agent resolved it alone and recorded
+ * the collision as a deviation. Nothing in decide asked what the project does
+ * when two good options conflict.
+ */
+describe('decide asks what the project is for, and how it breaks a tie', () => {
+  const decide = () => tmpl().split('\n## decide\n')[1];
+
+  it('asks the north star about the product, not a page', () => {
+    expect(decide()).toMatch(/If this product works, what can someone do that they could not before\?/);
+    expect(decide()).toMatch(/A page's\s+own purpose is `spec`'s question/);
+    expect(decide()).toMatch(/When two good options conflict here, which side do you take\?/);
+  });
+
+  // Personality is not a mood board: it is type, colour, corners and language,
+  // and each answer becomes a value this project is about to set.
+  it('asks personality through the four things that produce it, and names what each becomes', () => {
+    const d = decide();
+    for (const [lever, token] of [['Type', '--font-text'], ['Colour', '--color-brand'], ['Corners', '--radius-'], ['Language', 'voice decision']]) {
+      expect(d, lever).toMatch(new RegExp(`\\*\\*${lever}\\.\\*\\*`));
+      expect(d, token).toContain(token);
+    }
+    expect(d).toMatch(/a palette that fails them is not a\s+personality/);
+    expect(d).toMatch(/mixing square\s+and round in one screen looks worse than either/);
+  });
+
+  it('sends them to what the reader already uses, and away from the competitor', () => {
+    expect(decide()).toMatch(/ask what the reader already uses/);
+    expect(decide()).toMatch(/looks like a second-rate version of it/);
+  });
+
+  it('refuses an adjective, because every decision is judged against a page', () => {
+    expect(decide()).toMatch(/Refuse an adjective, ask again/);
+    expect(decide()).toMatch(/"Bold", "human", "trustworthy" and\s+"premium" cannot be checked against a page/);
+  });
+
+  it('writes both in the same shape as every other decision', () => {
+    expect(decide()).toMatch(/### What this page is for/);
+    expect(decide()).toMatch(/### When two options conflict/);
+  });
+});
+
+// A question someone has to decode gets a worse answer than one they can react
+// to, and the example also shows the shape: a sentence about this product,
+// never an adjective.
+describe('decide asks with an example attached', () => {
+  const decide = () => tmpl().split('\n## decide\n')[1];
+
+  it('says to attach one, and says it is an example not a suggestion', () => {
+    expect(decide()).toMatch(/Ask every question with an example answer attached/);
+    expect(decide()).toMatch(/it is an example, not a suggestion/);
+  });
+
+  it('carries one for every round', () => {
+    const examples = (decide().match(/> \*For example:/g) ?? []).length;
+    expect(examples).toBeGreaterThanOrEqual(6);
+  });
+
+  it('shows the north star in checkable form beside the form it rejects', () => {
+    expect(decide()).toMatch(/without learning a\s+> query language" — not "be the best log tool"/);
+    expect(decide()).toMatch(/could you look at a design and say whether it moves toward\s+> that sentence\?/);
+  });
+});

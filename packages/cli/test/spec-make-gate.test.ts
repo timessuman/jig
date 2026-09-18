@@ -143,3 +143,13 @@ describe('spec separates describing a page from redesigning one', () => {
     expect(tmpl).toMatch(/Anything that genuinely must\s+survive is a constraint and belongs in the spec by name/);
   });
 });
+
+describe('spec asks with an example attached, like decide', () => {
+  const tmpl = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
+  const spec = tmpl.split('\n## spec\n')[1]!.split('\n## mockup\n')[0]!;
+
+  it('says so, and carries one for each round', () => {
+    expect(spec).toMatch(/Every question carries an example answer/);
+    expect((spec.match(/> \*For example:/g) ?? []).length).toBeGreaterThanOrEqual(4);
+  });
+});

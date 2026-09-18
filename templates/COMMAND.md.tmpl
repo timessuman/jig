@@ -258,9 +258,17 @@ settled at `init` and live in `{{config_file}}` and the token layer; re-deciding
 them per screen creates a second source of truth for the values Jig exists to
 centralise. If the user raises appearance, record it and move on.
 
+**Every question carries an example answer**, for the same reason `decide`'s do: a
+question someone has to decode gets a worse answer than one they can react to, and
+the example shows the shape. Say it is an example, not a suggestion.
+
 - Round 1 — what is it for? What does the user need to do there ("create an
   invoice")? Who arrives, and what is the single most important thing they must be
   able to see or do?
+  > *For example: "comprehension first, sign-up second. They arrive from the
+  > product page having already decided to try it, so no explainer above the
+  > cards. The most important thing is the limits — the price matters equally and
+  > must never dominate."*
 - **Then scope it — be a pessimist.** Of everything this could include,
   what is the smallest version that is useful on its own? Ask that plainly and
   expect to cut. "Comments with attachments, mentions, reactions, editing,
@@ -269,11 +277,20 @@ centralise. If the user raises appearance, record it and move on.
   forgotten. Everything after this designs V1 only.
 - Round 2 — what content and states does it carry? Empty, loading, error,
   first-run, and the realistic range (0 items, 5, 500)?
+  > *For example: "three plans, a monthly/annual choice, four FAQ questions, a
+  > footer. The billing choice is the only state — the page is static, nothing
+  > loads, nothing fails."*
 - Round 3 — only what is still unresolved: entry points, where it leads, what
   must not happen here.
+  > *For example: "they arrive from the product page or a docs search, and every
+  > plan goes straight to sign-up. Nothing on this page may ask for a sales
+  > call."*
 
 **Ask about the phone by name.** What does the reader see first on a phone, and
-what moves, stacks, or goes behind a control? If the conversation only ever
+what moves, stacks, or goes behind a control?
+> *For example: "the plans come first on the phone" — that is the answer this
+> question wants, and everything else about the narrow composition is the
+> system's to settle.* If the conversation only ever
 describes the wide screen, the phone composition will be derived from it rather
 than designed — and a derived phone composition is a squeezed desktop.
 
@@ -1230,14 +1247,87 @@ at all. If the design system has a position, it is in the rules; if it has none,
 you are looking for is the places where this project has already chosen
 something, or will have to:
 
+**Ask every question with an example answer attached.** A question someone has to
+decode gets a worse answer than one they can react to, and the example shows the
+shape you need — a sentence about this product, not an adjective. Say plainly
+that it is an example, not a suggestion.
+
 - Round 1 — what is this product, and who is it for in a sentence the team would
   recognise? What should it never look like? Name real products, not adjectives.
+  > *For example: "hosted log search — you point it at your cluster and ask in
+  > plain text. For a backend engineer who has tried grep over SSH. It must never
+  > look like an enterprise console: no SKU matrix, no 'contact us' pricing.
+  > Closer to Fly.io than to a Datadog dashboard."*
+- Round 1b — **what the product is for, and what you give up for it.** This file
+  is project-wide, so both answers are about the product, not a page. A page's
+  own purpose is `spec`'s question, and it inherits its direction from here.
+  - *"If this product works, what can someone do that they could not before?"*
+    That is the north star: one outcome, in the product's own words, that every
+    later argument is settled against. A design direction without one drifts
+    screen by screen, each change defensible on its own.
+    > *For example: "an engineer finds the line in their logs without learning a
+    > query language" — not "be the best log tool", which no screen can serve or
+    > fail. The test: could you look at a design and say whether it moves toward
+    > that sentence?*
+  - *"When two good options conflict here, which side do you take?"* Fast over
+    complete, plain over clever, fewer choices over more, density over comfort.
+    > *For example: "comprehension wins over persuasion — if the clearer page
+    > converts worse, we ship the clearer page", or "recovery wins over speed:
+    > every destructive action is undoable, even where that costs a step".*
+    Jig's own tiebreakers settle the system's conflicts; this settles the
+    project's, and without it the agent settles them alone. In a live run a
+    decision about where the accent may appear collided with a component rule
+    and the agent resolved it on its own, correctly as it happens, and recorded
+    the collision as a deviation. One line here would have decided it.
+
+  **Refuse an adjective, ask again.** "Bold", "human", "trustworthy" and
+  "premium" cannot be checked against a page, and every decision in this file is
+  now judged against one. Push for the form that can: what it is closer to, what
+  it would rather be than, what it refuses.
+- Round 1c — **the personality, asked through the four things that produce it.**
+  Every interface has one whether it was chosen or not, and it is not a mood
+  board: it is decided by type, colour, corners and language, each of which is a
+  value this project is about to set. Ask about all four, one question each, and
+  say what each answer will become.
+  - **Type.** Serif reads classic or editorial; a rounded sans reads friendly; a
+    neutral sans stays out of the way and lets everything else carry the
+    personality. Which is this? *(Becomes `--font-text` and `--font-display`.)*
+  - **Colour.** Which colour is this product's, and what does it mean here? The
+    psychology matters less than the reason: blue is familiar and safe, gold
+    reads expensive, pink reads unserious. *(Becomes `--color-brand`, and the
+    contrast floors still apply — a palette that fails them is not a
+    personality.)*
+  - **Corners.** Square reads formal or technical, a small radius is neutral,
+    a large one reads playful. One answer for the whole interface: mixing square
+    and round in one screen looks worse than either. *(Becomes the `--radius-*`
+    scale.)*
+  - **Language.** Official and impersonal, or plain and conversational? Words
+    appear in every screen, so this decides more of the personality than any
+    single visual choice. *(Becomes a voice decision here, applied by
+    `05-copy.md`.)*
+  > *For example: "neutral sans — the type should disappear. One colour, a muted
+  > olive, because it is the one thing on the page that is not a plan or a price.
+  > Square corners; this is a tool, not a toy. Lowercase and technical: ingest,
+  > retention, seat — plain words, undefined, no throat-clearing."*
+
+  **When they have no gut feeling, ask what the reader already uses.** The sites
+  this audience spends its day in set the expectation; matching that is cheaper
+  than teaching a new one. Take the direction, never the design: a project that
+  borrows from a direct competitor looks like a second-rate version of it, which
+  is also `A-01`'s point about invented decoration seen from the other side.
 - Round 2 — for each thing the tokens already set, is there a rule about *how* it
   is used? Where does the brand colour go, and where is it forbidden? What earns
   emphasis?
+  > *For example: "the accent appears exactly twice per page, both clickable —
+  > the primary action and the active side of a control. Never on a checkmark, a
+  > limit number or a feature list. Emphasis is earned by the one thing the
+  > reader came to do."*
 - Round 3 — what has the team already argued about, or reversed? A decision with
   a history is the one most worth recording, because it is the one most likely to
   be re-made wrongly.
+  > *For example: "we shipped a 'most popular' badge for six weeks. Conversion
+  > rose slightly; wrong-plan signups and support tickets rose more. We pulled
+  > it, and that covers the effect, not the widget — no raised card either."*
 
 **All three rounds run.** Do not write the file after round 2 because the answers
 look complete. Round 3 asks for the one kind of decision a user does not volunteer
@@ -1246,7 +1336,10 @@ reason. In the arm that did ask, round 3 is where the unresolved items surfaced.
 
 **Round 3 also asks, by name, what is still undecided.** "Is there anything the team
 has not settled yet — something still argued about, or waiting on someone?" Ask it
-even when nothing so far suggests there is. Whatever the answer names goes in the
+even when nothing so far suggests there is.
+> *For example: "whether we publish a public status page. It is between showing
+> uptime on the pricing page and not mentioning it at all, and it waits on
+> whether support can staff it."* Whatever the answer names goes in the
 **Unresolved** section below, not into a decision the user did not make. Four of six
 files in a live run dropped the one open item the owner had named.
 
@@ -1267,6 +1360,27 @@ wrong.
 
 A name gives the team something to cite in review. A reason lets a future agent
 tell when the rule does not apply, which a bare instruction never can.
+
+**The north star and the tiebreaker are decisions like any other**, written with
+the same shape and judged against every page:
+
+```markdown
+### What this page is for
+
+A reader leaves knowing which plan fits them and which limit they would hit
+first. Nothing else on the page outranks that.
+
+**Why:** they arrive from the product page already interested; the job is to
+remove the last doubt, not to sell again.
+
+### When two options conflict
+
+Comprehension wins over persuasion. If a clearer page converts worse, we ship
+the clearer page.
+
+**Why:** the reader is an engineer who has been sold to badly before, and the
+support cost of a wrong-plan signup outweighs the signup.
+```
 
 **The reason is the owner's, or it is not written.** Write the `Why:` the user gave,
 in their words or close to them. If they gave none, ask for it. If they still give
