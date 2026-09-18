@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, relative, resolve } from 'node:path';
 import { checksum } from '../install/manifest.js';
 import { PROBE_VERSION } from './script.js';
+import { findChrome, runProbe } from './browser.js';
 
 /**
  * `jig probe --save <surface>` — the CLI writes the probe file, not the agent.
@@ -66,4 +67,68 @@ export function pageFile(projectRoot: string, url: string): string | undefined {
   const abs = resolve(path);
   if (!abs.startsWith(resolve(projectRoot))) return undefined;
   return existsSync(abs) ? abs : undefined;
+}
+
+/** The widths every screen pass is judged at. */
+export const PROBE_WIDTHS = [360, 768, 1280];
+
+/**
+ * Runs the probe here and records it, for every width, against a page in this
+ * project. This is what lets the Stop hook stop asking: when a browser exists,
+ * the render is not a step an agent can skip.
+ */
+export async function runAndSaveProbes(opts: { projectRoot: string; surface: string; page: string; widths?: number[] }): Promise<SaveResult[]> {
+  const abs = resolve(opts.projectRoot, opts.page);
+  if (!existsSync(abs)) throw new Error(`${opts.page} does not exist, so there is nothing to render.`);
+  const url = /^https?:/i.test(opts.page) ? opts.page : `file://${abs}`;
+  const saved: SaveResult[] = [];
+  for (const width of opts.widths ?? PROBE_WIDTHS) {
+    const json = await runProbe({ url, width });
+    saved.push(saveProbe({ projectRoot: opts.projectRoot, surface: opts.surface, json }));
+  }
+  return saved;
+}
+
+/**
+ * Renders and records what a critique's screen pass needs, when this machine
+ * can: every width that has no probe, and every probe taken on an older
+ * version of the page.
+ *
+ * This is the difference between a gate that asks and a gate that knows. The
+ * probe was always the measurement; the render was the step an agent could
+ * quietly skip, and in live runs it skipped it. Where a browser exists nobody
+ * is asked any more.
+ */
+export async function ensureProbes(opts: { projectRoot: string; surface: string; page: string }): Promise<{ recorded: number[]; reason?: string }> {
+  const dir = join(opts.projectRoot, '.jig', 'critique', opts.surface);
+  const abs = resolve(opts.projectRoot, opts.page);
+  let current: string;
+  try {
+    current = checksum(readFileSync(abs, 'utf8'));
+  } catch {
+    return { recorded: [], reason: `${opts.page} could not be read` };
+  }
+  const missing = PROBE_WIDTHS.filter((width) => {
+    try {
+      const probe = JSON.parse(readFileSync(join(dir, `probe-${width}.json`), 'utf8')) as { pageChecksum?: string; jigProbe?: number };
+      return probe.jigProbe !== PROBE_VERSION || probe.pageChecksum !== current;
+    } catch {
+      return true;
+    }
+  });
+  if (missing.length === 0) return { recorded: [] };
+  if (!findChrome()) return { recorded: [], reason: 'no browser on this machine' };
+  const url = /^https?:/i.test(opts.page) ? opts.page : `file://${abs}`;
+  for (const width of missing) {
+    saveProbe({ projectRoot: opts.projectRoot, surface: opts.surface, json: await runProbe({ url, width }) });
+  }
+  return { recorded: missing };
+}
+
+/** Surfaces whose critique has written verdicts. */
+export function critiquedSurfaces(projectRoot: string): string[] {
+  const root = join(projectRoot, '.jig', 'critique');
+  if (!existsSync(root)) return [];
+  return readdirSync(root).filter((surface) =>
+    existsSync(join(root, surface, 'screen.json')) || existsSync(join(root, surface, 'code.json')));
 }

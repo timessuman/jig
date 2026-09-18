@@ -25,6 +25,12 @@ const CHROME = /<(header|footer)\b[\s\S]*?<\/\1\s*>/gi;
 // A container named as the navigation: class="site-nav", id="main-menu".
 const NAV_CONTAINER = /<(div|section|ul|span)\b[^>]*\b(?:class|className|id)\s*=\s*["'][^"']*\b(?:nav|navigation|navbar|menu)\b[^"']*["'][^>]*>/i;
 const LINK = /<a\b[^>]*\bhref\b/gi;
+// A generic element named as the heading, or styled as one by a utility class.
+const HEADING_SHAPED = /<(div|span|p)\b[^>]*\b(?:class|className)\s*=\s*["']([^"']*\b(?:title|heading|headline|text-(?:2xl|3xl|4xl|5xl))\b[^"']*)["'][^>]*>([\s\S]{0,120}?)<\/\1\s*>/gi;
+const HEADING_INSIDE = /<h[1-6]\b/i;
+// The same element, with the same class, three times over: a set.
+const REPEATED = /<(div|article|section|a)\b[^>]*\b(?:class|className)\s*=\s*["']([^"']+)["']/gi;
+const LIST_OR_TABLE = /<(ul|ol|dl|table|tbody|menu)\b/i;
 
 export const semanticElement: Detector = {
   name: 'semantic-element',
@@ -55,6 +61,30 @@ export const semanticElement: Detector = {
           at(region.index!, `the ${region[1]!.toLowerCase()} holds a row of links and the page has no <nav> — a set of destinations is a navigation landmark, and the element is what makes it one`);
           break;
         }
+      }
+    }
+
+    for (const m of raw.matchAll(HEADING_SHAPED)) {
+      if (HEADING_INSIDE.test(m[3]!)) continue;
+      const text = m[3]!.replace(/<[^>]*>/g, '').trim();
+      if (!text || text.length > 80) continue;
+      at(m.index!, `"${text.slice(0, 40)}" is a ${m[1]!.toLowerCase()} named and styled as a heading — if it is the heading, it is an h1-h6, and CSS gives it the size`);
+    }
+
+    // Three or more of the same element with the same class, with no list or
+    // table element anywhere on the page: a repeated set whose markup does not
+    // say it is one. Only reported once per file; which element it should be —
+    // ul, ol, dl or table — is the review's call, and the rule says so.
+    if (!LIST_OR_TABLE.test(raw)) {
+      const counts = new Map<string, { n: number; index: number }>();
+      for (const m of raw.matchAll(REPEATED)) {
+        const key = `${m[1]!.toLowerCase()}.${m[2]!.trim()}`;
+        const seen = counts.get(key) ?? { n: 0, index: m.index! };
+        counts.set(key, { n: seen.n + 1, index: seen.index });
+      }
+      const repeated = [...counts.entries()].filter(([, v]) => v.n >= 3).sort((a, b) => a[1].index - b[1].index)[0];
+      if (repeated) {
+        at(repeated[1].index, `${repeated[1].n} sibling ${repeated[0]} elements are a repeated set, and nothing on this page is a list or a table — decide which collection this is (ul, ol, dl, table) before using a generic container`);
       }
     }
 

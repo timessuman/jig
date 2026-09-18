@@ -75,3 +75,31 @@ describe('the procedures decide meaning before markup', () => {
     expect(t).toMatch(/A `<div>` is right where nothing more specific is true/);
   });
 });
+
+describe('H-119 catches two more cases from the source', () => {
+  it('reports a generic element named and styled as a heading', () => {
+    const f = run(page('<main><div class="page-title">Our products</div></main>'));
+    expect(f[0].message).toMatch(/"Our products" is a div named and styled as a heading/);
+    expect(run(page('<main><div class="text-3xl font-bold">Pricing</div></main>'))[0].message).toMatch(/styled as a heading/);
+  });
+
+  it('leaves a title wrapper that holds a real heading alone', () => {
+    expect(run(page('<main><div class="page-title"><h1>Our products</h1></div></main>'))).toHaveLength(0);
+  });
+
+  it('reports a repeated set on a page with no list or table', () => {
+    const cards = Array.from({ length: 3 }, (_, i) => `<div class="product-card"><h3>Item ${i}</h3></div>`).join('');
+    const f = run(page(`<main>${cards}</main>`));
+    expect(f[0].message).toMatch(/3 sibling div\.product-card elements are a repeated set/);
+    expect(f[0].message).toMatch(/decide which collection this is \(ul, ol, dl, table\)/);
+  });
+
+  it('says nothing when the page already uses a list or a table', () => {
+    const cards = Array.from({ length: 3 }, (_, i) => `<li class="product-card">Item ${i}</li>`).join('');
+    expect(run(page(`<main><ul>${cards}</ul></main>`))).toHaveLength(0);
+  });
+
+  it('does not call two of a kind a set', () => {
+    expect(run(page('<main><div class="card">a</div><div class="card">b</div></main>'))).toHaveLength(0);
+  });
+});

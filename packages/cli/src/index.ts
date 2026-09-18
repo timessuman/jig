@@ -9,9 +9,9 @@ import { explain } from './commands/explain.js';
 import { check } from './commands/check.js';
 import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
-import { gate } from './commands/gate.js';
+import { gate, surfacePage } from './commands/gate.js';
 import { PROBE_SCRIPT } from './probe/script.js';
-import { saveProbe } from './probe/save.js';
+import { critiquedSurfaces, ensureProbes, runAndSaveProbes, saveProbe } from './probe/save.js';
 import { adapterNames } from './adapters/registry.js';
 
 const packageRoot = getPackageRoot();
@@ -198,7 +198,24 @@ program
   .command('probe')
   .description("Print the render probe. With --save, read what it returned on stdin and record it for `jig verdicts`.")
   .option('--save <surface>', "record the probe's output (piped in) under .jig/critique/<surface>/")
-  .action(async (opts: { save?: string }) => {
+  .option('--run <page>', 'render this page here, at 360, 768 and 1280, and record each (needs --save)')
+  .action(async (opts: { save?: string; run?: string }) => {
+    if (opts.run) {
+      if (!opts.save) {
+        console.error('  ✗ --run records what it measures, so it needs --save <surface>.');
+        process.exit(1);
+      }
+      const projectRoot = findProjectRoot(process.cwd());
+      try {
+        for (const saved of await runAndSaveProbes({ projectRoot, surface: opts.save, page: opts.run })) {
+          console.log(`  Recorded ${saved.path} — ${saved.page} at ${saved.width}px.`);
+        }
+      } catch (err) {
+        console.error(`  ✗ ${(err as Error).message}`);
+        process.exit(1);
+      }
+      return;
+    }
     if (!opts.save) {
       console.log(PROBE_SCRIPT);
       return;
@@ -225,14 +242,25 @@ program
 program
   .command('gate')
   .description('Run by the Claude Code Stop hook: block stopping while check or a critique fails.')
-  .action(() => {
+  .action(async () => {
     let input = {};
     try {
       if (!process.stdin.isTTY) input = JSON.parse(readFileSync(0, 'utf8') || '{}');
     } catch { /* run by hand, or no hook payload */ }
     const cwd = (input as { cwd?: string }).cwd ?? process.cwd();
     try {
-      const result = gate({ projectRoot: findProjectRoot(cwd), version, input });
+      const projectRoot = findProjectRoot(cwd);
+      // Render what the review needs before judging it. A browser on this
+      // machine means the probe is not a step anyone can skip; without one,
+      // the gate falls back to naming what is missing.
+      for (const surface of critiquedSurfaces(projectRoot)) {
+        const page = surfacePage(projectRoot, surface);
+        if (!page) continue;
+        try {
+          await ensureProbes({ projectRoot, surface, page });
+        } catch { /* the gate reports the absence; a browser failure is not its own verdict */ }
+      }
+      const result = gate({ projectRoot, version, input });
       if (result.block) console.log(JSON.stringify({ decision: 'block', reason: result.reason }));
       else if (result.reason) console.error(result.reason);
     } catch (err) {

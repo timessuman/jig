@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { navProblems, newestSpec, specProblems } from '../check/spec-shape.js';
+import { findChrome } from '../probe/browser.js';
 import { check } from './check.js';
 import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
@@ -122,6 +123,24 @@ function commandProblems(root: string, command: string): string[] {
 export interface GateResult {
   block: boolean;
   reason: string;
+}
+
+/**
+ * The page a surface's critique is about, from its spec.
+ *
+ * Used to run the probe here rather than ask for it. `surface:` is the spec's
+ * own field; a path is taken as written, a name is looked for at the root.
+ */
+export function surfacePage(projectRoot: string, surface: string): string | undefined {
+  const spec = newestSpec(projectRoot);
+  const front = spec?.body.split(/^---\s*$/m)[1] ?? '';
+  const declared = /^\s*surface\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '');
+  const candidates = [declared, `${surface}.html`, declared ? `${declared.replace(/^\//, '')}.html` : undefined]
+    .filter((c): c is string => !!c && /\.\w+$/.test(c) === (c === declared ? /\.\w+$/.test(c) : true));
+  for (const candidate of candidates) {
+    if (candidate && existsSync(join(projectRoot, candidate))) return candidate;
+  }
+  return undefined;
 }
 
 export function gate(opts: { projectRoot: string; version: string; input: GateInput }): GateResult {

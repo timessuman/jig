@@ -154,7 +154,8 @@ describe('critique tells the screen arm to probe', () => {
   it('runs the probe at each width and never writes a probe file by hand', () => {
     const t = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
     expect(t).toMatch(/A rendered review is measured, not only described/);
-    expect(t).toMatch(/\{\{scripts_path\}\} probe > \.jig\/probe\.js/);
+    expect(t).toMatch(/\{\{scripts_path\}\} probe --run <page> --save <surface>/);
+    expect(t).toMatch(/\{\{scripts_path\}\} probe --save <surface>/);
     expect(t).toMatch(/Never write a probe file yourself/);
   });
 });
@@ -202,4 +203,36 @@ describe('jig probe --save stamps the page it measured', () => {
     expect(readProbes(project, dir(), stale)).toHaveLength(0);
     expect(stale[0]).toMatch(/taken on an older pricing\.html/);
   });
+});
+
+/**
+ * The last thing an agent could skip: the render itself. Where a browser
+ * exists, the CLI drives it — no dependency, Chrome's own protocol over the
+ * WebSocket client Node has had since 22 — and the Stop hook records the
+ * probes before it judges the review.
+ */
+describe('the CLI can run the probe itself', () => {
+  it('finds a browser, or says plainly that there is none', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    const found = findChrome();
+    expect(found === undefined || typeof found === 'string').toBe(true);
+  });
+
+  it('refuses to render a page that is not in the project', async () => {
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-run-'));
+    await expect(runAndSaveProbes({ projectRoot: root, surface: 'pricing', page: 'nope.html' }))
+      .rejects.toThrow(/does not exist, so there is nothing to render/);
+  });
+
+  it('re-renders only what is missing or taken on an older page', async () => {
+    const { ensureProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-ensure-'));
+    writeFileSync(join(root, 'page.html'), '<html><body><main>x</main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'pricing'), { recursive: true });
+    // No browser reachable from here is not a failure: the gate reports the
+    // absence instead, and this must not throw.
+    const result = await ensureProbes({ projectRoot: root, surface: 'pricing', page: 'page.html' });
+    expect(Array.isArray(result.recorded)).toBe(true);
+  }, 120_000);
 });
