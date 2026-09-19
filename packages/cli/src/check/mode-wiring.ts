@@ -70,11 +70,22 @@ export function modeWiringProblems(projectRoot: string): ModeWiringProblem[] {
 
   const dir = dirname(config.brand);
   const rel = (f: string) => (dir === '.' ? f : `${dir}/${f}`);
-  if (!existsSync(join(projectRoot, rel('theme.css')))) return [];
+  // One mode: `theme.css`. Two or more: every barrel names its mode, and the
+  // single-mode barrel should be gone (see `barrelBody` in commands/init.ts).
+  const multi = modes.length > 1;
+  const barrelOf = (mode: string) => (multi ? `theme.${mode}.css` : 'theme.css');
+  const anyBarrel = ['theme.css', ...modes.map((m) => `theme.${m}.css`)].some((f) => existsSync(join(projectRoot, rel(f))));
+  if (!anyBarrel) return [];
 
   const problems: ModeWiringProblem[] = [];
-  modes.forEach((mode, i) => {
-    const barrel = rel(i === 0 ? 'theme.css' : `theme.${mode}.css`);
+  if (multi && existsSync(join(projectRoot, rel('theme.css')))) {
+    problems.push({
+      mode: modes[0]!, barrel: rel('theme.css'),
+      message: `jig.config.json declares ${modes.length} modes, so each barrel names its mode: ${rel('theme.css')} should be ${rel(barrelOf(modes[0]!))}, imported by the layouts that serve it and not by the global stylesheet`,
+    });
+  }
+  modes.forEach((mode) => {
+    const barrel = rel(barrelOf(mode));
     const modeFile = `mode.${mode}.css`;
     let body: string;
     try {

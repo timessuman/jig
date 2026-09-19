@@ -123,6 +123,11 @@ jig.config.json             route → mode map
 .jig/state.json             bookkeeping — version, modes, checksums
 ```
 
+Declare a second mode and every barrel names its mode instead —
+`theme.editorial.css`, `theme.operator.css` — and none sits in the global
+stylesheet. Each route's layout imports the barrel for its mode; `init` removes
+the import it added and prints which barrel each surface takes.
+
 Nothing you wrote is touched beyond that one import line. Re-running `init`
 never overwrites a config or brand file you have edited.
 
@@ -604,7 +609,7 @@ treatment.
 | `rules/05-copy.md` | Interface text rules |
 | `<css dir>/jig/brand.*.css` | Identity. One per project. |
 | `<css dir>/jig/mode.*.css` | Density, scale, rhythm, motion |
-| `<css dir>/jig/theme.css` | The barrel — brand + mode. This is what you import. |
+| `<css dir>/jig/theme.css` | The barrel — brand + mode. This is what you import. With more than one mode, `theme.<mode>.css`, one per mode, each imported by its routes' layout. |
 | `.jig/state.json` | What `init` wrote, with checksums. `update` reads it to leave your edits alone. |
 | `.jig/specs/`, `.jig/mockups/`, `.jig/critique/` | The design loop's record: what was agreed, what was drawn, what the review found. |
 

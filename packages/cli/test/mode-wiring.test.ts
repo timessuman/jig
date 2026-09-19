@@ -70,6 +70,24 @@ describe('modeWiringProblems', () => {
     expect(modeWiringProblems(project)).toEqual([]);
   });
 
+  // The state jig-site was in: a second mode declared, init re-run on a
+  // version that kept `theme.css` for the first one. Every page then loaded the
+  // first mode globally, including the operator route.
+  it('names a single-mode theme.css left beside a second mode, and is quiet once init renames it', async () => {
+    await run();
+    const path = join(project, 'jig.config.json');
+    const config = JSON.parse(readFileSync(path, 'utf8'));
+    const dir = config.brand.split('/').slice(0, -1).join('/');
+    writeFileSync(join(project, dir, 'theme.operator.css'), '@import "./mode.operator.css";\n');
+    writeFileSync(join(project, dir, 'mode.operator.css'), '');
+    config.surfaces = [{ match: '/', mode: 'product' }, { match: '/rules/', mode: 'operator' }];
+    writeFileSync(path, JSON.stringify(config));
+    const problems = modeWiringProblems(project);
+    expect(problems.some((p) => /2 modes, so each barrel names its mode: .*theme\.css should be .*theme\.product\.css/.test(p.message))).toBe(true);
+    await run();
+    expect(modeWiringProblems(project)).toEqual([]);
+  });
+
   it('is quiet in a project with no token layer', () => {
     writeFileSync(join(project, 'jig.config.json'), JSON.stringify({ brand: 'jig/brand.x.css', surfaces: [{ match: '/', mode: 'editorial' }] }));
     expect(modeWiringProblems(project)).toEqual([]);

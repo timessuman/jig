@@ -16,11 +16,15 @@ import { repoRoot } from './helpers/registered-commands.js';
  * already says why that is not a loss: density switches at the route boundary,
  * never inside one view. So there is one barrel per mode.
  *
- * And the primary barrel is named `theme.css`, not `theme.product.css`. The
+ * With one mode, the barrel is named `theme.css`, not `theme.product.css`. The
  * point of a barrel here is that changing the mode in `jig.config.json` stops
  * rewriting the user's stylesheet — only Jig's own file changes. A
  * mode-in-the-name barrel would rewire on every mode change, which is what it
  * exists to prevent.
+ *
+ * With two or more, every barrel names its mode and none is wired globally: a
+ * global import of the first mode's barrel put its tokens under every route,
+ * so an operator page carried editorial's too.
  */
 let project: string;
 let home: string;
@@ -86,14 +90,15 @@ describe('several surfaces, several barrels', () => {
     ],
   });
 
-  it('writes one barrel per declared mode', async () => {
+  it('writes one barrel per declared mode, each named for its mode', async () => {
     setup();
     writeFileSync(join(project, 'jig.config.json'), three);
     await run();
     const dir = join(project, 'src', 'styles', 'jig');
-    expect(existsSync(join(dir, 'theme.css')), 'no primary barrel').toBe(true);
+    expect(existsSync(join(dir, 'theme.editorial.css'))).toBe(true);
     expect(existsSync(join(dir, 'theme.product.css'))).toBe(true);
     expect(existsSync(join(dir, 'theme.operator.css'))).toBe(true);
+    expect(existsSync(join(dir, 'theme.css')), 'a single-mode barrel beside the named ones').toBe(false);
   });
 
   it('each barrel carries the brand and exactly one mode', async () => {
@@ -116,14 +121,46 @@ describe('several surfaces, several barrels', () => {
     expect(out).toContain('theme.product.css');
   });
 
-  it('does not wire the non-primary barrels itself', async () => {
-    // Which entry point serves `/admin/**` is the project's routing, which init
-    // cannot see. Guessing would edit the wrong file.
+  it('wires no barrel into the global stylesheet', async () => {
+    // Which layout serves `/admin/**` is the project's routing, which init
+    // cannot see; and a global import of any one barrel puts that mode's
+    // tokens under every route.
     setup();
     writeFileSync(join(project, 'jig.config.json'), three);
     await run();
-    expect(css()).toContain('theme.css');
-    expect(css()).not.toContain('theme.operator.css');
+    expect(css()).not.toMatch(/jig\/theme[.\w]*\.css/);
+  });
+
+  it('retires theme.css and its global import when a second mode arrives', async () => {
+    setup();
+    await run();
+    expect(css()).toContain('@import "./jig/theme.css";');
+    writeFileSync(join(project, 'jig.config.json'), JSON.stringify({
+      surfaces: [{ match: '/', mode: 'editorial' }, { match: '/rules/', mode: 'operator' }],
+    }));
+    const lines: string[] = [];
+    await run((l) => lines.push(l));
+    const dir = join(project, 'src', 'styles', 'jig');
+    expect(existsSync(join(dir, 'theme.css'))).toBe(false);
+    expect(existsSync(join(dir, 'theme.editorial.css'))).toBe(true);
+    expect(existsSync(join(dir, 'theme.operator.css'))).toBe(true);
+    expect(css()).not.toContain('theme.css');
+    expect(lines.join('\n')).toMatch(/Unwired src\/styles\/global\.css/);
+    expect(lines.join('\n')).toContain("'/rules/' → src/styles/jig/theme.operator.css");
+  });
+
+  it('leaves an edited theme.css alone, and says where its edits belong', async () => {
+    setup();
+    await run();
+    const bare = join(project, 'src', 'styles', 'jig', 'theme.css');
+    writeFileSync(bare, readFileSync(bare, 'utf8') + '/* mine */\n');
+    writeFileSync(join(project, 'jig.config.json'), JSON.stringify({
+      surfaces: [{ match: '/', mode: 'editorial' }, { match: '/rules/', mode: 'operator' }],
+    }));
+    const lines: string[] = [];
+    await run((l) => lines.push(l));
+    expect(existsSync(bare)).toBe(true);
+    expect(lines.join('\n')).toMatch(/theme\.css has been edited.*theme\.editorial\.css/);
   });
 });
 
