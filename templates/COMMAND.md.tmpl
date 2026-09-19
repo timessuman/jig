@@ -1162,9 +1162,10 @@ safe to run on the first day and on somebody else's codebase. It audits the whol
 which is what one file cannot: a route whose metadata says `noindex` sitting in
 the sitemap, two pages claiming the same title, a sitemap that lists nothing or
 lists paths instead of full URLs. It counts the pages it found, a dynamic route
-once, and whether a sitemap and a robots file exist; neither is a finding, since
-no rule asks for them and a project with no domain yet cannot write an honest
-sitemap. Do not invent one to clear a count.
+once and an endpoint (`rss.xml.ts`, `[id].txt.ts`, `api/`) not at all, since it
+serves no page. It also counts whether a sitemap and a robots file exist;
+neither is a finding, since no rule asks for them and a project with no domain
+yet cannot write an honest sitemap. Do not invent one to clear a count.
 
 It is not a phase. The per-page half belongs where the copy is decided and
 written — `spec` records whether a page is indexable and what it claims, `make`
