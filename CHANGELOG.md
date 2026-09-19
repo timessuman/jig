@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.15.0
+
+The gate holds an agent on warnings, waits while it asks the owner a question,
+and reaches projects where the skill is installed globally.
+
+### Changed
+
+- **`gate` blocks on warnings in the files the agent changed**, not only on
+  mechanical errors. One em dash survived two runs of fresh agents on a real
+  site: the first saw the warning, called it pre-existing, and finished. The
+  gate still reads only changed files, so old warnings elsewhere never trap an
+  agent, and it now also runs when a changed file carries interface text.
+- **The skill asks the user to run each command.** `decide`, `spec`, `mockup`,
+  `make` and `critique` hold their procedures in the command, not in the
+  skill. An agent told in prose to "run decide" made up five questions of its
+  own and wrote a `DECISIONS.md` with no direction and no `## Unresolved`
+  section.
+
+### Added
+
+- **`jig-allow <ID>: <why>`** waives one warning, on its own line or the line
+  above, in any comment syntax. Some warnings are a detector's guess: `A-01`
+  cannot tell a chosen violet from a default one. Warnings only, a reason is
+  required, and `check` lists every waiver it honoured, with its reason, on
+  every run. Waived findings are left out of `warnings=`.
+- **`install --agent claude --hook` on a global install** writes only this
+  project's Stop hook. The hook was written only by a project install, which is
+  refused while the skill is global, so most projects never had a gate.
+
+### Fixed
+
+- **A question to the owner is not a finish.** After `decide`, `spec` or
+  `mockup`, a stop whose last message asks a question is allowed, and the
+  command's output is checked on the stop after the answer. Before, the gate
+  refused `decide`'s first question because `DECISIONS.md` did not exist yet,
+  and on the second refusal the agent wrote the file itself with no answers.
+- **The gate finds `DECISIONS.md` beside the token layer** that `brand` in
+  `jig.config.json` names. It looked in three fixed places, rejected a
+  correctly placed file, and the agent moved the file to satisfy it.
+- **`jig seo` says an endpoint is not a page**, so `pages=` can be checked
+  against a site's route files.
+
 ## 0.14.1
 
 `jig seo` cites only what a rule says.
