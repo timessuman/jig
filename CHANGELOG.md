@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.15.1
+
+### Fixed
+
+- **A question anywhere in the message is a question.** 0.15.0 let an owner
+  pause through only when the message's last line ended in `?`. `decide` asks
+  its round, then shows an example answer, then says "answer for your own
+  project", so the message ends on a full stop, and the gate refused the first
+  live `/jig decide` three times. Any sentence ending in `?` now counts; a `?`
+  in a URL or a code span does not.
+
 ## 0.15.0
 
 The gate holds an agent on warnings, waits while it asks the owner a question,
