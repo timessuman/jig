@@ -357,7 +357,7 @@ overwrites a config or brand file you have edited.
 | `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. The only command that writes into your repo. |
 | `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
-| `seo [--json]` | Audits what a search engine and a link preview read, across the whole project: a route whose metadata says `noindex` sitting in the sitemap, two pages claiming one title, indexable pages with no sitemap, a sitemap that lists nothing. Needs no config, no decisions and no spec. |
+| `seo [--json]` | Audits what a search engine and a link preview read, across the whole project: a route whose metadata says `noindex` sitting in the sitemap, two pages claiming one title, a sitemap that lists nothing or lists paths a crawler drops. Whether a sitemap and a robots file exist is counted, not reported: no rule asks for either, and a site with no domain yet cannot write an honest sitemap. Needs no config, no decisions and no spec. |
 | `verdicts <surface>` | Verifies a critique's verdict files and computes its counts: every rule in each pass judged once, no id that does not exist, no rule in the wrong arm, and no verdict the render probe contradicts. |
 | `probe` | Prints the render probe — one expression the critique runs in a browser at each width. It operates the menu, measures sideways scroll, and reads whether the styles and tokens applied. |
 | `gate` | Run by the Stop hook `install` adds for Claude Code, not by hand. Blocks an agent from finishing while `check` fails on the files it changed, or the step it just ran left its work unfinished. |
@@ -448,8 +448,8 @@ in it tells strangers where to look; a path is safe to name only when something
 else protects it.
 
 `jig seo` covers what one file cannot: a route that says `noindex` and sits in
-the sitemap anyway, two pages claiming one title, a site whose pages nothing
-points at. It writes nothing and needs nothing, so it is safe to run on the first
+the sitemap anyway, two pages claiming one title, a sitemap of paths a crawler
+drops. It writes nothing and needs nothing, so it is safe to run on the first
 day, or on somebody else's codebase.
 
 ## Using it with a coding agent

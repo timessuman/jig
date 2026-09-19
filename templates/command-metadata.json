@@ -25,7 +25,7 @@
     "status": "available"
   },
   "seo": {
-    "description": "Audit what a search engine and a link preview read, across the whole project: a noindex route in the sitemap, two pages with one title, indexable pages with no sitemap, a sitemap that lists nothing. The per-page half lives in spec, make and check.",
+    "description": "Audit what a search engine and a link preview read, across the whole project: a noindex route in the sitemap, two pages with one title, a sitemap that lists nothing or lists paths instead of URLs. The per-page half lives in spec, make and check.",
     "argumentHint": "[--json]",
     "status": "available"
   },

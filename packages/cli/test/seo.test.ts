@@ -8,9 +8,9 @@ import { readFileSync } from 'node:fs';
 import { repoRoot } from './helpers/registered-commands.js';
 
 /**
- * Three of the things that go wrong here are facts about a project, not a
- * file: a route that says noindex and is listed in the sitemap anyway, two
- * pages claiming one title, a site with nothing pointing at its pages.
+ * The things that go wrong here are facts about a project, not a file: a route
+ * that says noindex and is listed in the sitemap anyway, two pages claiming one
+ * title, a sitemap a crawler cannot use.
  */
 let root: string;
 const write = (path: string, body: string) => {
@@ -43,16 +43,41 @@ describe('jig seo', () => {
   // A title built from a value is a runtime question, and the literal beside it
   // is a fallback. Two such pages are not two pages with one title.
   it('leaves computed titles out of the comparison', () => {
-    write('a.tsx', "export const metadata = { title: post.title };\nexport function notFound() { return { title: 'Not found' }; }");
-    write('b.tsx', "export const metadata = { title: study.title };\nexport function notFound() { return { title: 'Not found' }; }");
-    expect(seo({ projectRoot: root }).findings.filter((x) => /title of 2 pages/.test(x.message))).toEqual([]);
+    write('app/a/page.tsx', "export const metadata = { title: post.title };\nexport function notFound() { return { title: 'Not found' }; }");
+    write('app/b/page.tsx', "export const metadata = { title: study.title };\nexport function notFound() { return { title: 'Not found' }; }");
+    const r = seo({ projectRoot: root });
+    expect(r.pages).toBe(2);
+    expect(r.findings.filter((x) => /title of 2 pages/.test(x.message))).toEqual([]);
   });
 
-  it('reports indexable pages with no sitemap, and a sitemap that lists nothing', () => {
+  // No rule asks for a sitemap or a robots file, and a project with no origin
+  // yet cannot write an honest sitemap. Their absence is counted, not reported.
+  it('reports no finding for a site with no sitemap and no robots file', () => {
     write('index.html', page('Home'));
-    expect(seo({ projectRoot: root }).findings.some((x) => /no sitemap/.test(x.message))).toBe(true);
+    const r = seo({ projectRoot: root });
+    expect(r.findings).toEqual([]);
+    expect(r.line).toMatch(/sitemap=none robots=no/);
+  });
+
+  it('reports a sitemap that lists nothing', () => {
+    write('index.html', page('Home'));
     write('sitemap.xml', '<urlset></urlset>');
-    expect(seo({ projectRoot: root }).findings.some((x) => /lists no routes/.test(x.message))).toBe(true);
+    expect(seo({ projectRoot: root }).findings.some((x) => x.ruleId === 'J-127' && /lists no routes/.test(x.message))).toBe(true);
+  });
+
+  // The format asks for a full URL in every `<loc>`. A path is what an agent
+  // with no origin writes to have a sitemap at all, and a crawler drops it.
+  it('reports sitemap entries written as paths', () => {
+    write('index.html', page('Home'));
+    write('sitemap.xml', '<urlset><url><loc>/</loc></url><url><loc>/about</loc></url></urlset>');
+    const f = seo({ projectRoot: root }).findings;
+    expect(f.some((x) => x.ruleId === 'J-124' && /2 sitemap entries are paths \(\/, \/about\)/.test(x.message))).toBe(true);
+  });
+
+  it('matches a framework route to its sitemap entry', () => {
+    write('src/pages/admin.astro', '---\n---\n<Base title="Admin"><meta name="robots" content="noindex"></Base>');
+    write('sitemap.xml', '<urlset><url><loc>https://x.test/admin</loc></url></urlset>');
+    expect(seo({ projectRoot: root }).findings.some((x) => x.ruleId === 'J-124' && /lists \/admin/.test(x.message))).toBe(true);
   });
 
   it('asks nothing of a project that is all signed-in surfaces', () => {
@@ -67,6 +92,38 @@ describe('jig seo', () => {
     write('robots.txt', 'User-agent: *\nAllow: /\n');
     write('sitemap.xml', '<urlset><url><loc>https://x.test/</loc></url></urlset>');
     expect(seo({ projectRoot: root }).line).toMatch(/JIG_SEO: pages=1 indexable=1 noindex=0 sitemap=1 robots=yes overlong=0 findings=0/);
+  });
+});
+
+// Mentioning `<title>` does not make a file a page. A static site of one home
+// page and one dynamic route reported five pages: a build script, a test, a data
+// module, a layout and the route, and not the home page.
+describe('what seo counts as a page', () => {
+  it('counts routes, not files that mention metadata', () => {
+    write('scripts/verify-dist.mjs', 'const t = /<title>([^<]*)<\\/title>/; const m = /<meta name="description"/;');
+    write('test/prose.test.ts', "expect(html).toContain('<title>x</title>');");
+    write('src/content/prose.ts', "export const head = (t: string) => `<title>${t}</title><meta name=\"description\">`;");
+    write('src/layouts/BaseLayout.astro', '<html><head><title>{title}</title><meta name="description" content={d}></head><body><slot /></body></html>');
+    write('src/pages/index.astro', '---\nimport Base from "../layouts/BaseLayout.astro";\n---\n<Base title="Home" />');
+    write('src/pages/rules/[id].astro', '---\n---\n<Base title={entry.title} />');
+    write('src/pages/rules/[id].txt.ts', 'export const GET = () => new Response("x");');
+    const r = seo({ projectRoot: root });
+    expect(r.pages).toBe(2);
+    expect(r.line).toMatch(/pages=2 indexable=2/);
+  });
+
+  it('knows each framework\'s page file from its neighbours', () => {
+    write('app/page.tsx', 'export default function Home() { return <main />; }');
+    write('app/layout.tsx', '<html><head><title>x</title></head><body /></html>');
+    write('src/routes/about/+page.svelte', '<svelte:head><title>About</title></svelte:head>');
+    write('src/routes/about/+page.ts', 'export const load = () => ({});');
+    write('pages/blog.js', 'export default function Blog() { return null; }');
+    write('pages/_app.js', 'export default function App() { return null; }');
+    write('pages/api/hello.js', 'export default function handler() {}');
+    write('pages/rss.xml.js', 'export const GET = () => new Response("x");');
+    write('templates/about.html', page('About'));
+    write('templates/partials/head.html', page('Head'));
+    expect(seo({ projectRoot: root }).pages).toBe(4);
   });
 });
 
