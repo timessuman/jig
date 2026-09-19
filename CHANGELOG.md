@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.16.1
+
+### Fixed
+
+- **The corpus's own headings follow I-118.** Twelve `R-` titles ("Frame 1:
+  Minimise usability risk", the seven tiebreakers) and `L-01`'s six steps used
+  an em dash. Headings are interface text wherever they show, in `explain`, in
+  `check` output and on a rendered page, so they now use a colon.
+- **A quotation keeps its own punctuation.** I-118 now says text marked as a
+  quotation with `<blockquote>` or `<q>` is the source's words, and changing
+  it would misquote it; the page's own copy around it is still held to the
+  rule. The render probe leaves quoted text out of its dash scan. Without
+  this, a page quoting a rule verbatim could never pass its review.
+- **A spec's `indexable:` is `true` or `false`.** A sentence on that line was
+  read as nothing, the mode's default was used, and a correct page was
+  reported as contradicting J-123. Anything else is now a spec-shape problem,
+  and an error in `verdicts` that names the field.
+
 ## 0.16.0
 
 With more than one mode, every barrel names its mode, and none sits in the
