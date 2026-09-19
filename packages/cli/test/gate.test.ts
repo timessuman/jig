@@ -200,6 +200,21 @@ Prose.`;
       expect(said('decide', 'Question 2 of 5: **which of these is closer?**').block).toBe(false);
     });
 
+    // The shape decide actually uses: the round's questions, then an example
+    // answer, then a line telling the owner to answer for their own project.
+    // The message ends on a full stop, and reading only its last line refused
+    // this pause in a live run.
+    it('lets decide stop when its questions come before an example', () => {
+      jigProject();
+      const round = '**Round 1.**\n\n1. What is this project, in a sentence, and who is it for?\n2. What should it never look like? (name real products, not adjectives)\n\n> *For example: "hosted log search, for a backend engineer."*\n\nThat is an example shape, not a suggestion. Answer for this project.';
+      expect(said('decide', round).block).toBe(false);
+    });
+
+    it('does not read a question mark in a URL or code as a question', () => {
+      jigProject();
+      expect(said('decide', 'Wrote the link as `/pricing?plan=team` and linked https://x.test/a?b=c. Done.').block).toBe(true);
+    });
+
     it('still blocks a decide that says it is finished with nothing written', () => {
       jigProject();
       expect(said('decide', 'Done. The decisions are recorded.').reason).toMatch(/decide wrote no DECISIONS\.md/);

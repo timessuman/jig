@@ -97,11 +97,20 @@ export function lastAssistantText(transcriptPath: string | undefined): string | 
   return found;
 }
 
-/** Whether a message ends by asking something: its last line is a question. */
+/**
+ * Whether a message puts a question to the owner: any sentence in it that ends
+ * in a question mark.
+ *
+ * Not only the last line. `decide` asks its round, then shows an example
+ * answer, then says "answer for your own project", so the message ends on a
+ * full stop with the questions above it; reading only the last line refused
+ * that pause in a live run, three times. A `?` inside a word or a URL
+ * (`?plan=team`) is not a question and does not count.
+ */
 export function asksOwner(text: string | undefined): boolean {
   if (!text) return false;
-  const last = text.trim().split('\n').filter((l) => l.trim()).pop() ?? '';
-  return /\?\s*$/.test(last.replace(/[*_`"')\]\s]+$/, ''));
+  const prose = text.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+  return /\?(?=[\s)\]"'*_]|$)/.test(prose);
 }
 
 /**
