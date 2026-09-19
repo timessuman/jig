@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 
 /**
  * The project's decisions, by name, from `DECISIONS.md`.
@@ -16,8 +16,19 @@ import { join } from 'node:path';
 const HEADING = /^(#{2,3})\s+(.+?)\s*$/gm;
 const NOT_A_DECISION = /^(unresolved|open questions?|undecided|contents?|index)$/i;
 
+/**
+ * Where DECISIONS.md is: beside the token layer, which is `jig/` by default or
+ * wherever `brand` in jig.config.json puts the token files. The brand's own
+ * folder is tried first, because that is the location the procedure names; the
+ * fixed list is for a project with no config.
+ */
 export function decisionsFile(projectRoot: string): string | undefined {
-  for (const candidate of ['jig/DECISIONS.md', 'DECISIONS.md', 'src/jig/DECISIONS.md', 'src/styles/jig/DECISIONS.md', '.jig/DECISIONS.md']) {
+  const candidates = ['jig/DECISIONS.md', 'DECISIONS.md', 'src/jig/DECISIONS.md', 'src/styles/jig/DECISIONS.md', '.jig/DECISIONS.md'];
+  try {
+    const brand = JSON.parse(readFileSync(join(projectRoot, 'jig.config.json'), 'utf8')).brand;
+    if (typeof brand === 'string' && brand.includes('/')) candidates.unshift(`${posix.dirname(brand.replace(/^\.\//, ''))}/DECISIONS.md`);
+  } catch { /* no config, or not JSON: the fixed list */ }
+  for (const candidate of candidates) {
     if (existsSync(join(projectRoot, candidate))) return candidate;
   }
   return undefined;

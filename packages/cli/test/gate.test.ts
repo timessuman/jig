@@ -184,6 +184,44 @@ Prose.`;
     expect(runAfter('decide').block).toBe(false);
   });
 
+  // A live run: decide asked its first question, the gate said DECISIONS.md
+  // did not exist, and on the second refusal the agent wrote the file from its
+  // own reasoning with no answer from anyone.
+  describe('a command waiting on the owner', () => {
+    const said = (command: string, text: string) => {
+      const path = transcript(command);
+      writeFileSync(path, readFileSync(path, 'utf8') + JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text }] } }) + '\n');
+      return gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1', transcript_path: path } });
+    };
+
+    it('lets decide stop to ask a question before DECISIONS.md exists', () => {
+      jigProject();
+      expect(said('decide', 'Round 1b. What is the one sentence this project is trying to be?').block).toBe(false);
+      expect(said('decide', 'Question 2 of 5: **which of these is closer?**').block).toBe(false);
+    });
+
+    it('still blocks a decide that says it is finished with nothing written', () => {
+      jigProject();
+      expect(said('decide', 'Done. The decisions are recorded.').reason).toMatch(/decide wrote no DECISIONS\.md/);
+    });
+
+    it('still runs check while the question is open', () => {
+      jigProject();
+      writeFileSync(join(root, 'a.css'), 'body {\n  font-family: var(--font-body);\n}');
+      const r = said('decide', 'Which typeface does the audience already read all day?');
+      expect(r.block).toBe(true);
+      expect(r.reason).toMatch(/H-117/);
+      expect(r.reason).not.toMatch(/DECISIONS/);
+    });
+  });
+
+  it('finds DECISIONS.md beside the token layer that jig.config.json names', () => {
+    writeFileSync(join(root, 'jig.config.json'), JSON.stringify({ brand: 'src/styles/jig/brand.site.css', surfaces: [{ match: '/', mode: 'editorial' }] }));
+    mkdirSync(join(root, 'src', 'styles', 'jig'), { recursive: true });
+    writeFileSync(join(root, 'src', 'styles', 'jig', 'DECISIONS.md'), '### Voice\n\n**Why:** because.\n\n## Unresolved\n\nNone named by the owner.\n');
+    expect(runAfter('decide').block).toBe(false);
+  });
+
   it('blocks a spec that is prose instead of the procedure\'s shape', () => {
     jigProject();
     spec('# Pricing Page Specification\n\nA prose document, as all four arm-test runs wrote.');

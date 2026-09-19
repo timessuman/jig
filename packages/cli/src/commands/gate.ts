@@ -7,6 +7,7 @@ import { check } from './check.js';
 import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
+import { decisionsFile } from '../check/decisions.js';
 
 /**
  * `jig gate` — run by a Claude Code Stop hook that `jig install` writes.
@@ -70,16 +71,61 @@ export function lastJigCommand(transcriptPath: string | undefined): string | und
   return found;
 }
 
+/**
+ * The last thing the agent said before trying to stop, from the transcript.
+ * A message can span several transcript entries, one per content block; the
+ * last entry that carries text is the one the user reads last.
+ */
+export function lastAssistantText(transcriptPath: string | undefined): string | undefined {
+  if (!transcriptPath || !existsSync(transcriptPath)) return undefined;
+  let found: string | undefined;
+  try {
+    for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
+      if (!line.includes('"assistant"')) continue;
+      let entry: { type?: string; message?: { content?: unknown } };
+      try { entry = JSON.parse(line); } catch { continue; }
+      if (entry.type !== 'assistant' || !Array.isArray(entry.message?.content)) continue;
+      const text = (entry.message!.content as Array<{ type?: string; text?: string }>)
+        .filter((c) => c.type === 'text' && c.text)
+        .map((c) => c.text)
+        .join('');
+      if (text.trim()) found = text;
+    }
+  } catch {
+    return undefined;
+  }
+  return found;
+}
+
+/** Whether a message ends by asking something: its last line is a question. */
+export function asksOwner(text: string | undefined): boolean {
+  if (!text) return false;
+  const last = text.trim().split('\n').filter((l) => l.trim()).pop() ?? '';
+  return /\?\s*$/.test(last.replace(/[*_`"')\]\s]+$/, ''));
+}
+
+/**
+ * The commands that stop to ask the owner something: `decide` interviews one
+ * question at a time, `spec` asks for confirmation, `mockup` for approval.
+ *
+ * A pause for an answer is not a finish. Treating it as one broke `decide`
+ * outright: in a live run the agent asked its first question, the gate
+ * answered that DECISIONS.md did not exist, and on the second refusal the agent
+ * wrote the file from its own reasoning, with no answer from anyone. That is
+ * the one outcome `decide` exists to prevent, and the gate produced it.
+ */
+const ASKS_THE_OWNER = new Set(['decide', 'spec', 'mockup']);
+
 /** What each command must have left behind, checked after it ran. */
 function commandProblems(root: string, command: string): string[] {
   const problems: string[] = [];
   const spec = newestSpec(root);
 
   if (command === 'decide') {
-    const file = ['jig/DECISIONS.md', 'DECISIONS.md', '.jig/DECISIONS.md'].map((p) => join(root, p)).find((p) => existsSync(p));
-    if (!file) problems.push('decide wrote no DECISIONS.md beside the token layer.');
+    const found = decisionsFile(root);
+    if (!found) problems.push('decide wrote no DECISIONS.md beside the token layer.');
     else {
-      const body = readFileSync(file, 'utf8');
+      const body = readFileSync(join(root, found), 'utf8');
       if (!/^##\s+Unresolved\s*$/im.test(body)) {
         problems.push('DECISIONS.md has no `## Unresolved` section. Round 3 asks by name what is still undecided; write what the owner named, or `None named by the owner.`');
       }
@@ -157,7 +203,11 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   }
 
   const command = lastJigCommand(opts.input.transcript_path);
-  const problems: string[] = command ? commandProblems(root, command).map((p) => `/jig ${command}: ${p}`) : [];
+  // Waiting on the owner is not finishing. The command's own output is checked
+  // on the stop after the owner has answered, not while the question is open;
+  // `check` below still runs either way.
+  const waiting = command !== undefined && ASKS_THE_OWNER.has(command) && asksOwner(lastAssistantText(opts.input.transcript_path));
+  const problems: string[] = command && !waiting ? commandProblems(root, command).map((p) => `/jig ${command}: ${p}`) : [];
 
   const selection = selectFiles(root, false);
   const changedUi = selection.mode === 'changed' && selection.files.some((f) => isStyleBearing(f) || isReaderText(f));
