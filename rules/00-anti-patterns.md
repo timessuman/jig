@@ -608,9 +608,9 @@ The budget is not a style preference; it is the width of the box someone else re
 `robots.txt` is not this. It is public, advisory, and read by strangers as a list of interesting places: naming `/admin` there tells everyone where it is. A path is safe to name only when something else protects it — a session guard, an authenticating API — and never because the file asked politely.
 
 ### J-124 A sitemap that contradicts the page
-❌ A route listed in the sitemap whose own metadata says `noindex`; a sitemap entry for a page that does not exist
-✅ One answer per route. The sitemap lists what is indexable, and nothing else.
-Contradicting yourself in two files tells a crawler you do not know which is true, and it will decide for you.
+❌ A route listed in the sitemap whose own metadata says `noindex`; a sitemap entry for a page that does not exist; a `<loc>` written as a path, `/pricing`, which the format does not accept and a crawler drops
+✅ One answer per route. The sitemap lists what is indexable, as full URLs, and nothing else.
+Contradicting yourself in two files tells a crawler you do not know which is true, and it will decide for you. A sitemap needs the site's origin, so a project that has none yet has nothing to write: no sitemap is honest, and one full of paths is not.
 
 ### J-125 Invented facts in metadata
 ❌ `lastModified: new Date()` in a sitemap; a `datePublished` filled in because the field existed; an author, rating or price nobody supplied
