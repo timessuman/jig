@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.16.0
+
+With more than one mode, every barrel names its mode, and none sits in the
+global stylesheet.
+
+### Changed
+
+- **`theme.<mode>.css` for every mode, once there are two.** `init` kept
+  `theme.css` for the first mode and left it wired into the global stylesheet,
+  so a second mode's routes loaded the first mode's tokens globally and their
+  own from their layout, and got whichever came last. Now each barrel names its
+  mode, the global stylesheet keeps only what every route shares (Tailwind and
+  `utilities.css`), and each route's layout imports its own barrel. A project
+  with one mode is unchanged: `theme.css`, wired globally.
+- **A project gaining a second mode is migrated.** An unedited `theme.css`
+  becomes `theme.<first mode>.css`, and every stylesheet import that resolves
+  to it is removed, found by where it points rather than by guessing the file.
+  An edited one is left, with a note on where its edits belong. `check` names a
+  `theme.css` left beside two modes.
+
 ## 0.15.1
 
 ### Fixed
