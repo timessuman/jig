@@ -479,7 +479,7 @@ Compose it for the phone first. Mobile navigation is a different control — not
 
 Not a component. The procedure for structuring any screen, before styling anything.
 
-### Step 1 — Group
+### Step 1: Group
 
 Four tools, weakest to strongest. Use the weakest that works (`A-67`):
 
@@ -492,7 +492,7 @@ Four tools, weakest to strongest. Use the weakest that works (`A-67`):
 
 Combine them and the container usually becomes unnecessary — a table's rows are already aligned, alike and close. Break continuity deliberately to mark the end of a group, or to interrupt a list with something that is not part of it.
 
-### Step 2 — Order by importance
+### Step 2: Order by importance
 
 Six variables carry hierarchy: **size**, **colour**, **contrast**, **spacing**, **position**, **depth**. The procedure:
 
@@ -504,11 +504,11 @@ Position does more than it looks: people best recall the **first and last** item
 
 Give elements *similar* prominence where they should be read as a pair — matching a label's weight to its icon's balances them instead of letting one shout.
 
-### Step 3 — Space from the inside out
+### Step 3: Space from the inside out
 
 Start at XS on the innermost rectangle and step up moving outward (`D-69`). Between two options, take the larger.
 
-### Step 4 — Align to a grid
+### Step 4: Align to a grid
 
 Main containers align to a 12-column grid; small elements *inside* them do not — those use the spacing options.
 
@@ -516,7 +516,7 @@ Main containers align to a 12-column grid; small elements *inside* them do not �
 - **Gutters** fixed, narrower than columns, and kept empty. `--grid-gutter`.
 - **Margins** keep content off the screen edge, wider on large screens. `--grid-margin`.
 
-### Step 5 — The squint test
+### Step 5: The squint test
 
 Blur the design, zoom out, or step back. You should still be able to tell what the screen is for and which element matters most. If everything reads at one weight the hierarchy has failed; if elements smear together the white space is too tight.
 
@@ -524,7 +524,7 @@ Blur the design, zoom out, or step back. You should still be able to tell what t
 
 **When nothing can render it, use the analogue:** if all type were one size and one colour, would the layout still communicate its order? If the hierarchy depends entirely on type styling, it is too weak. The analogue is a fallback, not an equal — a reading of the source is not a look at the page.
 
-### Step 6 — Decide how it collapses
+### Step 6: Decide how it collapses
 
 A spec writes a composition per size. This step is what happens **between** them:
 the same content, arranged for less room. Six rules, and the first is the one

@@ -28,6 +28,14 @@ export const PROBE_SCRIPT = `(async () => {
   const defaultFont = getComputedStyle(probe).fontFamily;
   probe.remove();
   const text = document.body.innerText || '';
+  // I-118: a verbatim quotation keeps its own punctuation. Text marked as a
+  // quotation is the source's words, so it is taken out before the dash scan;
+  // the page's own copy around it still counts.
+  let ownText = text;
+  for (const q of document.querySelectorAll('blockquote, q')) {
+    const quoted = (q.innerText || '').trim();
+    if (quoted) ownText = ownText.split(quoted).join('\\n');
+  }
   const junk = [...new Set(text.match(/\\$\\{|\\{\\{|\\bundefined\\b|\\bNaN\\b|\\[object Object\\]/g) || [])];
   const unresolved = new Set();
   for (const sheet of document.styleSheets) {
@@ -138,7 +146,7 @@ export const PROBE_SCRIPT = `(async () => {
     defaultFont: getComputedStyle(document.body).fontFamily === defaultFont,
     unresolvedTokens: [...unresolved],
     junkText: junk,
-    emDashes: [...new Set((text.match(/[^.!?\\n]{0,28}\u2014[^.!?\\n]{0,28}/g) || []).map((t) => t.trim()))].slice(0, 5),
+    emDashes: [...new Set((ownText.match(/[^.!?\\n]{0,28}\u2014[^.!?\\n]{0,28}/g) || []).map((t) => t.trim()))].slice(0, 5),
     brokenImages: [...document.images].filter((i) => i.complete && i.naturalWidth === 0).length,
     navLinksVisible: navAtRest,
     head: {
