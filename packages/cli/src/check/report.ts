@@ -65,6 +65,10 @@ export interface ReportMeta {
   /** Modes `jig.config.json` declares that the token layer does not import.
    *  See `check/mode-wiring.ts`. */
   modeUnwired?: Array<{ mode: string; barrel: string; message: string }>;
+  /** Warnings waived in the source with `jig-allow <ID>: <why>`. Listed on
+   *  every run, like exemptions, because a waiver is only safe while it can be
+   *  read. They are not counted in `warnings=`. See `check/waiver.ts`. */
+  waived?: Array<{ ruleId: string; file: string; line: number; reason: string }>;
 }
 
 /** Rows beyond this many, for one rule in one file, collapse into a count.
@@ -209,6 +213,12 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     if (n > 0) {
       lines.push(`    ${meta.exempt!.slice(0, 8).join(', ')}${n > 8 ? `, and ${n - 8} more` : ''}`);
     }
+  }
+
+  if (meta.waived && meta.waived.length > 0) {
+    lines.push('');
+    lines.push(`  ${plural(meta.waived.length, 'warning')} waived in the source with jig-allow:`);
+    for (const w of meta.waived) lines.push(`    ${w.ruleId.padEnd(6)}${w.file}:${w.line}  "${w.reason}"`);
   }
 
   if (meta.unscanned && meta.unscanned.count > 0) {

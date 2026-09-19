@@ -53,10 +53,19 @@ Every agent supports both scopes.
 answer yes when an interactive install offers it. It adds one entry to
 `.claude/settings.json`, keeping everything already in that file, and runs `jig gate`
 when the agent tries to finish: it holds the agent there while the files it changed
-fail `check`, or while the `/jig` command it just ran left its work incomplete — a
-spec that is prose, a critique with no verdict files, a review that never rendered
-the page. After three attempts it lets the agent stop and says the work is
-unfinished.
+have a `check` error or warning, or while the `/jig` command it just ran left its
+work incomplete — a spec that is prose, a critique with no verdict files, a review
+that never rendered the page. After three attempts it lets the agent stop and says
+the work is unfinished.
+
+A warning that is right as it stands is waived on its own line, in a comment
+reading `jig-allow <ID>: <why>` (`/* jig-allow A-01: the brand is violet */`). The
+reason is required, an error cannot be waived, and `check` lists every waiver it
+honoured, with its reason, on every run.
+
+The skill and the hook are installed separately. With Jig installed globally, run
+`install --agent claude --hook` in a project to add only that project's hook: a
+global hook would run on every stop in every project on the machine.
 
 It is off by default, and `--yes` never adds it, because that is the path an agent
 takes and nobody is there to consent. It exists because weak models skip any step

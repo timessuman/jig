@@ -293,6 +293,25 @@ describe('install — global install already present warns instead of duplicatin
     expect(existsSync(join(project, claudeDir))).toBe(false);
   });
 
+  // The skill is one per machine and the gate one per project. Refusing both
+  // left every project on a global install with no gate at all.
+  it('adds only the Stop hook when --hook asks for it and the skill is global', () => {
+    install({ ...opts(), scope: 'global' });
+    const result = install({ ...opts(), hook: true });
+    expect(result.warning).toBeUndefined();
+    expect(result.hookOnly).toMatch(/installed globally.*Added only this project's Stop hook/);
+    expect(result.stopHook).toBe(true);
+    expect(result.written).toHaveLength(0);
+    expect(existsSync(join(project, claudeDir))).toBe(false);
+    const settings = JSON.parse(readFileSync(join(project, '.claude', 'settings.json'), 'utf8'));
+    expect(settings.hooks.Stop[0].hooks[0].command).toMatch(/jig-ui@.+ gate$/);
+  });
+
+  it('points a refused Claude project install at --hook', () => {
+    install({ ...opts(), scope: 'global' });
+    expect(install(opts()).warning).toMatch(/run install again with --hook/);
+  });
+
   it('does not warn for a different agent even if that one is installed globally', () => {
     install({ ...opts(), agent: 'claude', scope: 'global' });
     const result = install({ ...opts(), agent: 'cursor', scope: 'project' });

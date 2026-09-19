@@ -59,6 +59,14 @@ export interface InstallResult {
    * paths, which is the exact failure this architecture exists to prevent.
    */
   warning?: string;
+  /**
+   * Set when the skill is already installed globally and `--hook` asked for
+   * this project's Stop hook: the hook is written and nothing else is. The
+   * skill is one per machine; the gate is one per project, because a global
+   * hook would run on every stop in every project. Refusing both left every
+   * project on a global install without a gate at all.
+   */
+  hookOnly?: string;
 }
 
 const ASK_INSTRUCTION =
@@ -227,6 +235,16 @@ export function install(opts: InstallOptions): InstallResult {
     } catch {
       globalManifest = null;
     }
+    if (globalManifest && opts.hook && opts.agent === 'claude') {
+      return {
+        written: [],
+        skipped: [],
+        stopHook: installStopHook(opts.projectRoot, opts.version),
+        hookOnly:
+          `Jig's skill is installed globally for 'claude' (${globalReferenceDir} under your home directory), ` +
+          `so it stays there. Added only this project's Stop hook.`,
+      };
+    }
     if (globalManifest) {
       return {
         written: [],
@@ -234,7 +252,8 @@ export function install(opts: InstallOptions): InstallResult {
         warning:
           `Jig is already installed globally for '${opts.agent}' (${globalReferenceDir} under your home ` +
           `directory). Installing again at project scope would leave two contradicting '${opts.agent}' skills. ` +
-          `Run 'jig update' to refresh the global install instead, or choose a different --agent for this project.`,
+          `Run 'jig update' to refresh the global install instead, or choose a different --agent for this project.` +
+          (opts.agent === 'claude' ? ` To add only this project's Stop hook, run install again with --hook.` : ''),
       };
     }
   }

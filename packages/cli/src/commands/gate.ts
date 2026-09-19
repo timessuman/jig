@@ -6,7 +6,7 @@ import { findChrome } from '../probe/browser.js';
 import { check } from './check.js';
 import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
-import { isStyleBearing } from '../check/ext.js';
+import { isReaderText, isStyleBearing } from '../check/ext.js';
 
 /**
  * `jig gate` — run by a Claude Code Stop hook that `jig install` writes.
@@ -22,8 +22,12 @@ import { isStyleBearing } from '../check/ext.js';
  * Scope is deliberately narrow, so it never blocks work that has nothing to do
  * with UI:
  * - no Jig project here (no jig.config.json, no .jig/) → allow;
- * - `check` runs only when style-bearing files changed since HEAD, and only its
- *   mechanical errors block — the same line `make` is told must pass;
+ * - `check` runs only when files that carry styles or interface text changed
+ *   since HEAD. Its mechanical errors block, and so do its warnings, unless a
+ *   warning is waived on its own line with `jig-allow <ID>: <why>` (see
+ *   `check/waiver.ts`). A warning left standing was the failure: one em dash
+ *   in a page survived two runs, because an agent saw it, called it
+ *   pre-existing, and finished, and nothing said no;
  * - `verdicts` runs only for a critique that has written verdict files.
  * After MAX_BLOCKS blocks in one session it lets the agent stop and says so,
  * because a gate the agent cannot satisfy must not trap it in a loop.
@@ -156,15 +160,22 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   const problems: string[] = command ? commandProblems(root, command).map((p) => `/jig ${command}: ${p}`) : [];
 
   const selection = selectFiles(root, false);
-  const changedStyles = selection.mode === 'changed' && selection.files.some((f) => isStyleBearing(f));
-  if (changedStyles) {
+  const changedUi = selection.mode === 'changed' && selection.files.some((f) => isStyleBearing(f) || isReaderText(f));
+  if (changedUi) {
     const result = check({ projectRoot: root, homeDir: '', version: opts.version, all: false, ci: false });
     const errors = result.findings.filter((f) => f.bucket === 'mechanical' && f.severity === 'error');
-    if (errors.length > 0) {
-      const shown = errors.slice(0, 8).map((f) => `  ${f.ruleId} ${f.file}:${f.line} ${f.message}`);
+    const warnings = result.findings.filter((f) => f.severity === 'warning');
+    const blocking = [...errors, ...warnings];
+    if (blocking.length > 0) {
+      const shown = blocking.slice(0, 8).map((f) => `  ${f.severity === 'error' ? 'error  ' : 'warning'} ${f.ruleId} ${f.file}:${f.line} ${f.message}`);
+      const counted = [
+        errors.length > 0 ? `${errors.length} mechanical error(s)` : '',
+        warnings.length > 0 ? `${warnings.length} warning(s)` : '',
+      ].filter(Boolean).join(' and ');
       problems.push(
-        `jig check: ${errors.length} mechanical error(s) in the files you changed. Fix every one, then run \`jig check\` again.\n` +
-          shown.join('\n') + (errors.length > shown.length ? `\n  … and ${errors.length - shown.length} more` : ''),
+        `jig check: ${counted} in the files you changed. Fix every one. A warning that is right as it stands can be ` +
+          `waived on its own line with a comment reading \`jig-allow <ID>: <why>\`; an error cannot. Then run \`jig check\` again.\n` +
+          shown.join('\n') + (blocking.length > shown.length ? `\n  … and ${blocking.length - shown.length} more` : ''),
       );
     }
   }
