@@ -28,6 +28,9 @@ export function specProblems(spec: { path: string; body: string }): string[] {
   }
   const problems: string[] = [];
   const has = (field: string) => new RegExp(`^\\s*${field}\\s*:`, 'im').test(front);
+  if (specIndexableField(front) === 'unreadable') {
+    problems.push(`${spec.path}: \`indexable:\` is neither true nor false. Write \`indexable: true\` or \`indexable: false\`; a per-page override and its reason go in the body, where they can be read without being parsed.`);
+  }
   for (const field of ['feature', 'surface', 'mode', 'sizes', 'confirmed', 'mockup']) {
     if (!has(field)) problems.push(`${spec.path} frontmatter has no \`${field}:\`.`);
   }
@@ -100,4 +103,21 @@ export function navProblems(spec: { path: string; body: string }): string[] {
     }
   }
   return problems;
+}
+
+/**
+ * The spec's `indexable:` as written: true, false, absent, or unreadable.
+ *
+ * Unreadable is its own answer. A spec wrote a sentence here, the override and
+ * its reason on one line, and the parser read no bare word, fell back to the
+ * mode's default, and reported the correct page as contradicting J-123. The
+ * value is `true` or `false`; the reason belongs in the spec's body.
+ */
+export function specIndexableField(front: string): boolean | 'absent' | 'unreadable' {
+  const line = /^\s*indexable\s*:(.*)$/im.exec(front);
+  if (!line) return 'absent';
+  const value = line[1]!.trim().replace(/^["']|["']$/g, '').toLowerCase();
+  if (value === 'true' || value === 'yes') return true;
+  if (value === 'false' || value === 'no') return false;
+  return 'unreadable';
 }

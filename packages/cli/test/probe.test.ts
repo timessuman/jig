@@ -243,6 +243,26 @@ describe('the CLI can run the probe itself', () => {
       .rejects.toThrow(/does not exist, so there is nothing to render/);
   });
 
+  // I-118: a quotation keeps its own punctuation. A docs site quoting a rule
+  // verbatim could never pass the probe while the rule it quotes used a dash.
+  it('does not count an em dash inside a quotation, and still counts the page\'s own', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-quote-'));
+    writeFileSync(join(root, 'page.html'),
+      '<html><head><title>t</title></head><body><main>' +
+      '<blockquote><p>Frame one — the quoted rule keeps its dash</p></blockquote>' +
+      '<p>As the spec says, <q>free — forever</q>.</p>' +
+      '<p>Our own label — wrongly dashed</p>' +
+      '</main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'pricing'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'pricing', page: 'page.html' });
+    const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'pricing', 'probe-360.json'), 'utf8'));
+    expect(probe.emDashes.join(' | ')).toMatch(/Our own label — wrongly dashed/);
+    expect(probe.emDashes.join(' | ')).not.toMatch(/quoted rule|forever/);
+  }, 120_000);
+
   it('re-renders only what is missing or taken on an older page', async () => {
     const { ensureProbes } = await import('../src/probe/save.js');
     const root = mkdtempSync(join(tmpdir(), 'jig-ensure-'));

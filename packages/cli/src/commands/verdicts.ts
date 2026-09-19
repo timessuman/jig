@@ -5,6 +5,7 @@ import { citableIds } from '../rules/citations.js';
 import { probeContradictions, readProbes } from '../probe/check.js';
 import { PROBE_WIDTHS } from '../probe/save.js';
 import { decisionNames } from '../check/decisions.js';
+import { specIndexableField } from '../check/spec-shape.js';
 
 /**
  * Verifies a critique's verdict files, and computes its counts.
@@ -75,9 +76,8 @@ function specIndexable(projectRoot: string, surface: string): boolean {
   try {
     front = readFileSync(path, 'utf8').split(/^---\s*$/m)[1] ?? '';
   } catch { /* no spec: fall through to the mode */ }
-  const declared = /^\s*indexable\s*:\s*(\w+)/im.exec(front)?.[1]?.toLowerCase();
-  if (declared === 'true' || declared === 'yes') return true;
-  if (declared === 'false' || declared === 'no') return false;
+  const declared = specIndexableField(front);
+  if (declared === true || declared === false) return declared;
   const mode = /^\s*mode\s*:\s*(\w+)/im.exec(front)?.[1]?.toLowerCase();
   return mode !== 'product' && mode !== 'operator';
 }
@@ -244,7 +244,15 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
     const v = screenVerdicts.find((x) => typeof x.id === 'string' && x.id.trim().toUpperCase() === id);
     return typeof v?.verdict === 'string' ? v.verdict : undefined;
   };
-  errors.push(...probeContradictions(probes, verdictOf, specIndexable(opts.projectRoot, opts.surface)));
+  let specFront = '';
+  try {
+    specFront = readFileSync(join(opts.projectRoot, '.jig', 'specs', `${opts.surface}.spec.md`), 'utf8').split(/^---\s*$/m)[1] ?? '';
+  } catch { /* no spec */ }
+  if (specIndexableField(specFront) === 'unreadable') {
+    errors.push(`.jig/specs/${opts.surface}.spec.md: \`indexable:\` is neither true nor false, so this review cannot tell whether the page is meant to be found and does not guess. Write \`indexable: true\` or \`indexable: false\`, and put the reason in the spec's body.`);
+  } else {
+    errors.push(...probeContradictions(probes, verdictOf, specIndexable(opts.projectRoot, opts.surface)));
+  }
 
   // The screen pass is defined as judged on a render. Three live critiques
   // returned 30 screen verdicts each with `rendered: false` — read from the

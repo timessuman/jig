@@ -114,7 +114,7 @@ describe('L-01 says how a layout collapses', () => {
   const t = readFileSync(join(repoRoot, 'templates/COMMAND.md.tmpl'), 'utf8');
 
   it('reduces the count rather than the size, and keeps order and distinction', () => {
-    expect(patterns).toMatch(/### Step 6 — Decide how it collapses/);
+    expect(patterns).toMatch(/### Step 6: Decide how it collapses/);
     expect(patterns).toMatch(/Reduce the count, never the size/);
     expect(patterns).toMatch(/Order survives/);
     expect(patterns).toMatch(/Distinction survives/);

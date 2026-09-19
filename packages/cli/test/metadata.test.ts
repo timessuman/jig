@@ -103,3 +103,22 @@ describe('absence is not the same as an unreadable value', () => {
     expect(run(doc('<meta charset="utf-8">'), 'J-121', 'editorial')).toHaveLength(2);
   });
 });
+
+// A spec wrote its per-page override as a sentence on the indexable line. The
+// parser read no bare word, fell back to the mode, and a correct page was
+// reported as contradicting J-123.
+describe('a spec\'s indexable: is true or false', () => {
+  it('reads true and false, quoted or not, and calls anything else unreadable', async () => {
+    const { specIndexableField } = await import('../src/check/spec-shape.js');
+    expect(specIndexableField('indexable: true')).toBe(true);
+    expect(specIndexableField('indexable: "false"')).toBe(false);
+    expect(specIndexableField('mode: operator')).toBe('absent');
+    expect(specIndexableField('indexable: "/rules/ itself: true, overriding the default. Filtered: false."')).toBe('unreadable');
+  });
+
+  it('is a spec-shape problem when it is a sentence', async () => {
+    const { specProblems } = await import('../src/check/spec-shape.js');
+    const body = '---\nfeature: x\nsurface: x\nmode: operator\nindexable: "/rules/: true, because it is public"\nsizes:\nconfirmed: true\nmockup: approved\n---\n';
+    expect(specProblems({ path: 's.spec.md', body }).some((p) => /indexable:.*neither true nor false/.test(p))).toBe(true);
+  });
+});
