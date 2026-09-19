@@ -58,7 +58,7 @@ export interface InitResult {
   surfaces: Surface[];
   brand: { relPath: string; action: FileAction };
   config: { relPath: string; action: FileAction };
-  wiring: { target: string | null; status: 'wired' | 'rewired' | 'already-present' | 'print-only'; snippet: string };
+  wiring: { target: string | null; status: 'wired' | 'rewired' | 'already-present' | 'print-only' | 'per-route'; snippet: string };
   baseline: { report: string; findingsCount: number };
 }
 
@@ -376,11 +376,18 @@ interface WireOutcome {
  *  not a loss rather than a limitation: density switches at the route boundary
  *  and never inside one view.
  *
- *  The primary barrel is `theme.css` with no mode in the name. The whole point
- *  is that changing the mode in `jig.config.json` stops rewriting the user's
- *  stylesheet — only this file changes. A `theme.product.css` wired into their
- *  CSS would need rewiring on every mode change, which is the thing it exists
- *  to prevent. */
+ *  With one mode, the barrel is `theme.css` with no mode in the name. The whole
+ *  point is that changing the mode in `jig.config.json` stops rewriting the
+ *  user's stylesheet — only this file changes. A `theme.product.css` wired into
+ *  their CSS would need rewiring on every mode change, which is the thing it
+ *  exists to prevent.
+ *
+ *  With two or more, every barrel names its mode (`theme.editorial.css`,
+ *  `theme.operator.css`) and none is wired into the global stylesheet. A global
+ *  import of the first mode's barrel put its tokens under every route, so an
+ *  operator page loaded editorial and operator both, and got whichever came
+ *  last: the seam rule broken by the wiring meant to keep it. Each route's
+ *  layout imports its own barrel instead. */
 function barrelBody(fileName: string, brandFile: string, mode: string, version: string): string {
   return (
     vendorHeader(fileName, version, 'css', null) +
@@ -868,7 +875,8 @@ export async function init(opts: InitOptions): Promise<InitResult> {
 
   // ---- Barrels: one per declared mode ----
   const brandFileOnly = brandRelPath.split('/').pop()!;
-  const barrelFor = (mode: string) => (mode === primaryMode ? 'theme.css' : `theme.${mode}.css`);
+  const multiMode = declaredModes.length > 1;
+  const barrelFor = (mode: string) => (multiMode ? `theme.${mode}.css` : 'theme.css');
   for (const mode of declaredModes) {
     const rel = relKey(...tokensRelDir, barrelFor(mode));
     const abs = join(opts.projectRoot, ...tokensRelDir, barrelFor(mode));
@@ -881,6 +889,24 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     mkdirSync(dirname(abs), { recursive: true });
     writeFileSync(abs, content, 'utf8');
     files[rel] = checksum(content);
+  }
+
+  // A project that has grown a second mode still has the single-mode barrel.
+  // Left beside the named ones, it is a second way to load the first mode, and
+  // the global import that points at it keeps every route on that mode.
+  if (multiMode) {
+    const rel = relKey(...tokensRelDir, 'theme.css');
+    const abs = join(opts.projectRoot, ...tokensRelDir, 'theme.css');
+    if (existsSync(abs)) {
+      const state = fileState(opts.projectRoot, abs, rel, initManifest);
+      if (state.tracked && !state.modified) {
+        rmSync(abs);
+        delete files[rel];
+        log(`  Removed ${rel}: with more than one mode, each barrel names its mode (${relKey(...tokensRelDir, barrelFor(primaryMode))}).`);
+      } else {
+        log(`  ${rel} has been edited, so it is left alone. With more than one mode it is replaced by ${relKey(...tokensRelDir, barrelFor(primaryMode))}; move your edits there and delete it.`);
+      }
+    }
   }
 
   // ---- Optional: Tailwind utility classes ----
@@ -951,8 +977,9 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   // cannot see — so the extra barrels are named, not wired. Guessing would edit
   // the wrong file, and `01-modes.md` is explicit that a mode switches at the
   // route boundary rather than inside a view.
-  if (declaredModes.length > 1) {
-    log('\nOne barrel per surface. Import each at that route\'s entry point:');
+  if (multiMode) {
+    log('\nOne barrel per mode, and none in the global stylesheet. Import each in the layout');
+    log('that serves its routes, and keep Tailwind and utilities.css in the global one:');
     for (const surface of effectiveConfig.surfaces) {
       log(`  '${surface.match}' → ${relKey(...tokensRelDir, barrelFor(surface.mode))}`);
     }
@@ -985,7 +1012,40 @@ export async function init(opts: InitOptions): Promise<InitResult> {
   const wireTarget = findWireTarget(detection);
 
   let wiring: InitResult['wiring'];
-  if (wireTarget) {
+  if (multiMode) {
+    // No global barrel. Take out every import of the single-mode barrel, in
+    // whichever stylesheet holds it: the one init wired, or one the project
+    // moved it to. It is found by where it resolves, not by a guessed file,
+    // because the wire target is not always discoverable and a leftover import
+    // of a file just removed breaks the build. Each route's own import is
+    // named below instead.
+    const bare = join(opts.projectRoot, ...tokensRelDir, 'theme.css');
+    for (const file of detection.cssFiles.filter((f) => !isTokenLayerFile(f))) {
+      const abs = join(opts.projectRoot, file);
+      try {
+        const before = readFileSync(abs, 'utf8');
+        const after = before
+          .split('\n')
+          .filter((l) => {
+            const m = /^\s*@import\s+["']([^"']+)["'];?\s*$/.exec(l);
+            return !(m && !/^[a-z]+:|^\//i.test(m[1]!) && resolve(dirname(abs), m[1]!) === bare);
+          })
+          .join('\n');
+        if (after !== before) {
+          writeFileSync(abs, after, 'utf8');
+          log(`\nUnwired ${file}: removed its import of ${relKey(...tokensRelDir, 'theme.css')}.`);
+          log(`  With more than one mode, the global stylesheet imports no barrel: every route would carry that mode's tokens.`);
+        }
+      } catch (err) {
+        log(`\nCould not edit ${file}: ${(err as Error).message}. Remove its import of ${relKey(...tokensRelDir, 'theme.css')} by hand.`);
+      }
+    }
+    wiring = {
+      target: null,
+      status: 'per-route',
+      snippet: effectiveConfig.surfaces.map((s) => `${s.match} → ${relKey(...tokensRelDir, barrelFor(s.mode))}`).join('\n'),
+    };
+  } else if (wireTarget) {
     const targetAbsDir = dirname(join(opts.projectRoot, wireTarget));
     const barrelImport = relativeImportPath(
       targetAbsDir,

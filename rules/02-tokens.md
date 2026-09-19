@@ -25,9 +25,11 @@ lives in `src/styles/`, `app/assets/stylesheets/jig/` in a Rails app. Set `brand
 in `jig.config.json` to put it elsewhere. Projects set up before 0.7.0 keep their
 `.jig/tokens/` layout; `update` does not move them.
 
-So **never hardcode that path**. `init` writes one barrel per surface, `theme.css`,
-which imports the brand and the mode in the right order — import the barrel, and
-relocating the layer changes one line instead of every stylesheet:
+So **never hardcode that path**. `init` writes a barrel, `theme.css`, which imports
+the brand and the mode in the right order — import the barrel, and relocating the
+layer changes one line instead of every stylesheet. With more than one mode, every
+barrel names its mode instead (`theme.editorial.css`, `theme.operator.css`); see
+"Multiple modes in one app" below:
 
 ```css
 /* src/styles/jig/theme.css — written by init */
@@ -512,8 +514,14 @@ the same token names with different values, so importing all three into one
 document leaves only the last — the other two are inert. That is the mechanical
 reason behind the seam rule below.
 
-**Multiple modes in one app** — scope by route, not by class. Each surface imports its own
-barrel — `jig/theme.css` for the primary surface, `jig/theme.<mode>.css` for the
-others — at that route's layout or entry level. `init` names them and does not
-wire them: which entry point serves `/admin/**` is your routing, which it cannot
-see. Do not attempt to nest two modes in one document (`01-modes.md`, seam rules).
+**Multiple modes in one app** — scope by route, not by class. Every barrel names its
+mode, `jig/theme.<mode>.css`, and each route's layout or entry point imports the
+one for its mode. The global stylesheet imports **no** barrel: one imported there
+puts that mode's tokens under every route, so the operator pages carry editorial's
+too and get whichever loaded last. It keeps what every route shares — Tailwind and
+`utilities.css`, whose aliases name tokens rather than values and so hold for any
+mode. When a second mode is declared, `init` replaces `theme.css` with
+`theme.<first mode>.css` and removes the import it had wired, then prints which
+barrel each surface imports; which layout serves `/admin/**` is your routing, which
+it cannot see. Do not attempt to nest two modes in one document (`01-modes.md`,
+seam rules).
