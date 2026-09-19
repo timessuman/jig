@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.14.1
+
+`jig seo` cites only what a rule says.
+
+### Fixed
+
+- **No finding for a missing sitemap or robots file.** Both were filed under
+  rules that do not ask for them: `J-123` is about a page that must not be
+  indexed and says `robots.txt` is not it, and `J-124` is about a sitemap that
+  contradicts the pages. A project with no domain yet cannot write an honest
+  sitemap, so the only way to clear the old finding was to invent one. Both are
+  now counts on the `JIG_SEO` line.
+- **A sitemap of paths is a `J-124` error.** A `<loc>` that is `/about` rather
+  than a full URL was read as a route, although a crawler drops it. `J-124` now
+  names that case and says no sitemap is the honest one until there is an
+  origin.
+- **`pages=` counts pages.** It counted any file that mentioned `<title>` or
+  `<meta>`, so a build script, a test, a data module and a layout were pages and
+  a home page inheriting its layout was not. A page is now a route a framework
+  serves, or a whole-document template outside the layout and partial folders.
+  A dynamic route counts once.
+- **Framework routes match their sitemap entries.** `src/pages/admin` was read
+  as `/pages/admin`, so a `noindex` Astro or Next page listed in the sitemap
+  went unreported.
+
 ## 0.14.0
 
 What a stranger meets before the page, what the page must not hand them, and a
