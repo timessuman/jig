@@ -759,8 +759,9 @@ menu and reported "matched exactly".
 **1. `check` passes.** Run `{{scripts_path}} check --all` and paste its
 `JIG_CHECK:` line into your report, as printed. `mechanical=fail:<n>` means not done:
 fix every error and run it again. No mechanical finding is non-blocking, and you do
-not get to decide one is. Warnings are listed and either fixed or explained one by
-one. A report with no `JIG_CHECK:` line, or one you typed yourself, is not a finished
+not get to decide one is. Every warning is fixed, or waived on its own line with
+`jig-allow <ID>: <why>` (see `gate`); an explanation in your report is not a waiver.
+A report with no `JIG_CHECK:` line, or one you typed yourself, is not a finished
 build.
 
 **2. The build matches the approved mockup at each size.** Skip only when
@@ -1177,10 +1178,18 @@ positioning it had already dropped.
 ## gate
 
 Not a command to run. In Claude Code, `install` adds a Stop hook that runs
-`{{scripts_path}} gate` whenever you try to finish. If files you changed fail `check`,
-or a critique's verdict files fail `verdicts`, it refuses to let you stop and hands
-you the failures as the reason. **Fix what it names.** Do not edit verdict files to
-satisfy it, and do not report the work as done while it is blocking. After three
+`{{scripts_path}} gate` whenever you try to finish. If files you changed have a
+`check` error or warning, or a critique's verdict files fail `verdicts`, it refuses
+to let you stop and hands you the failures as the reason. **Fix what it names.** Do
+not edit verdict files to satisfy it, and do not report the work as done while it is
+blocking.
+
+A warning you are sure is right as it stands, because the detector guessed and the
+guess is wrong here, is waived on its own line or the line above, in the file's
+comment syntax: `jig-allow <ID>: <why>`. The reason is what the user reads, so write
+the case, not "intended". An error cannot be waived, a waiver with no reason waives
+nothing, and `check` prints every waiver it honoured. Waiving a warning to get past
+the gate, when the fix was available, is the failure the gate exists to catch. After three
 refusals in one session it lets you stop; then tell the user plainly that the work is
 not finished and what is still failing.
 

@@ -66,6 +66,44 @@ describe('jig gate', () => {
   });
 });
 
+// One em dash in a page survived two runs: an agent saw the warning, called it
+// pre-existing, and finished, because only errors blocked. A warning in a file
+// the agent changed now holds it until the warning is fixed or waived.
+describe('jig gate — warnings', () => {
+  const html = (body: string) =>
+    `<!doctype html><html><head><title>t</title><meta name="description" content="d"></head><body><main>\n${body}\n</main></body></html>`;
+
+  it('blocks on a warning in a changed file, and names it', () => {
+    jigProject();
+    writeFileSync(join(root, 'a.html'), html('<p>Free — forever</p>'));
+    const r = run();
+    expect(r.block).toBe(true);
+    expect(r.reason).toMatch(/1 warning\(s\) in the files you changed/);
+    expect(r.reason).toMatch(/warning I-118 a\.html:2/);
+    expect(r.reason).toMatch(/jig-allow <ID>: <why>/);
+  });
+
+  it('lets the agent stop once the warning is waived on its line with a reason', () => {
+    jigProject();
+    writeFileSync(join(root, 'a.html'), html('<!-- jig-allow I-118: the product name is spelled with the dash -->\n<p>Free — forever</p>'));
+    expect(run().block).toBe(false);
+  });
+
+  it('does not take a waiver with no reason', () => {
+    jigProject();
+    writeFileSync(join(root, 'a.html'), html('<!-- jig-allow I-118: -->\n<p>Free — forever</p>'));
+    expect(run().block).toBe(true);
+  });
+
+  it('does not let a waiver silence an error', () => {
+    jigProject();
+    writeFileSync(join(root, 'a.css'), 'body {\n  /* jig-allow H-117: it is declared somewhere */\n  font-family: var(--font-body);\n}');
+    const r = run();
+    expect(r.block).toBe(true);
+    expect(r.reason).toMatch(/H-117 a\.css:3/);
+  });
+});
+
 describe('installStopHook', () => {
   const settings = () => JSON.parse(readFileSync(join(root, '.claude', 'settings.json'), 'utf8'));
 

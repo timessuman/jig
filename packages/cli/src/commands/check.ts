@@ -10,6 +10,7 @@ import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
 import { applyExemptions, readExemptions } from '../check/exempt.js';
+import { applyWaivers, type Waived } from '../check/waiver.js';
 import { maskNonStyleRegions } from '../check/styles.js';
 import { maskComments } from '../check/css.js';
 import { isResponsive } from '../check/responsive.js';
@@ -40,6 +41,9 @@ export interface CheckResult {
   /** True when any mechanical-bucket finding is `error` severity — what
    *  `--ci` should exit non-zero on. */
   hasError: boolean;
+  /** Warnings a `jig-allow <ID>: <why>` comment waived on their own line. Not
+   *  in `findings`, and printed in the report on every run. See check/waiver.ts. */
+  waived: Waived[];
 }
 
 /** Pre-0.4.0 projects had `install` vendor `rules.index.json` straight into
@@ -241,7 +245,7 @@ export function check(opts: CheckOptions): CheckResult {
   // Resolved once and shared: the report names it, and A-09 gates on it.
   const resolvedMode = resolveMode(opts.projectRoot);
 
-  const findings = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive, viewportFitCover, projectMenuToggle, declaredProperties);
+  const detected = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive, viewportFitCover, projectMenuToggle, declaredProperties);
 
   // The token layer's OWN declarations, which no detector reads: `.jig/tokens/`
   // is not in the scanned set, so until this ran, a brand file edited after
@@ -259,7 +263,7 @@ export function check(opts: CheckOptions): CheckResult {
   for (const problem of auditTokenLayer(opts.projectRoot)) {
     const ruleId = TOKEN_RULE[problem.token] ?? 'C-19';
     const entry = index.find((e) => e.id === ruleId);
-    findings.push({
+    detected.push({
       ruleId,
       detector: 'token-layer',
       bucket: entry?.bucket ?? 'mechanical',
@@ -269,6 +273,8 @@ export function check(opts: CheckOptions): CheckResult {
       message: problem.message,
     });
   }
+
+  const { findings, waived } = applyWaivers(opts.projectRoot, detected);
 
   const hasError = findings.some((f) => f.bucket === 'mechanical' && f.severity === 'error');
   // H-47 skips files that have not adopted the token layer. When NO scanned
@@ -303,7 +309,8 @@ export function check(opts: CheckOptions): CheckResult {
     exemptPatterns: byPattern,
     scope: selection.mode,
     modeUnwired: modeWiringProblems(opts.projectRoot),
+    waived,
   });
 
-  return { findings, report, hasError };
+  return { findings, report, hasError, waived };
 }

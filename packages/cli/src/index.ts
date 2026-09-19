@@ -81,6 +81,12 @@ program
         console.warn(result.warning);
         return;
       }
+      if (result.hookOnly) {
+        console.log(result.hookOnly);
+        if (result.stopHook === true) console.log('  + .claude/settings.json (Stop hook: jig gate blocks finishing while check or a critique fails)');
+        if (result.stopHook === false) console.log('  ! .claude/settings.json is not valid JSON — the Stop hook was not added. Fix the file and run install again.');
+        return;
+      }
       console.log(`Installed Jig v${version} for ${opts.agent} (${opts.scope} scope)`);
       warnIfUnpublishedPin();
       for (const f of result.written) console.log(`  + ${f}`);
