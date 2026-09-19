@@ -14,18 +14,21 @@ cite the number when you follow or deliberately break one.
    b. `DECISIONS.md` exists beside the token files — `jig/DECISIONS.md` by
       default, or wherever `brand` in `{{config_file}}` puts them — and has
       substance: not empty, no `[TODO]` markers left in it, more than a few
-      lines. If it does not, run `{{command_prefix}}decide` and stop until it has
-      been written. Do not write it yourself from this task's prompt — it records
-      decisions the project has made, and a file you author alone records
-      decisions *you* have made, which is the opposite thing wearing the same
-      name.
+      lines. If it does not, stop and ask the user to run
+      `{{command_prefix}}decide`. The interview lives in that command, not in
+      this file: questions you make up from here are not `decide`, and neither
+      is a file written from their answers. Do not write it yourself from this
+      task's prompt — it records decisions the project has made, and a file you
+      author alone records decisions *you* have made, which is the opposite
+      thing wearing the same name.
 1. Load `{{rules_path}}/00-anti-patterns.md` and `{{rules_path}}/01-modes.md`.
 2. Determine the mode from `{{config_file}}`, or infer it using the procedure in
    `{{rules_path}}/01-modes.md` and state the inference in one line before building.
-3. **Building a page, feature or functionality?** Run it through
+3. **Building a page, feature or functionality?** It goes through
    `{{command_prefix}}spec` → `{{command_prefix}}mockup` (low fidelity) →
    `{{command_prefix}}make` (high fidelity) → `{{command_prefix}}critique`, one at a
-   time. Never design the whole product up front. Critique findings go back to
+   time, each one run by the user. The procedure for each step is in the command,
+   so ask for the step you need rather than doing it from this summary. Never design the whole product up front. Critique findings go back to
    `make`, then `critique` again, until clean or accepted by the user — then the
    next feature.
    **Building a screen rather than a single component?** Read `L-01 · Layout
