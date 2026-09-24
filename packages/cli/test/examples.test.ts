@@ -32,7 +32,10 @@ describe('rule examples', () => {
       expect((html.match(/<figure data-example="do">/g) ?? []).length).toBe(1);
       expect((html.match(/<\/figure>/g) ?? []).length).toBe(2);
       expect(html.indexOf('data-example="dont"')).toBeLessThan(html.indexOf('data-example="do"'));
-      const unsafe = /<(script|style|link|iframe|object|embed)\b|\son[a-z]+\s*=|(?:src|href)\s*=\s*["']?\s*(?:https?:|\/\/|javascript:)|url\(\s*["']?\s*(?:https?:|\/\/)/i.exec(html);
+      // Real tags only: a code sample showing `onclick=` as escaped text is
+      // text, and it is the point of the sample.
+      const tags = (html.match(/<[a-z][^>]*>/gi) ?? []).join('\n');
+      const unsafe = /<(script|style|link|iframe|object|embed)\b|\son[a-z]+\s*=|(?:src|href)\s*=\s*["']?\s*(?:https?:|\/\/|javascript:)|url\(\s*(?:&quot;|["'])?\s*(?:https?:|\/\/)/i.exec(tags);
       expect(unsafe?.[0], 'a figure renders in a sandbox, so it carries no script, stylesheet or external URL').toBeUndefined();
       expect(html.length, 'an example is a specimen, not a page').toBeLessThan(6000);
     });
