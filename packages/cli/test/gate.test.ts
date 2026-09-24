@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, utimesSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -438,5 +438,51 @@ describe('verdicts belong to critique', () => {
     jigProject();
     verdicts('ok');
     expect(verdictGuard(root, 'make')).toEqual([]);
+  });
+});
+
+// On one site a spec for one page could not finish because another page's
+// critique predated a release that added rules, and a set-aside record still
+// failed for screenshots it no longer had. A stop is judged on what it touched.
+describe('the gate judges the critiques this session touched', () => {
+  const badCritique = (surface: string) => {
+    const dir = join(root, '.jig', 'critique', surface);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'screen.json'), JSON.stringify({ rendered: false, verdicts: [] }));
+    return dir;
+  };
+  const session = (startedAt: Date, command = 'spec') => {
+    const path = join(root, 'session.jsonl');
+    writeFileSync(path, JSON.stringify({ type: 'user', timestamp: startedAt.toISOString(), message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>` } }) + '\n');
+    return path;
+  };
+  const stop = (transcript?: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's-scope', transcript_path: transcript } });
+
+  it('does not block on another page\'s critique written before this session', () => {
+    jigProject();
+    const dir = badCritique('catalog');
+    const old = new Date(Date.now() - 3_600_000);
+    utimesSync(join(dir, 'screen.json'), old, old);
+    expect(stop(session(new Date())).reason).not.toMatch(/jig verdicts catalog/);
+  });
+
+  it('blocks on a critique this session changed', () => {
+    jigProject();
+    badCritique('catalog');
+    expect(stop(session(new Date(Date.now() - 60_000))).reason).toMatch(/jig verdicts catalog/);
+  });
+
+  it('never judges a critique set aside with a leading underscore', () => {
+    jigProject();
+    badCritique('_superseded-catalog');
+    expect(stop(session(new Date(Date.now() - 60_000))).reason ?? '').not.toMatch(/_superseded/);
+  });
+
+  it('judges every critique when there is no transcript to date the session', () => {
+    jigProject();
+    const dir = badCritique('catalog');
+    const old = new Date(Date.now() - 3_600_000);
+    utimesSync(join(dir, 'screen.json'), old, old);
+    expect(stop(undefined).reason).toMatch(/jig verdicts catalog/);
   });
 });

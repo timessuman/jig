@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.17.1
+
+### Fixed
+
+- **The gate judges the critiques a session touched, not every critique.**
+  A spec for one page could not finish because another page's critique
+  predated 0.17.0, whose new rules that critique had never judged, and a
+  record the project had set aside still failed for screenshots it no longer
+  had. The gate now checks a critique with a file changed since the session
+  began, and the current spec's surface after `critique`. A folder whose name
+  starts with `_` is set aside and never judged. With no transcript, as when
+  the gate is run by hand, it checks every critique as before.
+
 ## 0.17.0
 
 Thirteen more tells of a generated page, ten of them caught by `check`, and a
