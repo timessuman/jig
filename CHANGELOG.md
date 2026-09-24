@@ -27,6 +27,10 @@ which was not published to npm.
 
 ### Fixed
 
+- **A probe no longer fails while Chrome shuts down.** Its temporary profile
+  was deleted the moment Chrome was killed; under load the delete raced
+  Chrome's last writes, threw, and failed a probe whose measurement had
+  succeeded. It now waits for Chrome to exit and retries the delete.
 - **`jig probe --run <page> --serve <dir>` measures a built static site.** A
   build links its styles from the site root, so opened as a file nothing loaded
   and the probe measured an unstyled page. The CLI now serves the build
