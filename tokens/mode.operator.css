@@ -83,6 +83,13 @@
      have anything moving on it that they did not cause. */
 
   --font-numeric: var(--font-numeric-features);
+
+  /* Every mode declares every token name, so one alias block (utilities.css)
+     resolves on every surface. Ambient motion is editorial's (P-13); here it
+     is declared still, so a shared class resolves and nothing loops. */
+  --duration-ambient-fast: 0s;
+  --duration-ambient-base: 0s;
+  --duration-ambient-slow: 0s;
 }
 
 @media (prefers-reduced-motion: reduce) {

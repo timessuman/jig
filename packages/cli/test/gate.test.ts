@@ -478,6 +478,21 @@ describe('the gate judges the critiques this session touched', () => {
     expect(stop(session(new Date(Date.now() - 60_000))).reason ?? '').not.toMatch(/_superseded/);
   });
 
+  // Seen live: a critique session on one page stamped a lock into the other
+  // page's critique folder, and the next stop read that stamp as a touch.
+  it('does not lock, and then judge, another page\'s critique during a critique session', () => {
+    jigProject();
+    const catalog = badCritique('catalog');
+    const old = new Date(Date.now() - 3_600_000);
+    utimesSync(join(catalog, 'screen.json'), old, old);
+    const page = badCritique('rule-page');
+    const t = session(new Date(Date.now() - 60_000), 'critique');
+    stop(t);
+    expect(existsSync(join(catalog, 'verdicts.lock'))).toBe(false);
+    expect(existsSync(join(page, 'verdicts.lock'))).toBe(true);
+    expect(stop(t).reason).not.toMatch(/jig verdicts catalog/);
+  });
+
   it('judges every critique when there is no transcript to date the session', () => {
     jigProject();
     const dir = badCritique('catalog');

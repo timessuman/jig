@@ -107,7 +107,12 @@ export const PROBE_SCRIPT = `(async () => {
   const navAtRest = navLinks();
   // The menu control: inside the header or navigation, or named as the menu.
   // Not any disclosure — an FAQ <summary> is not a menu.
-  const inChrome = (b) => !!b.closest('header, nav, [role=navigation], [role=banner]');
+  // The site's navigation, not a page's own: a <nav> inside <main>, an
+  // <article> or an <aside> is in-page navigation (a section list, a table of
+  // contents), and its <summary> is a disclosure the reader opens, not the menu.
+  // A rule page's "More in this section" list was judged a broken menu this way.
+  const inChrome = (b) => !!b.closest('header, [role=banner]') ||
+    (!!b.closest('nav, [role=navigation]') && !b.closest('main, article, aside, [role=main]'));
   const named = (b) => /\b(menu|navigation)\b/i.test((b.getAttribute('aria-label') || '') + ' ' + b.textContent);
   const toggle = [...document.querySelectorAll('button, summary, [role=button]')].find((b) => vis(b) &&
     (named(b) || (inChrome(b) && (b.tagName === 'SUMMARY' || b.hasAttribute('aria-expanded') || b.hasAttribute('aria-controls')))));

@@ -75,6 +75,7 @@
   --grid-margin:  var(--spacing-xxl); --grid-margin-sm: var(--spacing-s);   /* 80 → 16 */
 
   --size-control: 48px;  --size-control-sm: 40px;
+  --size-row: 56px;  --size-row-compact: 48px;
   --size-touch-target: 48px;  --size-icon: 20px;
 
   --border-width-control: var(--border-width-hairline);
@@ -102,6 +103,10 @@
   --duration-ambient-fast: 3s;
   --duration-ambient-base: 4.7s;
   --duration-ambient-slow: 7.1s;
+
+  /* Every mode declares every token name, so one alias block (utilities.css)
+     resolves on every surface. Tabular figures are harmless in prose. */
+  --font-numeric: var(--font-numeric-features);
 }
 
 @media (prefers-reduced-motion: reduce) {

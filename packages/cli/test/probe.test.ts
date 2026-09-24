@@ -291,6 +291,20 @@ describe('the CLI can run the probe itself', () => {
     expect(errors.join('\n')).toMatch(/taken on an older dist\/rules\/index\.html/);
   }, 120_000);
 
+  it('does not take an in-page section list for the site menu', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-inpage-'));
+    writeFileSync(join(root, 'page.html'),
+      '<html><head><title>t</title></head><body><header><a href="/">Site</a> <a href="/rules/">Rules</a></header>' +
+      '<main><h1>A-139</h1><nav aria-label="More in A"><details><summary>More in A (25)</summary><a href="/a-01">A-01</a></details></nav></main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'rule'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'rule', page: 'page.html', widths: [360] });
+    const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'rule', 'probe-360.json'), 'utf8'));
+    expect(probe.menu).toBeNull();
+  }, 120_000);
+
   it('re-renders only what is missing or taken on an older page', async () => {
     const { ensureProbes } = await import('../src/probe/save.js');
     const root = mkdtempSync(join(tmpdir(), 'jig-ensure-'));

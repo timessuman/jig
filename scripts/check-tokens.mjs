@@ -700,6 +700,27 @@ const LIGHT_BACKGROUNDS = {
   }
 }
 
+/* ------------------------------------------------------------------
+ * Rule 14 — every mode declares the same token names.
+ *
+ * A project with two modes shares one alias block between them. An alias for
+ * a name one mode never declares resolves to nothing on that mode's routes:
+ * on a real site, --size-row, --size-row-compact and --font-numeric were
+ * undefined on every editorial page, and the render probe said so.
+ * ------------------------------------------------------------------ */
+{
+  const MODES = ['editorial', 'product', 'operator'];
+  const namesOf = (m) => new Set(
+    [...read(`tokens/mode.${m}.css`).matchAll(/(?:^|[;{\s])(--[a-z0-9-]+)\s*:/g)].map((x) => x[1]),
+  );
+  const names = Object.fromEntries(MODES.map((m) => [m, namesOf(m)]));
+  const all = new Set(MODES.flatMap((m) => [...names[m]]));
+  for (const m of MODES) {
+    const missing = [...all].filter((n) => !names[m].has(n));
+    if (missing.length) fail(`mode.${m}.css does not declare ${missing.join(', ')}, which another mode does; a shared alias would resolve to nothing on its routes`);
+  }
+}
+
 if (failed) {
   console.error('\ntoken/doc check failed');
   process.exit(1);

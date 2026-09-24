@@ -194,24 +194,28 @@ mode states its own value, because density is the thing a mode *is*.
 | --- | --- | --- | --- |
 | `--size-control` | 48px | 40px | 32px |
 | `--size-control-sm` | 40px | 32px | 28px |
-| `--size-row` | — | 48px | 36px |
-| `--size-row-compact` | — | — | 32px |
+| `--size-row` | 56px | 48px | 36px |
+| `--size-row-compact` | 48px | 40px | 32px |
 | `--size-icon` | 20px | 18px | 16px |
 | `--duration-fast` | 150ms | 100ms | 75ms |
 | `--duration-base` | 250ms | 150ms | 100ms |
 | `--duration-slow` | 300ms | 200ms | 120ms |
-| `--duration-ambient-fast` | 3s | — | — |
-| `--duration-ambient-base` | 4.7s | — | — |
-| `--duration-ambient-slow` | 7.1s | — | — |
+| `--duration-ambient-fast` | 3s | 0s | 0s |
+| `--duration-ambient-base` | 4.7s | 0s | 0s |
+| `--duration-ambient-slow` | 7.1s | 0s | 0s |
 | `--measure-prose` | 68ch | 60ch | 72ch |
 | `--ease-out` | cubic-bezier(0.16, 1, 0.3, 1) | cubic-bezier(0.16, 1, 0.3, 1) | cubic-bezier(0.2, 0, 0, 1) |
 | `--ease-in-out` | cubic-bezier(0.65, 0, 0.35, 1) | cubic-bezier(0.65, 0, 0.35, 1) | cubic-bezier(0.4, 0, 0.2, 1) |
 
-A `—` means the mode does not define that token: `editorial` has no row
-heights because it has no dense record views, and `product` selects a single
-row height rather than a compact variant. A pattern that needs one in those
-modes is using the wrong mode, or the mode file needs the token added
-deliberately.
+**Every mode declares every token name.** A project with two modes shares one
+alias block (`utilities.css`) between them, and an alias for a token one mode
+never declares points at nothing on that mode's routes: on a real site, three
+utilities for row height and tabular figures were undefined on every editorial
+page. So each mode states a value for each name, even where the value is only
+a fallback: `editorial` rows are sized to its controls, though it rarely shows
+dense records, and ambient motion is `0s` outside `editorial` (`P-13`), so a
+shared class resolves and nothing loops. `check-tokens` fails a mode file that
+declares a name another does not.
 
 **The ambient periods are a chord, not a ladder.** The three interaction
 durations are a scale — fast, base, slow, pick by weight of change. The three

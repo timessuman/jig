@@ -145,6 +145,8 @@ export function sessionStart(transcriptPath: string | undefined): number | undef
 function newestMtime(dir: string): number {
   let newest = 0;
   for (const name of readdirSync(dir, { withFileTypes: true })) {
+    // The gate's own record: writing it must not make a critique look touched.
+    if (name.name === LOCK) continue;
     const path = join(dir, name.name);
     newest = Math.max(newest, name.isDirectory() ? newestMtime(path) : statSync(path).mtimeMs);
   }
@@ -292,7 +294,7 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
     }
   }
 
-  problems.push(...verdictGuard(root, command));
+  problems.push(...verdictGuard(root, command, surfacesInPlay(root, command, opts.input.transcript_path)));
 
   const critiqueDir = join(root, '.jig', 'critique');
   if (existsSync(critiqueDir)) {
@@ -367,7 +369,7 @@ function verdictChecksum(dir: string): string | undefined {
  * by checksum. A later session that did not run `critique` and finds them
  * changed is stopped, whatever wrote the change (an edit, a script, a commit).
  */
-export function verdictGuard(root: string, command: string | undefined): string[] {
+export function verdictGuard(root: string, command: string | undefined, inPlay?: string[]): string[] {
   const critiqueDir = join(root, '.jig', 'critique');
   if (!existsSync(critiqueDir)) return [];
   const problems: string[] = [];
@@ -377,7 +379,10 @@ export function verdictGuard(root: string, command: string | undefined): string[
     const now = verdictChecksum(dir);
     if (!now) continue;
     const lockPath = join(dir, LOCK);
-    if (command === 'critique') {
+    // Lock only what this critique session touched. Locking every critique
+    // stamped the catalog's folder during a rule-page session, and the next
+    // stop read that stamp as the catalog having been touched.
+    if (command === 'critique' && (!inPlay || inPlay.includes(surface))) {
       try { writeFileSync(lockPath, JSON.stringify({ checksum: now }) + '\n', 'utf8'); } catch { /* read-only tree */ }
       continue;
     }
