@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "rules",
+    "examples",
     "tokens",
     "templates",
     "references",

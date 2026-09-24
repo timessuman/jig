@@ -912,5 +912,96 @@
     "severity": "note",
     "since": "0.14.0",
     "pass": "code"
+  },
+  {
+    "id": "A-135",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-136",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-137",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-138",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-139",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-140",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-141",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-142",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-143",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-144",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "G-145",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-146",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "F-147",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
   }
 ]

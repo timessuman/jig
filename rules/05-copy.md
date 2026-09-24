@@ -54,6 +54,7 @@ Someone who reads only the heading still gets the point. Someone who needs the d
 ✅ "Beautiful waterfront location", "Fast check-in experience", "Free secure parking"
 A heading must carry its own meaning. People scan headings and skip the supporting text, and screen reader users routinely pull up a list of every heading on a page to navigate — a list of one-word labels tells them nothing.
 Break long passages into groups with a descriptive heading each, rather than one unbroken block.
+**The same holds for a page's headline.** "Build the future of work", "Your all-in-one platform", "Where ideas come to life" could sit above any product, which means they say nothing about this one. A headline names what the product does and for whom: "Search your logs by asking in plain English". If it would still be true after swapping in a competitor's name, rewrite it.
 
 ### I-82 Uneven text length across parallel elements
 ❌ Three feature columns of two, four and three lines
@@ -112,6 +113,7 @@ Users assume different words mean different things, because in a well-built inte
 Screen reader users pull up a list of every link on a page; a list of "learn more" is useless. Sighted users scanning have to read the surrounding text to work out where each one goes. Three identical links also imply one destination.
 "Click here" is worse still: it explains a mechanism people already understand, and it is wrong for anyone on touch, keyboard or voice.
 Often the cleanest fix is to drop the link and make the **heading** the link.
+**Buttons too.** "Get started", "Learn more", "Try it free" on every call to action say that something happens, not what. Name the outcome: "Create a workspace", "Search your first log file", "Book a 20-minute demo". A button whose label would fit any product is a button the reader has to decode.
 
 ### I-57 Actions and text centred by default
 ❌ Centred buttons and centred body text as a general habit
