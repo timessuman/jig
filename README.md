@@ -285,7 +285,7 @@ what Jig knows about your project.
 The opposite job, and the loop runs in its ordinary order. The difference is what
 the old page counts as: **content and constraints, not a target.**
 
-1. **Measure the page as it is, first.** `jig probe --run <page> --save <slug>`
+1. **Measure the page as it is, first.** `jig probe --run <page> --save <slug>` (add `--serve <build dir>` for a built site)
    records what it does today at each width — whether it scrolls sideways, whether
    the menu opens, what order it reads in. Keep it. It is the only way to say
    afterwards whether the redesign improved anything or merely changed it.

@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join, relative, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { checksum } from '../install/manifest.js';
 import { PROBE_VERSION } from './script.js';
 import { findChrome, runProbe } from './browser.js';
+import { serveDirectory } from './serve.js';
 
 /**
  * `jig probe --save <surface>` — the CLI writes the probe file, not the agent.
@@ -26,7 +27,7 @@ export interface SaveResult {
   page: string;
 }
 
-export function saveProbe(opts: { projectRoot: string; surface: string; json: string }): SaveResult {
+export function saveProbe(opts: { projectRoot: string; surface: string; json: string; page?: string; serveRoot?: string }): SaveResult {
   let probe: Record<string, unknown>;
   try {
     probe = JSON.parse(opts.json) as Record<string, unknown>;
@@ -40,11 +41,14 @@ export function saveProbe(opts: { projectRoot: string; surface: string; json: st
   if (!Number.isFinite(width)) throw new Error('The probe output has no width. Evaluate it in a browser, at the width you are judging.');
 
   const url = typeof probe.url === 'string' ? probe.url : '';
-  const page = pageFile(opts.projectRoot, url);
+  // A served page is named by the command that served it, never read from the
+  // URL: a local port says nothing about which file answered.
+  const page = opts.page ? projectFile(opts.projectRoot, opts.page) : pageFile(opts.projectRoot, url);
   if (!page) {
-    throw new Error(`The probe ran at ${url || 'no url'}, which is not a file in this project. Open the page you built — a file:// URL under the project — and probe that.`);
+    throw new Error(`The probe ran at ${url || 'no url'}, which is not a file in this project. Open the page you built, as a file:// URL under the project, or let \`jig probe --run <page> --serve <dir>\` serve it.`);
   }
   probe.pageFile = relative(opts.projectRoot, page).split('\\').join('/');
+  if (opts.serveRoot) probe.serveRoot = relative(opts.projectRoot, resolve(opts.projectRoot, opts.serveRoot)).split('\\').join('/') || '.';
   probe.pageChecksum = checksum(readFileSync(page, 'utf8'));
   probe.recordedAt = new Date().toISOString();
 
@@ -53,6 +57,13 @@ export function saveProbe(opts: { projectRoot: string; surface: string; json: st
   const path = join(dir, `probe-${width}.json`);
   writeFileSync(path, JSON.stringify(probe), 'utf8');
   return { path: `.jig/critique/${opts.surface}/probe-${width}.json`, width, page: probe.pageFile as string };
+}
+
+/** A path inside the project that exists, resolved; otherwise nothing. */
+export function projectFile(projectRoot: string, path: string): string | undefined {
+  const abs = resolve(projectRoot, path);
+  if (abs !== resolve(projectRoot) && !abs.startsWith(resolve(projectRoot) + sep)) return undefined;
+  return existsSync(abs) ? abs : undefined;
 }
 
 /** The local file a probe's `url` names, when it is one inside the project. */
@@ -89,16 +100,32 @@ export const PROBE_WIDTHS = [360, 768, 1280, 1600];
  * project. This is what lets the Stop hook stop asking: when a browser exists,
  * the render is not a step an agent can skip.
  */
-export async function runAndSaveProbes(opts: { projectRoot: string; surface: string; page: string; widths?: number[] }): Promise<SaveResult[]> {
+export async function runAndSaveProbes(opts: { projectRoot: string; surface: string; page: string; serve?: string; widths?: number[] }): Promise<SaveResult[]> {
   const abs = resolve(opts.projectRoot, opts.page);
   if (!existsSync(abs)) throw new Error(`${opts.page} does not exist, so there is nothing to render.`);
-  const url = /^https?:/i.test(opts.page) ? opts.page : `file://${abs}`;
   const saved: SaveResult[] = [];
-  for (const width of opts.widths ?? PROBE_WIDTHS) {
-    const json = await runProbe({ url, width });
-    saved.push(saveProbe({ projectRoot: opts.projectRoot, surface: opts.surface, json }));
-  }
+  await withPageUrl(opts.projectRoot, abs, opts.serve, async (url) => {
+    for (const width of opts.widths ?? PROBE_WIDTHS) {
+      const json = await runProbe({ url, width });
+      saved.push(saveProbe({ projectRoot: opts.projectRoot, surface: opts.surface, json, page: abs, serveRoot: opts.serve }));
+    }
+  });
   return saved;
+}
+
+/** The URL a browser should load `abs` at: served from `serve` when given, as a file otherwise. */
+async function withPageUrl(projectRoot: string, abs: string, serve: string | undefined, use: (url: string) => Promise<void>): Promise<void> {
+  if (!serve) return use(`file://${abs}`);
+  const root = resolve(projectRoot, serve);
+  if (!existsSync(root)) throw new Error(`${serve} does not exist, so there is nothing to serve.`);
+  if (!abs.startsWith(root + sep)) throw new Error(`The page is not inside ${serve}, so serving ${serve} cannot show it.`);
+  const server = await serveDirectory(root);
+  try {
+    const path = relative(root, abs).split(sep).join('/');
+    await use(`${server.origin}/${path}`);
+  } finally {
+    await server.close();
+  }
 }
 
 /**
@@ -130,10 +157,20 @@ export async function ensureProbes(opts: { projectRoot: string; surface: string;
   });
   if (missing.length === 0) return { recorded: [] };
   if (!findChrome()) return { recorded: [], reason: 'no browser on this machine' };
-  const url = /^https?:/i.test(opts.page) ? opts.page : `file://${abs}`;
-  for (const width of missing) {
-    saveProbe({ projectRoot: opts.projectRoot, surface: opts.surface, json: await runProbe({ url, width }) });
+  // Re-render the way it was first rendered: a page probed from a served
+  // directory is served again.
+  let serve: string | undefined;
+  for (const width of PROBE_WIDTHS) {
+    try {
+      const probe = JSON.parse(readFileSync(join(dir, `probe-${width}.json`), 'utf8')) as { serveRoot?: string };
+      if (probe.serveRoot) { serve = probe.serveRoot; break; }
+    } catch { /* no probe at this width */ }
   }
+  await withPageUrl(opts.projectRoot, abs, serve, async (url) => {
+    for (const width of missing) {
+      saveProbe({ projectRoot: opts.projectRoot, surface: opts.surface, json: await runProbe({ url, width }), page: abs, serveRoot: serve });
+    }
+  });
   return { recorded: missing };
 }
 

@@ -8,6 +8,7 @@ import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
 import { decisionsFile } from '../check/decisions.js';
+import { checksum } from '../install/manifest.js';
 
 /**
  * `jig gate` — run by a Claude Code Stop hook that `jig install` writes.
@@ -239,6 +240,8 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
     }
   }
 
+  problems.push(...verdictGuard(root, command));
+
   const critiqueDir = join(root, '.jig', 'critique');
   if (existsSync(critiqueDir)) {
     for (const surface of readdirSync(critiqueDir)) {
@@ -288,6 +291,53 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
       `Not finished — Jig's gate failed (attempt ${count} of ${MAX_BLOCKS}). ` +
       `Fix these before you stop, and do not report the work as done until they pass:\n\n${problems.join('\n\n')}`,
   };
+}
+
+const VERDICT_FILES = ['screen.json', 'code.json', 'decisions.json'];
+const LOCK = 'verdicts.lock';
+
+/** One checksum over a surface's verdict files, or nothing if it has none. */
+function verdictChecksum(dir: string): string | undefined {
+  const parts = VERDICT_FILES.map((f) => {
+    try { return `${f}\n${readFileSync(join(dir, f), 'utf8')}`; } catch { return ''; }
+  });
+  return parts.some(Boolean) ? checksum(parts.join('\n')) : undefined;
+}
+
+/**
+ * Verdicts are critique's, and only critique's.
+ *
+ * In a live run, `make` was asked to fix three critique findings. It fixed them,
+ * then rewrote those three verdicts from `finding` to `ok` itself, and the gate
+ * accepted the review as clean. A builder grading its own fix is not a review.
+ *
+ * So when a session that ran `critique` stops, the verdict files are recorded
+ * by checksum. A later session that did not run `critique` and finds them
+ * changed is stopped, whatever wrote the change (an edit, a script, a commit).
+ */
+export function verdictGuard(root: string, command: string | undefined): string[] {
+  const critiqueDir = join(root, '.jig', 'critique');
+  if (!existsSync(critiqueDir)) return [];
+  const problems: string[] = [];
+  for (const surface of readdirSync(critiqueDir)) {
+    const dir = join(critiqueDir, surface);
+    const now = verdictChecksum(dir);
+    if (!now) continue;
+    const lockPath = join(dir, LOCK);
+    if (command === 'critique') {
+      try { writeFileSync(lockPath, JSON.stringify({ checksum: now }) + '\n', 'utf8'); } catch { /* read-only tree */ }
+      continue;
+    }
+    let locked: string | undefined;
+    try { locked = (JSON.parse(readFileSync(lockPath, 'utf8')) as { checksum?: string }).checksum; } catch { continue; }
+    if (locked && locked !== now) {
+      problems.push(
+        `.jig/critique/${surface}: the verdict files changed after \`/jig critique\` wrote them${command ? `, in a session that ran \`/jig ${command}\`` : ''}. ` +
+          `Verdicts are the review's, not the builder's: restore them (\`git checkout -- .jig/critique/${surface}\`) and run \`/jig critique\` to judge the fix.`,
+      );
+    }
+  }
+  return problems;
 }
 
 function save(file: string, state: Record<string, number>): void {

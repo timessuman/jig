@@ -263,6 +263,34 @@ describe('the CLI can run the probe itself', () => {
     expect(probe.emDashes.join(' | ')).not.toMatch(/quoted rule|forever/);
   }, 120_000);
 
+  // A built static site links its stylesheet from the site root. Opened as a
+  // file, nothing loads and the probe measures an unstyled page.
+  it('serves a built directory so root-relative styles load, and stamps the file', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const { readProbes } = await import('../src/probe/check.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-serve-'));
+    mkdirSync(join(root, 'dist', 'rules'), { recursive: true });
+    mkdirSync(join(root, 'dist', '_assets'), { recursive: true });
+    writeFileSync(join(root, 'dist', '_assets', 'site.css'), 'body { font-family: monospace; }');
+    writeFileSync(join(root, 'dist', 'rules', 'index.html'),
+      '<html><head><title>t</title><link rel="stylesheet" href="/_assets/site.css"></head><body><main>x</main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'rules'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'rules', page: 'dist/rules/index.html', serve: 'dist', widths: [360] });
+    const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'rules', 'probe-360.json'), 'utf8'));
+    expect(probe.bodyFont).toMatch(/monospace/);
+    expect(probe.defaultFont).toBe(false);
+    expect(probe.serveRoot).toBe('dist');
+    expect(probe.pageFile).toBe('dist/rules/index.html');
+    const errors: string[] = [];
+    readProbes(root, join(root, '.jig', 'critique', 'rules'), errors);
+    expect(errors).toEqual([]);
+    writeFileSync(join(root, 'dist', 'rules', 'index.html'), '<html><body>changed</body></html>');
+    readProbes(root, join(root, '.jig', 'critique', 'rules'), errors);
+    expect(errors.join('\n')).toMatch(/taken on an older dist\/rules\/index\.html/);
+  }, 120_000);
+
   it('re-renders only what is missing or taken on an older page', async () => {
     const { ensureProbes } = await import('../src/probe/save.js');
     const root = mkdtempSync(join(tmpdir(), 'jig-ensure-'));

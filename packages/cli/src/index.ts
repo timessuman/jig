@@ -228,8 +228,9 @@ program
   .command('probe')
   .description("Print the render probe. With --save, read what it returned on stdin and record it for `jig verdicts`.")
   .option('--save <surface>', "record the probe's output (piped in) under .jig/critique/<surface>/")
-  .option('--run <page>', 'render this page here, at 360, 768 and 1280, and record each (needs --save)')
-  .action(async (opts: { save?: string; run?: string }) => {
+  .option('--run <page>', 'render this page here, at 360, 768, 1280 and 1600, and record each (needs --save)')
+  .option('--serve <dir>', 'serve this directory over local http and load --run from it, so root-relative links resolve (a built static site)')
+  .action(async (opts: { save?: string; run?: string; serve?: string }) => {
     if (opts.run) {
       if (!opts.save) {
         console.error('  ✗ --run records what it measures, so it needs --save <surface>.');
@@ -237,7 +238,7 @@ program
       }
       const projectRoot = findProjectRoot(process.cwd());
       try {
-        for (const saved of await runAndSaveProbes({ projectRoot, surface: opts.save, page: opts.run })) {
+        for (const saved of await runAndSaveProbes({ projectRoot, surface: opts.save, page: opts.run, serve: opts.serve })) {
           console.log(`  Recorded ${saved.path} — ${saved.page} at ${saved.width}px.`);
         }
       } catch (err) {
