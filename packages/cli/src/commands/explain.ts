@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { loadRules, type LoadedRule } from '../rules/load.js';
@@ -228,7 +229,13 @@ export function explain(opts: ExplainOptions): string {
   if (shape) {
     const id = `${shape[1]}-${shape[2]}`;
     const rule = rules.find((r) => r.id === id);
-    if (rule) return renderRule(rule);
+    if (rule) {
+      // The picture beside the name: a dont and a do, shipped with the rules.
+      const example = join(root, 'examples', `${id}.html`);
+      return existsSync(example)
+        ? `${renderRule(rule)}\n\nExample: ${example} (a dont and a do, each a self-contained HTML fragment)`
+        : renderRule(rule);
+    }
     const spec = specs.find((s) => s.id === id);
     if (spec) return renderSpec(spec);
 

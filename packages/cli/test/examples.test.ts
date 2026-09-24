@@ -41,3 +41,11 @@ describe('rule examples', () => {
     });
   }
 });
+
+describe('explain names the example', () => {
+  it('prints where a rule\'s example is', async () => {
+    const { explain } = await import('../src/commands/explain.js');
+    const out = explain({ ruleId: 'A-139', version: 't', packageRoot: repoRoot });
+    expect(out).toMatch(/Example: .*examples\/A-139\.html/);
+  });
+});

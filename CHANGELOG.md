@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.17.0
+
+Thirteen more tells of a generated page, ten of them caught by `check`, and a
+picture for every rule.
+
+### Added
+
+- **Thirteen rules.** `A-135` a kicker above every heading, `A-136` an eyebrow
+  chip over the headline, `A-137` cream and beige by reflex, `A-138` an italic
+  serif display headline, `A-139` a side-tab accent border, `A-140` a thick
+  coloured border on a rounded element, `A-141` cards inside cards, `A-142` the
+  soft rounded card, `A-143` a decorative grid or stripe background, `A-144`
+  dark mode with glowing accents, `G-145` a pulsing status dot, `A-146`
+  numbered section labels, `F-147` asking for more than the task needs.
+- **Ten detectors for them**, reading both the CSS and the utility classes in
+  markup, and joining the two where a page splits them (a pulse or a serif
+  declared on a class, worn by the element). All warnings; the rules are hybrid.
+  On seven pages built with no guidance, every instance of these tells found by
+  eye was reported, and every report was a real instance.
+- **`examples/`: a dont and a do for all 143 rules**, shipped in the package.
+  Each is a small self-contained HTML fragment that renders the same in a
+  sandboxed frame or an inert box. `jig explain <ID>` names the file, and
+  `packages/preview/examples.html` shows them all side by side.
+
+### Changed
+
+- `A-04` names glass applied everywhere, `A-06` the same equal-card reflex at
+  any count, `I-81` the page's headline, and `I-89` button labels as well as
+  links.
+
 ## 0.16.2
 
 ### Fixed
