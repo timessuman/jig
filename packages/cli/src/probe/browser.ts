@@ -115,8 +115,17 @@ export async function runProbe(opts: { url: string; width: number; height?: numb
     });
     return await evaluate(endpoint, opts.url, opts.width, opts.height ?? 900, timeoutMs);
   } finally {
+    // Chrome keeps writing to its profile while it shuts down. Deleting the
+    // directory the moment it is killed raced that, and under load the delete
+    // threw ENOTEMPTY and failed a probe whose measurement had already
+    // succeeded. Wait for it to exit, retry the delete, and never let cleanup
+    // of a temporary directory fail the result.
+    const exited = child.exitCode !== null ? Promise.resolve() : new Promise<void>((done) => child.once('exit', () => done()));
     child.kill();
-    rmSync(profile, { recursive: true, force: true });
+    await Promise.race([exited, new Promise<void>((done) => setTimeout(done, 5000))]);
+    try {
+      rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    } catch { /* a leftover temp directory is not a failed measurement */ }
   }
 }
 
