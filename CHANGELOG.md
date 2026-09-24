@@ -3,7 +3,8 @@
 ## 0.17.0
 
 Thirteen more tells of a generated page, ten of them caught by `check`, and a
-picture for every rule.
+picture for every rule. Also carries the probe and verdict fixes tagged as 0.16.2,
+which was not published to npm.
 
 ### Added
 
@@ -24,14 +25,6 @@ picture for every rule.
   sandboxed frame or an inert box. `jig explain <ID>` names the file, and
   `packages/preview/examples.html` shows them all side by side.
 
-### Changed
-
-- `A-04` names glass applied everywhere, `A-06` the same equal-card reflex at
-  any count, `I-81` the page's headline, and `I-89` button labels as well as
-  links.
-
-## 0.16.2
-
 ### Fixed
 
 - **`jig probe --run <page> --serve <dir>` measures a built static site.** A
@@ -43,6 +36,12 @@ picture for every rule.
   those verdicts to `ok` itself and the gate accepted it. The gate now records
   the verdict files when a `critique` session stops, and stops any later
   session that changed them without running `critique`.
+
+### Changed
+
+- `A-04` names glass applied everywhere, `A-06` the same equal-card reflex at
+  any count, `I-81` the page's headline, and `I-89` button labels as well as
+  links.
 
 ## 0.16.1
 
