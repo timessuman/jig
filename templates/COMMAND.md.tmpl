@@ -1191,6 +1191,12 @@ blocking. It also refuses when a critique's verdict files changed after `critiqu
 wrote them, in a session that did not run `critique`: a fix is judged by the next
 review, never by the builder editing the last one.
 
+It judges the critiques this session touched: any with a file changed since the
+session began, and the current spec's surface when you ran `critique`. Another
+page's older critique does not hold you back. To set a critique aside for good,
+rename its folder with a leading underscore (`.jig/critique/_old-catalog`); the
+gate never judges it.
+
 A warning you are sure is right as it stands, because the detector guessed and the
 guess is wrong here, is waived on its own line or the line above, in the file's
 comment syntax: `jig-allow <ID>: <why>`. The reason is what the user reads, so write

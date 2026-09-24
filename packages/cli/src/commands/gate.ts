@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { navProblems, newestSpec, specProblems } from '../check/spec-shape.js';
@@ -126,6 +126,58 @@ export function asksOwner(text: string | undefined): boolean {
  */
 const ASKS_THE_OWNER = new Set(['decide', 'spec', 'mockup']);
 
+/** When this session began: the first timestamp in its transcript. */
+export function sessionStart(transcriptPath: string | undefined): number | undefined {
+  if (!transcriptPath || !existsSync(transcriptPath)) return undefined;
+  try {
+    for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
+      const m = /"timestamp"\s*:\s*"([^"]+)"/.exec(line);
+      if (m) {
+        const t = Date.parse(m[1]!);
+        if (!Number.isNaN(t)) return t;
+      }
+    }
+  } catch { /* unreadable: treat as unknown */ }
+  return undefined;
+}
+
+/** The newest file time anywhere under a directory. */
+function newestMtime(dir: string): number {
+  let newest = 0;
+  for (const name of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, name.name);
+    newest = Math.max(newest, name.isDirectory() ? newestMtime(path) : statSync(path).mtimeMs);
+  }
+  return newest;
+}
+
+/**
+ * The critiques this session is answerable for.
+ *
+ * Checking every critique on every stop blocked unrelated work three times on
+ * one site: a spec for one page could not finish because another page's
+ * critique predated a release that added rules, and a record the project had
+ * set aside still failed for screenshots that no longer existed. A stop is
+ * judged on what it touched: a critique with a file changed since this session
+ * began, and the current spec's surface when the session ran `critique`. A
+ * directory whose name starts with `_` is set aside and never judged. With no
+ * transcript to date the session (the gate run by hand), every critique is.
+ */
+export function surfacesInPlay(root: string, command: string | undefined, transcriptPath: string | undefined): string[] {
+  const critiqueDir = join(root, '.jig', 'critique');
+  if (!existsSync(critiqueDir)) return [];
+  const all = readdirSync(critiqueDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && !d.name.startsWith('_') && !d.name.startsWith('.'))
+    .map((d) => d.name);
+  const start = sessionStart(transcriptPath);
+  if (start === undefined) return all;
+  const current = command === 'critique'
+    ? /^\s*surface\s*:\s*(.+)$/im.exec(newestSpec(root)?.body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim().replace(/^["']|["']$/g, '')
+    : undefined;
+  // A second of slack: file times and transcript times come from different clocks' rounding.
+  return all.filter((s) => s === current || newestMtime(join(critiqueDir, s)) >= start - 1000);
+}
+
 /** What each command must have left behind, checked after it ran. */
 function commandProblems(root: string, command: string): string[] {
   const problems: string[] = [];
@@ -244,7 +296,7 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
 
   const critiqueDir = join(root, '.jig', 'critique');
   if (existsSync(critiqueDir)) {
-    for (const surface of readdirSync(critiqueDir)) {
+    for (const surface of surfacesInPlay(root, command, opts.input.transcript_path)) {
       const dir = join(critiqueDir, surface);
       if (!existsSync(join(dir, 'screen.json')) && !existsSync(join(dir, 'code.json'))) continue;
       const v = verifyVerdicts({ projectRoot: root, surface });
@@ -320,6 +372,7 @@ export function verdictGuard(root: string, command: string | undefined): string[
   if (!existsSync(critiqueDir)) return [];
   const problems: string[] = [];
   for (const surface of readdirSync(critiqueDir)) {
+    if (surface.startsWith('_')) continue;
     const dir = join(critiqueDir, surface);
     const now = verdictChecksum(dir);
     if (!now) continue;

@@ -178,6 +178,6 @@ export async function ensureProbes(opts: { projectRoot: string; surface: string;
 export function critiquedSurfaces(projectRoot: string): string[] {
   const root = join(projectRoot, '.jig', 'critique');
   if (!existsSync(root)) return [];
-  return readdirSync(root).filter((surface) =>
-    existsSync(join(root, surface, 'screen.json')) || existsSync(join(root, surface, 'code.json')));
+  return readdirSync(root).filter((surface) => !surface.startsWith('_') &&
+    (existsSync(join(root, surface, 'screen.json')) || existsSync(join(root, surface, 'code.json'))));
 }
