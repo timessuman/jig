@@ -49,3 +49,32 @@ describe('explain names the example', () => {
     expect(out).toMatch(/Example: .*examples\/A-139\.html/);
   });
 });
+
+// A consumer draws each figure in a 320px frame. The README once promised a
+// height every figure then broke: a docs site sized its frames from it, one
+// "instead" ran 363px wide and cut its own button off, and another stood 288px
+// tall in a frame drawn for less. Measured in a real browser, every figure.
+describe('every example fits the frame the README promises', () => {
+  it('is at most 320px wide and 260px tall', async () => {
+    const { findChrome, runProbe } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { mkdtempSync: tmp, writeFileSync: write } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const boxes = files.flatMap((file) => {
+      const html = readFileSync(join(dir, file), 'utf8');
+      return ['dont', 'do'].map((kind) => {
+        const inner = new RegExp(`<figure data-example="${kind}">([\\s\\S]*?)</figure>`).exec(html)?.[1] ?? '';
+        return `<div class="box" data-id="${file.replace(/\.html$/, '')}/${kind}" style="width:320px;margin:0 0 24px">${inner}</div>`;
+      });
+    });
+    const page = join(tmp(join(tmpdir(), 'jig-examples-')), 'all.html');
+    write(page, `<!doctype html><body style="margin:0">${boxes.join('')}</body>`);
+    const measured = JSON.parse(await runProbe({
+      url: `file://${page}`, width: 1000, expression:
+        `JSON.stringify([...document.querySelectorAll('.box')].map((b) => ({ id: b.dataset.id, w: b.scrollWidth, h: Math.round(b.getBoundingClientRect().height) })))`,
+    })) as Array<{ id: string; w: number; h: number }>;
+    expect(measured).toHaveLength(files.length * 2);
+    expect(measured.filter((m) => m.w > 320).map((m) => `${m.id} ${m.w}px wide`)).toEqual([]);
+    expect(measured.filter((m) => m.h > 260).map((m) => `${m.id} ${m.h}px tall`)).toEqual([]);
+  }, 120_000);
+});

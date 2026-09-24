@@ -22,8 +22,11 @@ for them. The example is the picture beside the name.
 - **Self-contained.** Styles are `style` attributes on the elements. No `<style>`,
   `<script>`, `<link>`, event handler, or external URL. A consumer renders a figure
   in a sandboxed frame or an inert box, and it has to look the same in both.
-- **Small.** A figure is drawn for a box about 320 by 180 pixels. It exaggerates
-  just enough to be recognised, and no more.
+- **Small, and bounded.** A figure is drawn 320 pixels wide and is at most 260
+  tall; most are 176. Frame each one at 320 by 260, or size the frame to the
+  figure's measured height. A figure that shows content running off an edge
+  clips it inside itself, so nothing ever spills past 320. It exaggerates just
+  enough to be recognised, and no more.
 - **Raw values are fine here.** An example has to show violet, a glow, a 44px
   radius. It is a specimen of the failure, not a component, so the token rule
   that governs a real page does not apply inside it.
@@ -41,4 +44,5 @@ Where even that is impossible, the figure shows the code, set as code.
 
 `packages/cli/test/examples.test.ts` fails when a rule has no example, when a file
 has other than one `dont` and one `do`, or when a figure carries anything that
-would not render the same in a sandbox.
+would not render the same in a sandbox. It also renders every figure in a real
+browser and fails any wider than 320 pixels or taller than 260.
