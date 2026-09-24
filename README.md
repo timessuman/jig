@@ -12,13 +12,13 @@ Installed as `npx jig-ui` — the bare name was taken on npm.
 Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
 They are two halves of the same thing, and the split is not arbitrary:
 
-- Of the 130 rules, **26 can be decided by a machine** — a hard-coded colour, a
+- Of the 143 rules, **36 can be decided by a machine** — a hard-coded colour, a
   contrast ratio below the floor, a removed focus ring. The CLI decides those.
-- The other **104 are judgment** — whether an empty state says anything useful,
+- The other **107 are judgment** — whether an empty state says anything useful,
   whether a label reads as an instruction, whether motion earns its place. No
   regex settles those. An agent reads the rules and applies them.
 
-Running only the CLI gets you the 26. Running only the agent gets you the 104 with
+Running only the CLI gets you the 36. Running only the agent gets you the 107 with
 no verification. **A clean `jig check` is not a clean review**, and the skill
 says so to every agent that reads it.
 
@@ -403,7 +403,7 @@ on the result — the CLI reports, the agent applies the judgment half.
 | Slash command | Equivalent |
 | --- | --- |
 | `/jig init` | `jig init` — then states the mode it chose and what it wired |
-| `/jig check` | `jig check` — then applies the 104 judgment rules and reports both halves |
+| `/jig check` | `jig check` — then applies the 107 judgment rules and reports both halves |
 | `/jig explain C-19` | `jig explain C-19` — prints the rule as-is, without paraphrasing it |
 | `/jig explain contrast` | `jig explain contrast` — every rule matching a word, when you do not have an id |
 | `/jig install --agent cursor` | `jig install --agent cursor` |
@@ -601,12 +601,13 @@ treatment.
 
 | File | Contents |
 | --- | --- |
-| `rules/00-anti-patterns.md` | 112 universal rules with corrections |
+| `rules/00-anti-patterns.md` | 125 universal rules with corrections |
 | `rules/01-modes.md` | `editorial` / `product` / `operator` profiles |
 | `rules/02-tokens.md` | Token contract, naming, consumption |
 | `rules/03-patterns.md` | Component anatomy and behaviour |
 | `rules/04-principles.md` | Five frames + seven tiebreakers |
 | `rules/05-copy.md` | Interface text rules |
+| `examples/<ID>.html` | For every rule, a small dont and do: self-contained HTML fragments that render in a sandboxed frame. `jig explain <ID>` names the file. |
 | `<css dir>/jig/brand.*.css` | Identity. One per project. |
 | `<css dir>/jig/mode.*.css` | Density, scale, rhythm, motion |
 | `<css dir>/jig/theme.css` | The barrel — brand + mode. This is what you import. With more than one mode, `theme.<mode>.css`, one per mode, each imported by its routes' layout. |

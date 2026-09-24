@@ -912,5 +912,106 @@
     "severity": "note",
     "since": "0.14.0",
     "pass": "code"
+  },
+  {
+    "id": "A-135",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "heading-kicker",
+    "pass": "code"
+  },
+  {
+    "id": "A-136",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "eyebrow-chip",
+    "pass": "code"
+  },
+  {
+    "id": "A-137",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "cream-palette",
+    "pass": "code"
+  },
+  {
+    "id": "A-138",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "italic-serif-display",
+    "pass": "code"
+  },
+  {
+    "id": "A-139",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "side-tab-border",
+    "pass": "code"
+  },
+  {
+    "id": "A-140",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "rounded-accent-border",
+    "pass": "code"
+  },
+  {
+    "id": "A-141",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-142",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
+  },
+  {
+    "id": "A-143",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "decorative-grid-background",
+    "pass": "code"
+  },
+  {
+    "id": "A-144",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "glow-accent",
+    "pass": "code"
+  },
+  {
+    "id": "G-145",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "pulsing-dot",
+    "pass": "code"
+  },
+  {
+    "id": "A-146",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.17.0",
+    "detector": "numbered-section-labels",
+    "pass": "code"
+  },
+  {
+    "id": "F-147",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.17.0",
+    "pass": "screen"
   }
 ]

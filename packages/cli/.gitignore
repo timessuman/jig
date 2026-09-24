@@ -1,6 +1,7 @@
 # Staged by scripts/stage-assets.mjs (prepack) from the repo root.
 # These are copies, not source — do not commit them here.
 /rules/
+/examples/
 /tokens/
 /templates/
 /references/

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jig rule examples</title>
+<!-- Development viewer for examples/<ID>.html. Serve the repo root and open
+     this page: python3 -m http.server, then /packages/preview/examples.html.
+     Each figure renders in a sandboxed frame with no scripts, which is how a
+     consumer is expected to show it, so what looks right here looks right
+     there. Scaffolding, not a specimen: raw values are fine in this file. -->
+<style>
+  body { margin: 0; font: 14px/1.5 system-ui, sans-serif; color: #1f1f1f; background: #fafafa; }
+  header { padding: 16px 24px; border-bottom: 1px solid #ddd; background: #fff; position: sticky; top: 0; }
+  main { padding: 16px 24px 48px; max-width: 1200px; }
+  h2 { font-size: 16px; margin: 32px 0 8px; }
+  .rule { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid #e5e5e5; align-items: start; }
+  .rule b { display: block; font-family: ui-monospace, monospace; }
+  .pane span { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #666; }
+  iframe { width: 100%; height: 180px; border: 1px solid #ddd; border-radius: 6px; background: #fff; display: block; margin-top: 4px; }
+  .missing { color: #b91c1c; }
+  @media (max-width: 800px) { .rule { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header><strong>Rule examples</strong> <span id="count"></span></header>
+<main id="list"></main>
+<script type="module">
+  // Grouped by section letter, in the order each section first appears in
+  // the index, so a section added to later still reads as one block.
+  const raw = await (await fetch('../../rules.index.json')).json();
+  const letters = [...new Set(raw.map((r) => r.id.split('-')[0]))];
+  const index = letters.flatMap((l) => raw.filter((r) => r.id.split('-')[0] === l));
+  const list = document.getElementById('list');
+  let shown = 0;
+  let section = '';
+  for (const rule of index) {
+    const letter = rule.id.split('-')[0];
+    if (letter !== section) {
+      section = letter;
+      list.insertAdjacentHTML('beforeend', `<h2>${letter}</h2>`);
+    }
+    const row = document.createElement('div');
+    row.className = 'rule';
+    const res = await fetch(`../../examples/${rule.id}.html`);
+    if (!res.ok) {
+      row.innerHTML = `<div><b>${rule.id}</b><span class="missing">no example</span></div>`;
+      list.append(row);
+      continue;
+    }
+    const html = await res.text();
+    const title = (/^<!-- \S+ · (.+) -->/.exec(html) || [])[1] || '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    row.innerHTML = `<div><b>${rule.id}</b>${title}</div>`;
+    for (const kind of ['dont', 'do']) {
+      const fig = doc.querySelector(`figure[data-example="${kind}"]`);
+      const pane = document.createElement('div');
+      pane.className = 'pane';
+      pane.innerHTML = `<span>${kind === 'dont' ? '✕ Don’t' : '✓ Do'}</span>`;
+      const frame = document.createElement('iframe');
+      frame.setAttribute('sandbox', '');
+      frame.setAttribute('loading', 'lazy');
+      frame.title = `${rule.id} ${kind}`;
+      frame.srcdoc = `<!doctype html><body style="margin:0">${fig ? fig.innerHTML : ''}</body>`;
+      pane.append(frame);
+      row.append(pane);
+    }
+    list.append(row);
+    shown++;
+  }
+  document.getElementById('count').textContent = `${shown} of ${index.length} rules`;
+</script>
+</body>
+</html>

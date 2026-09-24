@@ -39,6 +39,7 @@ These are the strongest defaults in a model's training data and the fastest way 
 ✅ Opaque `--color-bg-raised` with a `--color-stroke-weak` edge. Use translucency only over media, and only when legibility is verified against the worst frame.
 Both styles make sufficient contrast and clear hierarchy structurally difficult — neumorphism in particular defines every element with shadow alone, which fails at 3:1 almost by construction. Trend styles also age badly: the more of them a product carries, the more precisely it is dated. Minimal styling that foregrounds content lasts longer.
 Experiment freely — but not where it costs legibility or excludes people.
+**Everywhere is its own failure.** A frosted panel over a video is a layering decision; frosted cards, a frosted nav, frosted buttons and glowing glass borders on a flat page are decoration applied to everything, and they solve no layering problem at all.
 
 ### A-58 Decorative styling that implies meaning
 ❌ List items in assorted colours chosen for variety; a decorative icon beside a heading that looks pressable; a heading coloured and underlined though it is not a link
@@ -66,6 +67,7 @@ Where several already apply — a table's rows are aligned, alike, and close —
 ### A-06 The three-column feature grid reflex
 ❌ Icon-in-rounded-square + heading + two lines, three across, for any set of three things
 ✅ Let the content pick the layout. Three items of unequal weight are a list, not a grid.
+**The same reflex at any count.** Six or nine cards, each an icon, a title and a line, identical in size and shape, give every point the same weight whether it deserves it or not, and make the titles the only thing a reader can tell apart, so they skim all of them and remember none. When one point matters most, make it bigger, put it first, or give it the space the others do not get. Group related ones; drop the ones that are filler.
 
 ### A-07 Oversized radius everywhere
 ❌ One radius applied to cards, buttons, inputs and badges alike, regardless of element size
@@ -83,6 +85,61 @@ In `operator`, `--radius-surface` also selects `sm`, so cards, buttons and input
 ### A-10 Placeholder content shipped
 ❌ Lorem ipsum, "Acme Inc", `https://example.com`, stock avatars left in
 ✅ Real content, or clearly marked `TODO:` that fails a build check. Placeholder text that survives to review costs a reviewer more than it saved you.
+
+### A-135 A kicker above every heading
+❌ A small uppercase, letter-spaced line over each section heading: "FEATURES" over "What you get", "HOW IT WORKS" over "Three steps to launch"
+✅ One heading that says it. If the kicker repeats the heading, delete it; if it adds something, work those words into the heading or the line under it.
+A kicker is one more line to read before the one that matters, and on every section it stops marking anything. It survives from print, where a section label helped a reader flip to a page. On a screen the heading is already the label.
+
+### A-136 An eyebrow chip over the headline
+❌ A rounded pill above the hero headline: "✦ Introducing v2", "New: AI-powered", with a border or tint that makes it look pressable
+✅ Put the news in the headline or the line under it. If the chip links somewhere, make it a link that reads as one.
+A pill is the shape of a control and of a filter, so people try to press it. When it does nothing, the page has taught them its shapes lie; when it does something, the most important action on the page is dressed as a label.
+
+### A-137 Cream and beige by reflex
+❌ A warm off-white page (`#f5f0e8`, `#faf7f2`), beige cards and a brown-grey text colour, chosen because the brief said "warm", "editorial" or nothing at all
+✅ The brand file's neutrals, or a decision recorded in `DECISIONS.md`. Cream is a fine answer to a question someone asked; it is a default when nobody did.
+Cream replaced violet (`A-01`) as the colour a model reaches for when asked to look tasteful. The failure is the same one: a palette nobody chose, which makes unrelated products look alike and dates every page that carries it.
+
+### A-138 An italic serif display headline
+❌ An oversized headline set in an italic serif, often with one word picked out: "Beautifully *crafted*", "Work, *reimagined*"
+✅ Type chosen for this product's voice (`DECISIONS.md`), set upright unless the italic means something. Emphasis comes from the words.
+It is the shortcut to an editorial look, and it has been taken so often that it now reads as the absence of a type decision rather than the presence of one.
+
+### A-139 A side-tab accent border
+❌ A thick coloured stripe down one side of an ordinary card, list item or panel
+✅ No stripe. Where the stripe would mean something, a status, a warning, the current item, say it with a label or an icon and text, and keep the stripe only as a second signal.
+A coloured edge on one side is the shape of an alert. Put on a card with nothing to announce, it makes the card look like a warning, and a page of them makes a real warning impossible to see.
+
+### A-140 A thick coloured border on a rounded element
+❌ A 2px or wider coloured outline around a card or button with a large radius
+✅ A hairline in `--color-stroke-weak`, or no border and a surface step. If the element must stand out, change its surface, not its outline.
+A heavy outline on a curve becomes the most visible shape in the element, and the eye traces it instead of reading what is inside.
+
+### A-141 Cards inside cards
+❌ A card holding a panel holding a card, each with its own border, padding and background
+✅ One container at most, and the groups inside it made with space, type and a divider (`A-67`).
+Every layer adds padding and an edge around the same content, and takes width from it. Three layers deep, the content has the least room on the page and the chrome has the most.
+
+### A-142 The soft rounded card
+❌ A 1px hairline and a wide soft shadow on the same card, a large radius, a pale tint: the card that holds every section of a generated page
+✅ Choose one edge: a hairline, or a surface step (`A-08`). Keep the radius to the element's size (`A-07`).
+An edge and a shadow both draw the same boundary, so the card has two outlines. Repeated down the page, the cards stop grouping anything and become the page's texture.
+
+### A-143 A decorative grid or stripe background
+❌ Faint grid lines, dot grids or repeating diagonal stripes filling the space behind content
+✅ A plain surface. Keep grids for what is measured or placed on them: a canvas, a map, a chart.
+A grid says "this is a workspace". Behind a paragraph it is noise at the one contrast level that makes text harder to read without being visible enough to mean anything.
+
+### A-144 Dark mode with glowing accents
+❌ Coloured glows on borders, buttons and headings of a dark page: `box-shadow: 0 0 24px #22d3ee`, neon outlines, a halo behind the hero
+✅ Dark mode from the token ramp (`C-21`, `C-66`), with the brand colour spent where it means something (`I-56`).
+Glow is contrast added without meaning. On a dark page everything that glows competes to be first, and the one element that needs attention looks like all the rest.
+
+### A-146 Numbered section labels
+❌ "01", "02", "03" in small type beside section headings that are not a sequence
+✅ Number only a real order: steps to follow, a ranking, a procedure. Anything else keeps its heading and no number.
+A number promises an order. A reader told there are three steps looks for what comes after the third, and a page that numbers its sections only because they are sections has promised something it does not deliver.
 
 ---
 
@@ -503,6 +560,11 @@ Where people must *browse* to decide, split the list into two dependent fields �
 iOS Safari zooms the whole page when a field whose text is below 16px takes focus, and it does not zoom back out when the field loses it. The reader is left with a form wider than the screen, scrolling sideways to find the next field (`D-115`).
 Setting `maximum-scale=1` on the viewport to stop it is not the fix. That disables pinch zoom for everyone, which is an accessibility failure in its own right.
 
+### F-147 Asking for more than the task needs
+❌ A sign-up that asks for a phone number, company size, job title and "how did you hear about us" before the person can try anything
+✅ Ask for what this step needs to work. Every other field is optional and says so, or it moves to the moment it becomes useful.
+Each field is a question someone has to answer and a reason to leave. The ones the product does not need yet are also the ones people fill with nonsense, so the data they were meant to collect is worse than none.
+
 ## G. Motion
 
 ### G-42 Entrance animation on everything
@@ -516,6 +578,11 @@ Setting `maximum-scale=1` on the viewport to stop it is not the fix. That disabl
 ✅ Always provide the reduced path. Non-negotiable — this is a vestibular safety issue, not a preference.
 
 **A consequence worth stating: motion is never the sole signal, for the same reason colour is not (`C-20`).** Honouring the reduced-motion path removes the animation, so any state that was communicated by movement alone is communicated to that user by nothing at all. A field that only shakes on a bad password has no error state under reduced motion. Pair the motion with text, an icon, or a colour change that survives without it.
+
+### G-145 A pulsing status dot
+❌ A green dot that pulses or pings beside "All systems operational", "Live", "Online"
+✅ A still dot and the word. Motion is for a state that is changing now: a sync in progress, a recording under way.
+A pulse says "look here, something is happening". On a status that has not changed in a week it is a false alarm on a loop, and it trains people to ignore the one indicator whose job is to be noticed when it matters (`G-43` applies too: under reduced motion it must still read).
 
 ### G-44 Durations too long
 ❌ 500ms+ on UI feedback
