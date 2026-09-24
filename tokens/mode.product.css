@@ -71,7 +71,7 @@
   --grid-gutter:  var(--spacing-m);   --grid-gutter-sm: var(--spacing-s);   /* 24 → 16 */
   --grid-margin:  var(--spacing-l);   --grid-margin-sm: var(--spacing-s);   /* 32 → 16 */
 
-  --size-control: 40px;  --size-control-sm: 32px;  --size-row: 48px;
+  --size-control: 40px;  --size-control-sm: 32px;  --size-row: 48px;  --size-row-compact: 40px;
   --size-touch-target: 48px;  --size-icon: 18px;
 
   --border-width-control: var(--border-width-hairline);
@@ -85,6 +85,14 @@
   /* No ambient duration tokens here, deliberately. Ambient motion is
      editorial only (P-13) — a surface someone works in all day must not
      have anything moving on it that they did not cause. */
+
+  /* Every mode declares every token name, so one alias block (utilities.css)
+     resolves on every surface. Ambient motion is editorial's (P-13); here it
+     is declared still, so a shared class resolves and nothing loops. */
+  --font-numeric: var(--font-numeric-features);
+  --duration-ambient-fast: 0s;
+  --duration-ambient-base: 0s;
+  --duration-ambient-slow: 0s;
 }
 
 @media (prefers-reduced-motion: reduce) {

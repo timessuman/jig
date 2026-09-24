@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.17.2
+
+Four defects found by building one page with the full loop.
+
+### Fixed
+
+- **Every mode declares every token name.** `editorial` had no row heights or
+  `--font-numeric`, and `product` and `operator` had no ambient durations. A
+  project with two modes shares one alias block, so those aliases resolved to
+  nothing on the routes of the mode that lacked them; a real site's editorial
+  pages had three undefined utilities, and the probe failed them. Each mode now
+  states a value for each name (ambient motion is `0s` outside `editorial`),
+  and `check-tokens` Rule 14 fails a mode file that declares a name another
+  does not.
+- **The gate no longer marks a critique as touched by writing its own lock.**
+  0.17.1 judged only critiques touched this session, but a critique session
+  wrote a lock into every critique folder, and the next stop read that write as
+  a touch. Locks are now written only for the critiques in play, and the lock
+  file is ignored when dating a folder.
+- **The probe does not take an in-page section list for the site menu.** A
+  `<summary>` in a `<nav>` inside `<main>`, `<article>` or `<aside>` is page
+  navigation; judging it as a menu failed a rule page's "More in this section"
+  disclosure for not behaving like one.
+- **Every example fits 320 by 260.** The examples README promised about
+  320 by 180; one figure was 363px wide and four were taller. The bound is now
+  stated as measured, the two outliers are trimmed, and a test renders all 286
+  figures in Chrome and fails any wider or taller.
+
 ## 0.17.1
 
 ### Fixed
