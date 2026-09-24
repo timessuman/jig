@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { checksum } from '../install/manifest.js';
-import { pageFile } from './save.js';
+import { pageFile, projectFile } from './save.js';
 import { PROBE_VERSION } from './script.js';
 
 export interface ProbeResult {
@@ -9,6 +9,7 @@ export interface ProbeResult {
   url?: string;
   pageFile?: string;
   pageChecksum?: string;
+  serveRoot?: string;
   recordedAt?: string;
   width: number;
   sidewaysScroll: boolean;
@@ -42,8 +43,10 @@ function stampProblem(projectRoot: string, file: string, p: ProbeResult): string
   if (!p.pageChecksum || !p.pageFile) {
     return `${file} was not written by \`jig probe --save\`, so nothing measured it. Evaluate \`jig probe\` in the browser and pipe its output into \`jig probe --save <surface>\`.`;
   }
-  const page = pageFile(projectRoot, p.url ?? '');
-  if (!page) return `${file} names a page outside this project (${p.url ?? 'no url'}).`;
+  // A served page is named by `pageFile`, which the CLI wrote; its URL is a
+  // local port and says nothing about which file answered.
+  const page = p.serveRoot ? projectFile(projectRoot, p.pageFile) : pageFile(projectRoot, p.url ?? '');
+  if (!page) return `${file} names a page outside this project (${p.serveRoot ? p.pageFile : p.url ?? 'no url'}).`;
   let current: string;
   try {
     current = readFileSync(page, 'utf8');

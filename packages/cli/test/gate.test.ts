@@ -395,3 +395,48 @@ describe('the block budget is per failure', () => {
     expect(JSON.parse(readFileSync(join(root, '.jig', 'gate.json'), 'utf8'))).toEqual({});
   });
 });
+
+// A live run: make fixed three critique findings, then rewrote those verdicts
+// from `finding` to `ok` itself, and the gate accepted the review as clean.
+describe('verdicts belong to critique', () => {
+  const session = (command: string) => {
+    const path = join(root, `t-${command}.jsonl`);
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>` } }) + '\n');
+    return gate({ projectRoot: root, version: '0.10.0', input: { session_id: command, transcript_path: path } });
+  };
+  const dir = () => join(root, '.jig', 'critique', 'pricing');
+  const verdicts = (verdict: string) => {
+    mkdirSync(dir(), { recursive: true });
+    writeFileSync(join(dir(), 'decisions.json'), JSON.stringify({ verdicts: [{ decision: 'Corners', verdict, reason: 'r' }] }));
+  };
+
+  it('blocks a make session that changed what critique wrote, and lets go once it is restored', async () => {
+    const { verdictGuard } = await import('../src/commands/gate.js');
+    jigProject();
+    verdicts('finding');
+    session('critique');
+    expect(existsSync(join(dir(), 'verdicts.lock'))).toBe(true);
+    verdicts('ok');
+    const problems = verdictGuard(root, 'make');
+    expect(problems.join('\n')).toMatch(/verdict files changed after `\/jig critique` wrote them, in a session that ran `\/jig make`/);
+    verdicts('finding');
+    expect(verdictGuard(root, 'make')).toEqual([]);
+  });
+
+  it('lets critique change its own verdicts, and records the new ones', async () => {
+    const { verdictGuard } = await import('../src/commands/gate.js');
+    jigProject();
+    verdicts('finding');
+    session('critique');
+    verdicts('ok');
+    session('critique');
+    expect(verdictGuard(root, 'make')).toEqual([]);
+  });
+
+  it('says nothing about a critique that was never locked', async () => {
+    const { verdictGuard } = await import('../src/commands/gate.js');
+    jigProject();
+    verdicts('ok');
+    expect(verdictGuard(root, 'make')).toEqual([]);
+  });
+});
