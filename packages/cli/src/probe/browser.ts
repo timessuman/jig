@@ -86,7 +86,7 @@ function which(command: string): string | undefined {
 interface CdpMessage { id?: number; method?: string; params?: Record<string, unknown>; result?: Record<string, unknown>; sessionId?: string; error?: { message: string } }
 
 /** Evaluates the probe against one URL at one width, and returns its JSON. */
-export async function runProbe(opts: { url: string; width: number; height?: number; chrome?: string; timeoutMs?: number }): Promise<string> {
+export async function runProbe(opts: { url: string; width: number; height?: number; chrome?: string; timeoutMs?: number; expression?: string }): Promise<string> {
   const chrome = opts.chrome ?? findChrome();
   if (!chrome) {
     throw new Error(
@@ -113,7 +113,7 @@ export async function runProbe(opts: { url: string; width: number; height?: numb
       });
       child.on('exit', (code) => { clearTimeout(timer); fail(new Error(`${chrome} exited with code ${code} before it was ready.`)); });
     });
-    return await evaluate(endpoint, opts.url, opts.width, opts.height ?? 900, timeoutMs);
+    return await evaluate(endpoint, opts.url, opts.width, opts.height ?? 900, timeoutMs, opts.expression ?? PROBE_SCRIPT);
   } finally {
     // Chrome keeps writing to its profile while it shuts down. Deleting the
     // directory the moment it is killed raced that, and under load the delete
@@ -129,7 +129,7 @@ export async function runProbe(opts: { url: string; width: number; height?: numb
   }
 }
 
-async function evaluate(endpoint: string, url: string, width: number, height: number, timeoutMs: number): Promise<string> {
+async function evaluate(endpoint: string, url: string, width: number, height: number, timeoutMs: number, expression: string): Promise<string> {
   const socket = new WebSocket(endpoint);
   let nextId = 1;
   const pending = new Map<number, { done: (value: Record<string, unknown>) => void; fail: (err: Error) => void }>();
@@ -181,7 +181,7 @@ async function evaluate(endpoint: string, url: string, width: number, height: nu
     }
     // The page's own scripts run on load; the probe reads what they produced.
     await new Promise((done) => setTimeout(done, 250));
-    const result = await send('Runtime.evaluate', { expression: PROBE_SCRIPT, awaitPromise: true, returnByValue: true }, session);
+    const result = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, session);
     const value = (result.result as { value?: unknown } | undefined)?.value;
     if (typeof value !== 'string') {
       const description = (result.exceptionDetails as { text?: string } | undefined)?.text;
