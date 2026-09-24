@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.16.2
+
+### Fixed
+
+- **`jig probe --run <page> --serve <dir>` measures a built static site.** A
+  build links its styles from the site root, so opened as a file nothing loaded
+  and the probe measured an unstyled page. The CLI now serves the build
+  directory on a local port. The stamp is still the page file's checksum on
+  disk, and the gate re-renders a served probe the same way.
+- **Verdicts are `critique`'s own.** `make`, fixing three findings, rewrote
+  those verdicts to `ok` itself and the gate accepted it. The gate now records
+  the verdict files when a `critique` session stops, and stops any later
+  session that changed them without running `critique`.
+
 ## 0.16.1
 
 ### Fixed
