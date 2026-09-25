@@ -206,7 +206,12 @@ el('touch').innerHTML = `
     <div style="height:var(--size-row);display:flex;align-items:center;padding-inline:var(--spacing-s);border-bottom:1px solid var(--color-stroke-weak)"><code>--size-row</code></div>
     <div style="height:var(--size-row-compact);display:flex;align-items:center;padding-inline:var(--spacing-s)"><code>--size-row-compact</code></div>
   </div>
-  <p class="note">Row heights. Both are undefined in <code>editorial</code> and <code>--size-row-compact</code> only in <code>operator</code>, so these rows collapse to their content in the modes that do not define them — the mode table's <code>—</code> showing itself.</p>`;
+  <p class="note">Row heights. Every mode declares both; <code>editorial</code>'s are sized to its controls, since it rarely shows dense records.</p>
+  <div style="margin-top:var(--spacing-s);display:flex;align-items:stretch;gap:var(--spacing-s);max-width:var(--size-container);border:1px dashed var(--color-stroke-strong)">
+    <div style="width:var(--size-rail);flex:none;min-height:var(--size-header);display:flex;align-items:center;padding-inline:var(--spacing-s);border-right:1px solid var(--color-stroke-weak)"><code>--size-rail</code></div>
+    <div style="height:var(--size-header);display:flex;align-items:center;border-bottom:var(--border-width-hairline) solid var(--color-stroke-weak)"><code>--size-header</code></div>
+  </div>
+  <p class="note">Layout sizes. The dashed frame stops at <code>--size-container</code>; the first column is one <code>--size-rail</code>; the row beside it is a header, <code>--size-header</code> tall.</p>`;
 
 // Re-rendered on every mode and theme switch, not once at load. It used to be
 // written a single time, so after switching mode the table still reported the
@@ -226,6 +231,7 @@ function renderDiagnostics() {
     '--success-h', '--success-s', '--success-l', '--success-fill-a',
     '--info-h', '--info-s', '--info-l', '--info-fill-a',
     '--tracking-body', '--measure-prose', '--size-row',
+    '--size-container', '--size-rail', '--size-header',
   ].map((t) => `<tr><td><code>${t}</code></td><td class="num">${cs.getPropertyValue(t).trim() || '—'}</td></tr>`).join('')}</tbody></table>`;
 }
 renderDiagnostics();

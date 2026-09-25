@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Layout sizes: `--size-container`, `--size-rail`, `--size-header`.** Every
+  mode now sizes a page's frame, not only what is inside it. Building one site
+  with the full loop, four gaps turned out to be one: no token for a page's
+  maximum width, a rail's width, or a fixed header's height. The site made up
+  its own, one of them a raw pixel value. The container is 1280px in every
+  mode, because it is not density. A rail is 288, 256 or 240px, sized to hold
+  labels at the mode's type size. The header is `--size-touch-target` plus
+  `--border-width-hairline`. See T-04.
+- **Where a layout switches is measured and recorded.** Jig still defines no
+  breakpoint, and the four judged widths are checkpoints, not places the CSS
+  changes. T-04 now says how a project records a width it measured:
+  `--breakpoint-<what switches>` in its own layer, with the measurement
+  beside it.
+- **`jig probe --run` measures either side of every declared switch.** A switch
+  falls between the judged widths by design, and a range nobody measured is
+  where a layout breaks: a real site's three-column frame appeared at 1216px,
+  and 1024 to 1215 still got the phone arrangement. The probe now also records
+  one pixel before and at each `--breakpoint-*` the project declares, and the
+  gate's refresh keeps those probes current too.
+
 ## 0.17.3
 
 Three defects found building jig-site's header with the full loop.

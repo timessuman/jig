@@ -5,6 +5,7 @@ import { checksum } from '../install/manifest.js';
 import { PROBE_VERSION } from './script.js';
 import { findChrome, runProbe } from './browser.js';
 import { serveDirectory } from './serve.js';
+import { declaredSwitches, probeWidths } from './switches.js';
 
 /**
  * `jig probe --save <surface>` — the CLI writes the probe file, not the agent.
@@ -97,15 +98,17 @@ export const PROBE_WIDTHS = [360, 768, 1280, 1600];
 
 /**
  * Runs the probe here and records it, for every width, against a page in this
- * project. This is what lets the Stop hook stop asking: when a browser exists,
+ * project: the four judged widths, and either side of each width where the
+ * project declares its layout switches (see switches.ts). This is what lets the Stop hook stop asking: when a browser exists,
  * the render is not a step an agent can skip.
  */
 export async function runAndSaveProbes(opts: { projectRoot: string; surface: string; page: string; serve?: string; widths?: number[] }): Promise<SaveResult[]> {
   const abs = resolve(opts.projectRoot, opts.page);
   if (!existsSync(abs)) throw new Error(`${opts.page} does not exist, so there is nothing to render.`);
   const saved: SaveResult[] = [];
+  const widths = opts.widths ?? probeWidths(PROBE_WIDTHS, declaredSwitches(opts.projectRoot));
   await withPageUrl(opts.projectRoot, abs, opts.serve, async (url) => {
-    for (const width of opts.widths ?? PROBE_WIDTHS) {
+    for (const width of widths) {
       const json = await runProbe({ url, width });
       saved.push(saveProbe({ projectRoot: opts.projectRoot, surface: opts.surface, json, page: abs, serveRoot: opts.serve }));
     }
@@ -147,7 +150,13 @@ export async function ensureProbes(opts: { projectRoot: string; surface: string;
   } catch {
     return { recorded: [], reason: `${opts.page} could not be read` };
   }
-  const missing = PROBE_WIDTHS.filter((width) => {
+  // Every width a run records, and any probe already in the folder: `verdicts`
+  // needs each of them fresh, so a stale one left unrefreshed would block.
+  const recorded = existsSync(dir)
+    ? readdirSync(dir).map((f) => /^probe-(\d+)\.json$/.exec(f)?.[1]).filter((w): w is string => !!w).map(Number)
+    : [];
+  const widths = [...new Set([...probeWidths(PROBE_WIDTHS, declaredSwitches(opts.projectRoot)), ...recorded])].sort((a, b) => a - b);
+  const missing = widths.filter((width) => {
     try {
       const probe = JSON.parse(readFileSync(join(dir, `probe-${width}.json`), 'utf8')) as { pageChecksum?: string; jigProbe?: number };
       return probe.jigProbe !== PROBE_VERSION || probe.pageChecksum !== current;
@@ -160,7 +169,7 @@ export async function ensureProbes(opts: { projectRoot: string; surface: string;
   // Re-render the way it was first rendered: a page probed from a served
   // directory is served again.
   let serve: string | undefined;
-  for (const width of PROBE_WIDTHS) {
+  for (const width of widths) {
     try {
       const probe = JSON.parse(readFileSync(join(dir, `probe-${width}.json`), 'utf8')) as { serveRoot?: string };
       if (probe.serveRoot) { serve = probe.serveRoot; break; }
