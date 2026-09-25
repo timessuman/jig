@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.18.1
+
+Two fixes found by jig-site's fourth round: the probe misread a `<details>`
+menu, and `A-05` missed an arrow that renders as an emoji.
 
 ### Fixed
 
