@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.18.5 (2026-09-25)
+
+The gate holds an HTML mockup that does not draw the page at every size.
 
 ### Fixed
 
