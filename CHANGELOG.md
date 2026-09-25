@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.18.0
+
+A page's frame gets tokens, a project gets a place to record where its layout
+switches, and keyboard access a rule requires fits every script budget. All of
+it found building jig-site's header and Reference with the full loop.
 
 ### Added
 
