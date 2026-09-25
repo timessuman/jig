@@ -442,6 +442,8 @@ These thresholds are APCA's own and do not line up with WCAG's large-text defini
 
 Not an inversion (`C-21`). Each brand file supplies a dark block under `@media (prefers-color-scheme: dark)` and `[data-theme="dark"]`, remapping semantics only. Mode files are theme-independent — density does not change with colour scheme.
 
+Each theme also names its `color-scheme`: `dark` in both dark blocks, and `light` under `[data-theme="light"]`. The browser's own parts, its scrollbars, form controls and the canvas behind the page, follow `color-scheme` and not the tokens, so a site with a theme toggle otherwise draws the chosen theme inside the device's scrollbars.
+
 In dark, elevated surfaces get **lighter**, not shadowed. Border-led elevation survives the switch; shadow-led does not, which is one reason border-led is the unbranded default.
 
 ## T-10 · Consuming
