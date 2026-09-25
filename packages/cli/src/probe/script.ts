@@ -17,11 +17,14 @@
  * `browse js "<script>"`, Playwright's `page.evaluate(script)` and a devtools
  * console all run it unchanged.
  */
-export const PROBE_VERSION = 5;
+export const PROBE_VERSION = 6;
 
 export const PROBE_SCRIPT = `(async () => {
   const doc = document.documentElement;
-  const vis = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+  // checkVisibility also sees content a closed <details> hides: Chromium hides
+  // it with content-visibility, which still gives its links real boxes, so a
+  // closed menu counted as open and an opened one showed "no more links".
+  const vis = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && (!e.checkVisibility || e.checkVisibility()); };
   const probe = document.createElement('div');
   probe.style.all = 'initial';
   document.body.appendChild(probe);
@@ -114,19 +117,32 @@ export const PROBE_SCRIPT = `(async () => {
   const inChrome = (b) => !!b.closest('header, [role=banner]') ||
     (!!b.closest('nav, [role=navigation]') && !b.closest('main, article, aside, [role=main]'));
   const named = (b) => /\b(menu|navigation)\b/i.test((b.getAttribute('aria-label') || '') + ' ' + b.textContent);
-  const toggle = [...document.querySelectorAll('button, summary, [role=button]')].find((b) => vis(b) &&
-    (named(b) || (inChrome(b) && (b.tagName === 'SUMMARY' || b.hasAttribute('aria-expanded') || b.hasAttribute('aria-controls')))));
+  const candidates = [...document.querySelectorAll('button, summary, [role=button]')].filter((b) =>
+    named(b) || (inChrome(b) && (b.tagName === 'SUMMARY' || b.hasAttribute('aria-expanded') || b.hasAttribute('aria-controls'))));
+  // A menu the page names, or one in its banner, is the menu. Where it exists
+  // but is hidden at this width, the links show instead and there is no menu
+  // here; the next disclosure in some other <nav> (a docs rail's tree) is not
+  // a stand-in for it.
+  const primary = (b) => named(b) || !!b.closest('header, [role=banner]');
+  const pool = candidates.some(primary) ? candidates.filter(primary) : candidates;
+  const toggle = pool.find(vis);
   let menu = null;
   if (toggle) {
-    const name = () => ((toggle.getAttribute('aria-label') || '') + ' ' + (toggle.textContent || '')).replace(/\\s+/g, ' ').trim();
+    // The label as rendered: a menu that swaps "Menu" for "Close" with CSS keeps
+    // both words in its textContent at all times, so only innerText sees the swap.
+    const name = () => ((toggle.getAttribute('aria-label') || '') + ' ' + (toggle.innerText || toggle.textContent || '')).replace(/\\s+/g, ' ').trim();
+    // A native <summary> carries no aria-expanded attribute; the browser exposes
+    // its <details>'s open state as the expanded state, which is what counts.
+    const expanded = () => toggle.getAttribute('aria-expanded') ??
+      (toggle.tagName === 'SUMMARY' && toggle.parentElement && toggle.parentElement.tagName === 'DETAILS' ? String(toggle.parentElement.open) : null);
     // Opening is judged by what becomes visible anywhere: a menu panel is often
     // a sibling of the header, not inside it (arm test 3, tw-1).
     const allLinks = () => [...document.querySelectorAll('a')].filter(vis).length;
     const controlled = () => { const id = toggle.getAttribute('aria-controls'); const el = id && document.getElementById(id); return el ? vis(el) : null; };
-    const before = { links: allLinks(), controlled: controlled(), expanded: toggle.getAttribute('aria-expanded'), name: name(), html: toggle.innerHTML };
+    const before = { links: allLinks(), controlled: controlled(), expanded: expanded(), name: name(), html: toggle.innerHTML };
     toggle.click();
     await new Promise((r) => setTimeout(r, 350));
-    const after = { links: allLinks(), controlled: controlled(), expanded: toggle.getAttribute('aria-expanded'), name: name(), htmlChanged: toggle.innerHTML !== before.html };
+    const after = { links: allLinks(), controlled: controlled(), expanded: expanded(), name: name(), htmlChanged: toggle.innerHTML !== before.html };
     toggle.focus();
     toggle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -136,7 +152,7 @@ export const PROBE_SCRIPT = `(async () => {
       expandedBefore: before.expanded, expandedAfter: after.expanded,
       opened: after.links > before.links || (before.controlled === false && after.controlled === true),
       labelChanged: after.name !== before.name || after.htmlChanged,
-      escapeCloses: toggle.getAttribute('aria-expanded') !== 'true' && allLinks() <= before.links,
+      escapeCloses: expanded() !== 'true' && allLinks() <= before.links,
       focusReturned: document.activeElement === toggle,
     };
   }

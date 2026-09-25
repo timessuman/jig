@@ -9,7 +9,7 @@ import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 const probe = (over: Partial<ProbeResult> = {}): ProbeResult => ({
-  jigProbe: 5, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
+  jigProbe: 6, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
   defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5,
   menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 },
   ...over,
@@ -204,7 +204,7 @@ describe('jig probe --save stamps the page it measured', () => {
   });
 
   it('rejects output that is not a probe, and a page outside the project', () => {
-    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version 5 probe output/);
+    expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: '{"menu":null}' })).toThrow(/not version \d+ probe output/);
     expect(() => saveProbe({ projectRoot: project, surface: 'pricing', json: output({ url: 'file:///etc/hosts' }) })).toThrow(/not a file in this project/);
   });
 
@@ -303,6 +303,35 @@ describe('the CLI can run the probe itself', () => {
     await runAndSaveProbes({ projectRoot: root, surface: 'rule', page: 'page.html', widths: [360] });
     const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'rule', 'probe-360.json'), 'utf8'));
     expect(probe.menu).toBeNull();
+  }, 120_000);
+
+  // jig-site's Reference: the header's Menu is hidden from 540 up, and a rail
+  // <nav> outside <main> holds the section tree as <details>. The probe took a
+  // tree row for the menu at 768, and at 360 counted the closed menu's links
+  // as showing, so opening it "showed no more links", saw no Close, and found
+  // no aria-expanded on a native <summary>.
+  it('finds no menu where the banner hides it, and reads a <details> menu as the browser shows it', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-rail-'));
+    const links = '<a href="/g/">Guide</a> <a href="/r/">Reference</a> <a href="/c/">Changelog</a>';
+    writeFileSync(join(root, 'page.html'),
+      '<html><head><title>t</title><style>.row{display:none} @media (min-width:540px){.row{display:block} .menu{display:none}} .shut{display:none} details[open] .open{display:none} details[open] .shut{display:inline}</style></head><body>' +
+      `<header><a href="/">Jig</a><nav class="row">${links}</nav>` +
+      `<details class="menu"><summary><span class="open">Menu</span><span class="shut">Close</span></summary><nav>${links}</nav></details></header>` +
+      '<div><nav aria-label="Sections"><details><summary aria-label="Things to avoid, expand or collapse">Things to avoid</summary><a href="/a/">Emoji</a></details></nav>' +
+      '<main><h1>Reference</h1></main></div></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'ref'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'ref', page: 'page.html', widths: [360, 768] });
+    const at = (w: number) => JSON.parse(readFileSync(join(root, '.jig', 'critique', 'ref', `probe-${w}.json`), 'utf8'));
+    expect(at(768).menu).toBeNull();
+    expect(at(360).menu.opened).toBe(true);
+    expect(at(360).menu.linksAfter - at(360).menu.linksBefore).toBe(3);
+    // The label swaps with CSS, and a native <summary> takes its expanded
+    // state from its <details>: neither is a missing close or state.
+    expect(at(360).menu.labelChanged).toBe(true);
+    expect(at(360).menu.expandedAfter).toBe('true');
   }, 120_000);
 
   it('re-renders only what is missing or taken on an older page', async () => {
