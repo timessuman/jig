@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.18.1
+## Unreleased
+
+### Changed
+
+- **Every release heading carries its date**, as `## 0.18.1 (2026-09-25)`,
+  backfilled from the tags. The npm package has no git history, so the
+  CHANGELOG is where a release's date travels with it; jig-site's Versions page
+  lists each release by date. A test keeps every released heading dated.
+
+## 0.18.1 (2026-09-25)
 
 Two fixes found by jig-site's fourth round: the probe misread a `<details>`
 menu, and `A-05` missed an arrow that renders as an emoji.
@@ -35,7 +44,7 @@ menu, and `A-05` missed an arrow that renders as an emoji.
   content of an element, or a pseudo-element's `content`) without U+FE0E. The
   same arrow in a sentence still does not.
 
-## 0.18.0
+## 0.18.0 (2026-09-25)
 
 A page's frame gets tokens, a project gets a place to record where its layout
 switches, and keyboard access a rule requires fits every script budget. All of
@@ -71,7 +80,7 @@ it found building jig-site's header and Reference with the full loop.
   one pixel before and at each `--breakpoint-*` the project declares, and the
   gate's refresh keeps those probes current too.
 
-## 0.17.3
+## 0.17.3 (2026-09-25)
 
 Three defects found building jig-site's header with the full loop.
 
@@ -100,7 +109,7 @@ Three defects found building jig-site's header with the full loop.
   said so; only `jig init --yes` refreshed them. `update` now refreshes each
   untouched copy wherever `init` recorded writing it.
 
-## 0.17.2
+## 0.17.2 (2026-09-24)
 
 Four defects found by building one page with the full loop.
 
@@ -128,7 +137,7 @@ Four defects found by building one page with the full loop.
   stated as measured, the two outliers are trimmed, and a test renders all 286
   figures in Chrome and fails any wider or taller.
 
-## 0.17.1
+## 0.17.1 (2026-09-24)
 
 ### Fixed
 
@@ -141,7 +150,7 @@ Four defects found by building one page with the full loop.
   starts with `_` is set aside and never judged. With no transcript, as when
   the gate is run by hand, it checks every critique as before.
 
-## 0.17.0
+## 0.17.0 (2026-09-24)
 
 Thirteen more tells of a generated page, ten of them caught by `check`, and a
 picture for every rule. Also carries the probe and verdict fixes tagged as 0.16.2,
@@ -188,7 +197,7 @@ which was not published to npm.
   any count, `I-81` the page's headline, and `I-89` button labels as well as
   links.
 
-## 0.16.1
+## 0.16.1 (2026-09-19)
 
 ### Fixed
 
@@ -206,7 +215,7 @@ which was not published to npm.
   reported as contradicting J-123. Anything else is now a spec-shape problem,
   and an error in `verdicts` that names the field.
 
-## 0.16.0
+## 0.16.0 (2026-09-19)
 
 With more than one mode, every barrel names its mode, and none sits in the
 global stylesheet.
@@ -226,7 +235,7 @@ global stylesheet.
   An edited one is left, with a note on where its edits belong. `check` names a
   `theme.css` left beside two modes.
 
-## 0.15.1
+## 0.15.1 (2026-09-19)
 
 ### Fixed
 
@@ -237,7 +246,7 @@ global stylesheet.
   live `/jig decide` three times. Any sentence ending in `?` now counts; a `?`
   in a URL or a code span does not.
 
-## 0.15.0
+## 0.15.0 (2026-09-19)
 
 The gate holds an agent on warnings, waits while it asks the owner a question,
 and reaches projects where the skill is installed globally.
@@ -279,7 +288,7 @@ and reaches projects where the skill is installed globally.
 - **`jig seo` says an endpoint is not a page**, so `pages=` can be checked
   against a site's route files.
 
-## 0.14.1
+## 0.14.1 (2026-09-19)
 
 `jig seo` cites only what a rule says.
 
@@ -304,7 +313,7 @@ and reaches projects where the skill is installed globally.
   as `/pages/admin`, so a `noindex` Astro or Next page listed in the sitemap
   went unreported.
 
-## 0.14.0
+## 0.14.0 (2026-09-18)
 
 What a stranger meets before the page, what the page must not hand them, and a
 project that states its own direction.
@@ -367,7 +376,7 @@ project that states its own direction.
   already have. Redesigning an existing page is its own path, and `spec` asks
   different questions when the page exists.
 
-## 0.13.0
+## 0.13.0 (2026-09-18)
 
 Meaning before presentation, and one fewer step anyone can skip.
 
@@ -409,7 +418,7 @@ Meaning before presentation, and one fewer step anyone can skip.
   `.github`.** Jig's own vendored rules are not the project's interface.
 - **Probe files are version 3.** Older ones no longer validate.
 
-## 0.12.0
+## 0.12.0 (2026-09-18)
 
 ### Added
 
@@ -422,7 +431,7 @@ Meaning before presentation, and one fewer step anyone can skip.
   styles, comments, class names and documentation are not interface text.
   The en dash keeps its one job, a range read as "to" (`2-10 seats`).
 
-## 0.11.1
+## 0.11.1 (2026-09-18)
 
 Two holes in the gate, both found by running the loop twice on 0.11.0 —
 once on Haiku, once on Sonnet.
@@ -441,7 +450,7 @@ once on Haiku, once on Sonnet.
   at a width where the links fit. A false positive is how a gate gets
   ignored.
 
-## 0.11.0
+## 0.11.0 (2026-09-18)
 
 One release, one lesson: a measurement an agent can type is not a
 measurement. Everything here came from two live runs at the capability
@@ -470,7 +479,7 @@ floor the day 0.10.0 shipped.
   critique verdicts. Both are warned about separately, each with what
   ignoring it costs. Since 0.7.0 both had said `.jig/` holds the tokens.
 
-## 0.10.0
+## 0.10.0 (2026-09-18)
 
 Mobile-first, and a design loop that a weak model cannot skip. Everything here
 was measured on live runs at the capability floor (Haiku), and most of it exists
@@ -536,7 +545,7 @@ because an instruction the agent could choose to ignore was ignored.
 - **`init --yes` says what it did not decide** — no surface mapping, and
   re-running `init` after you declare one.
 
-## 0.9.0
+## 0.9.0 (2026-09-13)
 
 One new rule and one amended correction, both from the same afternoon of
 dogfooding and both about the same blind spot: H-47's correction always pointed
@@ -581,7 +590,7 @@ at a token, so an agent reading it literally always produced one.
   it.
 
 
-## 0.8.2
+## 0.8.2 (2026-09-12)
 
 Every fix here was found by a consumer using Jig rather than by Jig checking
 itself: the documentation site was upgraded to 0.8.1 and then styled in
@@ -660,7 +669,7 @@ disagreeing without either knowing the other existed.
   guard built on it. Caught by its own canary the moment an option wrapped.
 
 
-## 0.8.1
+## 0.8.1 (2026-09-12)
 
 Both fixes here are the same shape: 0.8.0 corrected the instance it was looking
 at and left the class alone, and in each case the commit message claimed a
@@ -720,7 +729,7 @@ by inspecting the published tarball rather than the working tree.
   is your call", "my inclination is") as well as the heading, because a rename
   would otherwise defeat it. Each tell is verified to fire on reintroduction.
 
-## 0.8.0
+## 0.8.0 (2026-09-11)
 
 Everything here was found by handing Jig to agents that had never seen it and
 asking them to build something real — its own documentation site. None of it
@@ -856,7 +865,7 @@ Minor rather than patch: `explain` prints lines it did not print before, and
   whether the guard should consult the config first, which is a behaviour
   question rather than a copy one.
 
-## 0.7.1
+## 0.7.1 (2026-09-11)
 
 A rule file that contradicted the tool, and the guard that kept it that way.
 
@@ -910,7 +919,7 @@ to agents that had never seen this repository and asking them to build
 something real. Everyone who could have caught the token-location defect
 already knew where the tokens were.
 
-## 0.7.0
+## 0.7.0 (2026-09-11)
 
 A silent no-op, fixed, plus the missing half of 0.6.0's token-layer move.
 
@@ -952,7 +961,7 @@ to move their token layer should read these notes.
   AFTER   @import "./jig/theme.css";
   ```
 
-## 0.6.0
+## 0.6.0 (2026-09-11)
 
 The token layer stops hiding in a dotfolder, and `check` starts reading it back.
 
@@ -1046,7 +1055,7 @@ move it, because relocating files could break an import you wrote yourself.
   directive it needs. Nothing errors when this bites: the class lands on the
   element, no rule exists to match it, and the style simply does not apply.
 
-## 0.5.0
+## 0.5.0 (2026-09-10)
 
 Four things shipped in 0.4.0 were broken in ways that reported success. `/jig
 update` refreshed to the version already installed and said "Updated Jig →
@@ -1140,7 +1149,7 @@ ones exist because a guard had been passing vacuously: rule 6's regex was
 line-anchored and so covered 103 of 133 tokens while claiming to cover all of
 them, and nothing at all checked that a token cited in the rules exists.
 
-## 0.4.0
+## 0.4.0 (2026-09-04)
 
 Jig stops copying itself into your project. It is a skill an agent reads, and
 0.3.0 wrote 220KB across 17 files into every consuming repo to deliver it —
@@ -1347,7 +1356,7 @@ for you, because you may have edited one and that edit is yours to keep. Run
 `jig install --agent <name>` to place the new bundle, then delete `.jig/rules/`
 and `.jig/rules.index.json` once you have checked them for your own changes.
 
-## 0.3.0
+## 0.3.0 (2026-09-03)
 
 Two new commands. `install` and `update` put the system in place; these two make
 it do something.
@@ -1399,7 +1408,7 @@ it do something.
   not apply to it.
 
 
-## 0.2.1
+## 0.2.1 (2026-09-01)
 
 ### Fixed
 
@@ -1433,7 +1442,7 @@ it do something.
   no build, not published. It found two gaps on its first run: there is no
   border-width token and no focus-ring geometry tokens.
 
-## 0.2.0
+## 0.2.0 (2026-09-01)
 
 The first release that actually works end to end. `0.1.0` shipped rules that
 cited tokens it never installed, and a token name that did not exist.
