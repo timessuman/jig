@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.18.3 (2026-09-25)
+
+Recording a decision no longer undoes the critiques written before it, and an
+older probe file says it is older rather than forged.
 
 ### Fixed
 
