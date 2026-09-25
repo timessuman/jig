@@ -19,6 +19,13 @@
   so every verdict on them came back "not a rule", and a critique that did
   what the rules said could not pass. A hybrid rule with a pass is now judged
   in that pass, like a judgment rule: the code arm has 84 rules, not 74.
+- **`jig update` refreshes a project's mode files where `init` wrote them.**
+  `init` has written `mode.<mode>.css` beside the brand file (for example
+  `src/styles/jig/`) since the token layer moved into the project's styles,
+  but `update` still looked for them under the pre-0.6 `.jig/tokens/`. It
+  found none, so every release left the old tokens in place, and nothing
+  said so; only `jig init --yes` refreshed them. `update` now refreshes each
+  untouched copy wherever `init` recorded writing it.
 
 ## 0.17.2
 
