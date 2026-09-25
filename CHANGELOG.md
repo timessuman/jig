@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.18.6 (2026-09-25)
+
+A mockup's frames must hold each size's regions, and the drawing shows either
+side of each switch the project records.
 
 ### Fixed
 
