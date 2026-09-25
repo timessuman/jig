@@ -343,6 +343,7 @@ sizes:                     # phone first. Each size is a whole composition, not 
   wide:                    # judged at 1600px — where a layout with no upper bound shows itself
     same-as: desktop
     why: "content is capped at 1200px, so 1600 adds margin and nothing else"
+switches: none             # the recorded switches (--breakpoint-*, T-04) this page crosses, by name; none if it crosses none. Absent, the mockup draws either side of every one
 states: [default, loading, error, success]
 decisions: [The Engineer Reads First]     # every DECISIONS.md entry this screen implements, by name
 later: [social sign-in, remember this device]   # cut from V1, by name — the next specs start here
@@ -561,6 +562,14 @@ look. So the drawing contains:
   detail: a phone composition that is only the desktop one narrower is the failure
   specs are written per size to prevent. A `same-as:` size is drawn anyway, so the
   claim can be seen to hold.
+- **Either side of each switch the project records.** Where the project has
+  measured and recorded a width its layout changes at (`--breakpoint-<what>`,
+  `T-04`), draw the last width before it and the first at it, after the four
+  sizes: `<section class="frame" data-size="switch" data-width="539"
+  style="width:539px">` and the same at 540. The spec's `switches:` names the
+  ones this page crosses; absent, draw every one. The four sizes are where a page is
+  judged, not where it changes, and a switch between them is otherwise never
+  seen before it is built.
 - **Navigation at every size, exactly as the spec's `nav:` says for that size.** On
   the phone that usually means the Menu button, drawn where `DECISIONS.md` puts it —
   and, because an open menu changes the structure, a second phone frame labelled
@@ -634,7 +643,10 @@ for is review: is the header taking a sixth of the phone? Is a tap target under
 
 **Check the drawing against the spec before anyone sees it.** For each size, go
 down the spec's `regions:` and its `nav:` and find each one in that frame. A region
-the spec names and the frame lacks is drawn now, not raised in review. This matters
+the spec names and the frame lacks is drawn now, not raised in review. The gate
+checks an HTML drawing when you stop: a frame for each of the four sizes, each
+size's regions labelled in its frame (by name where the spec names them), and a
+frame either side of each recorded switch. This matters
 most on the phone, where a region dropped for space is easy to miss and the reviewer
 is looking at what is there, not at what is not.
 

@@ -278,17 +278,69 @@ Prose.`;
 
   // jig-site: three mockups in a row were one responsive page each, and the
   // owner saw only their own window's width.
-  it('blocks an HTML mockup without a frame for each size', () => {
-    jigProject();
-    spec(goodSpec);
-    mkdirSync(join(root, '.jig', 'mockups'), { recursive: true });
-    const drawing = join(root, '.jig', 'mockups', 'pricing.html');
-    writeFileSync(drawing, '<html><body><main>one responsive page</main></body></html>');
-    expect(runAfter('mockup').reason).toMatch(/has no frame for phone \(360px\), tablet \(768px\), desktop \(1280px\), wide \(1600px\)/);
-    writeFileSync(drawing, ['phone', 'tablet', 'desktop'].map((s) => `<div class="frame" data-size="${s}"></div>`).join(''));
-    expect(runAfter('mockup').reason).toMatch(/has no frame for wide \(1600px\)\./);
-    writeFileSync(drawing, ['phone', 'tablet', 'desktop', 'wide'].map((s) => `<div class="frame" data-size="${s}"></div>`).join(''));
-    expect(runAfter('mockup').reason ?? '').not.toMatch(/has no frame/);
+  describe('the mockup drawing', () => {
+    const frame = (size: string, labels: string[], width?: number) =>
+      `<p class="size">${size}</p><section class="frame" data-size="${size}"${width ? ` data-width="${width}" style="width:${width}px"` : ''}>` +
+      labels.map((l) => `<div class="region"><span class="name">${l}</span></div>`).join('') + '</section>';
+    const draw = (html: string) => {
+      mkdirSync(join(root, '.jig', 'mockups'), { recursive: true });
+      writeFileSync(join(root, '.jig', 'mockups', 'pricing.html'), html);
+    };
+    const all = (labels: string[]) => ['phone', 'tablet', 'desktop', 'wide'].map((s) => frame(s, labels)).join('');
+
+    it('needs a frame for each size', () => {
+      jigProject();
+      spec(goodSpec);
+      draw('<html><body><main>one responsive page</main></body></html>');
+      expect(runAfter('mockup').reason).toMatch(/has no frame for phone \(360px\), tablet \(768px\), desktop \(1280px\), wide \(1600px\)/);
+      draw(['phone', 'tablet', 'desktop'].map((s) => frame(s, ['nav', 'plans'])).join(''));
+      expect(runAfter('mockup').reason).toMatch(/has no frame for wide \(1600px\)\./);
+    });
+
+    it('needs each size\'s regions in its frame, by name where the spec names them', () => {
+      jigProject();
+      spec(goodSpec);
+      draw(all(['nav']));
+      expect(runAfter('mockup').reason).toMatch(/the phone frame has no labelled region for "plans"/);
+      draw(['phone', 'tablet', 'desktop', 'wide'].map((s) => `<section class="frame" data-size="${s}"></section>`).join(''));
+      expect(runAfter('mockup').reason).toMatch(/the phone frame has no labelled region for "nav", "plans"/);
+      draw(all(['nav · 326 × 48', 'plans']));
+      expect(runAfter('mockup').reason ?? '').not.toMatch(/frame|region/);
+    });
+
+    it('counts regions a spec describes rather than names, and follows same-as', () => {
+      jigProject();
+      const described = goodSpec
+        .replace('  phone:\n    regions: [nav, plans]', '  phone:\n    regions:\n      - "one sentence under the heading, saying which plan suits whom"\n      - "the three plans side by side where they fit, stacked where they do not"')
+        .replace(/  tablet:\n    regions: \[nav, plans\]\n    nav: five links in a row/, '  tablet:\n    same-as: phone\n    why: one column still');
+      spec(described);
+      draw(frame('phone', ['intro']) + frame('tablet', ['intro', 'plans']) + frame('desktop', ['nav', 'plans']) + frame('wide', ['nav', 'plans']));
+      const reason = runAfter('mockup').reason;
+      expect(reason).toMatch(/the phone frame labels 1 region\(s\) and the spec lists 2 for phone/);
+      expect(reason).not.toMatch(/tablet frame/);
+    });
+
+    // jig-site's header switches at 540, between phone and tablet.
+    it('draws either side of each switch the project records', () => {
+      jigProject();
+      spec(goodSpec);
+      writeFileSync(join(root, 'site.css'), '@theme { --breakpoint-nav: 540px; }');
+      draw(all(['nav', 'plans']));
+      expect(runAfter('mockup').reason).toMatch(/does not draw either side of the `--breakpoint-nav` switch at 540px \(no frame at 539 or 540px\)/);
+      draw(all(['nav', 'plans']) + frame('switch', [], 539) + frame('switch', [], 540));
+      expect(runAfter('mockup').reason ?? '').not.toMatch(/switch/);
+    });
+
+    it('leaves out a switch the spec says the page never crosses', () => {
+      jigProject();
+      writeFileSync(join(root, 'site.css'), '@theme { --breakpoint-nav: 540px; --breakpoint-rails: 1216px; }');
+      spec(goodSpec.replace(/^sizes:/m, 'switches: [nav]\nsizes:'));
+      draw(all(['nav', 'plans']) + frame('switch', [], 539) + frame('switch', [], 540));
+      expect(runAfter('mockup').reason ?? '').not.toMatch(/switch/);
+      spec(goodSpec.replace(/^sizes:/m, 'switches: none\nsizes:'));
+      draw(all(['nav', 'plans']));
+      expect(runAfter('mockup').reason ?? '').not.toMatch(/switch/);
+    });
   });
 
   it('blocks a critique that wrote no verdict files at all', () => {

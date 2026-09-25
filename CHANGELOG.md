@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **The gate checks what a mockup's frames hold, not only that they exist.**
+  0.18.5 required a frame per size; a frame can still be empty, or hold the
+  desktop composition narrower. The procedure's self-check, "go down the spec's
+  `regions:` and find each one in that frame", was prose only. Now each size's
+  regions must be labelled in its frame: by name where the spec gives a short
+  one (`nav`, or `h1: "Versions"`), and by count where it writes a description,
+  so wording never trips it.
+- **A mockup draws either side of each switch the project records.** The probe
+  has measured one pixel either side of every `--breakpoint-*` since 0.18.0, but
+  the drawing the owner approves showed only the four sizes; jig-site's header
+  changes at 540, between phone and tablet, and no frame showed 539 beside 540.
+  A new spec field, `switches:`, names the switches a page crosses (`none` if it
+  crosses none); absent, the mockup draws every one.
+- **A spec's `indexable:` reads past a YAML comment.** The spec template itself
+  writes `indexable: true   # from the mode ...`; a spec that copied it was
+  reported unreadable.
+
 ## 0.18.5 (2026-09-25)
 
 The gate holds an HTML mockup that does not draw the page at every size.
