@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.18.7 (2026-09-25)
+
+The mockup gate reads a spec's switches however they are spelled, and refuses
+icons and images in a drawing's frames.
 
 ### Fixed
 
