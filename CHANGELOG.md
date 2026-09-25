@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.18.9 (2026-09-25)
+
+Each theme names its colour scheme, and no release summary names a rule by its
+id.
 
 ### Changed
 
