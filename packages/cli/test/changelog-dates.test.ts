@@ -27,6 +27,16 @@ describe('CHANGELOG headings', () => {
     expect(bare).toEqual([]);
   });
 
+  // Shown under each release on the Versions page, which is interface text:
+  // two lines at most, and no em dash (I-118). Detail goes in the sections.
+  it('keep each summary to two lines, with no em dash', () => {
+    const text = readFileSync(join(repoRoot, 'CHANGELOG.md'), 'utf8');
+    const long = [...text.matchAll(/^## (\d+\.\d+\.\d+) \([\d-]+\)\n\n([\s\S]*?)(?=\n\n)/gm)]
+      .filter((m) => m[2].split('\n').length > 2 || m[2].includes('\u2014'))
+      .map((m) => m[1]);
+    expect(long).toEqual([]);
+  });
+
   it('run newest first', () => {
     const dates = headings.map((h) => h.match(/\((\d{4}-\d{2}-\d{2})\)$/)?.[1]).filter(Boolean) as string[];
     expect(dates).toEqual([...dates].sort().reverse());
