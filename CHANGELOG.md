@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.17.3
+
+Three defects found building jig-site's header with the full loop.
 
 ### Fixed
 
