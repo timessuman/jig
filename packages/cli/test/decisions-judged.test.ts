@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -83,5 +84,43 @@ describe('jig verdicts judges the project decisions too', () => {
     writeFileSync(join(bare, '.jig', 'critique', 'pricing', 'screen.json'), JSON.stringify({ rendered: false, verdicts: ids('screen') }));
     writeFileSync(join(bare, '.jig', 'critique', 'pricing', 'code.json'), JSON.stringify({ verdicts: ids('code') }));
     expect(verifyVerdicts({ projectRoot: bare, surface: 'pricing', packageRoot: repoRoot }).line).toMatch(/decisions=ran:0/);
+  });
+});
+
+// jig-site: one `/jig decide` added eight decisions, every finished critique
+// turned "incomplete", and the gate stopped an unrelated spec session.
+describe('a decision recorded after the critique', () => {
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: project, stdio: 'ignore' });
+  const judgedBoth = { verdicts: [
+    { decision: 'Voice', verdict: 'ok', reason: 'every heading is lowercase' },
+    { decision: 'Trial and onboarding', verdict: 'ok', reason: 'no trial language on the page' },
+  ] };
+  const commitAll = (message: string) => { git('add', '-A'); git('commit', '-q', '-m', message); };
+  beforeEach(() => {
+    git('init', '-q');
+    git('config', 'user.email', 't@example.test');
+    git('config', 'user.name', 't');
+    write('decisions.json', judgedBoth);
+    commitAll('critique');
+  });
+
+  it('is left for the next critique, committed or not', () => {
+    decisions('# Decisions\n\n## Voice\n\nlowercase.\n\n## Trial and onboarding\n\nno trials.\n\n## Theme toggle\n\nlight or dark.\n');
+    let r = run();
+    expect(r.errors.filter((e) => e.includes('decisions'))).toEqual([]);
+    expect(r.decisions.since).toEqual(['Theme toggle']);
+    expect(r.line).toMatch(/decisions=ran:2/);
+    commitAll('decide');
+    r = run();
+    expect(r.decisions.since).toEqual(['Theme toggle']);
+  });
+
+  it('is still required of a critique in progress, and one the verdicts already had', () => {
+    decisions('# Decisions\n\n## Voice\n\nlowercase.\n\n## Trial and onboarding\n\nno trials.\n\n## Theme toggle\n\nlight or dark.\n');
+    commitAll('decide');
+    write('decisions.json', { verdicts: judgedBoth.verdicts.slice(0, 1) });
+    expect(run().errors.join('\n')).toMatch(/2 of 3 decisions have no verdict: Trial and onboarding, Theme toggle/);
+    commitAll('a later critique that skipped two');
+    expect(run().errors.join('\n')).toMatch(/2 of 3 decisions have no verdict/);
   });
 });

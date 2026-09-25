@@ -65,6 +65,13 @@ export function readProbes(projectRoot: string, dir: string, errors: string[]): 
   for (const f of readdirSync(dir).filter((n) => /^probe-\d+\.json$/.test(n)).sort()) {
     try {
       const p = JSON.parse(readFileSync(join(dir, f), 'utf8')) as ProbeResult;
+      // An older Jig's probe is a real measurement taken by a probe that has
+      // since changed. Called "not output of jig probe", an agent took it for a
+      // forged file and stopped work over it.
+      if (typeof p.jigProbe === 'number' && p.jigProbe < PROBE_VERSION && typeof p.width === 'number') {
+        errors.push(`${f} was taken by an older \`jig probe\` (version ${p.jigProbe}; this Jig reads version ${PROBE_VERSION}). Record it again with \`jig probe --run\`.`);
+        continue;
+      }
       if (p.jigProbe !== PROBE_VERSION || typeof p.width !== 'number') {
         errors.push(`${f} is not output of \`jig probe\` (version ${PROBE_VERSION}). Re-run the probe; do not write it by hand.`);
         continue;
