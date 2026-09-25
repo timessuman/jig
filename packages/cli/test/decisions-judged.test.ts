@@ -13,7 +13,7 @@ import { repoRoot } from './helpers/registered-commands.js';
  * what the project itself had chosen.
  */
 const index = JSON.parse(readFileSync(join(repoRoot, 'rules.index.json'), 'utf8')) as Array<{ id: string; bucket: string; pass?: string }>;
-const ids = (pass: string) => index.filter((r) => r.bucket === 'judgment' && r.pass === pass).map((r) => ({ id: r.id, verdict: 'ok', reason: `${r.id} holds here` }));
+const ids = (pass: string) => index.filter((r) => (r.bucket === 'judgment' || r.bucket === 'hybrid') && r.pass === pass).map((r) => ({ id: r.id, verdict: 'ok', reason: `${r.id} holds here` }));
 
 let project: string;
 const dir = () => join(project, '.jig', 'critique', 'pricing');

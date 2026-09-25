@@ -312,7 +312,7 @@ Prose.`;
     const dir = join(root, '.jig', 'critique', 'pricing');
     mkdirSync(dir, { recursive: true });
     const index = JSON.parse(readFileSync(join(repoRoot, 'rules.index.json'), 'utf8')) as Array<{ id: string; bucket: string; pass?: string }>;
-    const ids = (pass: string) => index.filter((r) => r.bucket === 'judgment' && r.pass === pass).map((r) => ({ id: r.id, verdict: 'ok', reason: `${r.id} holds` }));
+    const ids = (pass: string) => index.filter((r) => (r.bucket === 'judgment' || r.bucket === 'hybrid') && r.pass === pass).map((r) => ({ id: r.id, verdict: 'ok', reason: `${r.id} holds` }));
     writeFileSync(join(dir, 'screen.json'), JSON.stringify({ rendered: false, verdicts: [...ids('screen'), { id: 'P-14', verdict: 'ok', reason: 'nav reads as the spec says' }] }));
     writeFileSync(join(dir, 'code.json'), JSON.stringify({ verdicts: ids('code') }));
     expect(runAfter('critique').reason).toMatch(/judged \d+ rules with rendered: false/);

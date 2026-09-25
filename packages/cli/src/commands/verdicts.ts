@@ -201,7 +201,11 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   const root = opts.packageRoot ?? assetRoot();
   const errors: string[] = [];
   const index = JSON.parse(readFileSync(join(root, 'rules.index.json'), 'utf8')) as Array<{ id: string; bucket: string; pass?: string }>;
-  const judgment = index.filter((r) => r.bucket === 'judgment');
+  // A hybrid rule with a pass has a judgment half its detector cannot reach, and
+  // the arm judges it there. 0.17 moved ten rules from judgment to hybrid when
+  // they got detectors, kept their `pass: code`, and every verdict on them came
+  // back "not a rule": a critique that did what the rules said could not pass.
+  const judgment = index.filter((r) => r.bucket === 'judgment' || (r.bucket === 'hybrid' && r.pass !== undefined));
   const screenIds = judgment.filter((r) => r.pass === 'screen').map((r) => r.id);
   const codeIds = judgment.filter((r) => r.pass === 'code').map((r) => r.id);
   // Mechanical ids are real rules; a verdict naming one is misfiled, not
