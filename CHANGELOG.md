@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- **No release summary names a rule by its id.** jig-site's Versions page shows
+  each summary, and the site keeps rule ids out of its interface. Three named a
+  rule as `A-05`, `I-118` or `H-47`; they now name it in words. A test keeps ids
+  out of summaries.
+
 ### Fixed
 
 - **Each theme names its `color-scheme`.** The default brand file's `:root`
@@ -133,7 +140,7 @@ for jig-site's Versions page.
 ## 0.18.1 (2026-09-25)
 
 Two fixes found by jig-site's fourth round: the probe misread a `<details>`
-menu, and `A-05` missed an arrow that renders as an emoji.
+menu, and the emoji rule missed an arrow that renders as an emoji.
 
 ### Fixed
 
@@ -551,7 +558,7 @@ Meaning before presentation, and one fewer step anyone can skip.
 
 ## 0.12.0 (2026-09-18)
 
-One new rule: no em dashes in interface text (`I-118`), with a detector.
+One new rule: no em dashes in interface text, with a detector.
 
 ### Added
 
@@ -678,8 +685,8 @@ runs with Haiku.
 
 ## 0.9.0 (2026-09-13)
 
-One new rule and one amended correction, both about the same blind spot: H-47's
-correction always pointed an agent at a token.
+One new rule and one amended correction, both about the same blind spot: a
+rule's correction always pointed an agent at a token.
 
 ### Added
 

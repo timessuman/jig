@@ -37,6 +37,15 @@ describe('CHANGELOG headings', () => {
     expect(long).toEqual([]);
   });
 
+  // A page that shows the summaries keeps rule ids out of its interface.
+  it('name no rule by its id in a summary', () => {
+    const text = readFileSync(join(repoRoot, 'CHANGELOG.md'), 'utf8');
+    const withIds = [...text.matchAll(/^## (\d+\.\d+\.\d+) \([\d-]+\)\n\n([\s\S]*?)(?=\n\n)/gm)]
+      .filter((m) => /\b[A-Z]{1,2}-\d{1,3}\b/.test(m[2]))
+      .map((m) => m[1]);
+    expect(withIds).toEqual([]);
+  });
+
   it('run newest first', () => {
     const dates = headings.map((h) => h.match(/\((\d{4}-\d{2}-\d{2})\)$/)?.[1]).filter(Boolean) as string[];
     expect(dates).toEqual([...dates].sort().reverse());
