@@ -8,6 +8,9 @@
   backfilled from the tags. The npm package has no git history, so the
   CHANGELOG is where a release's date travels with it; jig-site's Versions page
   lists each release by date. A test keeps every released heading dated.
+- **Every release opens with a one-line summary.** Five had none (0.17.1,
+  0.16.1, 0.15.1, 0.12.0, 0.2.1) and now do, written from their own entries.
+  The Versions page shows the line under each release; a test keeps it there.
 
 ## 0.18.1 (2026-09-25)
 
@@ -139,6 +142,8 @@ Four defects found by building one page with the full loop.
 
 ## 0.17.1 (2026-09-24)
 
+The gate judges only the critiques a session touched.
+
 ### Fixed
 
 - **The gate judges the critiques a session touched, not every critique.**
@@ -199,6 +204,9 @@ which was not published to npm.
 
 ## 0.16.1 (2026-09-19)
 
+Jig's own headings drop the em dash, a quotation keeps its own punctuation,
+and a spec's `indexable:` is `true` or `false`.
+
 ### Fixed
 
 - **The corpus's own headings follow I-118.** Twelve `R-` titles ("Frame 1:
@@ -236,6 +244,8 @@ global stylesheet.
   `theme.css` left beside two modes.
 
 ## 0.15.1 (2026-09-19)
+
+The gate hears a question anywhere in the message, not only on its last line.
 
 ### Fixed
 
@@ -419,6 +429,8 @@ Meaning before presentation, and one fewer step anyone can skip.
 - **Probe files are version 3.** Older ones no longer validate.
 
 ## 0.12.0 (2026-09-18)
+
+One new rule: no em dashes in interface text (`I-118`), with a detector.
 
 ### Added
 
@@ -1409,6 +1421,9 @@ it do something.
 
 
 ## 0.2.1 (2026-09-01)
+
+Two shipped colours failed Jig's own contrast floors. They are darker now,
+and the build does the contrast arithmetic.
 
 ### Fixed
 

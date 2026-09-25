@@ -18,6 +18,15 @@ describe('CHANGELOG headings', () => {
     expect(bad).toEqual([]);
   });
 
+  // The Versions page shows each release's opening line under its link.
+  it('open every release with a summary before its lists', () => {
+    const text = readFileSync(join(repoRoot, 'CHANGELOG.md'), 'utf8');
+    const bare = [...text.matchAll(/^## (\d+\.\d+\.\d+) \([\d-]+\)\n\n(.*)$/gm)]
+      .filter((m) => m[2].startsWith('###') || m[2].trim() === '')
+      .map((m) => m[1]);
+    expect(bare).toEqual([]);
+  });
+
   it('run newest first', () => {
     const dates = headings.map((h) => h.match(/\((\d{4}-\d{2}-\d{2})\)$/)?.[1]).filter(Boolean) as string[];
     expect(dates).toEqual([...dates].sort().reverse());
