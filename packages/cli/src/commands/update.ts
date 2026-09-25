@@ -268,15 +268,22 @@ function updateInitFiles(opts: InstallOptions): { updated: string[]; skipped: st
     // the rule files beside it kept their CRLF.
     const writer = createWriter(opts.projectRoot, initFiles);
     for (const file of bundleFiles(opts.packageRoot, 'tokens')) {
-      const key = relKey('.jig', 'tokens', file);
-      if (!(key in initManifest.files)) continue;
-      if (isInitFileModified(opts.projectRoot, key, initManifest)) {
-        skipped.push(key);
-        continue;
+      // The brand is the project's own; only the package's mode files are copies.
+      if (!file.startsWith('mode.')) continue;
+      // Wherever init wrote the copy: beside the brand file since the token
+      // layer moved into the project's styles, or under the pre-0.6
+      // `.jig/tokens/`. Looking only there, update found none of a real
+      // site's copies and refreshed nothing, silently, on every release.
+      const keys = Object.keys(initManifest.files).filter((k) => k === file || k.endsWith(`/${file}`));
+      for (const key of keys) {
+        if (isInitFileModified(opts.projectRoot, key, initManifest)) {
+          skipped.push(key);
+          continue;
+        }
+        const content = vendorHeader(file, opts.version, 'css', null) + readFileSync(join(tokensDir, file), 'utf8');
+        updated.push(writer.write(key, content));
+        initChanged = true;
       }
-      const content = vendorHeader(file, opts.version, 'css', null) + readFileSync(join(tokensDir, file), 'utf8');
-      updated.push(writer.write(key, content));
-      initChanged = true;
     }
     Object.assign(initFiles, writer.files);
     if (initChanged) writeInitManifest(opts.projectRoot, { ...initManifest, version: opts.version, files: initFiles });

@@ -393,6 +393,27 @@ describe('update and the project mode-file copy (state.json)', () => {
     expect(result.updated).toContain('.jig/tokens/mode.product.css');
   });
 
+  // Seen on a real site: init wrote its modes beside the brand file in
+  // src/styles/jig/, update looked only under .jig/tokens/, and every release
+  // left the old tokens in place without a word.
+  it('refreshes a mode file where init writes it now, beside the brand file', () => {
+    install(opts('0.1.0'));
+    mkdirSync(join(project, 'src', 'styles', 'jig'), { recursive: true });
+    mkdirSync(join(project, '.jig'), { recursive: true });
+    const original = ':root { --from: mode.product.css; }\n';
+    writeFileSync(join(project, 'src', 'styles', 'jig', 'mode.product.css'), original);
+    writeFileSync(
+      join(project, '.jig', 'state.json'),
+      JSON.stringify({ version: '0.1.0', modes: ['product'], files: { 'src/styles/jig/mode.product.css': checksum(original) } }),
+    );
+
+    writeFileSync(join(pkg, 'tokens', 'mode.product.css'), ':root { --from: revised; }\n');
+    const result = update(opts('0.2.0'));
+
+    expect(readFileSync(join(project, 'src', 'styles', 'jig', 'mode.product.css'), 'utf8')).toContain('--from: revised');
+    expect(result.updated).toContain('src/styles/jig/mode.product.css');
+  });
+
   it('leaves a user-edited mode file byte-identical and reports it skipped', () => {
     install(opts('0.1.0'));
     mkdirSync(join(project, '.jig', 'tokens'), { recursive: true });
