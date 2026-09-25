@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.18.4 (2026-09-25)
+
+Every release summary is one or two lines, for jig-site's Versions page.
 
 ### Changed
 
