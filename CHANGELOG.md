@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **The probe reads a `<details>` menu the way the browser shows it.** On
+  jig-site's Reference it reported a working phone menu as broken, and
+  `jig verdicts` refused a correct `P-14` verdict on the strength of it. Four
+  defects, each now covered by a browser test:
+  - Where the banner's menu is hidden at a width, the probe took the next
+    disclosure in some other `<nav>` (a docs rail's section tree) as the menu,
+    and reported "a menu button beside links that already show". A menu the
+    page names, or one in its banner, is now the only candidate once it exists.
+  - A closed `<details>` hides its content with `content-visibility` in
+    Chromium, which still gives its links boxes, so the closed menu's links
+    counted as showing and opening it "showed no more links". Visibility now
+    also asks `checkVisibility()`.
+  - A label swapped with CSS ("Menu" to "Close") keeps both words in
+    `textContent`; the label is now read from the rendered text.
+  - A native `<summary>` has no `aria-expanded` attribute; its expanded state
+    is its `<details>`'s `open`, which is what assistive technology is given.
+
+  Probe files are now version 6, so earlier ones are re-recorded.
+
 ## 0.18.0
 
 A page's frame gets tokens, a project gets a place to record where its layout
