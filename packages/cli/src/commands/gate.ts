@@ -218,6 +218,7 @@ function commandProblems(root: string, command: string): string[] {
       else if (!/^https?:/i.test(at) && !existsSync(join(root, at))) problems.push(`${spec.path}: \`mockup_at: ${at}\` does not exist.`);
       else if (!/^https?:/i.test(at) && !at.startsWith('.jig/mockups/')) problems.push(`The drawing is at ${at}. A mockup lives in .jig/mockups/, outside what check scans and outside what ships.`);
     }
+    if (at && /\.html?$/i.test(at) && existsSync(join(root, at))) problems.push(...mockupFrameProblems(root, at));
   }
 
   if (command === 'critique') {
@@ -348,6 +349,30 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
       `Not finished — Jig's gate failed (attempt ${count} of ${MAX_BLOCKS}). ` +
       `Fix these before you stop, and do not report the work as done until they pass:\n\n${problems.join('\n\n')}`,
   };
+}
+
+const MOCKUP_FRAMES = [['phone', 360], ['tablet', 768], ['desktop', 1280], ['wide', 1600]] as const;
+
+/**
+ * An HTML mockup draws the page once per size, side by side, so the owner sees
+ * every size at once and approves all of them.
+ *
+ * On jig-site three mockups in a row were single responsive pages: the owner
+ * saw only the width of the window they opened, and asked twice where the
+ * other sizes were. The procedure's template gives `.frame[data-size]` boxes;
+ * nothing checked a drawing used them.
+ */
+function mockupFrameProblems(root: string, at: string): string[] {
+  let html: string;
+  try { html = readFileSync(join(root, at), 'utf8'); } catch { return []; }
+  const missing = MOCKUP_FRAMES.filter(([size]) => !new RegExp(`data-size\\s*=\\s*["']${size}["']`).test(html));
+  if (missing.length === 0) return [];
+  return [
+    `${at} has no frame for ${missing.map(([size, px]) => `${size} (${px}px)`).join(', ')}. ` +
+      `A mockup draws the page once per size, side by side, in the wireframe template's ` +
+      `\`<div class="frame" data-size="…">\` boxes, so the owner sees every size at once. ` +
+      `A single responsive page shows only the width of the window it is opened in.`,
+  ];
 }
 
 const VERDICT_FILES = ['screen.json', 'code.json', 'decisions.json'];

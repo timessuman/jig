@@ -276,6 +276,21 @@ Prose.`;
     expect(runAfter('mockup').reason).toMatch(/still pending/);
   });
 
+  // jig-site: three mockups in a row were one responsive page each, and the
+  // owner saw only their own window's width.
+  it('blocks an HTML mockup without a frame for each size', () => {
+    jigProject();
+    spec(goodSpec);
+    mkdirSync(join(root, '.jig', 'mockups'), { recursive: true });
+    const drawing = join(root, '.jig', 'mockups', 'pricing.html');
+    writeFileSync(drawing, '<html><body><main>one responsive page</main></body></html>');
+    expect(runAfter('mockup').reason).toMatch(/has no frame for phone \(360px\), tablet \(768px\), desktop \(1280px\), wide \(1600px\)/);
+    writeFileSync(drawing, ['phone', 'tablet', 'desktop'].map((s) => `<div class="frame" data-size="${s}"></div>`).join(''));
+    expect(runAfter('mockup').reason).toMatch(/has no frame for wide \(1600px\)\./);
+    writeFileSync(drawing, ['phone', 'tablet', 'desktop', 'wide'].map((s) => `<div class="frame" data-size="${s}"></div>`).join(''));
+    expect(runAfter('mockup').reason ?? '').not.toMatch(/has no frame/);
+  });
+
   it('blocks a critique that wrote no verdict files at all', () => {
     jigProject();
     spec(goodSpec);
