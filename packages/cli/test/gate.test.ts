@@ -331,6 +331,30 @@ Prose.`;
       expect(runAfter('mockup').reason ?? '').not.toMatch(/switch/);
     });
 
+    // jig-site's Versions spec wrote `switches: [breakpoint-nav]`; read as a
+    // switch of that name, it matched nothing and no switch was checked.
+    it('reads a switch however the spec spells it, and names one the project does not record', () => {
+      jigProject();
+      writeFileSync(join(root, 'site.css'), '@theme { --breakpoint-nav: 540px; }');
+      for (const spelling of ['nav', 'breakpoint-nav', '--breakpoint-nav']) {
+        spec(goodSpec.replace(/^sizes:/m, `switches: [${spelling}]\nsizes:`));
+        draw(all(['nav', 'plans']));
+        expect(runAfter('mockup').reason).toMatch(/either side of the `--breakpoint-nav` switch at 540px/);
+      }
+      spec(goodSpec.replace(/^sizes:/m, 'switches: [navigation]\nsizes:'));
+      draw(all(['nav', 'plans']) + frame('switch', [], 539) + frame('switch', [], 540));
+      expect(runAfter('mockup').reason).toMatch(/`switches:` names "navigation", which the project does not record\. Recorded: nav \(540px\)/);
+    });
+
+    it('refuses icons and images in a frame', () => {
+      jigProject();
+      spec(goodSpec);
+      draw(all(['nav', 'plans']).replace('<span class="name">nav</span>', '<span class="name">nav</span><svg viewBox="0 0 24 24"></svg><i class="fa fa-github"></i>'));
+      expect(runAfter('mockup').reason).toMatch(/draws icons or images in its frames \(phone frame: <svg>; phone frame: an icon font/);
+      draw(all(['nav [menu] [theme] [GitHub]', 'plans']));
+      expect(runAfter('mockup').reason ?? '').not.toMatch(/icons or images/);
+    });
+
     it('leaves out a switch the spec says the page never crosses', () => {
       jigProject();
       writeFileSync(join(root, 'site.css'), '@theme { --breakpoint-nav: 540px; --breakpoint-rails: 1216px; }');

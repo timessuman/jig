@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **`switches:` reads a switch however the spec spells it.** jig-site's
+  Versions spec wrote `switches: [breakpoint-nav]`; read as a switch named
+  that, it matched nothing, no switch was checked, and the gate passed. `nav`,
+  `breakpoint-nav` and `--breakpoint-nav` now name the same switch, and a name
+  the project does not record is reported with the ones it does.
+- **The gate refuses icons and images in a mockup's frames.** The procedure
+  says an icon is its name in brackets and an image a labelled box; jig-site's
+  Versions drawing carried the site's real icons and GitHub's mark, and nothing
+  checked. `<svg>`, `<img>`, `<picture>`, `<canvas>` and icon fonts inside a
+  frame now stop the session.
+
 ## 0.18.6 (2026-09-25)
 
 A mockup's frames must hold each size's regions, and the drawing shows either
