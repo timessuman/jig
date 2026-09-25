@@ -154,6 +154,7 @@
    is the answer to it. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
 
     /* Three solid levels. In dark, DEPTH COMES FROM BACKGROUND, NOT SHADOW —
        shadows are nearly invisible on a dark surface. Never pure black. */
@@ -186,6 +187,7 @@
 }
 
 :root[data-theme="dark"] {
+    color-scheme: dark;
 
     /* Three solid levels. In dark, DEPTH COMES FROM BACKGROUND, NOT SHADOW —
        shadows are nearly invisible on a dark surface. Never pure black. */
@@ -214,4 +216,12 @@
 
     --shadow-raised:  none;
     --shadow-overlay: 0 8px 24px -8px rgb(0 0 0 / 60%);
+}
+
+/* The browser's own parts (scrollbars, form controls, the canvas behind the
+   page) follow `color-scheme`, not the tokens. `:root` says `light dark`, which
+   follows the device, so a reader who chose the other theme got the right page
+   inside the wrong scrollbars (jig-site, DRIFT 48). Each theme names its own. */
+:root[data-theme="light"] {
+  color-scheme: light;
 }

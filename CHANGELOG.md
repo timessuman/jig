@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Each theme names its `color-scheme`.** The default brand file's `:root`
+  said `color-scheme: light dark`, which follows the device, and its dark blocks
+  set tokens only. jig-site added a theme toggle and a reader who chose the
+  other theme got the right page inside the device's scrollbars and form
+  controls. Both dark blocks now set `color-scheme: dark`, `[data-theme="light"]`
+  sets `light`, and `T-09` says why. A project whose brand file predates this
+  adds the same three declarations.
+
 ## 0.18.8 (2026-09-25)
 
 Two runs writing one manifest no longer lose an entry.
