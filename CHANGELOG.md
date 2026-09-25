@@ -11,6 +11,14 @@
   verdicts for them, and only `critique` may write verdicts, so the round was
   blocked three times on something it was forbidden to do. A critique is now
   touched only when its verdict files change.
+- **`jig verdicts` accepts, and asks for, verdicts on hybrid rules with a
+  pass.** 0.17 gave ten code-pass rules (A-135 to A-140, A-143, A-144, A-146,
+  G-145) detectors and made them hybrid. Each kept its `pass: code`, because a
+  detector catches only some shapes of the failure, and the code arm judged
+  them as that field says. `verdicts` knew only judgment and mechanical ids,
+  so every verdict on them came back "not a rule", and a critique that did
+  what the rules said could not pass. A hybrid rule with a pass is now judged
+  in that pass, like a judgment rule: the code arm has 84 rules, not 74.
 
 ## 0.17.2
 

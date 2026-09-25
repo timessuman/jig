@@ -16,8 +16,10 @@ import { repoRoot } from './helpers/registered-commands.js';
  * what the counts are.
  */
 const index = JSON.parse(readFileSync(join(repoRoot, 'rules.index.json'), 'utf8')) as Array<{ id: string; bucket: string; pass?: string }>;
-const screenIds = index.filter((r) => r.bucket === 'judgment' && r.pass === 'screen').map((r) => r.id);
-const codeIds = index.filter((r) => r.bucket === 'judgment' && r.pass === 'code').map((r) => r.id);
+// A hybrid rule with a pass is judged in that pass too, for its judgment half.
+const judged = index.filter((r) => r.bucket === 'judgment' || (r.bucket === 'hybrid' && r.pass !== undefined));
+const screenIds = judged.filter((r) => r.pass === 'screen').map((r) => r.id);
+const codeIds = judged.filter((r) => r.pass === 'code').map((r) => r.id);
 
 const all = (ids: string[]) => ids.map((id) => ({ id, verdict: 'n/a', reason: `${id} — nothing on this page it applies to` }));
 
@@ -73,6 +75,18 @@ describe('jig verdicts', () => {
     write('screen.json', { rendered: false, verdicts: [...all(screenIds), ...all(codeIds.slice(0, 1))] });
     write('code.json', { verdicts: all(codeIds) });
     expect(run().errors.join('\n')).toMatch(new RegExp(`${codeIds[0]}.*pass: code`));
+  });
+
+  // Seen live: 0.17 gave ten code-pass rules detectors and made them hybrid.
+  // The code arm judged them, as their pass says, and every one came back
+  // "not a rule"; a critique that followed the rules could not pass.
+  it('takes a verdict on a hybrid rule in its pass, and asks for one', () => {
+    expect(codeIds).toContain('A-139');
+    write('screen.json', { rendered: false, verdicts: all(screenIds) });
+    write('code.json', { verdicts: all(codeIds) });
+    expect(run().errors.join('\n')).not.toMatch(/A-139 is not a rule/);
+    write('code.json', { verdicts: all(codeIds.filter((id) => id !== 'A-139')) });
+    expect(run().errors.join('\n')).toContain('A-139');
   });
 
   // Arm test 3: C-19 and A-05 were reported as "not a rule", sending the agent
