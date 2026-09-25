@@ -4,6 +4,14 @@
 
 ### Added
 
+- **Keyboard access a rule requires does not count against a script budget.**
+  `P-14` requires `Escape` to close an open menu, and `editorial`'s budget was
+  0 KB, with `<details>` as the menu, which cannot do it. No editorial page
+  could satisfy both, and a real site's home and not-found pages kept a menu a
+  keyboard could not dismiss. `M-01` now allows, in every mode, a few lines
+  under 1 KB whose only job is keyboard behaviour a rule asks for and the
+  browser does not give, with the rule named in a comment. `P-14` carries the
+  six lines for `Escape`.
 - **Layout sizes: `--size-container`, `--size-rail`, `--size-header`.** Every
   mode now sizes a page's frame, not only what is inside it. Building one site
   with the full loop, four gaps turned out to be one: no token for a page's
