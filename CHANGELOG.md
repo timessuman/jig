@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.18.8 (2026-09-25)
+
+Two runs writing one manifest no longer lose an entry.
 
 ### Fixed
 
