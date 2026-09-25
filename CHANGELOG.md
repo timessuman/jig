@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **The gate holds a mockup that does not show every size.** On jig-site three
+  HTML mockups in a row were single responsive pages, so the owner saw only the
+  width of the window they opened and asked twice where the other sizes were.
+  The procedure's wireframe template draws the page once per size, side by
+  side, in `.frame[data-size]` boxes, and nothing checked a drawing used them.
+  When a `mockup` session stops with an HTML drawing, the gate now requires a
+  frame for phone (360), tablet (768), desktop (1280) and wide (1600).
+
 ## 0.18.4 (2026-09-25)
 
 Every release summary is one or two lines, for jig-site's Versions page.
