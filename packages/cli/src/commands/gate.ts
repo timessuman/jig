@@ -141,14 +141,16 @@ export function sessionStart(transcriptPath: string | undefined): number | undef
   return undefined;
 }
 
-/** The newest file time anywhere under a directory. */
-function newestMtime(dir: string): number {
+/**
+ * When a critique's verdicts last changed. Only the verdict files count: a
+ * make round that saved a probe into the folder measured the page, it did not
+ * review it, and judging that folder asked make for verdicts only critique may
+ * write. The gate's own lock is not a verdict file either.
+ */
+function verdictsMtime(dir: string): number {
   let newest = 0;
-  for (const name of readdirSync(dir, { withFileTypes: true })) {
-    // The gate's own record: writing it must not make a critique look touched.
-    if (name.name === LOCK) continue;
-    const path = join(dir, name.name);
-    newest = Math.max(newest, name.isDirectory() ? newestMtime(path) : statSync(path).mtimeMs);
+  for (const name of VERDICT_FILES) {
+    try { newest = Math.max(newest, statSync(join(dir, name)).mtimeMs); } catch { /* not written */ }
   }
   return newest;
 }
@@ -160,10 +162,11 @@ function newestMtime(dir: string): number {
  * one site: a spec for one page could not finish because another page's
  * critique predated a release that added rules, and a record the project had
  * set aside still failed for screenshots that no longer existed. A stop is
- * judged on what it touched: a critique with a file changed since this session
- * began, and the current spec's surface when the session ran `critique`. A
- * directory whose name starts with `_` is set aside and never judged. With no
- * transcript to date the session (the gate run by hand), every critique is.
+ * judged on what it touched: a critique whose verdict files changed since this
+ * session began, and the current spec's surface when the session ran
+ * `critique`. A directory whose name starts with `_` is set aside and never
+ * judged. With no transcript to date the session (the gate run by hand), every
+ * critique is.
  */
 export function surfacesInPlay(root: string, command: string | undefined, transcriptPath: string | undefined): string[] {
   const critiqueDir = join(root, '.jig', 'critique');
@@ -177,7 +180,7 @@ export function surfacesInPlay(root: string, command: string | undefined, transc
     ? /^\s*surface\s*:\s*(.+)$/im.exec(newestSpec(root)?.body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim().replace(/^["']|["']$/g, '')
     : undefined;
   // A second of slack: file times and transcript times come from different clocks' rounding.
-  return all.filter((s) => s === current || newestMtime(join(critiqueDir, s)) >= start - 1000);
+  return all.filter((s) => s === current || verdictsMtime(join(critiqueDir, s)) >= start - 1000);
 }
 
 /** What each command must have left behind, checked after it ran. */
