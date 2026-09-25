@@ -116,7 +116,10 @@ export function navProblems(spec: { path: string; body: string }): string[] {
 export function specIndexableField(front: string): boolean | 'absent' | 'unreadable' {
   const line = /^\s*indexable\s*:(.*)$/im.exec(front);
   if (!line) return 'absent';
-  const value = line[1]!.trim().replace(/^["']|["']$/g, '').toLowerCase();
+  // A YAML comment is not part of the value. The spec template itself writes
+  // `indexable: true   # from the mode ...`, and a spec that copied it was
+  // reported unreadable.
+  const value = line[1]!.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '').toLowerCase();
   if (value === 'true' || value === 'yes') return true;
   if (value === 'false' || value === 'no') return false;
   return 'unreadable';

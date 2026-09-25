@@ -116,6 +116,13 @@ describe('a spec\'s indexable: is true or false', () => {
     expect(specIndexableField('indexable: "/rules/ itself: true, overriding the default. Filtered: false."')).toBe('unreadable');
   });
 
+  // jig-site's Versions spec copied the template's own trailing comment.
+  it('reads past a YAML comment, as the spec template writes one', async () => {
+    const { specIndexableField } = await import('../src/check/spec-shape.js');
+    expect(specIndexableField("indexable: true          # editorial default; no sitemap until the site has a domain")).toBe(true);
+    expect(specIndexableField('indexable: false # an admin screen')).toBe(false);
+  });
+
   it('is a spec-shape problem when it is a sentence', async () => {
     const { specProblems } = await import('../src/check/spec-shape.js');
     const body = '---\nfeature: x\nsurface: x\nmode: operator\nindexable: "/rules/: true, because it is public"\nsizes:\nconfirmed: true\nmockup: approved\n---\n';
