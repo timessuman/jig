@@ -37,6 +37,18 @@ export function mockupDrawingProblems(root: string, specBody: string, at: string
     );
   }
 
+  // "No icons, imagery, shadows or decoration. An image is a labelled box that
+  // says what goes there. An icon is its name in brackets." jig-site's Versions
+  // drawing carried the site's real icons and GitHub's mark: appearance, which
+  // the mockup keeps out so that review stays on structure.
+  const drawn = frames.flatMap((f) => f.art.map((a) => `${f.size ?? 'a'} frame: ${a}`));
+  if (drawn.length) {
+    problems.push(
+      `${at} draws icons or images in its frames (${[...new Set(drawn)].slice(0, 4).join('; ')}). ` +
+        `A mockup is structure only: an icon is its name in brackets, \`[search]\`, and an image is a labelled box saying what goes there.`,
+    );
+  }
+
   const regions = specRegions(specBody);
   for (const [size] of FRAMES) {
     const listed = regions[size];
@@ -59,7 +71,18 @@ export function mockupDrawingProblems(root: string, specBody: string, at: string
 
   const widths = new Set(frames.map((f) => f.width).filter((w): w is number => w !== undefined));
   const crossed = specSwitches(specBody);
-  for (const s of declaredSwitches(root).filter((sw) => !crossed || crossed.includes(sw.name))) {
+  const recorded = declaredSwitches(root);
+  // A name that matches no recorded switch filters out every one, and the
+  // gate then passes a drawing with none: a spec wrote `breakpoint-nav` and
+  // was read as naming a switch called that.
+  const unknown = (crossed ?? []).filter((name) => !recorded.some((sw) => sw.name === name));
+  if (unknown.length) {
+    problems.push(
+      `The spec's \`switches:\` names ${unknown.map((n) => `"${n}"`).join(', ')}, which the project does not record. ` +
+        `Recorded: ${recorded.map((sw) => `${sw.name} (${sw.px}px)`).join(', ') || 'none'}. Name them as \`--breakpoint-<name>\` gives them.`,
+    );
+  }
+  for (const s of recorded.filter((sw) => !crossed || crossed.includes(sw.name))) {
     const absent = [s.px - 1, s.px].filter((w) => !widths.has(w));
     if (absent.length) {
       problems.push(
@@ -84,10 +107,10 @@ function specSwitches(specBody: string): string[] | undefined {
   const value = /^switches\s*:\s*(.+)$/im.exec(front)?.[1]?.replace(/#.*$/, '').trim();
   if (value === undefined) return undefined;
   if (/^(none|\[\s*\])$/i.test(value)) return [];
-  return value.replace(/^\[|\]$/g, '').split(',').map((n) => n.trim().replace(/^["']|["']$/g, '').replace(/^--breakpoint-/, '')).filter(Boolean);
+  return value.replace(/^\[|\]$/g, '').split(',').map((n) => n.trim().replace(/^["']|["']$/g, '').replace(/^(--)?breakpoint-/, '')).filter(Boolean);
 }
 
-interface Frame { size?: string; width?: number; labels: string[] }
+interface Frame { size?: string; width?: number; labels: string[]; art: string[] }
 
 /** Each frame from its opening tag to the next, with its `.name` labels. */
 function readFrames(html: string): Frame[] {
@@ -100,7 +123,9 @@ function readFrames(html: string): Frame[] {
     const labels = [...body.matchAll(/<\w+\b[^>]*\bclass\s*=\s*["'][^"']*\bname\b[^"']*["'][^>]*>([^<]*)/gi)]
       .map((m) => normalise(m[1]!))
       .filter(Boolean);
-    return { size, width, labels };
+    const art = [...body.matchAll(/<(svg|img|picture|canvas)\b|<i\b[^>]*\bclass\s*=\s*["'][^"']*\b(?:fa|fa-[\w-]+|material-icons|material-symbols[\w-]*|bi|bi-[\w-]+)\b/gi)]
+      .map((m) => (m[1] ? `<${m[1].toLowerCase()}>` : 'an icon font'));
+    return { size, width, labels, art };
   });
 }
 
