@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Every release summary is one or two lines, with no em dash.** jig-site's
+  Versions page shows the summary under each release, so it is interface text.
+  Nine ran to three to thirteen lines; their detail now sits under
+  `### Upgrading` or `### Notes` in the same release. A test keeps summaries
+  short.
+
 ## 0.18.3 (2026-09-25)
 
 Recording a decision no longer undoes the critiques written before it, and an
@@ -72,9 +82,8 @@ menu, and `A-05` missed an arrow that renders as an emoji.
 
 ## 0.18.0 (2026-09-25)
 
-A page's frame gets tokens, a project gets a place to record where its layout
-switches, and keyboard access a rule requires fits every script budget. All of
-it found building jig-site's header and Reference with the full loop.
+A page's frame gets tokens, a project records where its layout switches, and
+keyboard access a rule requires fits every script budget.
 
 ### Added
 
@@ -181,8 +190,12 @@ The gate judges only the critiques a session touched.
 ## 0.17.0 (2026-09-24)
 
 Thirteen more tells of a generated page, ten of them caught by `check`, and a
-picture for every rule. Also carries the probe and verdict fixes tagged as 0.16.2,
-which was not published to npm.
+picture for every rule.
+
+### Notes
+
+Also carries the probe and verdict fixes tagged as 0.16.2, which was not
+published to npm.
 
 ### Added
 
@@ -468,8 +481,8 @@ One new rule: no em dashes in interface text (`I-118`), with a detector.
 
 ## 0.11.1 (2026-09-18)
 
-Two holes in the gate, both found by running the loop twice on 0.11.0 —
-once on Haiku, once on Sonnet.
+Two holes in the gate, found by running the loop twice on 0.11.0: once on
+Haiku, once on Sonnet.
 
 ### Fixed
 
@@ -487,9 +500,8 @@ once on Haiku, once on Sonnet.
 
 ## 0.11.0 (2026-09-18)
 
-One release, one lesson: a measurement an agent can type is not a
-measurement. Everything here came from two live runs at the capability
-floor the day 0.10.0 shipped.
+A measurement an agent can type is not a measurement. Everything here came
+from two live runs at the capability floor.
 
 ### Added
 
@@ -516,9 +528,8 @@ floor the day 0.10.0 shipped.
 
 ## 0.10.0 (2026-09-18)
 
-Mobile-first, and a design loop that a weak model cannot skip. Everything here
-was measured on live runs at the capability floor (Haiku), and most of it exists
-because an instruction the agent could choose to ignore was ignored.
+Mobile-first, and a design loop that a weak model cannot skip, measured on live
+runs with Haiku.
 
 ### Added
 
@@ -582,9 +593,8 @@ because an instruction the agent could choose to ignore was ignored.
 
 ## 0.9.0 (2026-09-13)
 
-One new rule and one amended correction, both from the same afternoon of
-dogfooding and both about the same blind spot: H-47's correction always pointed
-at a token, so an agent reading it literally always produced one.
+One new rule and one amended correction, both about the same blind spot: H-47's
+correction always pointed an agent at a token.
 
 ### Added
 
@@ -627,12 +637,12 @@ at a token, so an agent reading it literally always produced one.
 
 ## 0.8.2 (2026-09-12)
 
-Every fix here was found by a consumer using Jig rather than by Jig checking
-itself: the documentation site was upgraded to 0.8.1 and then styled in
-Tailwind, which is the first time Jig's Tailwind guidance had been followed
-end to end by anything other than its own tests.
+Four fixes found by following Jig's Tailwind guidance end to end on its own
+documentation site.
 
-Three of the four are the same shape — two places answering one question, and
+### Notes
+
+Three of the four are the same shape: two places answering one question, and
 disagreeing without either knowing the other existed.
 
 ### Fixed
@@ -706,10 +716,8 @@ disagreeing without either knowing the other existed.
 
 ## 0.8.1 (2026-09-12)
 
-Both fixes here are the same shape: 0.8.0 corrected the instance it was looking
-at and left the class alone, and in each case the commit message claimed a
-verification that had only checked the file it had just edited. Both were found
-by inspecting the published tarball rather than the working tree.
+Two fixes where 0.8.0 corrected one instance and left the class alone, both
+found by inspecting the published tarball.
 
 ### Fixed
 
@@ -766,9 +774,10 @@ by inspecting the published tarball rather than the working tree.
 
 ## 0.8.0 (2026-09-11)
 
-Everything here was found by handing Jig to agents that had never seen it and
-asking them to build something real — its own documentation site. None of it
-was found by the test suite, which passed throughout.
+Fixes found by agents new to Jig building its documentation site. The test
+suite passed throughout and caught none of them.
+
+### Notes
 
 Minor rather than patch: `explain` prints lines it did not print before, and
 `init` can write a file it did not write before.
@@ -904,6 +913,8 @@ Minor rather than patch: `explain` prints lines it did not print before, and
 
 A rule file that contradicted the tool, and the guard that kept it that way.
 
+### Notes
+
 Patch: the shipped rules change, but no command writes anything different.
 
 ### Fixed
@@ -956,7 +967,9 @@ already knew where the tokens were.
 
 ## 0.7.0 (2026-09-11)
 
-A silent no-op, fixed, plus the missing half of 0.6.0's token-layer move.
+A silent no-op, fixed, and the missing half of 0.6.0's token-layer move.
+
+### Notes
 
 Minor rather than patch, and the call is arguable. The non-TTY fix is a
 correction; the relocation offer is new behaviour that can move files, though
@@ -998,19 +1011,25 @@ to move their token layer should read these notes.
 
 ## 0.6.0 (2026-09-11)
 
-The token layer stops hiding in a dotfolder, and `check` starts reading it back.
+The token layer leaves its dotfolder, and `check` reads the layer's own
+declarations back.
 
-Both came from the same question: who should write the tokens. The answer turned
-out to depend on something that did not exist — **nothing validated the token
-layer's own declarations.** `init` checked a brand colour once, at write time,
-and no command ever looked again. A generated file edited afterwards, by a person
-or an agent, went unexamined: `--color-text-weak` dropped to 22% opacity and
-`check` reported "No findings". With that closed, where the files live and who
-writes them become ordinary decisions rather than load-bearing ones.
+### Upgrading
 
-**Upgrading:** run `npx jig-ui@latest update`, then `npx jig-ui@latest init`.
-Existing installs keep their `.jig/tokens/` layout — nothing moves unless you
-move it, because relocating files could break an import you wrote yourself.
+Run `npx jig-ui@latest update`, then `npx jig-ui@latest init`. Existing installs
+keep their `.jig/tokens/` layout. Nothing moves unless you move it, because
+relocating files could break an import you wrote yourself.
+
+### Notes
+
+Both changes came from the same question: who should write the tokens. The
+answer turned out to depend on something that did not exist: **nothing
+validated the token layer's own declarations.** `init` checked a brand colour
+once, at write time, and no command ever looked again. A generated file edited
+afterwards, by a person or an agent, went unexamined: `--color-text-weak`
+dropped to 22% opacity and `check` reported "No findings". With that closed,
+where the files live and who writes them become ordinary decisions rather than
+load-bearing ones.
 
 ### Added
 
@@ -1092,17 +1111,23 @@ move it, because relocating files could break an import you wrote yourself.
 
 ## 0.5.0 (2026-09-10)
 
-Four things shipped in 0.4.0 were broken in ways that reported success. `/jig
-update` refreshed to the version already installed and said "Updated Jig →
-0.4.0". Dark mode could not be reached by choosing it. `check` skipped nearly
-every colour in a project that had not run `init`. And the reconciliation of
-every numeric default against an external reference is finished — 0 rows open —
-which is where most of the rest of this release came from.
+Four things 0.4.0 reported as working did not, and the reconciliation of every
+numeric default against an external reference is finished.
+
+### Upgrading
 
 **If you are on 0.4.0, run `npx jig-ui@latest update` from a terminal.** The
 `/jig update` fix cannot deliver itself: your command file is the broken one, so
 the slash command will keep reporting a successful no-op until the CLI replaces
 it. Once, from the terminal, and the slash command works from then on.
+
+### Notes
+
+The four: `/jig update` refreshed to the version already installed and said
+"Updated Jig → 0.4.0". Dark mode could not be reached by choosing it. `check`
+skipped nearly every colour in a project that had not run `init`. And the
+reconciliation ended with 0 rows open, which is where most of the rest of this
+release came from.
 
 ### Fixed
 
@@ -1186,11 +1211,14 @@ them, and nothing at all checked that a token cited in the rules exists.
 
 ## 0.4.0 (2026-09-04)
 
-Jig stops copying itself into your project. It is a skill an agent reads, and
-0.3.0 wrote 220KB across 17 files into every consuming repo to deliver it —
-roughly 200KB of that Jig's own property, read by an agent that already had it
-from the skill install. A single-mode project now gets **three** files, all of
-them its own.
+Jig stops copying itself into your project. A single-mode project now gets
+**three** files, all of them its own.
+
+### Notes
+
+Jig is a skill an agent reads, and 0.3.0 wrote 220KB across 17 files into every
+consuming repo to deliver it. Roughly 200KB of that was Jig's own, read by an
+agent that already had it from the skill install.
 
 ### Changed
 
