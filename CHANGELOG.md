@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **The gate no longer asks `make` for a critique's verdicts.** A critique
+  counted as touched when any file in its folder changed, so a make round that
+  saved its probe there (`jig probe --save`) was held to that critique's
+  completeness. A critique written before a release that added rules has no
+  verdicts for them, and only `critique` may write verdicts, so the round was
+  blocked three times on something it was forbidden to do. A critique is now
+  touched only when its verdict files change.
+
 ## 0.17.2
 
 Four defects found by building one page with the full loop.

@@ -493,6 +493,17 @@ describe('the gate judges the critiques this session touched', () => {
     expect(stop(t).reason).not.toMatch(/jig verdicts catalog/);
   });
 
+  // Seen live: a make round saved its probe into the catalog's critique folder,
+  // and the gate then asked make, three times, for verdicts only critique writes.
+  it('does not judge a critique whose folder a make round only measured into', () => {
+    jigProject();
+    const dir = badCritique('catalog');
+    const old = new Date(Date.now() - 3_600_000);
+    utimesSync(join(dir, 'screen.json'), old, old);
+    writeFileSync(join(dir, 'probe-1280.json'), '{}');
+    expect(stop(session(new Date(Date.now() - 60_000), 'make')).reason).not.toMatch(/jig verdicts catalog/);
+  });
+
   it('judges every critique when there is no transcript to date the session', () => {
     jigProject();
     const dir = badCritique('catalog');
