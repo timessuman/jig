@@ -458,13 +458,25 @@ Compose it for the phone first. Mobile navigation is a different control — not
   - While open, its visible label or icon reads as close — the word **Close**, or a cross — and its accessible name says so. Tapping it again closes the menu.
   - `Escape` closes an open menu and returns focus to the button.
   - `<details>`/`<summary>` gives the first three for free; a hand-rolled button has to do each one.
+  - `Escape` is the one `<details>` does not give. A few lines add it, and they fit every mode's budget, `editorial`'s included (`M-01`), because keyboard access a rule requires is not counted:
+
+    ```js
+    // P-14: Escape closes the open menu and returns focus to its button.
+    addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const menu = document.activeElement?.closest('details[open]');
+      if (!menu) return;
+      menu.open = false;
+      menu.querySelector('summary')?.focus();
+    });
+    ```
 - **Where the menu button sits is the project's decision.** Top right, top left, centred — that is taste, and it belongs in `DECISIONS.md`, not here. What the system asks is only that it stays in the same place on every screen and at every width it appears. **The decision is where it sits, never whether it exists:** at a width where every destination fits, the table above shows the links and there is no menu button, whatever `DECISIONS.md` says about its position.
 - **Mark where the reader is, the same way at every width.** Every screen has to answer *where am I?* without the reader remembering how they arrived.
   - The link to the current page carries `aria-current="page"`. A section link whose child page is open may carry `aria-current="true"`.
   - Style the mark from that attribute — `[aria-current="page"]` in CSS — not from a separate `.active` or `.current` class. One source for both what is seen and what is announced means the two cannot drift apart; a class alone looks marked and tells a screen reader nothing.
   - The visible cue is not colour alone (`C-20`): weight, an underline or bar, or a filled state. Which one is the project's decision.
   - Inside an open menu, the current item is marked the same way. When the menu is closed nothing in the navigation is visible, so the page's `<h1>` is what tells the reader where they are — every page has one, and it names the page.
-- **It works with no JavaScript** (`F-41`). The links are ordinary links in the page and render visibly by default; script, if there is any, only adds the collapse. In `editorial`, where the script budget is zero (`M-01`), use `<details>` with `<summary>Menu</summary>` — a disclosure the browser provides with no script at all.
+- **It works with no JavaScript** (`F-41`). The links are ordinary links in the page and render visibly by default; script, if there is any, only adds the collapse. In `editorial`, where the script budget is zero (`M-01`), use `<details>` with `<summary>Menu</summary>` — a disclosure the browser provides with no script at all — and the few lines above for `Escape`.
 - **Never let a row that does not fit scroll sideways.** Its last items go past the edge where nobody sees them (`E-62`), and `editorial` forbids horizontal scrolling on mobile outright. An open menu is a vertical list.
 - **Same destinations, same order, at every width.** The phone may show fewer at once. It never shows different ones, and never reorders them — `product` fixes navigation position across the app (`M-02`), and a reader who learned the order on one screen should not have to relearn it on another.
 - **Every item is at least `--size-touch-target` tall**, made with padding rather than a larger font. The target grows; the text does not.

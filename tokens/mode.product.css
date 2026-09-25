@@ -74,6 +74,13 @@
   --size-control: 40px;  --size-control-sm: 32px;  --size-row: 48px;  --size-row-compact: 40px;
   --size-touch-target: 48px;  --size-icon: 18px;
 
+  /* Layout sizes (T-04). The container is the page's frame: a rail, a readable
+     column and a rail fit inside it, and above it navigation stays near what it
+     navigates. A rail is sized to hold labels at this mode's type size. The
+     header is one touch-target row and its hairline. */
+  --size-container: 1280px;  --size-rail: 256px;
+  --size-header: calc(var(--size-touch-target) + var(--border-width-hairline));
+
   --border-width-control: var(--border-width-hairline);
   --radius-control: var(--radius-sm);  --radius-surface: var(--radius-md);
   --shadow-surface: var(--shadow-none);

@@ -86,7 +86,7 @@ Resolved values: `02-tokens.md` — the option sets for type, spacing, radius an
 - Every page states its subject above the fold in text, not only in an image.
 - Prose blocks are measure-capped even when the container is wide.
 - No horizontal scrolling regions on mobile. Reflow instead.
-- Total JS budget for a content page: **0 KB** unless a specific feature requires it. Interactivity is opt-in per component and must be justified in a comment.
+- Total JS budget for a content page: **0 KB** unless a specific feature requires it. Interactivity is opt-in per component and must be justified in a comment. **Keyboard access a rule requires is not a feature and is not counted**: a few lines whose only job is behaviour a rule asks for and the browser does not give, such as `Escape` closing a `<details>` menu (`P-14`), are allowed in every mode, under 1 KB, with the rule named in a comment. Nothing else rides along in them.
 
 ---
 

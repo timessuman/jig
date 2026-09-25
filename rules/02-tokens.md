@@ -80,9 +80,10 @@ Modes **select** from these; they never define their own values. `--spacing-card
 **A range means the heading is fluid.** `32–48` is not two values to choose
 between: `--text-h1` interpolates continuously with viewport width, reaching its
 minimum at a 360px viewport and its maximum at 1024px, saturating outside that
-range. There is no breakpoint here and none anywhere else in the system — a
-`clamp()` has no threshold to place, which is exactly why it was chosen over a
-second `-sm` scale.
+range. There is no breakpoint here, and the system defines none anywhere
+else — a `clamp()` has no threshold to place, which is exactly why it was chosen
+over a second `-sm` scale. Where a project's layout does switch, the project
+measures and records the width (T-04).
 
 Editorial `--text-h1` at a fixed 48px gives **13 characters per line** on a
 360px screen, so a 45-character headline sets as four lines and 211px of
@@ -257,6 +258,55 @@ minimum of WCAG 2.2.
 It is an accessibility floor, so it is excluded from the table above — there is
 nothing per-mode about it to resolve. The same is true of `--focus-ring-width`
 and `--focus-ring-offset`, which live in the brand file for that reason.
+
+**Layout sizes.** Three tokens size a page's frame, where the others size what
+is inside it. A real site found none of them and made up its own three:
+
+| Token | `editorial` | `product` | `operator` |
+| --- | --- | --- | --- |
+| `--size-container` | 1280px | 1280px | 1280px |
+| `--size-rail` | 288px | 256px | 240px |
+
+- `--size-container` is the page's frame: a rail, a readable column and a rail
+  fit inside it, centred, and the viewport less `--grid-margin-sm` below that.
+- `--size-rail` is a side column of navigation or filters, sized to hold labels
+  at the mode's type size.
+- `--size-header` is one row of touch targets and its hairline, in every mode:
+  `calc(var(--size-touch-target) + var(--border-width-hairline))`, 49px with
+  the default brand. A fixed header's rails
+  stick at it, their height is the viewport less it, and `scroll-padding-top`
+  clears it.
+
+`--size-container` is one value for the same reason the touch target is: it is
+not density. Past it, a header's last item drifts hundreds of pixels from where
+the text stops, and the page runs empty down one side. A product whose screens
+are wall-to-wall data raises it in its own layer, after the barrel, with the
+reason written beside it.
+
+**Where a layout switches is measured, not chosen.** This system defines no
+breakpoint, and the four widths a page is judged at (360, 768, 1280, 1600) are
+checkpoints, not places the CSS changes. A layout switches where its content
+needs it: a header row where its labels fit (`P-14`), a third column where two
+rails and a readable column fit. That width is the project's, found by
+measuring, and it is recorded once, in the project's own layer:
+
+```css
+@theme {
+  /* The four header labels and the wordmark need 504px, measured in the
+     site's own fonts; the row replaces Menu here. */
+  --breakpoint-nav: 540px;
+}
+```
+
+Name it `--breakpoint-<what switches>`, never after a device (a name like
+"tablet" says nothing about what changes), and write the measurement beside it. In
+Tailwind 4, `@theme` makes it the variant `nav:`. In plain CSS a custom property
+cannot be read inside `@media`, so the literal is repeated there, with a
+comment naming the token. `jig probe --run` reads these declarations and also
+measures one pixel either side of each, because a switch falls between the
+judged widths by design, and a range nobody measured is where a layout breaks:
+a real site's three-column frame appeared at 1216px, and 1024 to 1215 still got
+the phone arrangement.
 
 **Spacing selections.** `--spacing-card` and `--spacing-section` pick from the
 shared ladder rather than stating their own values:

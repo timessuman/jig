@@ -228,7 +228,7 @@ program
   .command('probe')
   .description("Print the render probe. With --save, read what it returned on stdin and record it for `jig verdicts`.")
   .option('--save <surface>', "record the probe's output (piped in) under .jig/critique/<surface>/")
-  .option('--run <page>', 'render this page here, at 360, 768, 1280 and 1600, and record each (needs --save)')
+  .option('--run <page>', 'render this page here, at 360, 768, 1280 and 1600 and either side of each --breakpoint-* the project declares, and record each (needs --save)')
   .option('--serve <dir>', 'serve this directory over local http and load --run from it, so root-relative links resolve (a built static site)')
   .action(async (opts: { save?: string; run?: string; serve?: string }) => {
     if (opts.run) {
