@@ -23,6 +23,15 @@
 
   Probe files are now version 6, so earlier ones are re-recorded.
 
+- **`A-05` catches an arrow that turns into an emoji.** ↔ ↕ ↖ ↗ ↘ ↙ ↩ ↪ ▶ ◀
+  are text by default but have an emoji form, and the detector skipped the
+  whole arrow block so prose arrows would not fire. jig-site marked its
+  external links with `<span aria-hidden="true">↗</span>`, which some platforms
+  draw as a colour emoji, and `check --all` and three critiques passed it. One
+  of these characters now fires when it stands alone as an icon (the whole
+  content of an element, or a pseudo-element's `content`) without U+FE0E. The
+  same arrow in a sentence still does not.
+
 ## 0.18.0
 
 A page's frame gets tokens, a project gets a place to record where its layout

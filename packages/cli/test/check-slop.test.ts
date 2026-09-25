@@ -37,6 +37,19 @@ describe('A-05 — emoji as interface iconography', () => {
     expect(run(emojiIcon, '<p>Costs £20 — about 25% less. See § 4.</p>')).toEqual([]);
   });
 
+  // jig-site's header: `↗` is text by default but has an emoji form, and alone
+  // in a decorative span some platforms draw it as a colour emoji.
+  it('fires on an emoji-capable arrow standing alone as an icon', () => {
+    expect(run(emojiIcon, '{item.external && <span class="ml-2xs" aria-hidden="true">↗</span>}')).toHaveLength(1);
+    expect(run(emojiIcon, "a.external::after { content: '↗'; }", 'src/site.css')).toHaveLength(1);
+  });
+
+  it('leaves the same arrow alone in prose, or with the text-form selector', () => {
+    expect(run(emojiIcon, '<p>Rows map 1 ↔ 1, and the link opens ↗ in a new tab.</p>')).toEqual([]);
+    expect(run(emojiIcon, '<span aria-hidden="true">↗︎</span>')).toEqual([]);
+    expect(run(emojiIcon, '<span aria-hidden="true">↓</span>')).toEqual([]);
+  });
+
   it('does not fire inside a comment', () => {
     // Comments are masked for `source`, not for `raw`, so this detector must
     // skip them itself or every rule file quoting an emoji would fire.

@@ -29,6 +29,20 @@ const EMOJI_RE =
  *  pictographic, and appear in real prose and in code. */
 const TEXTUAL = new Set(['→', '←', '↑', '↓', '↔', '⇒', '⇐', '™', '✓', '✗', '−', '∗', '⌘', '⌥', '⏎']);
 
+/**
+ * Characters that are text by default but have an emoji form (↔ ↕ ↖ ↗ ↘ ↙ ↩ ↪
+ * ▶ ◀). In prose they are arrows and stay allowed. Standing alone as an icon —
+ * the whole content of an element, or a pseudo-element's `content` — with no
+ * U+FE0E to force the text form, some platforms draw them as colour emoji.
+ * jig-site's header marked its external links with `<span aria-hidden>↗</span>`
+ * and three critiques and `check --all` passed it.
+ */
+const EMOJI_CAPABLE = '\\u2194-\\u2199\\u21A9\\u21AA\\u25B6\\u25C0';
+const LONE_GLYPH = new RegExp(
+  `>\\s*([${EMOJI_CAPABLE}])(?!\\uFE0E)\\s*<|content\\s*:\\s*["']([${EMOJI_CAPABLE}])(?!\\uFE0E)["']`,
+  'gu',
+);
+
 export const emojiIcon: Detector = {
   name: 'emoji-icon',
   appliesTo: (file) => isStyleBearing(file),
@@ -52,6 +66,24 @@ export const emojiIcon: Detector = {
           `Emoji used as interface iconography (${m[0]}). Emoji render differently ` +
             `on every platform, carry no consistent weight or colour, and cannot be ` +
             `styled — use an icon set, or words.`,
+          lines[line - 1] ?? '',
+        ),
+      );
+    }
+
+    for (const m of masked.matchAll(LONE_GLYPH)) {
+      const glyph = m[1] ?? m[2];
+      const line = masked.slice(0, m.index + m[0].indexOf(glyph)).split('\n').length;
+      if (seen.has(line)) continue;
+      seen.add(line);
+      findings.push(
+        mkFinding(
+          ctx,
+          'emoji-icon',
+          file,
+          line,
+          `A character with an emoji form used as an icon (${glyph}). Standing alone, ` +
+            `it renders as a colour emoji on some platforms. Use an icon set, or words.`,
           lines[line - 1] ?? '',
         ),
       );
