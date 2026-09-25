@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Two runs writing one manifest no longer lose an entry.** The merge added
+  for this in 0.4 re-read after writing and retried if its own keys were gone,
+  but a writer only checked its own keys: one that read before another's write
+  could rename over it afterwards, and both reported success. The
+  parallel-process test caught it under load in the 0.18.7 release run. The
+  read, merge and write now happen under a lock file; a lock whose process has
+  died, or older than any write takes, is taken over, so a killed run cannot
+  wedge an install.
+
 ## 0.18.7 (2026-09-25)
 
 The mockup gate reads a spec's switches however they are spelled, and refuses

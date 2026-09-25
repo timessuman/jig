@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -13,10 +13,12 @@ import { readManifest, writeManifest, type Manifest } from '../src/install/manif
  * as the user's and leave them alone, which is the safe direction, but it is
  * still silent data loss.
  *
- * The fix is not a lock. The `files` map is additive and per-file — each run
- * only records entries for files it actually wrote — so merging against
- * whatever is on disk AT WRITE TIME is both correct and free of the stale-lock
- * recovery a mutex would need after a crash.
+ * The first fix was a merge against whatever is on disk at write time, with no
+ * lock. It lost an entry anyway: a writer only verified its own keys, so one
+ * that read before another's write could rename over it afterwards and both
+ * reported success. The parallel-process test below caught it under load in a
+ * release run. The read, merge and write now happen under a lock file, with
+ * stale-lock recovery so a crashed run cannot wedge an install.
  */
 let root: string;
 const dir = '.agents/skills/jig';
@@ -108,5 +110,49 @@ describe('a manifest write does not drop another run’s entries', () => {
 
     const files = Object.keys(readManifest(root, dir)!.files).sort();
     expect(files, `lost entries — got ${files.join(', ')}`).toHaveLength(4);
+  }, 60_000);
+});
+
+describe('the manifest lock', () => {
+  const lockPath = () => join(root, ...dir.split('/'), 'manifest.json.lock');
+
+  it('takes over a lock whose process is gone', () => {
+    writeFileSync(lockPath(), `999999 ${Date.now()}`);
+    writeManifest(root, manifest({ 'a.md': 'sha256:a' }), dir);
+    expect(readManifest(root, dir)!.files).toEqual({ 'a.md': 'sha256:a' });
+    expect(existsSync(lockPath())).toBe(false);
+  });
+
+  it('takes over a lock older than any write takes', () => {
+    writeFileSync(lockPath(), `${process.pid} ${Date.now() - 60_000}`);
+    writeManifest(root, manifest({ 'a.md': 'sha256:a' }), dir);
+    expect(readManifest(root, dir)!.files).toEqual({ 'a.md': 'sha256:a' });
+  });
+
+  it('makes another process wait while it is held, then lets it write', async () => {
+    const manifestModule = join(getPackageRoot(), 'src/install/manifest.ts');
+    const script = join(root, 'w.mjs');
+    writeFileSync(
+      script,
+      `import { writeManifest } from ${JSON.stringify(manifestModule)};\n` +
+        `writeManifest(${JSON.stringify(root)}, { version: '0.4.0', agent: 'claude', scope: 'project',\n` +
+        `  installedAt: new Date().toISOString(), files: { 'b.md': 'sha256:b' } }, ${JSON.stringify(dir)});\n` +
+        `process.stdout.write(String(Date.now()));\n`,
+    );
+    // Held by this (live) process, freshly.
+    writeFileSync(lockPath(), `${process.pid} ${Date.now()}`);
+    let out = '';
+    const done = new Promise<void>((resolve, reject) => {
+      const child = spawn('npx', ['tsx', script], { stdio: ['ignore', 'pipe', 'ignore'] });
+      child.stdout.on('data', (d) => (out += d));
+      child.on('error', reject);
+      child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    });
+    await new Promise((r) => setTimeout(r, 3_000));
+    const releasedAt = Date.now();
+    unlinkSync(lockPath());
+    await done;
+    expect(Number(out)).toBeGreaterThanOrEqual(releasedAt);
+    expect(readManifest(root, dir)!.files).toEqual({ 'b.md': 'sha256:b' });
   }, 60_000);
 });
