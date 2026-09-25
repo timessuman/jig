@@ -162,6 +162,15 @@ describe('jig verdicts reads the probes', () => {
     expect(run().errors.join('\n')).toMatch(/is not output of `jig probe`/);
   });
 
+  // jig-site after 0.18.1: version-5 probes read as "not output of jig probe",
+  // and an agent stopped work believing the files were forged.
+  it('says an older probe is older, not forged', () => {
+    for (const w of [360, 768, 1280, 1600]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify(probe({ width: w, jigProbe: 5 })));
+    const errors = run().errors.join('\n');
+    expect(errors).toMatch(/taken by an older `jig probe` \(version 5; this Jig reads version \d+\)/);
+    expect(errors).not.toMatch(/is not output of/);
+  });
+
   it('rejects probe files nothing stamped, so a review cannot invent its measurements', () => {
     for (const w of [360, 768, 1280, 1600]) writeFileSync(join(dir(), `probe-${w}.json`), JSON.stringify(probe({ width: w })));
     expect(run().errors.join('\n')).toMatch(/was not written by `jig probe --save`/);

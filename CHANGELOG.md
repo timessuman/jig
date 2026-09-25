@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **A decision recorded after a critique no longer undoes it.** On jig-site one
+  `/jig decide` session added eight decisions; every finished critique turned
+  "incomplete", and the gate stopped an unrelated spec session over records that
+  could not have judged them. `jig verdicts` now asks git: a decision whose
+  heading was added in a commit the critique's `decisions.json` commit does not
+  contain, or not committed yet, is left for the next critique and listed as
+  such. Without git, or while `decisions.json` has uncommitted changes (a
+  critique in progress), every decision is still required.
+- **An older probe file is called older, not forged.** After a release changed
+  the probe's version, the old files read "not output of `jig probe` … do not
+  write it by hand", and an agent stopped work believing they were fabricated.
+  They now say which version took them and to record them again.
+
 ## 0.18.2 (2026-09-25)
 
 Every release in this changelog now carries its date and a one-line summary,

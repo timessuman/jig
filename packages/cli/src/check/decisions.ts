@@ -35,19 +35,24 @@ export function decisionsFile(projectRoot: string): string | undefined {
 }
 
 export function decisionNames(projectRoot: string): string[] {
+  return [...decisionHeadings(projectRoot).keys()];
+}
+
+/** Each decision's name, with the heading line as the file writes it. */
+export function decisionHeadings(projectRoot: string): Map<string, string> {
+  const headings = new Map<string, string>();
   const path = decisionsFile(projectRoot);
-  if (!path) return [];
+  if (!path) return headings;
   let body: string;
   try {
     body = readFileSync(join(projectRoot, path), 'utf8');
   } catch {
-    return [];
+    return headings;
   }
-  const names: string[] = [];
   for (const match of body.matchAll(HEADING)) {
     const name = match[2]!.replace(/[`*]/g, '').trim();
     if (!name || NOT_A_DECISION.test(name)) continue;
-    if (!names.includes(name)) names.push(name);
+    if (!headings.has(name)) headings.set(name, match[0].trim());
   }
-  return names;
+  return headings;
 }

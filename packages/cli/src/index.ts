@@ -163,6 +163,8 @@ program
       const result = verifyVerdicts({ projectRoot, surface });
       for (const error of result.errors) console.error(`  ✗ ${error}`);
       if (result.ok) console.log(`  Every rule in both passes has a verdict.`);
+      const since = result.decisions.since ?? [];
+      if (since.length) console.log(`  ${since.length} decision(s) recorded after this critique, for the next one to judge: ${since.join(', ')}.`);
       console.log(`  ${result.line}`);
       process.exit(result.ok ? 0 : 1);
     } catch (err) {

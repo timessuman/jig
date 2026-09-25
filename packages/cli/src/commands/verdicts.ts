@@ -1,10 +1,11 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { citableIds } from '../rules/citations.js';
 import { probeContradictions, readProbes } from '../probe/check.js';
 import { PROBE_WIDTHS } from '../probe/save.js';
-import { decisionNames } from '../check/decisions.js';
+import { decisionHeadings, decisionNames, decisionsFile } from '../check/decisions.js';
 import { specIndexableField } from '../check/spec-shape.js';
 
 /**
@@ -29,6 +30,8 @@ export interface ArmResult {
   judged: number;
   total: number;
   findings: number;
+  /** Decisions recorded after this critique judged the page; the next critique judges them. */
+  since?: string[];
 }
 
 export interface VerdictsResult {
@@ -190,11 +193,58 @@ function checkDecisions(projectRoot: string, dir: string, errors: string[]): Arm
     if (v.verdict === 'finding') findings++;
   }
 
-  const missing = required.filter((r) => !seen.has(r));
+  const unjudged = required.filter((r) => !seen.has(r));
+  const since = decisionsSince(projectRoot, dir, unjudged);
+  const missing = unjudged.filter((r) => !since.includes(r));
+  const total = required.length - since.length;
   if (missing.length) {
-    errors.push(`decisions.json: ${missing.length} of ${required.length} decisions have no verdict: ${missing.join(', ')}.`);
+    errors.push(`decisions.json: ${missing.length} of ${total} decisions have no verdict: ${missing.join(', ')}.`);
   }
-  return { state: missing.length ? 'incomplete' : 'ran', judged: required.length - missing.length, total: required.length, findings };
+  return { state: missing.length ? 'incomplete' : 'ran', judged: total - missing.length, total, findings, ...(since.length ? { since } : {}) };
+}
+
+/**
+ * The unjudged decisions that were recorded after this critique's verdicts.
+ *
+ * A critique judges the decisions that existed when it ran. On jig-site one
+ * `/jig decide` session added eight decisions, every finished critique turned
+ * "incomplete", and the gate stopped an unrelated spec session over records
+ * that could not have judged them. Git says when each was written: a decision
+ * whose heading was added in a commit the verdicts' commit does not contain, or
+ * is not committed yet, is newer than the critique; the next critique judges it.
+ *
+ * Strict wherever that cannot be shown: no git, a `decisions.json` never
+ * committed or with changes of its own (a critique in progress judges every
+ * decision), or a heading already in history when the verdicts were committed.
+ */
+function decisionsSince(projectRoot: string, dir: string, unjudged: string[]): string[] {
+  if (unjudged.length === 0) return [];
+  const path = decisionsFile(projectRoot);
+  if (!path) return [];
+  const git = (args: string[]) =>
+    execFileSync('git', args, { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  try {
+    const verdictFile = relative(projectRoot, join(dir, 'decisions.json'));
+    if (git(['status', '--porcelain', '--', verdictFile])) return [];
+    const judgedIn = git(['log', '-1', '--format=%H', '--', verdictFile]);
+    if (!judgedIn) return [];
+    const headings = decisionHeadings(projectRoot);
+    return unjudged.filter((name) => {
+      const line = headings.get(name);
+      if (!line) return false;
+      // Newest first, so the last commit is the one that added the heading.
+      const addedIn = git(['log', '--format=%H', '-S', line, '--', path]).split('\n').filter(Boolean).pop();
+      if (!addedIn) return true; // not committed yet
+      try {
+        git(['merge-base', '--is-ancestor', addedIn, judgedIn]);
+        return false; // in history when the verdicts were written
+      } catch {
+        return true;
+      }
+    });
+  } catch {
+    return [];
+  }
 }
 
 export function verifyVerdicts(opts: { projectRoot: string; surface: string; packageRoot?: string }): VerdictsResult {
