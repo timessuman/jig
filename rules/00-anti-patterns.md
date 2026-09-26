@@ -210,9 +210,9 @@ The measurement is one line in a browser: render `x` in both faces at the same s
 
 ### B-106 A word stranded on its own line
 ❌ A heading that wraps to leave one word alone on the last line, or a paragraph ending on a single short word
-✅ `text-wrap: balance` on headings and short blocks, `text-wrap: pretty` on body copy. One declaration in the type layer, not a fix applied per heading.
+✅ `text-wrap: balance` on headings and short blocks, `text-wrap: pretty` on body copy: one declaration in the type layer. Both do nothing in Firefox and in Safari before 26, so where the text is rendered, join each block's last two words with a non-breaking space (U+00A0): one function in the template layer that every heading and block of text passes through, never a space typed into content.
 The eye reads a block's shape before it reads the words. A heading whose last line holds one word reads as a mistake to someone who could not name what is wrong with it — the silhouette says unfinished, and that impression lands before the sentence does.
-This is invisible in the source. The same heading breaks cleanly at 1280px and badly at 900px: where a line breaks depends on the box, the face and the string together, and none of the three is decidable from the others. It is judged on the rendered page at more than one width, which is why it carries `pass: screen`.
+This is invisible in the source. The same heading breaks cleanly at 1280px and badly at 900px: where a line breaks depends on the box, the face and the string together, and none of the three is decidable from the others. It is judged on the rendered page at more than one width, which is why it carries `pass: screen`, and the render probe also lays the page out without `text-wrap: pretty`, as those browsers do, because a page can be clean in one browser and stranded in the reader's.
 A manual break is not the fix. `<br>` placed by eye is correct at exactly one viewport width and wrong at the next, and it survives into every layout the component is later used in.
 Ragged-right is not the failure — that is correct, and `B-12` requires it. The failure is a *stranded* word, not an uneven edge. Do not chase every short last line; chase the one that is alone.
 
