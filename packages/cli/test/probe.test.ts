@@ -9,7 +9,7 @@ import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 const probe = (over: Partial<ProbeResult> = {}): ProbeResult => ({
-  jigProbe: 6, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
+  jigProbe: 7, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
   defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5,
   menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 },
   ...over,
@@ -100,6 +100,15 @@ describe('probeContradictions', () => {
 
   it('says nothing when markup order and reading order agree', () => {
     expect(probeContradictions([probe({ orderInversions: [] })], verdicts({ 'P-14': 'ok' }))).toEqual([]);
+  });
+
+  // jig-site's Versions page: clean in Chromium under text-wrap: pretty, and
+  // "back." alone on its last line on an iPhone.
+  it('refuses B-106 ok when a block strands a word without text-wrap: pretty', () => {
+    const stranded = probe({ width: 390, strandedCount: 2, strandedWords: [{ word: 'back.', text: 'The token layer leaves its dotfolder, and' }] });
+    expect(probeContradictions([stranded], verdicts({ 'B-106': 'ok' }))[0]).toMatch(/B-106 is "ok", but .* found 2 block\(s\) ending on one word where `text-wrap: pretty` is not supported .*"back\." \(in "The token layer/);
+    expect(probeContradictions([stranded], verdicts({ 'B-106': 'finding' }))).toEqual([]);
+    expect(probeContradictions([probe({ strandedCount: 0 })], verdicts({ 'B-106': 'ok' }))).toEqual([]);
   });
 
   it('refuses D-115 ok when the page scrolls sideways', () => {
@@ -341,6 +350,23 @@ describe('the CLI can run the probe itself', () => {
     // state from its <details>: neither is a missing close or state.
     expect(at(360).menu.labelChanged).toBe(true);
     expect(at(360).menu.expandedAfter).toBe('true');
+  }, 120_000);
+
+  it('finds a word text-wrap: pretty would hide, as a browser without it lays the page out', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-strand-'));
+    // Fixed-width text, so the break is certain: 'aaaa bbbb cccc' fills the
+    // box and 'dd' falls to a line of its own.
+    writeFileSync(join(root, 'page.html'),
+      '<html><head><title>t</title><style>p{font:16px/1.5 monospace;width:14ch;text-wrap:pretty}</style></head><body><main>' +
+      '<p>aaaa bbbb cccc dd</p><p>one two</p></main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'v'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'v', page: 'page.html', widths: [360] });
+    const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'v', 'probe-360.json'), 'utf8'));
+    expect(probe.strandedCount).toBe(1);
+    expect(probe.strandedWords[0].word).toBe('dd');
   }, 120_000);
 
   it('re-renders only what is missing or taken on an older page', async () => {

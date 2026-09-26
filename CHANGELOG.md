@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **`B-106` holds in every browser, and the probe checks it there.** The rule's
+  correction was `text-wrap: balance` and `pretty`, which Firefox and Safari
+  before 26 ignore. jig-site's Versions page did exactly that, passed its
+  critique in Chromium, and stranded "back." under 0.6.0 on the owner's phone.
+  The correction now adds a fallback: join each block's last two words with a
+  non-breaking space, in one function in the template layer. The render probe
+  (version 7) also lays the page out without `text-wrap: pretty` and records
+  every block that ends on one word, and `jig verdicts` refuses a `B-106` "ok"
+  that it contradicts.
+
 ## 0.18.9 (2026-09-25)
 
 Each theme names its colour scheme, and no release summary names a rule by its

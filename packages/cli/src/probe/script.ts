@@ -17,7 +17,7 @@
  * `browse js "<script>"`, Playwright's `page.evaluate(script)` and a devtools
  * console all run it unchanged.
  */
-export const PROBE_VERSION = 6;
+export const PROBE_VERSION = 7;
 
 export const PROBE_SCRIPT = `(async () => {
   const doc = document.documentElement;
@@ -108,6 +108,32 @@ export const PROBE_SCRIPT = `(async () => {
   const navLinks = () => [...document.querySelectorAll('nav a, header a, [role=navigation] a')].filter(vis).length;
   // Measured before anything is clicked: what a reader sees on arrival.
   const navAtRest = navLinks();
+  // B-106 in every browser. \`text-wrap: pretty\` moves a lone last word up in
+  // Chromium and does nothing in Firefox or in Safari before 26, so the page is
+  // also measured as those lay it out: wrap forced plain, and the last word of
+  // each block compared with the word before it. jig-site's Versions page was
+  // clean in this browser and stranded "back." on an iPhone.
+  const plainWrap = document.createElement('style');
+  plainWrap.textContent = '*{text-wrap:wrap !important}';
+  document.head.appendChild(plainWrap);
+  const stranded = [];
+  for (const el of document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote,td,th,caption,summary')) {
+    if (!vis(el) || el.closest('pre, script, style, [aria-hidden="true"]')) continue;
+    if (el.querySelector('p,li,dd,dt,blockquote,h1,h2,h3,h4,h5,h6')) continue;
+    const words = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      for (const m of n.data.matchAll(/\\S+/g)) words.push([n, m.index, m.index + m[0].length, m[0]]);
+    }
+    if (words.length < 3) continue;
+    const top = (w) => { const r = document.createRange(); r.setStart(w[0], w[1]); r.setEnd(w[0], w[2]); const rs = r.getClientRects(); return rs.length ? rs[rs.length - 1].top : null; };
+    const last = words[words.length - 1];
+    const a = top(words[words.length - 2]), b = top(last);
+    if (/[\\p{L}\\p{N}]/u.test(last[3]) && a !== null && b !== null && b - a > 2) {
+      stranded.push({ word: last[3], text: (el.innerText || '').trim().replace(/\\s+/g, ' ').slice(0, 40) });
+    }
+  }
+  plainWrap.remove();
   // The menu control: inside the header or navigation, or named as the menu.
   // Not any disclosure — an FAQ <summary> is not a menu.
   // The site's navigation, not a page's own: a <nav> inside <main>, an
@@ -170,6 +196,8 @@ export const PROBE_SCRIPT = `(async () => {
     emDashes: [...new Set((ownText.match(/[^.!?\\n]{0,28}\u2014[^.!?\\n]{0,28}/g) || []).map((t) => t.trim()))].slice(0, 5),
     brokenImages: [...document.images].filter((i) => i.complete && i.naturalWidth === 0).length,
     navLinksVisible: navAtRest,
+    strandedCount: stranded.length,
+    strandedWords: stranded.slice(0, 6),
     head: {
       title: (document.title || '').trim(),
       description: (document.querySelector('meta[name=description]') || {}).content || '',

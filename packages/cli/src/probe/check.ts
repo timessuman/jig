@@ -22,6 +22,9 @@ export interface ProbeResult {
   emDashes?: string[];
   brokenImages: number;
   navLinksVisible: number;
+  /** Blocks whose last word sits alone on the last line, laid out without `text-wrap: pretty`. */
+  strandedCount?: number;
+  strandedWords?: Array<{ word: string; text: string }>;
   head?: { title: string; description: string; canonical: string; robots: string; ogTitle: string; ogImage: string };
   contentWidth?: number;
   contentMaxWidth?: string;
@@ -126,6 +129,12 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf,
     // every route ends, whatever built the string.
     if (p.emDashes?.length) {
       errors.push(`${at(p)}: the rendered page shows an em dash in ${p.emDashes.map((t) => `"${t}"`).join(', ')} (I-118) — use a full stop, a comma, a colon, or a second element.`);
+    }
+    // B-106 as a browser without `text-wrap: pretty` shows it: Firefox, and
+    // Safari before 26. The declaration the rule names is not enough there.
+    if (clean('B-106') && p.strandedCount) {
+      const shown = (p.strandedWords ?? []).map((w) => `"${w.word}" (in "${w.text}…")`).join(', ');
+      errors.push(`B-106 is "${verdictOf('B-106')}", but ${at(p)} found ${p.strandedCount} block(s) ending on one word where \`text-wrap: pretty\` is not supported (Firefox, Safari before 26): ${shown}. B-106 says what holds in every browser.`);
     }
     // B-11 at the width that shows it. A line past 90 characters is beyond
     // every mode's measure (68ch editorial, 60 product, 72 operator) with room
