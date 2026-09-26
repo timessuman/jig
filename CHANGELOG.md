@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.18.10 (2026-09-26)
+
+The rule against a stranded word holds in every browser, and the probe checks
+it where `text-wrap: pretty` is not supported.
 
 ### Fixed
 
