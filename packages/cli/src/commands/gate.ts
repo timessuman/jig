@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { navProblems, newestSpec, specProblems } from '../check/spec-shape.js';
 import { findChrome } from '../probe/browser.js';
 import { check } from './check.js';
-import { mockupDrawingProblems } from '../check/mockup-drawing.js';
+import { mockupDrawingProblems, specRegions } from '../check/mockup-drawing.js';
+import { execFileSync } from 'node:child_process';
 import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
@@ -125,7 +126,7 @@ export function asksOwner(text: string | undefined): boolean {
  * wrote the file from its own reasoning, with no answer from anyone. That is
  * the one outcome `decide` exists to prevent, and the gate produced it.
  */
-const ASKS_THE_OWNER = new Set(['decide', 'spec', 'mockup']);
+const ASKS_THE_OWNER = new Set(['decide', 'spec', 'mockup', 'tweak']);
 
 /** When this session began: the first timestamp in its transcript. */
 export function sessionStart(transcriptPath: string | undefined): number | undefined {
@@ -177,7 +178,7 @@ export function surfacesInPlay(root: string, command: string | undefined, transc
     .map((d) => d.name);
   const start = sessionStart(transcriptPath);
   if (start === undefined) return all;
-  const current = command === 'critique'
+  const current = command === 'critique' || command === 'tweak'
     ? /^\s*surface\s*:\s*(.+)$/im.exec(newestSpec(root)?.body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim().replace(/^["']|["']$/g, '')
     : undefined;
   // A second of slack: file times and transcript times come from different clocks' rounding.
@@ -201,7 +202,7 @@ function commandProblems(root: string, command: string): string[] {
     }
   }
 
-  if (command === 'spec' || command === 'mockup' || command === 'make' || command === 'critique') {
+  if (command === 'spec' || command === 'mockup' || command === 'make' || command === 'critique' || command === 'tweak') {
     if (!spec) problems.push(`${command} needs a spec: there is no file in .jig/specs/.`);
     else {
       problems.push(...specProblems(spec));
@@ -222,6 +223,8 @@ function commandProblems(root: string, command: string): string[] {
     if (at && /\.html?$/i.test(at) && existsSync(join(root, at))) problems.push(...mockupDrawingProblems(root, spec.body, at));
   }
 
+  if (command === 'tweak' && spec) problems.push(...tweakProblems(root, spec));
+
   if (command === 'critique') {
     const dir = join(root, '.jig', 'critique');
     const surfaces = existsSync(dir) ? readdirSync(dir).filter((s) => existsSync(join(dir, s, 'screen.json')) || existsSync(join(dir, s, 'code.json'))) : [];
@@ -240,6 +243,87 @@ function commandProblems(root: string, command: string): string[] {
   }
 
   return problems;
+}
+
+/**
+ * A tweak: a change the approved mockup does not show, decided, specced, built
+ * and re-judged in one pass.
+ *
+ * On jig-site, half the rounds in a day were changes of that kind (a word that
+ * wrapped, a link's colour, how a version is written), and each went through
+ * decide, spec, make and a full two-page critique. The alternative is an edit
+ * by hand, which is the drift Jig exists to catch. So `tweak` is bounded by
+ * what the gate can check: the page's structure is as the owner approved it,
+ * the drawing is untouched, and the review re-judges what it says it did.
+ */
+function tweakProblems(root: string, spec: { path: string; slug: string; body: string }): string[] {
+  const problems: string[] = [];
+  const front = spec.body.split(/^---\s*$/m)[1] ?? '';
+  if (!/^\s*confirmed\s*:\s*true\b/im.test(front)) problems.push(`${spec.path} is not confirmed. A tweak changes a page the owner has confirmed; an unconfirmed spec goes through \`spec\`.`);
+  const mockup = /^\s*mockup\s*:\s*(\S+)/im.exec(front)?.[1] ?? '';
+  if (!/^(approved|skipped)/i.test(mockup)) problems.push(`${spec.path}: \`mockup:\` is ${mockup || 'empty'}. A tweak changes a page whose drawing the owner has approved (or skipped); take a new page through \`mockup\` and \`make\`.`);
+  else problems.push(...structureSinceApproval(root, spec, front));
+
+  const surface = /^\s*surface\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '') ?? spec.slug;
+  const record = readTweak(join(root, '.jig', 'critique', surface));
+  if (!record) {
+    problems.push(`.jig/critique/${surface}/tweak.json is missing. It names the change in the owner's words (\`change\`), when it was made (\`at\`) and the rule ids and decisions re-judged for it (\`ids\`).`);
+  } else {
+    if (!record.change) problems.push(`.jig/critique/${surface}/tweak.json has no \`change\`: the owner's words for what changed.`);
+    if (!record.ids.length) problems.push(`.jig/critique/${surface}/tweak.json names nothing to re-judge. A change that no rule and no decision could see needs no tweak; name the ones it can.`);
+    const unjudged = unjudgedTweakIds(join(root, '.jig', 'critique', surface), record);
+    if (unjudged.length) {
+      problems.push(
+        `.jig/critique/${surface}: tweak.json names ${unjudged.slice(0, 6).join(', ')}${unjudged.length > 6 ? ' and more' : ''} but no verdict for ${unjudged.length === 1 ? 'it' : 'them'} carries \`"tweak": "${record.at}"\`. ` +
+          `Each named verdict is re-judged on the changed page by a reader that did not make the change.`,
+      );
+    }
+  }
+  return problems;
+}
+
+/**
+ * The structure the owner approved, from the commit that recorded the mockup's
+ * approval: each size's regions (count, and names where the spec gives short
+ * ones), and the drawing itself. Region wording is left out, so a copy change
+ * inside a region's description is still a tweak.
+ */
+function structureSinceApproval(root: string, spec: { path: string; body: string }, front: string): string[] {
+  const git = (args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  let approvedIn: string;
+  try {
+    approvedIn = git(['log', '-1', '--format=%H', '-G', '^mockup[[:space:]]*:', '--', spec.path]).trim();
+  } catch {
+    return [];
+  }
+  if (!approvedIn) return [];
+  const problems: string[] = [];
+  let thenBody = '';
+  try { thenBody = git(['show', `${approvedIn}:./${spec.path}`]); } catch { return []; }
+  const shape = (body: string) => JSON.stringify(Object.entries(specRegions(body)).sort(([a], [b]) => a.localeCompare(b)).map(([size, regions]) => [size, regions.length, regions.map((r) => r.name ?? '')]));
+  if (shape(thenBody) !== shape(spec.body)) {
+    problems.push(`${spec.path}: the regions under \`sizes:\` differ from the ones approved with the mockup (${approvedIn.slice(0, 7)}). A change to what the page holds is not a tweak: take it through \`spec\` and \`mockup\`.`);
+  }
+  const at = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '');
+  if (at && !/^https?:/i.test(at) && existsSync(join(root, at))) {
+    try {
+      if (git(['show', `${approvedIn}:./${at}`]) !== readFileSync(join(root, at), 'utf8')) {
+        problems.push(`${at} has changed since the owner approved it (${approvedIn.slice(0, 7)}). A tweak leaves the drawing as approved; a change the drawing must show goes through \`mockup\`.`);
+      }
+    } catch { /* the drawing was added after approval, or never committed */ }
+  }
+  return problems;
+}
+
+interface TweakRecord { at: string; change: string; ids: string[] }
+
+function readTweak(dir: string): TweakRecord | undefined {
+  try {
+    const raw = JSON.parse(readFileSync(join(dir, 'tweak.json'), 'utf8')) as Partial<TweakRecord>;
+    return { at: String(raw.at ?? ''), change: String(raw.change ?? '').trim(), ids: Array.isArray(raw.ids) ? raw.ids.map(String) : [] };
+  } catch {
+    return undefined;
+  }
 }
 
 export interface GateResult {
@@ -355,6 +439,24 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
 const VERDICT_FILES = ['screen.json', 'code.json', 'decisions.json'];
 const LOCK = 'verdicts.lock';
 
+/** Each verdict by file and id (or decision name), so a lock can say which one changed. */
+function verdictDigests(dir: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const f of VERDICT_FILES) {
+    let file: { verdicts?: unknown };
+    try { file = JSON.parse(readFileSync(join(dir, f), 'utf8')); } catch { continue; }
+    for (const v of Array.isArray(file.verdicts) ? (file.verdicts as Array<Record<string, unknown>>) : []) {
+      const key = String(v.id ?? v.decision ?? '').trim();
+      if (key) out[`${f}:${key}`] = checksum(JSON.stringify(v));
+    }
+  }
+  return out;
+}
+
+function writeLock(lockPath: string, dir: string, now: string): void {
+  try { writeFileSync(lockPath, JSON.stringify({ checksum: now, verdicts: verdictDigests(dir) }) + '\n', 'utf8'); } catch { /* read-only tree */ }
+}
+
 /** One checksum over a surface's verdict files, or nothing if it has none. */
 function verdictChecksum(dir: string): string | undefined {
   const parts = VERDICT_FILES.map((f) => {
@@ -388,11 +490,21 @@ export function verdictGuard(root: string, command: string | undefined, inPlay?:
     // stamped the catalog's folder during a rule-page session, and the next
     // stop read that stamp as the catalog having been touched.
     if (command === 'critique' && (!inPlay || inPlay.includes(surface))) {
-      try { writeFileSync(lockPath, JSON.stringify({ checksum: now }) + '\n', 'utf8'); } catch { /* read-only tree */ }
+      writeLock(lockPath, dir, now);
       continue;
     }
-    let locked: string | undefined;
-    try { locked = (JSON.parse(readFileSync(lockPath, 'utf8')) as { checksum?: string }).checksum; } catch { continue; }
+    let lock: { checksum?: string; verdicts?: Record<string, string> } = {};
+    try { lock = JSON.parse(readFileSync(lockPath, 'utf8')); } catch { continue; }
+    const locked = lock.checksum;
+    // A tweak re-judges what its change could affect, and only that: the
+    // verdicts it names may change and must be re-judged; every other verdict
+    // stays as critique left it.
+    if (command === 'tweak' && (!inPlay || inPlay.includes(surface)) && locked !== now) {
+      const own = tweakVerdictProblems(dir, surface, lock.verdicts);
+      problems.push(...own);
+      if (own.length === 0) writeLock(lockPath, dir, now);
+      continue;
+    }
     if (locked && locked !== now) {
       problems.push(
         `.jig/critique/${surface}: the verdict files changed after \`/jig critique\` wrote them${command ? `, in a session that ran \`/jig ${command}\`` : ''}. ` +
@@ -401,6 +513,46 @@ export function verdictGuard(root: string, command: string | undefined, inPlay?:
     }
   }
   return problems;
+}
+
+function tweakVerdictProblems(dir: string, surface: string, lockedVerdicts: Record<string, string> | undefined): string[] {
+  const record = readTweak(dir);
+  if (!record) {
+    return [`.jig/critique/${surface}: the verdict files changed in a \`/jig tweak\` session with no tweak.json naming what was re-judged.`];
+  }
+  const problems: string[] = [];
+  const named = new Set(record.ids.map((id) => id.toLowerCase()));
+  const nowVerdicts = verdictDigests(dir);
+  // Locks written before 0.19 hold one checksum and no per-verdict digests;
+  // the first tweak on such a record cannot tell which verdicts it changed, so
+  // it is taken on trust once and the lock it writes can tell from then on.
+  if (lockedVerdicts) {
+    const keys = new Set([...Object.keys(lockedVerdicts), ...Object.keys(nowVerdicts)]);
+    const outside = [...keys]
+      .filter((k) => lockedVerdicts[k] !== nowVerdicts[k])
+      .map((k) => k.slice(k.indexOf(':') + 1))
+      .filter((id) => !named.has(id.toLowerCase()));
+    if (outside.length) {
+      problems.push(
+        `.jig/critique/${surface}: a tweak changed verdicts it did not name (${[...new Set(outside)].slice(0, 6).join(', ')}). ` +
+          `A tweak re-judges only what its change could affect, listed in tweak.json's \`ids\`; restore the others (\`git checkout -- .jig/critique/${surface}\`).`,
+      );
+    }
+  }
+  return problems;
+}
+
+/** The ids a tweak named whose verdicts were not re-judged for it. */
+function unjudgedTweakIds(dir: string, record: TweakRecord): string[] {
+  const stamped = new Set<string>();
+  for (const f of VERDICT_FILES) {
+    let file: { verdicts?: unknown };
+    try { file = JSON.parse(readFileSync(join(dir, f), 'utf8')); } catch { continue; }
+    for (const v of Array.isArray(file.verdicts) ? (file.verdicts as Array<Record<string, unknown>>) : []) {
+      if (record.at && v.tweak === record.at) stamped.add(String(v.id ?? v.decision ?? '').toLowerCase());
+    }
+  }
+  return record.ids.filter((id) => !stamped.has(id.toLowerCase()));
 }
 
 function save(file: string, state: Record<string, number>): void {

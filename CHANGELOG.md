@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`/jig tweak`: a small change to a built page, in one pass.** On jig-site
+  half a day's rounds were changes the approved mockup does not show: a word
+  that wrapped, a mark's colour, how a version is written. Each went through
+  `decide`, `spec`, `make` and a full critique of every page it touched, or
+  would have been an edit by hand, which is the drift Jig exists to catch.
+  `tweak` records the decision if the change is one, brings the spec in line if
+  it disagrees, builds the change, and has a reader that did not make it
+  re-judge only the verdicts the change could affect. The gate bounds it: the
+  regions under the spec's `sizes:` must match the ones approved with the
+  mockup, the drawing must be unchanged since its approval, and the tweak may
+  change only the verdicts it names in `tweak.json`, each re-judged and stamped.
+  A change to structure is refused and routed through `spec` and `mockup`.
+- **A critique's lock records each verdict.** `verdicts.lock` now holds a digest
+  per verdict as well as the whole-file checksum, so the gate can tell which
+  verdicts a tweak changed. A lock written before this release is trusted once
+  by the first tweak and rewritten.
+
 ## 0.18.10 (2026-09-26)
 
 The rule against a stranded word holds in every browser, and the probe checks

@@ -12,7 +12,7 @@ then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
 `jq` drop the ones that matter.
 
-**Agent procedures** — `decide`, `spec`, `mockup`, `make`, `critique`. There is no binary. Do not try to run one:
+**Agent procedures** — `decide`, `spec`, `mockup`, `make`, `critique`, `tweak`. There is no binary. Do not try to run one:
 the section below **is** the command. A CLI can check what these produce; it
 cannot do their work, because the work is judgment and authorship.
 
@@ -26,6 +26,9 @@ spec       what exactly is being built: its smallest useful version, at every sc
 mockup     low-fidelity design of that spec, reviewed before any code
 make       high-fidelity: the actual page or feature, built from the spec & mockup
 critique   scrutinises what was built against the rules, its spec & mockup
+
+tweak      a small change the approved mockup does not show: decided if it is a
+           decision, specced, built, and re-judged where it could matter
 ```
 
 ## init
@@ -1165,6 +1168,85 @@ Designing every case in advance does not work; fixing a page you can use does. S
 Only then suggest `{{command_prefix}}spec` for the next feature. Starting the next one
 with findings open means the second feature is built on top of the first one's
 problems, and nobody goes back for them.
+
+## tweak
+
+**A small change to a page that is built, reviewed and drawn,** one the owner's
+approved mockup does not show: a word or a sentence, a colour or its contrast, a
+weight, spacing inside a region, how text wraps, a focus ring. One pass does what
+the full loop would: record the decision if there is one, bring the spec in line,
+build it, and re-judge what the change could affect. There is no mockup step,
+because the drawing stays true, and no full critique, because nothing else moved.
+
+### Refuse rather than guess
+
+- **No confirmed spec for the page, or its `mockup:` is still pending** → this is
+  a page being made, not changed. Run `{{command_prefix}}spec`, `mockup` and
+  `make`.
+- **No critique record for the page yet** (`.jig/critique/<surface>/`) → nothing
+  has been judged, so nothing can be re-judged. Run `{{command_prefix}}critique`.
+- **The change adds, removes, reorders or regroups a region, changes the
+  navigation at any size, or would make the drawing wrong** → it is not a tweak.
+  Say so and name the route: `spec`, then `mockup`, then `make`. The gate checks
+  this whatever you decide: the regions under `sizes:` must match the ones
+  approved with the mockup, and the drawing must be untouched.
+- **It is unclear what the owner wants** → ask one question and stop.
+
+### 1. Decide, if it is a decision
+
+If the change is a ruling of the owner's, or changes one already recorded (a
+colour for a mark, how versions are written), record it in `DECISIONS.md` the way
+`decide` does: the owner's words, dated, and what it changes. If the change
+applies a rule, or answers a finding the rules already settle (a word stranded on
+its own line, `B-106`), there is nothing to decide; do not invent a decision.
+
+### 2. Bring the spec in line, if it disagrees
+
+If the spec says something the change contradicts, or the page will no longer
+look as the spec describes, amend those lines and add a dated **Tweak** entry at
+the end quoting the owner. Their instruction is the confirmation; do not ask for
+it again. Leave `sizes:` regions and the mockup as they are.
+
+### 3. Build it
+
+As `make` builds: the project's tokens and components, inside the structure the
+page already has, and only what the change needs. Run `{{scripts_path}} check`,
+then render and record the page (`{{scripts_path}} probe --run`) at every width
+it records.
+
+### 4. Re-judge what the change could affect
+
+Write `.jig/critique/<surface>/tweak.json`:
+
+```json
+{
+  "at": "2026-09-26T14:02:00Z",
+  "change": "the owner's words for the change",
+  "ids": ["A-60", "C-19", "The GitHub link is GitHub's own mark"]
+}
+```
+
+`ids` names every rule and decision the change could move: the ones that judged
+the thing that changed, not the whole index. A colour change names the contrast
+and emphasis rules and the decision it applies; a reworded label names the copy
+rules for labels and the decision about naming.
+
+Then a reader that did not make the change re-judges exactly those. It is a
+subagent, run in the foreground, given the page, the ids and each rule's text,
+and not this conversation or your reasons for the change. For each id it replaces
+that verdict in `screen.json`, `code.json` or `decisions.json` with its own
+verdict and reason, adding `"tweak": "<at>"`. It changes nothing else. Then run
+`{{scripts_path}} verdicts <surface>`.
+
+The gate holds both ends: it refuses a tweak that changed a verdict it did not
+name, and one that named a verdict it did not re-judge.
+
+### Finish
+
+Report what changed, in the owner's words; the decision and spec lines you
+touched, if any; each re-judged verdict and what it says now; and the
+`JIG_CHECK` line. A re-judged verdict that is a finding goes to the owner: it is
+fixed by another tweak, or by `make` if it needs more.
 
 ## probe
 

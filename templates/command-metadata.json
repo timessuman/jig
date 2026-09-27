@@ -68,5 +68,10 @@
     "description": "Scrutinise what was built against the rules, its spec and its mockup: render it, judge what check cannot, and report by rule id. Needs DECISIONS.md. No CLI — the agent does this.",
     "argumentHint": "<page, feature or functionality, in your own words>",
     "status": "agent"
+  },
+  "tweak": {
+    "description": "A small change to a built page that its approved mockup does not show (wording, a colour, a weight, spacing inside a region, wrapping): records the decision if it is one, brings the spec in line, builds it, and re-judges only the verdicts the change could affect. Refuses a change that moves the page's structure. No CLI — the agent does this.",
+    "argumentHint": "<the change, in your own words>",
+    "status": "agent"
   }
 }
