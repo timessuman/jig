@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.20.0 (2026-09-27)
+
+Critiques count owner rulings apart and say what the last round fixed; the gate
+keeps decisions the owner's, and tweak works on its first real pages.
 
 ### Added
 
