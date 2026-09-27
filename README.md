@@ -250,7 +250,10 @@ Adopting Jig everywhere is not the price of using it anywhere. The rules apply
 to what you point them at:
 
 - **New work follows the loop** — decide, spec, mockup, make, critique — and the
-  Stop hook holds it to that, if you asked for the hook.
+  Stop hook holds it to that, if you asked for the hook. A small change to a
+  built page that its approved mockup does not show (a word, a colour, how text
+  wraps) goes through `tweak` instead: decided, specced, built and re-judged in
+  one pass, with the page's structure held as approved.
 - **Old pages sit where they are.** They are not rewritten, and the default
   `check` says nothing about a file nobody has touched.
 - **`jig.config.json` can exempt paths** you have no intention of revisiting, and
