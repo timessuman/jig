@@ -9,7 +9,7 @@ import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 const probe = (over: Partial<ProbeResult> = {}): ProbeResult => ({
-  jigProbe: 8, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
+  jigProbe: 9, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
   defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5,
   menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 },
   ...over,
@@ -272,13 +272,14 @@ describe('the CLI can run the probe itself', () => {
       '<html><head><title>t</title></head><body><main>' +
       '<blockquote><p>Frame one — the quoted rule keeps its dash</p></blockquote>' +
       '<p>As the spec says, <q>free — forever</q>.</p>' +
+      '<pre><samp>⚠ A-01  Violet hue — a deliberate choice?</samp></pre><p>Run <code>jig check — all</code>.</p>' +
       '<p>Our own label — wrongly dashed</p>' +
       '</main></body></html>');
     mkdirSync(join(root, '.jig', 'critique', 'pricing'), { recursive: true });
     await runAndSaveProbes({ projectRoot: root, surface: 'pricing', page: 'page.html' });
     const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'pricing', 'probe-360.json'), 'utf8'));
     expect(probe.emDashes.join(' | ')).toMatch(/Our own label — wrongly dashed/);
-    expect(probe.emDashes.join(' | ')).not.toMatch(/quoted rule|forever/);
+    expect(probe.emDashes.join(' | ')).not.toMatch(/quoted rule|forever|deliberate choice|jig check/);
   }, 120_000);
 
   // jig-site: a heading asked for a weight the site never loaded, the browser

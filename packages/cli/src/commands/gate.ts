@@ -223,6 +223,40 @@ function fileAtSessionStart(root: string, path: string, start: number | undefine
   }
 }
 
+/**
+ * Tracked files outside .jig/ that differ from the commit this session began
+ * on, and files outside .jig/ created since it began. With no start to date
+ * the session, only uncommitted changes count.
+ */
+function changedOutsideRecords(root: string, start: number | undefined): string[] {
+  const git = (args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  try {
+    const base = start === undefined ? 'HEAD' : git(['rev-list', '-1', `--before=@${Math.floor(start / 1000)}`, 'HEAD']).trim();
+    if (!base) return [];
+    const changed = git(['diff', '--name-only', base, '--', '.', ':(exclude).jig']).split('\n').filter(Boolean);
+    const created = git(['ls-files', '--others', '--exclude-standard', '--', '.', ':(exclude).jig']).split('\n').filter(Boolean)
+      .filter((f) => {
+        try { return start === undefined || statSync(join(root, f)).mtimeMs >= start - 1000; } catch { return false; }
+      });
+    return [...new Set([...changed, ...created])].sort();
+  } catch {
+    return [];
+  }
+}
+
+/** The approval commit, short, when the drawing differs from what it recorded. */
+function drawingChangedAfterApproval(root: string, specPath: string, at: string): string | undefined {
+  const git = (args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  try {
+    const approvedIn = git(['log', '-1', '--format=%H', '-G', '^mockup[[:space:]]*:[[:space:]]*approved', '--', specPath]).trim();
+    if (!approvedIn) return undefined;
+    const then = git(['show', `${approvedIn}:./${at}`]);
+    return then !== readFileSync(join(root, at), 'utf8') ? approvedIn.slice(0, 7) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** What each command must have left behind, checked after it ran. */
 function commandProblems(root: string, command: string, surface?: string, start?: number): string[] {
   const problems: string[] = [];
@@ -278,6 +312,36 @@ function commandProblems(root: string, command: string, surface?: string, start?
               ? `The spec changed after the owner approved the drawing. Set \`mockup: pending\` in the spec; \`/jig mockup\` redraws it for the owner.`
               : `make builds from a drawing the owner approved of this spec, and this one is of an earlier spec. Stop, and ask for \`/jig mockup\`.`),
         );
+      }
+    }
+  }
+
+  // spec, mockup and critique write records, under .jig/, and nothing else.
+  // On jig-site a critique swapped the rule its page demonstrates to get past
+  // a block, then re-judged the page it had changed; a mockup session wrote
+  // the site's stylesheet. A review that fixes what it reviews grades itself.
+  if (command === 'spec' || command === 'mockup' || command === 'critique') {
+    const outside = changedOutsideRecords(root, start);
+    if (outside.length) {
+      problems.push(
+        `${command} writes under .jig/ only, and this session changed ${outside.slice(0, 6).join(', ')}${outside.length > 6 ? ` and ${outside.length - 6} more` : ''}. ` +
+          `Put them back as they were when the session began, and hand the change to \`/jig make\` (or \`/jig tweak\` for a small one to a built page). ` +
+          (command === 'critique' ? 'A critique that changes the page it judges is grading its own work; report the finding instead.' : 'The build is make\'s.'),
+      );
+    }
+  }
+
+  // An approval is of the drawing as the owner saw it. On jig-site the session
+  // that recorded one then redrew frames and moved a switch, and the record
+  // still said approved.
+  if (command === 'mockup' && spec) {
+    const front = spec.body.split(/^---\s*$/m)[1] ?? '';
+    const mockup = /^\s*mockup\s*:\s*(\S+)/im.exec(front)?.[1] ?? '';
+    const at = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '') ?? '';
+    if (/^approved/i.test(mockup) && at && !/^https?:/i.test(at) && existsSync(join(root, at))) {
+      const changedAfter = drawingChangedAfterApproval(root, spec.path, at);
+      if (changedAfter) {
+        problems.push(`${at} has changed since the owner approved it (${changedAfter}). An approval is of the drawing as the owner saw it: set \`mockup: pending\` in ${spec.path} and ask again.`);
       }
     }
   }

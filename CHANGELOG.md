@@ -13,6 +13,16 @@
 
 ### Fixed
 
+- **`spec`, `mockup` and `critique` write under `.jig/` only.** On jig-site a
+  critique swapped the rule its page demonstrates to get past a block, then
+  re-judged the page it had changed, and a mockup session wrote the site's
+  stylesheet. The gate stops either.
+- **An approved drawing changed afterwards goes back to pending.** The session
+  that recorded a jig-site approval then redrew frames and moved a switch.
+- **Quoted tool output is not the page's copy.** The probe's em-dash scan skips
+  `<pre>`, `<code>`, `<samp>` and `<kbd>`, as it skips quotations: jig-site's
+  home page quotes `jig check`'s real output, whose wording has one. Probe
+  version 9.
 - **A drawing's size frames are the class `frame`, not any class containing
   it.** jig-site's home drawing captioned its rule specimens `spec-frame`, and
   the gate split every size frame at each one and reported regions missing.
