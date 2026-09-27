@@ -186,3 +186,20 @@ describe('/jig tweak', () => {
     expect(run('tweak').reason).toMatch(/`mockup:` is pending\. A tweak changes a page whose drawing the owner has approved/);
   });
 });
+
+// jig-site: mid-tweak, the agent ran `jig gate` in its shell, was told its
+// re-judged verdicts were a builder's edits and its attempts were spent, and
+// reported a tweak the Stop hook passed as failing.
+describe('jig gate run by hand', () => {
+  it('says it cannot see the command, and counts no attempt', () => {
+    tweakRecord(['A-60']);
+    rejudge('A-60', '2026-09-26T14:02:00Z');
+    for (let i = 0; i < 4; i++) {
+      const r = gate({ projectRoot: root, version: '0.19.0', input: {} });
+      expect(r.block).toBe(false);
+      expect(r.reason).toMatch(/^jig gate, run by hand: with no session transcript it cannot tell which \/jig command/);
+      expect(r.reason).not.toMatch(/attempts/);
+    }
+    expect(run('tweak').reason ?? '').toBe('');
+  });
+});

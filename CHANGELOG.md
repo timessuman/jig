@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **`jig gate` run by hand says what it cannot see.** With no session
+  transcript it cannot tell which command ran, so a tweak's re-judged verdicts
+  read as a builder's edits. On jig-site an agent ran it three times mid-tweak,
+  was told its attempts were spent, and reported a tweak the Stop hook passed
+  as failing. A hand run now says so, blocks nothing and counts no attempt.
+
 ## 0.20.0 (2026-09-27)
 
 Critiques count owner rulings apart and say what the last round fixed; the gate
