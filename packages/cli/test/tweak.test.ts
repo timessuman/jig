@@ -203,3 +203,79 @@ describe('jig gate run by hand', () => {
     expect(run('tweak').reason ?? '').toBe('');
   });
 });
+
+// jig-site: every critique and tweak left verdicts.lock behind. The gate writes
+// it when the session stops, after the agent has committed, and the owner
+// committed it by hand three times in one day.
+describe('the verdict lock', () => {
+  const lockAsked = /verdicts\.lock was written when you stopped, after the verdicts it records were committed/;
+
+  it('asks once for a lock written after the tweak\'s verdicts were committed', () => {
+    tweakRecord(['A-60']);
+    rejudge('A-60', '2026-09-26T14:02:00Z');
+    commit('tweak: the GitHub mark is quieter');
+    expect(run('tweak').reason).toMatch(lockAsked);
+    commit('chore: record the lock');
+    expect(run('tweak').reason ?? '').toBe('');
+  });
+
+  it('asks the same of a critique', () => {
+    const screen = readScreen();
+    screen.verdicts[0]!.reason = 'judged again on the page as it is now';
+    writeFileSync(join(dir(), 'screen.json'), JSON.stringify(screen));
+    commit('critique: second pass');
+    expect(run('critique').reason).toMatch(lockAsked);
+  });
+
+  it('waits with verdicts that are not committed yet', () => {
+    tweakRecord(['A-60']);
+    rejudge('A-60', '2026-09-26T14:02:00Z');
+    expect(run('tweak').reason ?? '').not.toMatch(lockAsked);
+  });
+});
+
+// jig-site: a tweak shown a screenshot of a copy button wrote an exception to
+// E-51 "given directly by the owner ... by reference rather than words".
+describe('a decision a tweak records', () => {
+  const decisions = () => join(root, 'jig', 'DECISIONS.md');
+  const base = '# Decisions\n\n## The GitHub mark is GitHub\'s own\n\nThe header carries the mark.\n\n**Why:** it is the one people know.\n\n## Unresolved\n\nNone named by the owner.\n';
+  const add = (section: string) => writeFileSync(decisions(), base.replace('## Unresolved', `${section}\n\n## Unresolved`));
+
+  beforeEach(() => {
+    mkdirSync(join(root, 'jig'), { recursive: true });
+    writeFileSync(decisions(), base);
+    writeDecisionVerdicts([{ decision: 'The GitHub mark is GitHub\'s own', verdict: 'ok', reason: 'the header shows the mark' }]);
+    commit('decide, and judge the page against it');
+    run('critique');
+    commit('record the critique lock');
+    tweakRecord(['A-60']);
+    rejudge('A-60', '2026-09-26T14:02:00Z');
+  });
+
+  const writeDecisionVerdicts = (verdicts: Array<Record<string, string>>) => writeFileSync(join(dir(), 'decisions.json'), JSON.stringify({ verdicts }));
+
+  it('refuses a reason that is not the owner\'s words in quotation marks', () => {
+    add('## A copy control is icon-only\n\nA tooltip names it.\n\n**Why:** given directly by the owner, by reference rather than words.');
+    expect(run('tweak').reason).toMatch(/"A copy control is icon-only": its `\*\*Why:\*\*` is not the owner's words in quotation marks/);
+  });
+
+  it('refuses a quotation the owner\'s words in tweak.json do not hold', () => {
+    add('## A copy control is icon-only\n\nA tooltip names it.\n\n**Why:** "a copy button with no label, like the screenshot"');
+    expect(run('tweak').reason).toMatch(/quotes "a copy button with no label, like the screenshot", which the owner's words in tweak\.json/);
+  });
+
+  it('passes the owner\'s own words, and a reading labelled as inferred', () => {
+    add('## The mark is quiet\n\nIt takes the quieter text colour.\n\n**Why:** "draw the GitHub mark in the quieter text colour"\n\n**Why (inferred):** it should not compete with the links.');
+    tweakRecord(['A-60', 'The mark is quiet']);
+    writeDecisionVerdicts([
+      { decision: 'The GitHub mark is GitHub\'s own', verdict: 'ok', reason: 'the header shows the mark' },
+      { decision: 'The mark is quiet', verdict: 'ok', reason: 'the mark is in the quieter text colour', tweak: '2026-09-26T14:02:00Z' },
+    ]);
+    expect(run('tweak').reason ?? '').toBe('');
+  });
+
+  it('answers for the reason it adds, not one decide wrote earlier', () => {
+    writeFileSync(decisions(), base.replace('**Why:** it is the one', 'Amended: it takes the quieter text colour.\n\n**Why:** it is the one'));
+    expect(run('tweak').reason ?? '').toBe('');
+  });
+});

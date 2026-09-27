@@ -77,6 +77,25 @@ function decisionSections(body: string): Map<string, string> {
 }
 
 /**
+ * The `**Why…:**` paragraphs of each decision that differs from `before`. With
+ * `newOnly`, just the paragraphs `before` did not hold: a tweak that amends a
+ * decision answers for the reason it adds, not for one decide wrote earlier.
+ */
+function changedWhys(current: string, before: string, newOnly = false): Array<[string, string[]]> {
+  const then = decisionSections(before);
+  const paragraphs = (text: string) => text.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => /^\*\*Why\b[^*]*:\*\*/.test(p));
+  const out: Array<[string, string[]]> = [];
+  for (const [name, text] of decisionSections(current)) {
+    const old = then.get(name);
+    if (old === text) continue;
+    const kept = newOnly && old !== undefined ? new Set(paragraphs(old)) : new Set<string>();
+    const whys = paragraphs(text).filter((p) => !kept.has(p));
+    if (whys.length) out.push([name, whys]);
+  }
+  return out;
+}
+
+/**
  * Decisions whose reason cannot be told apart from the agent's.
  *
  * On jig-site, reasons read "given directly by the owner", followed by
@@ -89,12 +108,9 @@ function decisionSections(body: string): Map<string, string> {
  * session began) are held to it, so a file written before this rule is not
  * blocked for its history.
  */
-export function unsourcedReasons(current: string, before: string): string[] {
-  const then = decisionSections(before);
+export function unsourcedReasons(current: string, before: string, opts: { newWhysOnly?: boolean } = {}): string[] {
   const problems: string[] = [];
-  for (const [name, text] of decisionSections(current)) {
-    if (then.get(name) === text) continue;
-    const whys = text.split(/\n\s*\n/).filter((p) => /^\s*\*\*Why\b[^*]*:\*\*/.test(p));
+  for (const [name, whys] of changedWhys(current, before, opts.newWhysOnly)) {
     for (const why of whys) {
       const label = /^\s*\*\*(Why\b[^*]*):\*\*/.exec(why)![1]!;
       const said = why.replace(/^\s*\*\*Why\b[^*]*:\*\*/, '').trim();
@@ -103,6 +119,37 @@ export function unsourcedReasons(current: string, before: string): string[] {
       if (/["“][^"”]{3,}["”]/.test(said)) continue;
       problems.push(`"${name}": its \`**${label}:**\` is not the owner's words in quotation marks. Quote what the owner said, write \`not given\`, or put what you added under \`**Why (inferred):**\`.`);
       break;
+    }
+  }
+  return problems;
+}
+
+/**
+ * Quotations under a changed decision's `**Why:**` that the owner's words do
+ * not contain.
+ *
+ * A tweak records a decision from the owner's instruction, which its
+ * tweak.json keeps as `change`. On jig-site a tweak was shown a screenshot of
+ * a copy button and wrote an exception to `E-51`, "given directly by the
+ * owner ... by reference rather than words": a ruling nobody gave, in the file
+ * every later critique judges the page by. A quotation is the owner's only if
+ * the owner's words hold it; `…` may join the parts of one.
+ */
+export function quotesNotFrom(current: string, before: string, words: string): string[] {
+  const norm = (t: string) => t.toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim();
+  const said = norm(words);
+  const problems: string[] = [];
+  for (const [name, whys] of changedWhys(current, before, true)) {
+    for (const why of whys) {
+      const label = /^\s*\*\*(Why\b[^*]*):\*\*/.exec(why)![1]!;
+      if (/inferred/i.test(label)) continue;
+      const missing = [...why.matchAll(/["“]([^"”]{3,})["”]/g)]
+        .map((m) => m[1]!)
+        .filter((q) => q.split(/…|\.\.\./).map((part) => norm(part).replace(/^[\s.,;:]+|[\s.,;:!?]+$/g, '')).filter(Boolean).some((part) => !said.includes(part)));
+      if (missing.length) {
+        problems.push(`"${name}": its \`**${label}:**\` quotes "${missing[0]}", which the owner's words in tweak.json (\`change\`) do not say. Quote the owner as tweak.json records them, or put your reading under \`**Why (inferred):**\`.`);
+        break;
+      }
     }
   }
   return problems;

@@ -1159,11 +1159,15 @@ preserve while fixing them.
 
 **Say what happened to the last round's findings.** `verdicts` compares this
 critique with the one before it in git and prints `Since the critique before
-this one: <n> fixed, <n> still open, <n> ruled by the owner, <n> new`, with the
-ids. Put that line in the report, as `verdicts` printed it, above the findings.
-The owner should not have to set two reports side by side to learn whether the
-make round worked. The comparison is made after both arms have written, so it
-tells the arms nothing.
+this one: <n> fixed, <n> judged ok on unchanged source, <n> still open, <n> ruled
+by the owner, <n> new`, with the ids. Put that line in the report, as `verdicts`
+printed it, above the findings. The owner should not have to set two reports side
+by side to learn whether the make round worked. The comparison is made after both
+arms have written, so it tells the arms nothing.
+
+A finding counts as fixed only where the lines it cited changed. One judged ok
+where nothing it pointed at changed is two readers disagreeing about the same
+code: say which reading you stand by, and why, rather than calling it fixed.
 
 List `ruled` verdicts after the findings, under their own heading, each with the
 decision it cites. They are not findings, and they are not hidden either.
@@ -1256,6 +1260,14 @@ colour for a mark, how versions are written), record it in `DECISIONS.md` the wa
 applies a rule, or answers a finding the rules already settle (a word stranded on
 its own line, `B-106`), there is nothing to decide; do not invent a decision.
 
+The owner's words are the ones tweak.json records as `change`. A `**Why:**` you
+add quotes them, in quotation marks, and nothing else; what you read into them,
+or into a screenshot the owner pointed at, goes under `**Why (inferred):**`. On
+jig-site a tweak shown a picture of a copy button wrote an exception to `E-51`
+"given directly by the owner … by reference rather than words": a ruling nobody
+gave, which every later critique would have judged the page by. The gate stops a
+tweak whose new `**Why:**` quotes words tweak.json does not hold.
+
 ### 2. Bring the spec in line, if it disagrees
 
 If the spec says something the change contradicts, or the page will no longer
@@ -1340,6 +1352,11 @@ not edit verdict files to satisfy it, and do not report the work as done while i
 blocking. It also refuses when a critique's verdict files changed after `critique`
 wrote them, in a session that did not run `critique`: a fix is judged by the next
 review, never by the builder editing the last one.
+
+When a `critique` or `tweak` session stops, the gate records its verdicts in
+`.jig/critique/<surface>/verdicts.lock`. That happens after you have committed, so
+if your verdicts are committed it stops you once more to commit the lock on its
+own; the next stop passes.
 
 It judges the critiques this session touched: any with a file changed since the
 session began, and the current spec's surface when you ran `critique`. Another

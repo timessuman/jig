@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
-import { decisionsFile, unsourcedReasons } from '../check/decisions.js';
+import { decisionsFile, quotesNotFrom, unsourcedReasons } from '../check/decisions.js';
 import { checksum } from '../install/manifest.js';
 
 /**
@@ -362,6 +362,24 @@ function commandProblems(root: string, command: string, surface?: string, start?
     }
   }
 
+  // A tweak's decision is recorded the way decide records one: the owner's
+  // words in quotation marks, and here the owner's words are the tweak's own
+  // record of them. On jig-site a tweak shown a screenshot wrote an exception
+  // to a rule "given directly by the owner ... by reference rather than words".
+  if (command === 'tweak' && spec) {
+    const found = decisionsFile(root);
+    if (found) {
+      let now = '';
+      try { now = readFileSync(join(root, found), 'utf8'); } catch { /* unreadable: nothing to compare */ }
+      const then = fileAtSessionStart(root, found, start);
+      if (now && now !== then) {
+        problems.push(...unsourcedReasons(now, then, { newWhysOnly: true }).map((p) => `${found}: ${p}`));
+        const change = readTweak(join(root, '.jig', 'critique', spec.slug))?.change;
+        if (change) problems.push(...quotesNotFrom(now, then, change).map((p) => `${found}: ${p}`));
+      }
+    }
+  }
+
   if (command === 'critique') {
     const dir = join(root, '.jig', 'critique');
     const surfaces = existsSync(dir) ? readdirSync(dir).filter((s) => existsSync(join(dir, s, 'screen.json')) || existsSync(join(dir, s, 'code.json'))) : [];
@@ -657,6 +675,7 @@ export function verdictGuard(root: string, command: string | undefined, inPlay?:
     // stop read that stamp as the catalog having been touched.
     if (command === 'critique' && (!inPlay || inPlay.includes(surface))) {
       writeLock(lockPath, dir, now);
+      problems.push(...lockLeftBehind(root, surface));
       continue;
     }
     let lock: { checksum?: string; verdicts?: Record<string, string> } = {};
@@ -668,7 +687,10 @@ export function verdictGuard(root: string, command: string | undefined, inPlay?:
     if (command === 'tweak' && (!inPlay || inPlay.includes(surface)) && locked !== now) {
       const own = tweakVerdictProblems(dir, surface, lock.verdicts);
       problems.push(...own);
-      if (own.length === 0) writeLock(lockPath, dir, now);
+      if (own.length === 0) {
+        writeLock(lockPath, dir, now);
+        problems.push(...lockLeftBehind(root, surface));
+      }
       continue;
     }
     if (locked && locked !== now) {
@@ -679,6 +701,28 @@ export function verdictGuard(root: string, command: string | undefined, inPlay?:
     }
   }
   return problems;
+}
+
+/**
+ * A lock this stop just wrote, beside verdicts that are already committed.
+ *
+ * The gate writes the lock when the session stops, which is after the agent
+ * has committed its work, so every critique and tweak on jig-site left
+ * `verdicts.lock` behind and the owner committed it by hand, three times in a
+ * day. Stopping once more to commit it costs one turn; the next stop writes
+ * the same lock and passes. Verdicts that are not committed yet mean nobody is
+ * committing, and the lock waits with them.
+ */
+function lockLeftBehind(root: string, surface: string): string[] {
+  const rel = `.jig/critique/${surface}`;
+  try {
+    const status = (paths: string[]) => execFileSync('git', ['status', '--porcelain', '--', ...paths], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    if (!status([`${rel}/${LOCK}`])) return [];
+    if (status(VERDICT_FILES.map((f) => `${rel}/${f}`))) return [];
+  } catch {
+    return [];
+  }
+  return [`${rel}/${LOCK} was written when you stopped, after the verdicts it records were committed. Commit it on its own (\`git add ${rel}/${LOCK} && git commit -m "chore: record ${surface}'s verdict lock"\`), and nothing else.`];
 }
 
 function tweakVerdictProblems(dir: string, surface: string, lockedVerdicts: Record<string, string> | undefined): string[] {

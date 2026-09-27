@@ -13,6 +13,22 @@
 
 ### Fixed
 
+- **A finding is fixed only where the source it cited changed.** `verdicts`
+  told jig-site's fourth home critique that seven findings were fixed; four had
+  flipped because its readers read the same unchanged lines differently. A
+  finding judged ok is now fixed when a line it cited (`file:line`) changed, or
+  its file when it cited no line, or any source when it cited nothing. The rest
+  are reported as judged ok on unchanged source.
+- **The gate asks for the verdict lock to be committed.** It writes
+  `verdicts.lock` when a critique or tweak stops, after the agent has committed,
+  so every such session on jig-site left it behind. When the verdicts are
+  committed and the lock is not, it stops the session once to commit it.
+- **A tweak's decision quotes the owner's recorded words.** A jig-site tweak
+  shown a screenshot wrote an exception to `E-51` "given directly by the owner
+  … by reference rather than words". A tweak's new `**Why:**` now meets
+  `decide`'s rule (the owner's words in quotation marks, `not given`, or
+  `**Why (inferred):**`), and its quotations must be in tweak.json's `change`.
+  A reason `decide` wrote earlier is not the tweak's to answer for.
 - **`spec`, `mockup` and `critique` write under `.jig/` only.** On jig-site a
   critique swapped the rule its page demonstrates to get past a block, then
   re-judged the page it had changed, and a mockup session wrote the site's

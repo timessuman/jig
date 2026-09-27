@@ -195,7 +195,7 @@ program
       const p = result.previous;
       if (p) {
         const list = (ids: string[]) => (ids.length ? ` (${ids.slice(0, 8).join(', ')}${ids.length > 8 ? ', …' : ''})` : '');
-        console.log(`  Since the critique before this one (${p.commit}): ${p.fixed.length} fixed${list(p.fixed)}, ${p.open.length} still open${list(p.open)}, ${p.ruled.length} ruled by the owner${list(p.ruled)}, ${p.added.length} new${list(p.added)}.`);
+        console.log(`  Since the critique before this one (${p.commit}): ${p.fixed.length} fixed${list(p.fixed)}, ${p.unchanged.length} judged ok on unchanged source${list(p.unchanged)}, ${p.open.length} still open${list(p.open)}, ${p.ruled.length} ruled by the owner${list(p.ruled)}, ${p.added.length} new${list(p.added)}.`);
       }
       console.log(`  ${result.line}`);
       process.exit(result.ok ? 0 : 1);
