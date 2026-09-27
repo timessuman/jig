@@ -148,6 +148,20 @@ describe('install', () => {
     expect(install({ ...opts(), agent: 'codex', hook: true }).stopHook).toBeUndefined();
   });
 
+  // A dev build (0.21.0-dev.1) is tried on a real project before release. npm
+  // has no such version, and a Stop hook that cannot run lets the agent stop:
+  // the project would run unchecked while looking checked.
+  it('runs the jig on PATH for a dev build, and moves back to npx for a release', () => {
+    install({ ...opts(), version: '0.21.0-dev.1', hook: true });
+    const settings = () => JSON.parse(readFileSync(join(project, '.claude', 'settings.json'), 'utf8'));
+    expect(settings().hooks.Stop).toEqual([{ hooks: [{ type: 'command', command: 'jig gate' }] }]);
+    const skill = readdirSync(join(project, claudeDir)).includes('SKILL.md') ? readFileSync(join(project, claudeDir, 'SKILL.md'), 'utf8') : '';
+    expect(skill).not.toMatch(/npx jig-ui@0\.21\.0-dev/);
+
+    install({ ...opts(), version: '0.21.0', hook: true });
+    expect(settings().hooks.Stop).toEqual([{ hooks: [{ type: 'command', command: 'npx --yes jig-ui@0.21.0 gate' }] }]);
+  });
+
   it('prefixes each vendored rule file with an attribution header', () => {
     install(opts());
     const body = readFileSync(join(project, claudeDir, 'rules', '00-anti-patterns.md'), 'utf8');

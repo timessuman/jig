@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Dev builds.** A version carrying `-dev` (`0.21.0-dev.1`) is a local build
+  of a fix, tried on a real project before it is released. npm has no such
+  version, so its skill, its commands and its Stop hook run the `jig` on PATH
+  rather than `npx jig-ui@<version>`; a hook that could not run would let every
+  agent stop unchecked. `scripts/pack-dev.mjs` packs one. Installing a release
+  afterwards puts the `npx` hook back in place of the dev one.
+
 ## 0.20.1 (2026-09-27)
 
 `jig gate` run by hand no longer tells an agent that a passing tweak failed.

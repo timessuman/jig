@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { assetRoot, findProjectRoot, getPackageRoot, isPublishedBuild } from './paths.js';
+import { assetRoot, findProjectRoot, getPackageRoot, isDevVersion, isPublishedBuild } from './paths.js';
 import { install } from './commands/install.js';
 import { update } from './commands/update.js';
 import { explain } from './commands/explain.js';
@@ -24,6 +24,14 @@ const { version } = JSON.parse(readFileSync(join(packageRoot, 'package.json'), '
  * otherwise — so say so rather than let an agent discover it as a 404 later.
  */
 function warnIfUnpublishedPin(): void {
+  if (isDevVersion(version)) {
+    console.warn(
+      `Dev build ${version}: the skill, its commands and the Stop hook run the \`jig\` on your PATH, ` +
+        `not npm, which has no such version. Keep this build installed while the project uses it, ` +
+        `and install a published version to go back.`,
+    );
+    return;
+  }
   if (isPublishedBuild(packageRoot)) return;
   console.warn(
     `Note: this is a source build, so the skill pins 'npx jig-ui@${version}' — a version that ` +
