@@ -1188,8 +1188,10 @@ because the drawing stays true, and no full critique, because nothing else moved
 - **The change adds, removes, reorders or regroups a region, changes the
   navigation at any size, or would make the drawing wrong** → it is not a tweak.
   Say so and name the route: `spec`, then `mockup`, then `make`. The gate checks
-  this whatever you decide: the regions under `sizes:` must match the ones
-  approved with the mockup, and the drawing must be untouched.
+  this whatever you decide: the regions under `sizes:` must match the ones the
+  page had at its last critique, and the drawing must be untouched since then.
+  `<surface>` is the spec's file name (`.jig/specs/<surface>.spec.md`), not its
+  `surface:` field.
 - **It is unclear what the owner wants** → ask one question and stop.
 
 ### 1. Decide, if it is a decision

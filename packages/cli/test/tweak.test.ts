@@ -112,7 +112,7 @@ describe('/jig tweak', () => {
     writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), spec('[nav, plans, faq]'));
     tweakRecord(['A-60']);
     rejudge('A-60', '2026-09-26T14:02:00Z');
-    expect(run('tweak').reason).toMatch(/the regions under `sizes:` differ from the ones approved with the mockup/);
+    expect(run('tweak').reason).toMatch(/the regions under `sizes:` differ from the ones the page had when the last critique judged it/);
   });
 
   it('lets region wording change, since copy is a tweak', () => {
@@ -126,7 +126,59 @@ describe('/jig tweak', () => {
     writeFileSync(join(root, '.jig', 'mockups', 'pricing.html'), '<section class="frame" data-size="phone">changed</section>');
     tweakRecord(['A-60']);
     rejudge('A-60', '2026-09-26T14:02:00Z');
-    expect(run('tweak').reason).toMatch(/pricing\.html has changed since the owner approved it/);
+    expect(run('tweak').reason).toMatch(/pricing\.html has changed since the last critique judged it/);
+  });
+
+  // jig-site: five owner rounds changed the header's regions after its mockup
+  // was approved, each confirmed and critiqued. Held to the approval commit,
+  // the first tweak on it could not pass.
+  it('measures the structure against the last critique, not the first approval', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), spec('[nav, plans, faq]'));
+    const screen = readScreen();
+    screen.verdicts.find((v) => v.id === 'P-14')!.reason = 'nav reads as the spec says, with the faq below the plans';
+    writeFileSync(join(dir(), 'screen.json'), JSON.stringify(screen));
+    run('critique');
+    commit('a confirmed round adds the faq, and a critique judges it');
+    tweakRecord(['A-60']);
+    rejudge('A-60', '2026-09-26T14:02:00Z');
+    const r = run('tweak');
+    expect(r.reason ?? '').not.toMatch(/regions under `sizes:`/);
+  });
+
+  // jig-site: the header spec's `surface:` is a sentence; its critique lives
+  // under the spec's file name, as every surface's does.
+  it('finds the tweak record under the spec\'s file name, whatever `surface:` says', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), spec().replace('surface: pricing', 'surface: the pricing page (plans, and what each costs)'));
+    commit('describe the surface');
+    tweakRecord(['A-60']);
+    rejudge('A-60', '2026-09-26T14:02:00Z');
+    expect(run('tweak').reason ?? '').toBe('');
+  });
+
+  // jig-site: the versions tweak was judged as a critique from its second stop,
+  // because the command file loaded into the session and the tool results
+  // quoting it say `/jig critique` on many lines.
+  it('reads the command the user sent, not the documentation quoted after it', () => {
+    tweakRecord(['A-60']);
+    rejudge('A-60', '2026-09-26T14:02:00Z');
+    const path = join(root, 'transcript-quoted.jsonl');
+    writeFileSync(path, [
+      { type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>tweak pricing\n\nThe owner says: put it back.</command-args>' } },
+      { type: 'user', isMeta: true, message: { content: [{ type: 'text', text: 'Base directory for this skill.\n\nFindings go back to `/jig make`, then `/jig critique` again.' }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: 'Next, /jig critique would re-judge everything.' }] } },
+      { type: 'user', message: { content: [{ type: 'tool_result', content: 'run `/jig critique` to judge the fix' }] } },
+    ].map((e) => JSON.stringify(e)).join('\n') + '\n');
+    const r = gate({ projectRoot: root, version: '0.19.0', input: { session_id: 'quoted', transcript_path: path } });
+    expect(r.reason ?? '').toBe('');
+  });
+
+  it('judges the surface the command names, not the spec written last', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'other.spec.md'), '# a spec touched later, with no frontmatter');
+    tweakRecord(['A-60']);
+    rejudge('A-60', '2026-09-26T14:02:00Z');
+    const path = join(root, 'transcript-named.jsonl');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>tweak pricing</command-args>' } }) + '\n');
+    expect(gate({ projectRoot: root, version: '0.19.0', input: { session_id: 'named', transcript_path: path } }).reason ?? '').toBe('');
   });
 
   it('refuses a page whose mockup is not approved or skipped', () => {

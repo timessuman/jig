@@ -4,6 +4,20 @@
 
 ### Fixed
 
+- **`tweak`'s gate blocked both of its first real uses, on jig-site.** Three
+  causes, all in the gate:
+  - It took the session's command from any line that mentioned `/jig`, so the
+    command file Jig loads into the session, and tool results quoting it, read
+    as `/jig critique`. Only what the user sent counts now.
+  - It looked for the critique under the spec's `surface:` field, which on
+    jig-site is a sentence. A critique lives under the spec's file name, as
+    the command file says.
+  - It held the page to its structure at the commit that first approved the
+    mockup, before five confirmed, critiqued rounds. It now holds the page to
+    its structure at its last critique.
+
+  The gate also works on the spec the command names (`/jig tweak site-header`),
+  not whichever spec was written last.
 - **`jig verdicts` refuses reasons that judge nothing.** On jig-site a render
   arm stopped with 33 of 34 verdicts reading "DRAFT, being refined", and the
   review passed with full counts. A placeholder reason is now an error, and so

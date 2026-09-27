@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
-import { navProblems, newestSpec, specProblems } from '../check/spec-shape.js';
+import { navProblems, specFor, specProblems } from '../check/spec-shape.js';
 import { findChrome } from '../probe/browser.js';
 import { check } from './check.js';
 import { mockupDrawingProblems, specRegions } from '../check/mockup-drawing.js';
@@ -56,6 +56,18 @@ export interface GateInput {
  * exactly as visible as one that produced something wrong.
  */
 export function lastJigCommand(transcriptPath: string | undefined): string | undefined {
+  return lastJigInvocation(transcriptPath)?.command;
+}
+
+/**
+ * The command and its first argument (the surface, where it names one), from
+ * what the user sent: a slash command's tags, or a message that opens with
+ * `/jig`. Only the user's own messages count. Matching any line that mentioned
+ * `/jig critique` read the command file Jig loads into the session, and the
+ * tool results quoting it, as commands: a `tweak` session on jig-site was
+ * judged as a `critique` from its second stop on.
+ */
+export function lastJigInvocation(transcriptPath: string | undefined): { command: string; surface?: string } | undefined {
   if (!transcriptPath || !existsSync(transcriptPath)) return undefined;
   let text: string;
   try {
@@ -63,13 +75,24 @@ export function lastJigCommand(transcriptPath: string | undefined): string | und
   } catch {
     return undefined;
   }
-  let found: string | undefined;
+  let found: { command: string; surface?: string } | undefined;
   for (const line of text.split('\n')) {
     if (!line.includes('/jig')) continue;
-    const name = /<command-name>\/?jig<\/command-name>[\s\S]{0,200}?<command-args>([^<]*)<\/command-args>/.exec(line);
-    const plain = /(?:^|["\s>])\/jig\s+([a-z]+)/.exec(line);
-    const arg = (name?.[1] ?? plain?.[1] ?? '').trim().split(/\s+/)[0];
-    if (arg) found = arg.toLowerCase();
+    let entry: { type?: string; isMeta?: boolean; message?: { content?: unknown } };
+    try { entry = JSON.parse(line); } catch { continue; }
+    if (entry.type !== 'user' || entry.isMeta) continue;
+    const content = entry.message?.content;
+    const texts = typeof content === 'string'
+      ? [content]
+      : Array.isArray(content)
+      ? content.filter((b): b is { type: string; text: string } => b?.type === 'text' && typeof b.text === 'string').map((b) => b.text)
+      : [];
+    for (const t of texts) {
+      const args = /<command-name>\/?jig<\/command-name>[\s\S]{0,200}?<command-args>([^<]*)<\/command-args>/.exec(t)?.[1]
+        ?? /^\s*\/jig\s+([^\n]*)/.exec(t)?.[1];
+      const [command, surface] = (args ?? '').trim().split(/\s+/);
+      if (command && /^[a-z]+$/i.test(command)) found = { command: command.toLowerCase(), ...(surface && /^[\w.-]+$/.test(surface) ? { surface } : {}) };
+    }
   }
   return found;
 }
@@ -170,7 +193,7 @@ function verdictsMtime(dir: string): number {
  * judged. With no transcript to date the session (the gate run by hand), every
  * critique is.
  */
-export function surfacesInPlay(root: string, command: string | undefined, transcriptPath: string | undefined): string[] {
+export function surfacesInPlay(root: string, command: string | undefined, transcriptPath: string | undefined, surface?: string): string[] {
   const critiqueDir = join(root, '.jig', 'critique');
   if (!existsSync(critiqueDir)) return [];
   const all = readdirSync(critiqueDir, { withFileTypes: true })
@@ -178,17 +201,17 @@ export function surfacesInPlay(root: string, command: string | undefined, transc
     .map((d) => d.name);
   const start = sessionStart(transcriptPath);
   if (start === undefined) return all;
-  const current = command === 'critique' || command === 'tweak'
-    ? /^\s*surface\s*:\s*(.+)$/im.exec(newestSpec(root)?.body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim().replace(/^["']|["']$/g, '')
-    : undefined;
+  // Named by the spec's file, as the critique's directory is: the spec's
+  // `surface:` field is a description, and on jig-site it was a sentence.
+  const current = command === 'critique' || command === 'tweak' ? specFor(root, surface)?.slug : undefined;
   // A second of slack: file times and transcript times come from different clocks' rounding.
   return all.filter((s) => s === current || verdictsMtime(join(critiqueDir, s)) >= start - 1000);
 }
 
 /** What each command must have left behind, checked after it ran. */
-function commandProblems(root: string, command: string): string[] {
+function commandProblems(root: string, command: string, surface?: string): string[] {
   const problems: string[] = [];
-  const spec = newestSpec(root);
+  const spec = specFor(root, surface);
 
   if (command === 'decide') {
     const found = decisionsFile(root);
@@ -264,7 +287,7 @@ function tweakProblems(root: string, spec: { path: string; slug: string; body: s
   if (!/^(approved|skipped)/i.test(mockup)) problems.push(`${spec.path}: \`mockup:\` is ${mockup || 'empty'}. A tweak changes a page whose drawing the owner has approved (or skipped); take a new page through \`mockup\` and \`make\`.`);
   else problems.push(...structureSinceApproval(root, spec, front));
 
-  const surface = /^\s*surface\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '') ?? spec.slug;
+  const surface = spec.slug;
   const record = readTweak(join(root, '.jig', 'critique', surface));
   if (!record) {
     problems.push(`.jig/critique/${surface}/tweak.json is missing. It names the change in the owner's words (\`change\`), when it was made (\`at\`) and the rule ids and decisions re-judged for it (\`ids\`).`);
@@ -283,34 +306,47 @@ function tweakProblems(root: string, spec: { path: string; slug: string; body: s
 }
 
 /**
- * The structure the owner approved, from the commit that recorded the mockup's
- * approval: each size's regions (count, and names where the spec gives short
- * ones), and the drawing itself. Region wording is left out, so a copy change
- * inside a region's description is still a tweak.
+ * The structure the page had when it was last judged: each size's regions
+ * (count, and names where the spec gives short ones), and the drawing itself,
+ * as they stood in the commit that recorded the surface's critique lock.
+ * Region wording is left out, so a copy change inside a region's description is
+ * still a tweak.
+ *
+ * The baseline was the commit that set `mockup: approved`. A re-approval leaves
+ * that line as it was, so on jig-site the header was held to a structure two
+ * days and five owner rounds old, each round confirmed and critiqued since.
+ * What a tweak changes is the page as last judged; the last critique is where
+ * that is recorded. With no committed lock, the approval commit stands in.
  */
-function structureSinceApproval(root: string, spec: { path: string; body: string }, front: string): string[] {
+function structureSinceApproval(root: string, spec: { path: string; slug: string; body: string }, front: string): string[] {
   const git = (args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-  let approvedIn: string;
+  let baseline: string;
+  let judged = true;
   try {
-    approvedIn = git(['log', '-1', '--format=%H', '-G', '^mockup[[:space:]]*:', '--', spec.path]).trim();
+    baseline = git(['log', '-1', '--format=%H', '--', `.jig/critique/${spec.slug}/${LOCK}`]).trim();
+    if (!baseline) {
+      judged = false;
+      baseline = git(['log', '-1', '--format=%H', '-G', '^mockup[[:space:]]*:', '--', spec.path]).trim();
+    }
   } catch {
     return [];
   }
-  if (!approvedIn) return [];
+  if (!baseline) return [];
+  const when = judged ? `when the last critique judged it (${baseline.slice(0, 7)})` : `when the owner approved the mockup (${baseline.slice(0, 7)})`;
   const problems: string[] = [];
   let thenBody = '';
-  try { thenBody = git(['show', `${approvedIn}:./${spec.path}`]); } catch { return []; }
+  try { thenBody = git(['show', `${baseline}:./${spec.path}`]); } catch { return []; }
   const shape = (body: string) => JSON.stringify(Object.entries(specRegions(body)).sort(([a], [b]) => a.localeCompare(b)).map(([size, regions]) => [size, regions.length, regions.map((r) => r.name ?? '')]));
   if (shape(thenBody) !== shape(spec.body)) {
-    problems.push(`${spec.path}: the regions under \`sizes:\` differ from the ones approved with the mockup (${approvedIn.slice(0, 7)}). A change to what the page holds is not a tweak: take it through \`spec\` and \`mockup\`.`);
+    problems.push(`${spec.path}: the regions under \`sizes:\` differ from the ones the page had ${when}. A change to what the page holds is not a tweak: take it through \`spec\` and \`mockup\`.`);
   }
   const at = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '');
   if (at && !/^https?:/i.test(at) && existsSync(join(root, at))) {
     try {
-      if (git(['show', `${approvedIn}:./${at}`]) !== readFileSync(join(root, at), 'utf8')) {
-        problems.push(`${at} has changed since the owner approved it (${approvedIn.slice(0, 7)}). A tweak leaves the drawing as approved; a change the drawing must show goes through \`mockup\`.`);
+      if (git(['show', `${baseline}:./${at}`]) !== readFileSync(join(root, at), 'utf8')) {
+        problems.push(`${at} has changed since ${when.replace(/^when /, '')}. A tweak leaves the drawing as approved; a change the drawing must show goes through \`mockup\`.`);
       }
-    } catch { /* the drawing was added after approval, or never committed */ }
+    } catch { /* the drawing was added after that commit, or never committed */ }
   }
   return problems;
 }
@@ -338,7 +374,7 @@ export interface GateResult {
  * own field; a path is taken as written, a name is looked for at the root.
  */
 export function surfacePage(projectRoot: string, surface: string): string | undefined {
-  const spec = newestSpec(projectRoot);
+  const spec = specFor(projectRoot, surface);
   const front = spec?.body.split(/^---\s*$/m)[1] ?? '';
   const declared = /^\s*surface\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '');
   const candidates = [declared, `${surface}.html`, declared ? `${declared.replace(/^\//, '')}.html` : undefined]
@@ -355,12 +391,13 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
     return { block: false, reason: '' };
   }
 
-  const command = lastJigCommand(opts.input.transcript_path);
+  const invocation = lastJigInvocation(opts.input.transcript_path);
+  const command = invocation?.command;
   // Waiting on the owner is not finishing. The command's own output is checked
   // on the stop after the owner has answered, not while the question is open;
   // `check` below still runs either way.
   const waiting = command !== undefined && ASKS_THE_OWNER.has(command) && asksOwner(lastAssistantText(opts.input.transcript_path));
-  const problems: string[] = command && !waiting ? commandProblems(root, command).map((p) => `/jig ${command}: ${p}`) : [];
+  const problems: string[] = command && !waiting ? commandProblems(root, command, invocation?.surface).map((p) => `/jig ${command}: ${p}`) : [];
 
   const selection = selectFiles(root, false);
   const changedUi = selection.mode === 'changed' && selection.files.some((f) => isStyleBearing(f) || isReaderText(f));
@@ -383,11 +420,11 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
     }
   }
 
-  problems.push(...verdictGuard(root, command, surfacesInPlay(root, command, opts.input.transcript_path)));
+  problems.push(...verdictGuard(root, command, surfacesInPlay(root, command, opts.input.transcript_path, invocation?.surface)));
 
   const critiqueDir = join(root, '.jig', 'critique');
   if (existsSync(critiqueDir)) {
-    for (const surface of surfacesInPlay(root, command, opts.input.transcript_path)) {
+    for (const surface of surfacesInPlay(root, command, opts.input.transcript_path, invocation?.surface)) {
       const dir = join(critiqueDir, surface);
       if (!existsSync(join(dir, 'screen.json')) && !existsSync(join(dir, 'code.json'))) continue;
       const v = verifyVerdicts({ projectRoot: root, surface });

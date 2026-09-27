@@ -14,6 +14,19 @@ export function newestSpec(projectRoot: string): { path: string; slug: string; b
 }
 
 /**
+ * The spec a command is working on: the one for the surface its argument names
+ * (`/jig tweak site-header`), or else the one written last. The critique of a
+ * surface lives beside it under the same name, `.jig/critique/<surface>/`.
+ */
+export function specFor(projectRoot: string, surface: string | undefined): { path: string; slug: string; body: string } | undefined {
+  if (surface) {
+    const path = join(projectRoot, '.jig', 'specs', `${surface}.spec.md`);
+    if (existsSync(path)) return { path: `.jig/specs/${surface}.spec.md`, slug: surface, body: readFileSync(path, 'utf8') };
+  }
+  return newestSpec(projectRoot);
+}
+
+/**
  * Why the shape is checked at all: in arm test 4 not one of four runs wrote a
  * spec in the procedure's format. All four were prose documents — no
  * frontmatter, no `sizes:`, no per-size `nav:` — so every later step had
