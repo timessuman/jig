@@ -488,6 +488,21 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
     }
   }
 
+  // Run by hand there is no transcript, so no command: a tweak's re-judged
+  // verdicts read as a builder's edits. On jig-site an agent ran `jig gate` in
+  // its shell three times mid-tweak, was told its verdicts had been tampered
+  // with and that it had spent its attempts, and reported a finished tweak as
+  // failing. The Stop hook, which has the transcript, passed it.
+  if (!opts.input.transcript_path && !opts.input.session_id) {
+    if (problems.length === 0) return { block: false, reason: '' };
+    return {
+      block: false,
+      reason:
+        `jig gate, run by hand: with no session transcript it cannot tell which /jig command this session ran, so it judges the files as if none did. ` +
+        `A tweak's re-judged verdicts read here as edits; the Stop hook, which sees the command, is what decides. No attempt was counted.\n\n${problems.join('\n\n')}`,
+    };
+  }
+
   // The budget is per failure, not per session. `claude -p --continue` keeps one
   // session across every /jig step, so a run that spent three blocks on its spec
   // reached `critique` with none left: it reported a review it had not written,
