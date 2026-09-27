@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.19.0 (2026-09-27)
+
+A new command, `tweak`, for a small change to a built page that its approved
+mockup does not show.
 
 ### Added
 
