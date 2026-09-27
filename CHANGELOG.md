@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.20.1 (2026-09-27)
+
+`jig gate` run by hand no longer tells an agent that a passing tweak failed.
 
 ### Fixed
 
