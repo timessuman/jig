@@ -138,7 +138,11 @@ interface Frame { size?: string; width?: number; labels: string[]; art: string[]
 
 /** Each frame from its opening tag to the next, with its `.name` labels. */
 function readFrames(html: string): Frame[] {
-  const opens = [...html.matchAll(/<\w+\b[^>]*\bclass\s*=\s*["'][^"']*\bframe\b[^"']*["'][^>]*>/gi)];
+  // `frame` as a whole class name. `\bframe\b` also matched `spec-frame`, since
+  // a hyphen is a word boundary: jig-site's home drawing captioned its rule
+  // specimens `spec-frame`, and the gate split every size frame at each one.
+  const opens = [...html.matchAll(/<\w+\b[^>]*\bclass\s*=\s*["']([^"']*)["'][^>]*>/gi)]
+    .filter((m) => m[1]!.split(/\s+/).includes('frame'));
   return opens.map((open, i) => {
     const tag = open[0];
     const body = html.slice(open.index! + tag.length, opens[i + 1]?.index ?? html.length);

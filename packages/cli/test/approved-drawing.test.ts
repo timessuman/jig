@@ -85,3 +85,15 @@ describe('an approved drawing that no longer shows the spec', () => {
     expect(run('make').reason ?? '').not.toMatch(/no longer shows/);
   });
 });
+
+// jig-site: the home drawing captioned its rule specimens `spec-frame`, and the
+// gate read each one as a new size frame, orphaning the regions after it.
+describe('a size frame is the class `frame`, not a class containing it', () => {
+  it('does not split a frame at a `spec-frame` inside it', () => {
+    writeFileSync(join(root, '.jig', 'mockups', 'rule-page.html'), ['phone', 'tablet', 'desktop', 'wide'].map((size) =>
+      `<section class="frame" data-size="${size}"><div class="region"><span class="name">identity</span></div>` +
+      `<figure class="spec-frame"><iframe></iframe></figure><div class="region"><span class="name">theme toggle</span></div></section>`).join('\n'));
+    writeFileSync(join(root, '.jig', 'specs', 'rule-page.spec.md'), spec(['      - "identity: the id"', '      - "theme toggle: one button"'].join('\n')));
+    expect(run('spec').reason ?? '').not.toMatch(/no longer shows/);
+  });
+});

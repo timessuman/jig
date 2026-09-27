@@ -11,6 +11,12 @@
   agent stop unchecked. `scripts/pack-dev.mjs` packs one. Installing a release
   afterwards puts the `npx` hook back in place of the dev one.
 
+### Fixed
+
+- **A drawing's size frames are the class `frame`, not any class containing
+  it.** jig-site's home drawing captioned its rule specimens `spec-frame`, and
+  the gate split every size frame at each one and reported regions missing.
+
 ## 0.20.1 (2026-09-27)
 
 `jig gate` run by hand no longer tells an agent that a passing tweak failed.
