@@ -464,6 +464,14 @@ spec is not a weaker spec — it is not a spec, and `make` will refuse it.
 If the user changes something, revise and ask again. The run is incomplete until
 they confirm.
 
+**Revising a spec whose drawing was approved.** If the revision adds, removes or
+renames a region at any size, the approved drawing no longer shows the page: set
+`mockup: pending`, and `{{command_prefix}}mockup` redraws it for the owner. The gate
+checks it for a drawing in frames: while `mockup: approved`, each region the spec lists must be labelled in
+its size's frame of the drawing at `mockup_at:`. On jig-site the header spec went
+through five confirmed rounds after its drawing was approved, and still said
+`approved` over a drawing of none of them.
+
 ## mockup
 
 **Low-fidelity design.** Draw the confirmed spec in grayscale, at every size it
@@ -724,6 +732,16 @@ between them yourself.
 
 If `mockup: skipped`, build from the spec alone.
 
+**`make` does not edit `DECISIONS.md`.** The file records what the owner decided,
+and `make` is where decisions are carried out, not taken. When the build shows a
+decision is wrong, missing or in conflict with the spec, stop and say so: the owner
+changes it through `{{command_prefix}}decide`, or `{{command_prefix}}tweak` for a
+small change to a built page. A note that a decision has been carried out belongs in
+the spec, under `deviations:` or its as-built notes, not in the decision. On jig-site
+one make round added a decision and another rewrote one to match the tokens it had
+just switched to; the next critique judged the page against text the build had
+written. The gate stops a `make` session that changed `DECISIONS.md`.
+
 Build V1 only. Nothing in `later:`, however little extra it looks.
 
 Build the **phone** composition first, then add what `tablet` and `desktop`
@@ -877,15 +895,37 @@ A and C are kept apart for a narrower reason: an arm that has seen the render
 stops reading the source and starts confirming the picture. They answer to
 different evidence and must not share it.
 
+**Nor does either arm read the page's history.** Earlier critiques' verdict
+files, their reports, the folders set aside beside them, and the project's git
+log and commit messages all say what a reviewer found before, and an arm that
+has read "the header critique, 17 findings" judges the page it is shown against
+that list. Tell each arm so in its brief: it reads the page, the spec, the
+mockup, `DECISIONS.md` and the corpus, and runs no `git log`, `git show` or
+`git diff`, and opens nothing else under `.jig/critique/`. Which earlier findings
+were fixed is not the arms' question; `verdicts` answers it from git after both
+have written (step 4).
+
 ### 1a. Arms A and C walk the index. They do not search it.
 
 **This is not a style preference. It is the difference between covering the
 corpus and sampling it.**
 
 Load `rules.index.json`, filter to the pass the arm owns, and return a verdict
-for **every id in that list**: `ok`, `finding`, or `n/a` with one line of
-reason. A rule that does not apply is still answered — `n/a, this page has no
+for **every id in that list**: `ok`, `finding`, `ruled`, or `n/a` with one line
+of reason. A rule that does not apply is still answered — `n/a, this page has no
 form` is a verdict.
+
+**`ruled` is a finding the owner has already decided.** The page breaks the rule
+because a decision in `DECISIONS.md` says it should: an icon-only control the
+owner ruled icon-only, a menu the owner put at every phone width. The verdict
+names that decision in `ruling`, exactly as its heading reads, and `verdicts`
+refuses a `ruled` with no ruling or with one the file does not hold. A ruled
+verdict is reported, and counted apart (`ruled=`); it is not a finding, and it
+does not go back to `make`, which could only leave it as it is. On jig-site a
+header critique counted 15 findings, five of them rulings labelled "owner-ruled"
+in prose: every count was inflated, and the real findings were harder to see.
+A rule the page breaks with no decision behind it is a `finding`, however sure
+you are the owner would agree.
 
 Searching the corpus is how a *builder* works, and it is the right method there:
 it finds the rules you can already name. It cannot find the rule for the mistake
@@ -948,7 +988,8 @@ Each reader arm writes its own file. The arm reports back only that it wrote it.
   "verdicts": [
     { "id": "D-115", "verdict": "ok", "reason": "no sideways scroll at 360, 768, 1280 or 1600" },
     { "id": "P-14", "verdict": "finding", "reason": "menu button at 360 does not open; aria-expanded never set" },
-    { "id": "A-60", "verdict": "n/a", "reason": "A-60 is about competing icons; this page has none" }
+    { "id": "A-60", "verdict": "n/a", "reason": "A-60 is about competing icons; this page has none" },
+    { "id": "E-51", "verdict": "ruled", "ruling": "The theme toggle is icon-only", "reason": "the toggle shows only a sun or a moon; the owner ruled it icon-only" }
   ]
 }
 ```
@@ -1025,7 +1066,9 @@ was not read, requires `P-14` when the spec has navigation, and refuses
 `rendered: true` without artefacts that exist. It ends with a `JIG_VERDICTS:` line.
 
 When it fails, **re-run the arm it names**. Do not edit the file to make it pass, and
-do not report an incomplete arm as having run. A live Haiku run of this command
+do not report an incomplete arm as having run. If it says the probes were taken
+on an older page, `{{scripts_path}} verdicts <surface> --reprobe` re-takes them
+on the page as it is now. A live Haiku run of this command
 before it existed produced invented rule ids, `screen=ran:1` filed as a review,
 `code=ran:97` against 67, `ran:100` against both, and arms that reported to the
 wrong agent entirely. Every one of those was forbidden here in prose. Prose did not
@@ -1113,6 +1156,17 @@ is information, not noise to smooth over.**
 Say what is right as well as what is wrong — two or three things, and why they
 work. A review that only lists faults tells the reader nothing about what to
 preserve while fixing them.
+
+**Say what happened to the last round's findings.** `verdicts` compares this
+critique with the one before it in git and prints `Since the critique before
+this one: <n> fixed, <n> still open, <n> ruled by the owner, <n> new`, with the
+ids. Put that line in the report, as `verdicts` printed it, above the findings.
+The owner should not have to set two reports side by side to learn whether the
+make round worked. The comparison is made after both arms have written, so it
+tells the arms nothing.
+
+List `ruled` verdicts after the findings, under their own heading, each with the
+decision it cites. They are not findings, and they are not hidden either.
 
 Then the attestation:
 
@@ -1475,9 +1529,10 @@ The accent appears as a whole field or not at all. A full-bleed section, a solid
 button, a filled active state — never a 2px underline, never a small icon tint,
 never a gradient stop. Its authority comes from arriving in quantity, rarely.
 
-**Why:** thinly spread, it reads as decoration and stops meaning anything. The
-audit test: if a coloured element is smaller than a section band, it is probably
-wrong.
+**Why:** "Thinly spread, it reads as decoration and stops meaning anything."
+
+**Why (inferred):** the audit test that follows from it: if a coloured element is
+smaller than a section band, it is probably wrong.
 ```
 
 A name gives the team something to cite in review. A reason lets a future agent
@@ -1492,23 +1547,30 @@ the same shape and judged against every page:
 A reader leaves knowing which plan fits them and which limit they would hit
 first. Nothing else on the page outranks that.
 
-**Why:** they arrive from the product page already interested; the job is to
-remove the last doubt, not to sell again.
+**Why:** "They arrive from the product page already interested. The job is to
+remove the last doubt, not to sell again."
 
 ### When two options conflict
 
 Comprehension wins over persuasion. If a clearer page converts worse, we ship
 the clearer page.
 
-**Why:** the reader is an engineer who has been sold to badly before, and the
-support cost of a wrong-plan signup outweighs the signup.
+**Why:** "Our reader is an engineer who has been sold to badly before, and a
+wrong-plan signup costs more in support than it brings in."
 ```
 
-**The reason is the owner's, or it is not written.** Write the `Why:` the user gave,
-in their words or close to them. If they gave none, ask for it. If they still give
-none, write `**Why:** not given` — never a reason you supplied. A live run invented
-reasons for two real reversals; an invented reason is worse than none, because the
-next agent weighs it as the team's and applies the rule where the team never would.
+**The reason is the owner's, in quotation marks, or it is not written as theirs.**
+`**Why:**` holds the words the user gave, quoted. If they gave none, ask for it. If
+they still give none, write `**Why:** not given`. A live run invented reasons for
+two real reversals; an invented reason is worse than none, because the next agent
+weighs it as the team's and applies the rule where the team never would.
+
+What you add to explain a reason, work out from it, or carry over from what the
+owner said elsewhere goes in its own paragraph, `**Why (inferred):**`, which says it
+is yours. On jig-site, reasons read "given directly by the owner", followed by
+sentences the agent had written; a later agent could not tell which half to weigh
+as the team's. The gate checks each decision this session wrote or changed: its
+`Why` is quoted, `not given`, or labelled inferred.
 
 **Record what is still open in its own section, at the end:**
 
@@ -1533,7 +1595,8 @@ round by round, and the section of the file it went to — a named decision, its
 `Why:`, or **Unresolved**. An answer that went nowhere is either added or shown to
 the user as left out on purpose, with the reason. Then go the other way: every
 `Why:` in the file must trace to something the user said; delete any that does not,
-and ask. Include this mapping in your message, below the file.
+and ask. A `Why (inferred):` traces to what it was inferred from; say what that was.
+Include this mapping in your message, below the file.
 
 Show it and ask the user to confirm it is right before you stop. Leave no
 `[TODO]` markers — the gate treats them as an unwritten file, correctly, because

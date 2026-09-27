@@ -9,7 +9,7 @@ import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 const probe = (over: Partial<ProbeResult> = {}): ProbeResult => ({
-  jigProbe: 7, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
+  jigProbe: 8, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
   defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, navLinksVisible: 5,
   menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 },
   ...over,
@@ -279,6 +279,31 @@ describe('the CLI can run the probe itself', () => {
     const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'pricing', 'probe-360.json'), 'utf8'));
     expect(probe.emDashes.join(' | ')).toMatch(/Our own label — wrongly dashed/);
     expect(probe.emDashes.join(' | ')).not.toMatch(/quoted rule|forever/);
+  }, 120_000);
+
+  // jig-site: a heading asked for a weight the site never loaded, the browser
+  // thickened the regular face, and every review passed it.
+  it('names text in a web font\'s weight that no loaded face covers', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { execFileSync } = await import('node:child_process');
+    const { copyFileSync } = await import('node:fs');
+    let font = '';
+    try { font = execFileSync('sh', ['-c', 'find /usr/share/fonts /System/Library/Fonts -name "*.ttf" 2>/dev/null | head -1'], { encoding: 'utf8' }).trim(); } catch { /* no fonts */ }
+    if (!font) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-faux-'));
+    mkdirSync(join(root, 'dist'), { recursive: true });
+    copyFileSync(font, join(root, 'dist', 'face.ttf'));
+    writeFileSync(join(root, 'dist', 'index.html'),
+      '<html><head><title>t</title><style>@font-face { font-family: "Only Regular"; src: url(/face.ttf); font-weight: 400; } ' +
+      'body { font-family: "Only Regular", sans-serif; } h1 { font-weight: 700; } .sys { font-family: monospace; font-weight: 700; }</style></head>' +
+      '<body><main><h1>Heavy heading</h1><p>Regular text</p><p class="sys">System bold</p></main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'home'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'home', page: 'dist/index.html', serve: 'dist', widths: [360] });
+    const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'home', 'probe-360.json'), 'utf8'));
+    expect(probe.fauxFaces).toEqual([{ family: 'Only Regular', weight: 700, style: 'normal', text: 'Heavy heading' }]);
+    expect(probeContradictions([probe], verdicts({}))).toContainEqual(expect.stringMatching(/asks for Only Regular 700 \("Heavy heading"\), and no loaded face covers it/));
   }, 120_000);
 
   // A built static site links its stylesheet from the site root. Opened as a

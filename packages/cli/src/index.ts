@@ -12,7 +12,7 @@ import { verifyVerdicts } from './commands/verdicts.js';
 import { gate, surfacePage } from './commands/gate.js';
 import { seo } from './commands/seo.js';
 import { PROBE_SCRIPT } from './probe/script.js';
-import { critiquedSurfaces, ensureProbes, runAndSaveProbes, saveProbe } from './probe/save.js';
+import { critiquedSurfaces, ensureProbes, recordedPage, runAndSaveProbes, saveProbe } from './probe/save.js';
 import { adapterNames } from './adapters/registry.js';
 
 const packageRoot = getPackageRoot();
@@ -147,6 +147,11 @@ program
       );
       for (const f of result.updated) console.log(`  ~ ${f}`);
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
+      for (const t of result.tokens) {
+        const parts = [t.added.length ? `adds ${t.added.join(', ')}` : '', t.removed.length ? `removes ${t.removed.join(', ')}` : ''].filter(Boolean).join('; ');
+        console.log(t.skipped ? `  ! ${t.file}: this release ${parts}, and did not apply it, because the file is edited locally.` : `  + ${t.file}: ${parts}.`);
+      }
+      if (result.tokens.length) console.log('  Anything that aliases tokens (a Tailwind @theme, a generated utilities file) needs the same change.');
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);
@@ -157,14 +162,33 @@ program
   .command('verdicts')
   .description("Verify a critique's verdict files and compute its counts.")
   .argument('<surface>', 'the surface slug the critique wrote under .jig/critique/')
-  .action((surface: string) => {
+  .option('--reprobe', 're-take every probe that is missing or was taken on an older version of the page, first (needs a browser)')
+  .action(async (surface: string, opts: { reprobe?: boolean }) => {
     const projectRoot = findProjectRoot(process.cwd());
     try {
+      if (opts.reprobe) {
+        const page = surfacePage(projectRoot, surface) ?? recordedPage(projectRoot, surface);
+        if (!page) console.error(`  ✗ --reprobe: no probe in .jig/critique/${surface}/ names a page that exists, so there is nothing to render. Run \`jig probe --run <page> --save ${surface}\`.`);
+        else {
+          const { recorded, reason } = await ensureProbes({ projectRoot, surface, page });
+          if (reason) console.error(`  ✗ --reprobe: ${reason}.`);
+          else if (recorded.length) console.log(`  Re-probed ${page} at ${recorded.join(', ')}px.`);
+          else console.log(`  Every probe is current.`);
+        }
+      }
       const result = verifyVerdicts({ projectRoot, surface });
       for (const error of result.errors) console.error(`  ✗ ${error}`);
+      if (!opts.reprobe && result.errors.some((e) => /was taken (on|by) an older/.test(e))) {
+        console.error(`  The page changed after these probes. \`jig verdicts ${surface} --reprobe\` re-takes them on the page as it is now.`);
+      }
       if (result.ok) console.log(`  Every rule in both passes has a verdict.`);
       const since = result.decisions.since ?? [];
       if (since.length) console.log(`  ${since.length} decision(s) recorded after this critique, for the next one to judge: ${since.join(', ')}.`);
+      const p = result.previous;
+      if (p) {
+        const list = (ids: string[]) => (ids.length ? ` (${ids.slice(0, 8).join(', ')}${ids.length > 8 ? ', …' : ''})` : '');
+        console.log(`  Since the critique before this one (${p.commit}): ${p.fixed.length} fixed${list(p.fixed)}, ${p.open.length} still open${list(p.open)}, ${p.ruled.length} ruled by the owner${list(p.ruled)}, ${p.added.length} new${list(p.added)}.`);
+      }
       console.log(`  ${result.line}`);
       process.exit(result.ok ? 0 : 1);
     } catch (err) {
@@ -287,7 +311,7 @@ program
       // machine means the probe is not a step anyone can skip; without one,
       // the gate falls back to naming what is missing.
       for (const surface of critiquedSurfaces(projectRoot)) {
-        const page = surfacePage(projectRoot, surface);
+        const page = surfacePage(projectRoot, surface) ?? recordedPage(projectRoot, surface);
         if (!page) continue;
         try {
           await ensureProbes({ projectRoot, surface, page });

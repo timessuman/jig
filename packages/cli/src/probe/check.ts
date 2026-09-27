@@ -25,6 +25,8 @@ export interface ProbeResult {
   /** Blocks whose last word sits alone on the last line, laid out without `text-wrap: pretty`. */
   strandedCount?: number;
   strandedWords?: Array<{ word: string; text: string }>;
+  /** Text in a web font's weight or style that no loaded face covers, so the browser synthesises it. */
+  fauxFaces?: Array<{ family: string; weight: number; style: string; text: string }>;
   head?: { title: string; description: string; canonical: string; robots: string; ogTitle: string; ogImage: string };
   contentWidth?: number;
   contentMaxWidth?: string;
@@ -112,6 +114,10 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf,
     }
     if (p.defaultFont) {
       errors.push(`${at(p)}: the page renders in the browser's default font (${p.bodyFont ?? 'unknown'}) — its styles are not applying. No review of this page can pass until they do.`);
+    }
+    if (p.fauxFaces?.length) {
+      const shown = p.fauxFaces.map((f) => `${f.family} ${f.weight}${f.style === 'italic' ? ' italic' : ''} ("${f.text}")`).join(', ');
+      errors.push(`${at(p)}: the page asks for ${shown}, and no loaded face covers ${p.fauxFaces.length === 1 ? 'it' : 'them'}, so the browser fakes the weight or slant from the nearest face it has. Load that weight, or use one the page already loads.`);
     }
     if (p.unresolvedTokens.length) {
       errors.push(`${at(p)}: ${p.unresolvedTokens.length} token(s) have no value in the browser (${p.unresolvedTokens.slice(0, 6).join(', ')}) — every property using them is dropped (H-117).`);

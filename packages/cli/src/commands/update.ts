@@ -23,6 +23,35 @@ export interface UpdateResult {
    * the first target's, and should print this list when it holds more than one.
    */
   targets: UpdatedTarget[];
+  /**
+   * The tokens each refreshed mode file gained or lost. A project that aliases
+   * tokens (a Tailwind `@theme`, a generated utilities file) has to add them
+   * there too, and a file list alone never said so: on jig-site 0.18.0 added
+   * `--size-container` and `--size-header`, and the site found out when its
+   * aliases did not have them.
+   */
+  tokens: TokenChange[];
+}
+
+export interface TokenChange {
+  file: string;
+  added: string[];
+  removed: string[];
+  /** The file was edited locally and left alone, so these changes did not land. */
+  skipped?: boolean;
+}
+
+/** The custom properties a stylesheet declares. */
+function declaredTokens(css: string): Set<string> {
+  return new Set([...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]!));
+}
+
+function tokenChange(file: string, before: string, after: string, skipped = false): TokenChange | undefined {
+  const was = declaredTokens(before);
+  const now = declaredTokens(after);
+  const added = [...now].filter((t) => !was.has(t)).sort();
+  const removed = [...was].filter((t) => !now.has(t)).sort();
+  return added.length || removed.length ? { file, added, removed, ...(skipped ? { skipped } : {}) } : undefined;
 }
 
 export interface UpdatedTarget {
@@ -106,6 +135,7 @@ export function update(opts: InstallOptions): UpdateResult {
     fromVersion: resolved[0].manifest.version,
     toVersion: opts.version,
     targets,
+    tokens: initResult.tokens,
   };
 }
 
@@ -254,9 +284,10 @@ function updateTarget(
  * this naturally scopes itself to what's really in use — a project that
  * never ran `init` has no state.json and this is a no-op.
  */
-function updateInitFiles(opts: InstallOptions): { updated: string[]; skipped: string[] } {
+function updateInitFiles(opts: InstallOptions): { updated: string[]; skipped: string[]; tokens: TokenChange[] } {
   const updated: string[] = [];
   const skipped: string[] = [];
+  const tokens: TokenChange[] = [];
   const tokensDir = join(opts.packageRoot, 'tokens');
   const initManifest = readInitManifest(opts.projectRoot);
   if (initManifest) {
@@ -276,11 +307,18 @@ function updateInitFiles(opts: InstallOptions): { updated: string[]; skipped: st
       // site's copies and refreshed nothing, silently, on every release.
       const keys = Object.keys(initManifest.files).filter((k) => k === file || k.endsWith(`/${file}`));
       for (const key of keys) {
+        let before = '';
+        try { before = readFileSync(join(opts.projectRoot, ...key.split('/')), 'utf8'); } catch { /* a copy that is gone is written afresh */ }
+        const fresh = readFileSync(join(tokensDir, file), 'utf8');
         if (isInitFileModified(opts.projectRoot, key, initManifest)) {
           skipped.push(key);
+          const change = tokenChange(key, before, fresh, true);
+          if (change) tokens.push(change);
           continue;
         }
-        const content = vendorHeader(file, opts.version, 'css', null) + readFileSync(join(tokensDir, file), 'utf8');
+        const change = tokenChange(key, before, fresh);
+        if (change) tokens.push(change);
+        const content = vendorHeader(file, opts.version, 'css', null) + fresh;
         updated.push(writer.write(key, content));
         initChanged = true;
       }
@@ -288,5 +326,5 @@ function updateInitFiles(opts: InstallOptions): { updated: string[]; skipped: st
     Object.assign(initFiles, writer.files);
     if (initChanged) writeInitManifest(opts.projectRoot, { ...initManifest, version: opts.version, files: initFiles });
   }
-  return { updated, skipped };
+  return { updated, skipped, tokens };
 }

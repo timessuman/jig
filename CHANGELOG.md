@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+### Added
+
+- **A `ruled` verdict.** A finding the owner has already decided is judged
+  `ruled`, citing the decision's heading in `ruling`, and counted apart
+  (`ruled=`). On jig-site five of a header critique's 15 findings were the
+  owner's rulings, counted as findings and sent back to make.
+- **What happened to the last round's findings.** `jig verdicts` compares a
+  critique with the one before it in git and prints how many were fixed, are
+  still open, were ruled, and are new, with the ids. The report carries it.
+- **`jig verdicts --reprobe`** re-takes probes taken on an older page. The
+  gate and `--reprobe` now find the page from the probes themselves, so a spec
+  whose `surface:` is a sentence no longer leaves stale probes blocking.
+- **The probe names text drawn in a weight or style no loaded face covers**,
+  which the browser fakes from the nearest face. It is an error, like a page in
+  the default font. Probe version 8.
+- **`jig update` names the tokens** each refreshed mode file gained or lost,
+  and those an edited one did not get, since anything aliasing tokens (a
+  Tailwind `@theme`) needs the same change.
+
+### Changed
+
+- **`decide` keeps the owner's reasons apart from its own.** A `Why:` is the
+  owner's words in quotation marks or `not given`; anything the agent adds goes
+  under `**Why (inferred):**`. The gate checks each decision the session wrote
+  or changed.
+- **`make` does not edit DECISIONS.md.** The gate stops a make session that
+  changed it; decisions go through `decide` or `tweak`.
+- **A spec that no longer matches its approved drawing is not approved.** In
+  `spec` and `make`, each region the spec lists must be labelled in its size's
+  frame. Region names are read as the spec means them: a parenthetical
+  qualifies, "(… only)" is conditional, and a list names several regions.
+- **Critique's reader arms do not read the page's history**: no earlier
+  critiques, no git log. Which findings were fixed is the CLI's question.
+- **P-14 says how a menu in a fixed header behaves**: it lies over the page, a
+  tap outside closes it and does nothing else, controls in the header row work
+  on the first tap, and a long list scrolls inside itself.
+- **M-01's script budget is "none by default"**, not an absolute zero: a
+  feature may have script, named in a comment and as small as it allows.
+
 ### Fixed
 
 - **`tweak`'s gate blocked both of its first real uses, on jig-site.** Three

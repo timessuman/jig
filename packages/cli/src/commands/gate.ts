@@ -4,12 +4,12 @@ import { join } from 'node:path';
 import { navProblems, specFor, specProblems } from '../check/spec-shape.js';
 import { findChrome } from '../probe/browser.js';
 import { check } from './check.js';
-import { mockupDrawingProblems, specRegions } from '../check/mockup-drawing.js';
+import { approvedDrawingProblems, mockupDrawingProblems, specRegions } from '../check/mockup-drawing.js';
 import { execFileSync } from 'node:child_process';
 import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
-import { decisionsFile } from '../check/decisions.js';
+import { decisionsFile, unsourcedReasons } from '../check/decisions.js';
 import { checksum } from '../install/manifest.js';
 
 /**
@@ -208,8 +208,23 @@ export function surfacesInPlay(root: string, command: string | undefined, transc
   return all.filter((s) => s === current || verdictsMtime(join(critiqueDir, s)) >= start - 1000);
 }
 
+/**
+ * A file as it stood when this session began: its content at the last commit
+ * made before then, or at HEAD when the session has no start to date it. Empty
+ * when git has no copy, so everything in the file counts as this session's.
+ */
+function fileAtSessionStart(root: string, path: string, start: number | undefined): string {
+  const git = (args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  try {
+    const base = start === undefined ? 'HEAD' : git(['rev-list', '-1', `--before=@${Math.floor(start / 1000)}`, 'HEAD']).trim();
+    return base ? git(['show', `${base}:./${path}`]) : '';
+  } catch {
+    return '';
+  }
+}
+
 /** What each command must have left behind, checked after it ran. */
-function commandProblems(root: string, command: string, surface?: string): string[] {
+function commandProblems(root: string, command: string, surface?: string, start?: number): string[] {
   const problems: string[] = [];
   const spec = specFor(root, surface);
 
@@ -222,6 +237,7 @@ function commandProblems(root: string, command: string, surface?: string): strin
         problems.push('DECISIONS.md has no `## Unresolved` section. Round 3 asks by name what is still undecided; write what the owner named, or `None named by the owner.`');
       }
       if (/\[TODO\]/.test(body)) problems.push('DECISIONS.md still contains [TODO] markers.');
+      problems.push(...unsourcedReasons(body, fileAtSessionStart(root, found, start)).map((p) => `DECISIONS.md: ${p}`));
     }
   }
 
@@ -247,6 +263,40 @@ function commandProblems(root: string, command: string, surface?: string): strin
   }
 
   if (command === 'tweak' && spec) problems.push(...tweakProblems(root, spec));
+
+  // A spec that changed after its drawing was approved no longer has one.
+  if ((command === 'spec' || command === 'make') && spec) {
+    const front = spec.body.split(/^---\s*$/m)[1] ?? '';
+    const mockup = /^\s*mockup\s*:\s*(\S+)/im.exec(front)?.[1] ?? '';
+    const at = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '') ?? '';
+    if (/^approved/i.test(mockup) && /\.html?$/i.test(at) && !/^https?:/i.test(at)) {
+      const drift = approvedDrawingProblems(root, spec.body, at);
+      if (drift.length) {
+        problems.push(
+          `${spec.path} says \`mockup: approved\`, but the approved drawing no longer shows what the spec lists: ${drift.join(' ')} ` +
+            (command === 'spec'
+              ? `The spec changed after the owner approved the drawing. Set \`mockup: pending\` in the spec; \`/jig mockup\` redraws it for the owner.`
+              : `make builds from a drawing the owner approved of this spec, and this one is of an earlier spec. Stop, and ask for \`/jig mockup\`.`),
+        );
+      }
+    }
+  }
+
+  // Decisions are the owner's, through decide (or tweak's own decide step).
+  // On jig-site one make round added a decision and another rewrote one to
+  // match the tokens it had just switched to; the next critique judged the page
+  // against text the build had written.
+  if (command === 'make') {
+    const found = decisionsFile(root);
+    if (found) {
+      let now = '';
+      try { now = readFileSync(join(root, found), 'utf8'); } catch { /* unreadable: nothing to compare */ }
+      const then = fileAtSessionStart(root, found, start);
+      if (then && now !== then) {
+        problems.push(`${found} changed in a \`make\` session. make carries decisions out; it does not take them. Restore it (\`git checkout -- ${found}\`, or \`git show <commit>:${found}\` if the change is committed), and put what the owner must decide to them: \`/jig decide\`, or \`/jig tweak\` for a small change to a built page.`);
+      }
+    }
+  }
 
   if (command === 'critique') {
     const dir = join(root, '.jig', 'critique');
@@ -397,7 +447,7 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   // on the stop after the owner has answered, not while the question is open;
   // `check` below still runs either way.
   const waiting = command !== undefined && ASKS_THE_OWNER.has(command) && asksOwner(lastAssistantText(opts.input.transcript_path));
-  const problems: string[] = command && !waiting ? commandProblems(root, command, invocation?.surface).map((p) => `/jig ${command}: ${p}`) : [];
+  const problems: string[] = command && !waiting ? commandProblems(root, command, invocation?.surface, sessionStart(opts.input.transcript_path)).map((p) => `/jig ${command}: ${p}`) : [];
 
   const selection = selectFiles(root, false);
   const changedUi = selection.mode === 'changed' && selection.files.some((f) => isStyleBearing(f) || isReaderText(f));
