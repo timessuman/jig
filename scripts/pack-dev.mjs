@@ -40,6 +40,10 @@ const taken = readdirSync(out)
   .map(Number);
 const version = `${base}-dev.${taken.length ? Math.max(...taken) + 1 : 1}`;
 
+// Read before package.json is rewritten below, or the rewrite itself reads as a change.
+const commit = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+const dirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim() !== '';
+
 // The version is read from package.json at run time (src/index.ts), so the
 // tarball carries it; the checkout's own package.json is put back either way.
 writeFileSync(pkgPath, original.replace(`"version": "${released}"`, `"version": "${version}"`));
@@ -49,7 +53,7 @@ try {
   execFileSync('node', ['scripts/stage-assets.mjs'], { cwd: cli, stdio: ['ignore', 'ignore', 'inherit'] });
   const [info] = JSON.parse(execFileSync('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', out], { cwd: cli, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }));
   console.log(`pack-dev: ${join(out, info.filename)}`);
-  console.log(`pack-dev: version ${version}, from ${execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()}${execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim() ? ' with uncommitted changes' : ''}`);
+  console.log(`pack-dev: version ${version}, from ${commit}${dirty ? ' with uncommitted changes' : ''}`);
 } finally {
   writeFileSync(pkgPath, original);
 }
