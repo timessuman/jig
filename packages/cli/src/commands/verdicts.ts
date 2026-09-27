@@ -58,6 +58,40 @@ const VERDICTS = ['ok', 'finding', 'n/a'];
 // both of which resolve.
 const ABSENCE = /\b(rule (not found|does not exist)|context unavailable|cannot (find|read|access) (the )?rule|not in (the )?(accessible )?corpus)\b/i;
 
+/**
+ * A reason written to be replaced. On jig-site a render arm stopped with 33 of
+ * 34 verdicts reading "DRAFT, being refined", and every count still passed:
+ * each rule had a verdict, and each verdict had a reason.
+ */
+const PLACEHOLDER = /^\W*(draft|tbd|todo|placeholder|wip|fixme|xxx|lorem ipsum)\W*($|[,.;:(\u2014-])|\bbeing refined\b|\bto be (judged|written|refined|filled in|completed)\b|\bfill (this )?in later\b/i;
+
+/** A reason shared word for word by this many judged verdicts was not written for any of them. */
+const REPEAT_LIMIT = 4;
+
+/**
+ * Reasons that say nothing about the page: placeholders, and one sentence
+ * pasted across many rules. `n/a` verdicts may share a reason, since one
+ * absence (no form on the page) rightly clears many rules.
+ */
+function reasonProblems(file: string, judged: Array<{ label: string; verdict: string; reason: string }>, errors: string[]): void {
+  const shared = new Map<string, string[]>();
+  for (const { label, verdict, reason } of judged) {
+    const bare = reason.replace(/^[A-Z]{1,2}-\d+[a-z0-9-]*\s*[:\u2014-]?\s*/i, '');
+    if (PLACEHOLDER.test(bare)) {
+      errors.push(`${file}: ${label} — "${reason}" is a placeholder, not a judgment. Judge it against the page and write what you saw.`);
+      continue;
+    }
+    if (verdict === 'n/a') continue;
+    const key = reason.toLowerCase().replace(/\s+/g, ' ');
+    shared.set(key, [...(shared.get(key) ?? []), label]);
+  }
+  for (const [, labels] of shared) {
+    if (labels.length < REPEAT_LIMIT) continue;
+    const reason = judged.find((j) => j.label === labels[0])!.reason;
+    errors.push(`${file}: ${labels.length} verdicts give the same reason, "${reason}" (${labels.slice(0, 5).join(', ')}${labels.length > 5 ? ', …' : ''}). A reason names what on this page holds or breaks that one rule; judge each of them.`);
+  }
+}
+
 function readJson(path: string, errors: string[]): { rendered?: unknown; artefacts?: unknown; verdicts?: unknown } | null {
   if (!existsSync(path)) return null;
   try {
@@ -113,6 +147,7 @@ function checkArm(
   if (!Array.isArray(file.verdicts)) errors.push(`${name}.json has no "verdicts" array.`);
 
   const seen = new Set<string>();
+  const reasons: Array<{ label: string; verdict: string; reason: string }> = [];
   let findings = 0;
   for (const v of list) {
     const written = typeof v.id === 'string' ? v.id.trim() : '';
@@ -137,8 +172,10 @@ function checkArm(
     const reason = typeof v.reason === 'string' ? v.reason.trim() : '';
     if (!reason) errors.push(`${name}.json: ${id} has no reason.`);
     else if (ABSENCE.test(reason)) errors.push(`${name}.json: ${id} — "${reason}" says the rule was not read. Read it with \`jig explain ${id}\` and judge it.`);
+    else reasons.push({ label: id, verdict: v.verdict, reason });
     if (v.verdict === 'finding') findings++;
   }
+  reasonProblems(`${name}.json`, reasons, errors);
 
   const missing = [...required, ...extraRequired].filter((id) => !seen.has(id));
   if (missing.length) {
@@ -172,6 +209,7 @@ function checkDecisions(projectRoot: string, dir: string, errors: string[]): Arm
   if (!Array.isArray(file.verdicts)) errors.push('decisions.json has no "verdicts" array.');
 
   const seen = new Set<string>();
+  const reasons: Array<{ label: string; verdict: string; reason: string }> = [];
   let findings = 0;
   for (const v of list) {
     const name = typeof v.decision === 'string' ? v.decision.trim() : '';
@@ -190,8 +228,10 @@ function checkDecisions(projectRoot: string, dir: string, errors: string[]): Arm
     const reason = typeof v.reason === 'string' ? v.reason.trim() : '';
     if (!reason) errors.push(`decisions.json: "${match}" has no reason. Name what on the page satisfies it, or what does not.`);
     else if (ABSENCE.test(reason)) errors.push(`decisions.json: "${match}" — "${reason}" says the decision was not read.`);
+    else reasons.push({ label: `"${match}"`, verdict: v.verdict, reason });
     if (v.verdict === 'finding') findings++;
   }
+  reasonProblems('decisions.json', reasons, errors);
 
   const unjudged = required.filter((r) => !seen.has(r));
   const since = decisionsSince(projectRoot, dir, unjudged);

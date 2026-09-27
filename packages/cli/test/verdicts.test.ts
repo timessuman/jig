@@ -113,6 +113,35 @@ describe('jig verdicts', () => {
     expect(run().errors.join('\n')).toMatch(new RegExp(codeIds[0]));
   });
 
+  // Seen on jig-site: a render arm stopped with 33 of 34 verdicts reading
+  // "DRAFT, being refined", and the review passed, counts and all.
+  it('rejects a placeholder reason', () => {
+    const v = all(screenIds);
+    v[0] = { id: screenIds[0], verdict: 'ok', reason: 'DRAFT, being refined' };
+    v[1] = { id: screenIds[1], verdict: 'ok', reason: `${screenIds[1]}: TBD` };
+    write('screen.json', { rendered: false, verdicts: v });
+    write('code.json', { verdicts: all(codeIds) });
+    const errors = run().errors.join('\n');
+    expect(errors).toMatch(new RegExp(`${screenIds[0]} — "DRAFT, being refined" is a placeholder`));
+    expect(errors).toMatch(new RegExp(`${screenIds[1]} — ".*TBD" is a placeholder`));
+  });
+
+  it('rejects one reason pasted across many judged verdicts', () => {
+    const v = all(screenIds);
+    for (let i = 0; i < 4; i++) v[i] = { id: screenIds[i], verdict: 'ok', reason: 'Looks fine at every width.' };
+    write('screen.json', { rendered: false, verdicts: v });
+    write('code.json', { verdicts: all(codeIds) });
+    expect(run().errors.join('\n')).toMatch(/screen\.json: 4 verdicts give the same reason, "Looks fine at every width\."/);
+  });
+
+  it('lets n/a verdicts share a reason, and a few judged ones too', () => {
+    const v = all(screenIds).map((x) => ({ ...x, reason: 'The page has no form.' }));
+    for (let i = 0; i < 3; i++) v[i] = { id: screenIds[i], verdict: 'ok', reason: 'Every heading is sentence case.' };
+    write('screen.json', { rendered: false, verdicts: v });
+    write('code.json', { verdicts: all(codeIds) });
+    expect(run().errors.join('\n')).not.toMatch(/same reason|placeholder/);
+  });
+
   it('rejects a verdict that is not ok, finding or n/a', () => {
     const v = all(codeIds);
     v[0] = { id: codeIds[0], verdict: 'pass', reason: 'fine' };

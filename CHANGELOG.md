@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **`jig verdicts` refuses reasons that judge nothing.** On jig-site a render
+  arm stopped with 33 of 34 verdicts reading "DRAFT, being refined", and the
+  review passed with full counts. A placeholder reason is now an error, and so
+  is one reason given word for word by four or more `ok` or `finding` verdicts
+  in a file. `n/a` verdicts may still share a reason, since one absence can
+  clear many rules.
+
 ## 0.19.0 (2026-09-27)
 
 A new command, `tweak`, for a small change to a built page that its approved
