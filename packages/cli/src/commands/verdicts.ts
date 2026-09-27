@@ -30,6 +30,8 @@ export interface ArmResult {
   judged: number;
   total: number;
   findings: number;
+  /** Findings the owner has already ruled on, each citing the decision: reported, not counted as findings. */
+  ruled?: number;
   /** Decisions recorded after this critique judged the page; the next critique judges them. */
   since?: string[];
 }
@@ -43,20 +45,77 @@ export interface VerdictsResult {
   decisions: ArmResult;
   rendered: boolean;
   line: string;
+  /** Each earlier finding, set against this critique: fixed, still open, or new. */
+  previous?: PreviousFindings;
+}
+
+export interface PreviousFindings {
+  /** The commit whose verdicts this critique is compared with. */
+  commit: string;
+  fixed: string[];
+  open: string[];
+  added: string[];
+  ruled: string[];
 }
 
 interface Verdict {
   id?: unknown;
   verdict?: unknown;
   reason?: unknown;
+  ruling?: unknown;
 }
 
 const VERDICTS = ['ok', 'finding', 'n/a'];
+
+/**
+ * A rule verdict may also be `ruled`: the page breaks the rule because the
+ * owner decided it should, and the verdict names that decision in `ruling`.
+ *
+ * On jig-site the header critique counted 15 findings, five of them recorded
+ * owner rulings (the icon-only toggle, the mono wordmark, the menu at every
+ * phone width). Labelled "owner-ruled" in prose and counted as findings, they
+ * inflated every count and went back to make, which could only leave them.
+ */
+const RULE_VERDICTS = [...VERDICTS, 'ruled'];
 
 // An n/a is a verdict about the rule. "Rule not found" is not — it says the arm
 // never read the rule, and a live run wrote exactly that about C-68 and D-27,
 // both of which resolve.
 const ABSENCE = /\b(rule (not found|does not exist)|context unavailable|cannot (find|read|access) (the )?rule|not in (the )?(accessible )?corpus)\b/i;
+
+/**
+ * A reason written to be replaced. On jig-site a render arm stopped with 33 of
+ * 34 verdicts reading "DRAFT, being refined", and every count still passed:
+ * each rule had a verdict, and each verdict had a reason.
+ */
+const PLACEHOLDER = /^\W*(draft|tbd|todo|placeholder|wip|fixme|xxx|lorem ipsum)\W*($|[,.;:(\u2014-])|\bbeing refined\b|\bto be (judged|written|refined|filled in|completed)\b|\bfill (this )?in later\b/i;
+
+/** A reason shared word for word by this many judged verdicts was not written for any of them. */
+const REPEAT_LIMIT = 4;
+
+/**
+ * Reasons that say nothing about the page: placeholders, and one sentence
+ * pasted across many rules. `n/a` verdicts may share a reason, since one
+ * absence (no form on the page) rightly clears many rules.
+ */
+function reasonProblems(file: string, judged: Array<{ label: string; verdict: string; reason: string }>, errors: string[]): void {
+  const shared = new Map<string, string[]>();
+  for (const { label, verdict, reason } of judged) {
+    const bare = reason.replace(/^[A-Z]{1,2}-\d+[a-z0-9-]*\s*[:\u2014-]?\s*/i, '');
+    if (PLACEHOLDER.test(bare)) {
+      errors.push(`${file}: ${label} — "${reason}" is a placeholder, not a judgment. Judge it against the page and write what you saw.`);
+      continue;
+    }
+    if (verdict === 'n/a') continue;
+    const key = reason.toLowerCase().replace(/\s+/g, ' ');
+    shared.set(key, [...(shared.get(key) ?? []), label]);
+  }
+  for (const [, labels] of shared) {
+    if (labels.length < REPEAT_LIMIT) continue;
+    const reason = judged.find((j) => j.label === labels[0])!.reason;
+    errors.push(`${file}: ${labels.length} verdicts give the same reason, "${reason}" (${labels.slice(0, 5).join(', ')}${labels.length > 5 ? ', …' : ''}). A reason names what on this page holds or breaks that one rule; judge each of them.`);
+  }
+}
 
 function readJson(path: string, errors: string[]): { rendered?: unknown; artefacts?: unknown; verdicts?: unknown } | null {
   if (!existsSync(path)) return null;
@@ -103,6 +162,7 @@ function checkArm(
   extraAllowed: Set<string>,
   extraRequired: string[],
   errors: string[],
+  decisionList: string[] = [],
 ): ArmResult {
   const total = required.length + extraRequired.length;
   if (file === null) {
@@ -113,7 +173,9 @@ function checkArm(
   if (!Array.isArray(file.verdicts)) errors.push(`${name}.json has no "verdicts" array.`);
 
   const seen = new Set<string>();
+  const reasons: Array<{ label: string; verdict: string; reason: string }> = [];
   let findings = 0;
+  let ruled = 0;
   for (const v of list) {
     const written = typeof v.id === 'string' ? v.id.trim() : '';
     const id = written.toUpperCase();
@@ -130,22 +192,31 @@ function checkArm(
         : `${name}.json: ${written} is not a rule or spec in this corpus. Run \`jig explain ${written}\`; an id that does not resolve is not a verdict.`);
       continue;
     }
-    if (typeof v.verdict !== 'string' || !VERDICTS.includes(v.verdict)) {
-      errors.push(`${name}.json: ${id} has verdict ${JSON.stringify(v.verdict)} — it must be ok, finding or n/a.`);
+    if (typeof v.verdict !== 'string' || !RULE_VERDICTS.includes(v.verdict)) {
+      errors.push(`${name}.json: ${id} has verdict ${JSON.stringify(v.verdict)} — it must be ok, finding, ruled or n/a.`);
       continue;
+    }
+    if (v.verdict === 'ruled') {
+      const ruling = typeof v.ruling === 'string' ? v.ruling.trim() : '';
+      const match = decisionList.find((d) => d.toLowerCase() === ruling.toLowerCase());
+      if (!ruling) errors.push(`${name}.json: ${id} is ruled, but names no \`ruling\`. A ruled verdict cites the DECISIONS.md heading that decided it; with none, it is a finding.`);
+      else if (!match) errors.push(`${name}.json: ${id} cites the ruling "${ruling}", which is not a heading in DECISIONS.md. Cite the decision as its heading reads, or judge it a finding.`);
+      else ruled++;
     }
     const reason = typeof v.reason === 'string' ? v.reason.trim() : '';
     if (!reason) errors.push(`${name}.json: ${id} has no reason.`);
     else if (ABSENCE.test(reason)) errors.push(`${name}.json: ${id} — "${reason}" says the rule was not read. Read it with \`jig explain ${id}\` and judge it.`);
+    else reasons.push({ label: id, verdict: v.verdict, reason });
     if (v.verdict === 'finding') findings++;
   }
+  reasonProblems(`${name}.json`, reasons, errors);
 
   const missing = [...required, ...extraRequired].filter((id) => !seen.has(id));
   if (missing.length) {
     errors.push(`${name}.json: ${missing.length} of ${total} ids have no verdict: ${missing.join(', ')}. Re-run the arm; never report a short pass.`);
   }
   const judged = total - missing.length;
-  return { state: missing.length ? 'incomplete' : 'ran', judged, total, findings };
+  return { state: missing.length ? 'incomplete' : 'ran', judged, total, findings, ...(ruled ? { ruled } : {}) };
 }
 
 /**
@@ -172,6 +243,7 @@ function checkDecisions(projectRoot: string, dir: string, errors: string[]): Arm
   if (!Array.isArray(file.verdicts)) errors.push('decisions.json has no "verdicts" array.');
 
   const seen = new Set<string>();
+  const reasons: Array<{ label: string; verdict: string; reason: string }> = [];
   let findings = 0;
   for (const v of list) {
     const name = typeof v.decision === 'string' ? v.decision.trim() : '';
@@ -190,8 +262,10 @@ function checkDecisions(projectRoot: string, dir: string, errors: string[]): Arm
     const reason = typeof v.reason === 'string' ? v.reason.trim() : '';
     if (!reason) errors.push(`decisions.json: "${match}" has no reason. Name what on the page satisfies it, or what does not.`);
     else if (ABSENCE.test(reason)) errors.push(`decisions.json: "${match}" — "${reason}" says the decision was not read.`);
+    else reasons.push({ label: `"${match}"`, verdict: v.verdict, reason });
     if (v.verdict === 'finding') findings++;
   }
+  reasonProblems('decisions.json', reasons, errors);
 
   const unjudged = required.filter((r) => !seen.has(r));
   const since = decisionsSince(projectRoot, dir, unjudged);
@@ -271,8 +345,9 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   const codeFile = readJson(join(dir, 'code.json'), errors);
 
   const screenExtraRequired = specNeedsNav(opts.projectRoot, opts.surface) ? ['P-14'] : [];
-  const screen = checkArm('screen', screenFile, screenIds, passOf, specIds, screenExtraRequired, errors);
-  const code = checkArm('code', codeFile, codeIds, passOf, specIds, [], errors);
+  const decisionList = decisionNames(opts.projectRoot);
+  const screen = checkArm('screen', screenFile, screenIds, passOf, specIds, screenExtraRequired, errors, decisionList);
+  const code = checkArm('code', codeFile, codeIds, passOf, specIds, [], errors, decisionList);
 
   let rendered = false;
   if (screenFile && screenFile.rendered === true) {
@@ -323,6 +398,65 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   const line =
     `JIG_VERDICTS: surface=${opts.surface} screen=${field(screen)} code=${field(code)} ` +
     `decisions=${field(decisions)} rendered=${rendered ? 'yes' : 'no'} ` +
-    `findings=${screen.findings + code.findings + decisions.findings}`;
-  return { ok: errors.length === 0, errors, screen, code, decisions, rendered, line };
+    `findings=${screen.findings + code.findings + decisions.findings}` +
+    `${(screen.ruled ?? 0) + (code.ruled ?? 0) ? ` ruled=${(screen.ruled ?? 0) + (code.ruled ?? 0)}` : ''}`;
+  const previous = previousFindings(opts.projectRoot, dir);
+  return { ok: errors.length === 0, errors, screen, code, decisions, rendered, line, ...(previous ? { previous } : {}) };
+}
+
+/**
+ * Each finding of the critique before this one, set against this one: fixed,
+ * still open, or ruled since; and the findings that are new.
+ *
+ * A critique's arms read the page and not its history, so that they judge
+ * what is there rather than confirm what was said. That left nobody to say
+ * which of the last round's findings the make round fixed: on jig-site the
+ * owner read two reports side by side to find out. Git has both rounds, so
+ * the CLI says it.
+ *
+ * The earlier round is the committed verdicts when this critique's are not
+ * committed yet, and otherwise the commit before the one that wrote them.
+ */
+export function previousFindings(projectRoot: string, dir: string): PreviousFindings | undefined {
+  const git = (args: string[]) => execFileSync('git', args, { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const rel = relative(projectRoot, dir).split('\\').join('/');
+  const files = ['screen.json', 'code.json', 'decisions.json'];
+  const paths = files.map((f) => `${rel}/${f}`);
+  let commit: string;
+  try {
+    const dirty = git(['status', '--porcelain', '--', ...paths]).trim() !== '';
+    const touched = git(['log', '--format=%H', '-2', '--', ...paths]).split('\n').filter(Boolean);
+    commit = dirty ? touched[0] ?? '' : touched[1] ?? '';
+  } catch {
+    return undefined;
+  }
+  if (!commit) return undefined;
+  const read = (f: string, at?: string): Map<string, string> => {
+    const out = new Map<string, string>();
+    let text: string;
+    try { text = at ? git(['show', `${at}:./${rel}/${f}`]) : readFileSync(join(dir, f), 'utf8'); } catch { return out; }
+    let body: { verdicts?: unknown };
+    try { body = JSON.parse(text); } catch { return out; }
+    for (const v of Array.isArray(body.verdicts) ? (body.verdicts as Array<Record<string, unknown>>) : []) {
+      const key = String(v.id ?? v.decision ?? '').trim();
+      if (key && typeof v.verdict === 'string') out.set(f === 'decisions.json' ? `"${key}"` : key.toUpperCase(), v.verdict);
+    }
+    return out;
+  };
+  const before = new Map<string, string>();
+  const now = new Map<string, string>();
+  for (const f of files) {
+    for (const [k, v] of read(f, commit)) before.set(k, v);
+    for (const [k, v] of read(f)) now.set(k, v);
+  }
+  const result: PreviousFindings = { commit: commit.slice(0, 7), fixed: [], open: [], added: [], ruled: [] };
+  for (const [k, v] of before) {
+    if (v !== 'finding') continue;
+    const after = now.get(k);
+    if (after === 'finding') result.open.push(k);
+    else if (after === 'ruled') result.ruled.push(k);
+    else if (after === 'ok' || after === 'n/a') result.fixed.push(k);
+  }
+  for (const [k, v] of now) if (v === 'finding' && before.get(k) !== 'finding') result.added.push(k);
+  return result;
 }

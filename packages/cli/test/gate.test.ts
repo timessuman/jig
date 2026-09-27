@@ -178,9 +178,9 @@ Prose.`;
   it('blocks a decide that left no Unresolved section', () => {
     jigProject();
     mkdirSync(join(root, 'jig'), { recursive: true });
-    writeFileSync(join(root, 'jig', 'DECISIONS.md'), '### The Stamp Rule\n\n**Why:** because.\n');
+    writeFileSync(join(root, 'jig', 'DECISIONS.md'), '### The Stamp Rule\n\n**Why:** \"Because it is ours.\"\n');
     expect(runAfter('decide').reason).toMatch(/no `## Unresolved` section/);
-    writeFileSync(join(root, 'jig', 'DECISIONS.md'), '### The Stamp Rule\n\n**Why:** because.\n\n## Unresolved\n\nNone named by the owner.\n');
+    writeFileSync(join(root, 'jig', 'DECISIONS.md'), '### The Stamp Rule\n\n**Why:** \"Because it is ours.\"\n\n## Unresolved\n\nNone named by the owner.\n');
     expect(runAfter('decide').block).toBe(false);
   });
 
@@ -233,7 +233,7 @@ Prose.`;
   it('finds DECISIONS.md beside the token layer that jig.config.json names', () => {
     writeFileSync(join(root, 'jig.config.json'), JSON.stringify({ brand: 'src/styles/jig/brand.site.css', surfaces: [{ match: '/', mode: 'editorial' }] }));
     mkdirSync(join(root, 'src', 'styles', 'jig'), { recursive: true });
-    writeFileSync(join(root, 'src', 'styles', 'jig', 'DECISIONS.md'), '### Voice\n\n**Why:** because.\n\n## Unresolved\n\nNone named by the owner.\n');
+    writeFileSync(join(root, 'src', 'styles', 'jig', 'DECISIONS.md'), '### Voice\n\n**Why:** \"Because it is ours.\"\n\n## Unresolved\n\nNone named by the owner.\n');
     expect(runAfter('decide').block).toBe(false);
   });
 
@@ -481,7 +481,7 @@ describe('the block budget is per failure', () => {
     const decisions = join(root, 'jig', 'DECISIONS.md');
     writeFileSync(decisions, '### A rule\n\nno unresolved section\n');
     expect(run('decide').block).toBe(true);
-    writeFileSync(decisions, '### A rule\n\n**Why:** given.\n\n## Unresolved\n\nNone named by the owner.\n');
+    writeFileSync(decisions, '### A rule\n\n**Why:** \"Given by the owner.\"\n\n## Unresolved\n\nNone named by the owner.\n');
     expect(run('decide').block).toBe(false);
     expect(JSON.parse(readFileSync(join(root, '.jig', 'gate.json'), 'utf8'))).toEqual({});
   });
@@ -601,5 +601,71 @@ describe('the gate judges the critiques this session touched', () => {
     const old = new Date(Date.now() - 3_600_000);
     utimesSync(join(dir, 'screen.json'), old, old);
     expect(stop(undefined).reason).toMatch(/jig verdicts catalog/);
+  });
+});
+
+// jig-site: reasons read "given directly by the owner", then sentences the
+// agent had written. A later agent could not tell which half was the team's.
+describe('decide keeps the owner\'s reasons apart from its own', () => {
+  const transcript = () => {
+    const path = join(root, 'transcript-decide.jsonl');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>decide</command-args>' } }) + '\n');
+    return path;
+  };
+  const decide = () => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 'reasons', transcript_path: transcript() } });
+  const write = (body: string) => {
+    mkdirSync(join(root, 'jig'), { recursive: true });
+    writeFileSync(join(root, 'jig', 'DECISIONS.md'), `${body}\n\n## Unresolved\n\nNone named by the owner.\n`);
+  };
+
+  it('refuses a reason that is neither quoted, not given, nor labelled inferred', () => {
+    jigProject();
+    write('### The GitHub mark\n\nGitHub\'s own mark.\n\n**Why:** given directly by the owner. Readers know the mark on sight.');
+    expect(decide().reason).toMatch(/"The GitHub mark": its `\*\*Why:\*\*` is not the owner's words in quotation marks/);
+  });
+
+  it('accepts the owner quoted, an inference labelled as one, and a reason not given', () => {
+    jigProject();
+    write([
+      '### The GitHub mark\n\nGitHub\'s own mark.\n\n**Why:** "Readers know it on sight."\n\n**Why (inferred):** a word would compete with the wordmark.',
+      '### Corners\n\nSmall, everywhere.\n\n**Why:** not given',
+    ].join('\n\n'));
+    expect(decide().reason ?? '').not.toMatch(/quotation marks/);
+  });
+
+  it('holds only the decisions this session wrote or changed', () => {
+    jigProject();
+    execFileSync('git', ['init', '-q'], { cwd: root });
+    execFileSync('git', ['-c', 'user.email=t@example.test', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'start'], { cwd: root });
+    write('### Old\n\nKept.\n\n**Why:** an old reason, written before the rule.');
+    execFileSync('git', ['add', '-A'], { cwd: root });
+    execFileSync('git', ['-c', 'user.email=t@example.test', '-c', 'user.name=t', 'commit', '-q', '-m', 'earlier decide'], { cwd: root });
+    write('### Old\n\nKept.\n\n**Why:** an old reason, written before the rule.\n\n### New\n\nAdded now.\n\n**Why:** the agent thinks so.');
+    const reason = decide().reason ?? '';
+    expect(reason).toMatch(/"New": its `\*\*Why:\*\*`/);
+    expect(reason).not.toMatch(/"Old"/);
+  });
+});
+
+// jig-site: one make round added a decision, another rewrote one to match
+// the tokens it had just switched to.
+describe('make does not edit DECISIONS.md', () => {
+  it('stops a make session that changed the decisions, and lets one that did not stop', () => {
+    jigProject();
+    mkdirSync(join(root, 'jig'), { recursive: true });
+    const file = join(root, 'jig', 'DECISIONS.md');
+    writeFileSync(file, '### Corners\n\nSmall.\n\n**Why:** "Ours."\n\n## Unresolved\n\nNone named by the owner.\n');
+    const commit = (m: string) => {
+      execFileSync('git', ['add', '-A'], { cwd: root });
+      execFileSync('git', ['-c', 'user.email=t@example.test', '-c', 'user.name=t', 'commit', '-q', '-m', m], { cwd: root });
+    };
+    execFileSync('git', ['init', '-q'], { cwd: root });
+    commit('decide');
+    const path = join(root, 'transcript-make.jsonl');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>make</command-args>' } }) + '\n');
+    const make = () => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 'make', transcript_path: path } });
+    expect(make().reason ?? '').not.toMatch(/changed in a `make` session/);
+    writeFileSync(file, readFileSync(file, 'utf8').replace('Small.', 'Small, 4px, from --radius-control.'));
+    expect(make().reason).toMatch(/jig\/DECISIONS\.md changed in a `make` session/);
   });
 });

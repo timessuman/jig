@@ -432,6 +432,30 @@ describe('update and the project mode-file copy (state.json)', () => {
     expect(result.skipped).toContain('.jig/tokens/mode.product.css');
   });
 
+  // jig-site: 0.18.0 added --size-container and --size-header, and the site
+  // learned it when its Tailwind aliases did not have them.
+  it('names the tokens a refreshed mode file gained or lost, and those an edited one did not get', () => {
+    install(opts('0.1.0'));
+    mkdirSync(join(project, '.jig', 'tokens'), { recursive: true });
+    const product = ':root { --size-control: 40px; --size-old: 1px; }\n';
+    const operator = ':root { --size-control: 32px; }\n';
+    writeFileSync(join(project, '.jig', 'tokens', 'mode.product.css'), product);
+    writeFileSync(
+      join(project, '.jig', 'state.json'),
+      JSON.stringify({ version: '0.1.0', modes: ['product', 'operator'], files: { '.jig/tokens/mode.product.css': checksum(product), '.jig/tokens/mode.operator.css': checksum(operator) } }),
+    );
+    writeFileSync(join(project, '.jig', 'tokens', 'mode.operator.css'), `${operator}/* mine */\n`);
+
+    writeFileSync(join(pkg, 'tokens', 'mode.product.css'), ':root { --size-control: 40px; --size-container: 1280px; /* --not-a-token: 1 */ }\n');
+    writeFileSync(join(pkg, 'tokens', 'mode.operator.css'), ':root { --size-control: 32px; --size-rail: 240px; }\n');
+    const result = update(opts('0.2.0'));
+
+    expect(result.tokens).toEqual([
+      { file: '.jig/tokens/mode.operator.css', added: ['--size-rail'], removed: [], skipped: true },
+      { file: '.jig/tokens/mode.product.css', added: ['--size-container'], removed: ['--size-old'] },
+    ]);
+  });
+
   it('is a no-op on tokens when the project was never init-ed (no state.json)', () => {
     install(opts('0.1.0'));
     const result = update(opts('0.2.0'));

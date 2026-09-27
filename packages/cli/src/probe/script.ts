@@ -17,7 +17,7 @@
  * `browse js "<script>"`, Playwright's `page.evaluate(script)` and a devtools
  * console all run it unchanged.
  */
-export const PROBE_VERSION = 7;
+export const PROBE_VERSION = 8;
 
 export const PROBE_SCRIPT = `(async () => {
   const doc = document.documentElement;
@@ -182,6 +182,32 @@ export const PROBE_SCRIPT = `(async () => {
       focusReturned: document.activeElement === toggle,
     };
   }
+  // A weight or style the page asks for that no loaded face covers: the
+  // browser draws it by thickening or slanting the nearest face it has. On
+  // jig-site a heading asked for a weight the site never loaded and every
+  // review passed it, since the page was styled and nothing was missing.
+  // Only web fonts are judged; a family with no @font-face is the system's.
+  if (document.fonts) await document.fonts.ready;
+  const faces = document.fonts ? [...document.fonts] : [];
+  const unquote = (f) => f.trim().replace(/^["']|["']$/g, '').toLowerCase();
+  const weightOf = (w) => (w === 'normal' ? 400 : w === 'bold' ? 700 : Number(w));
+  const covers = (face, w) => { const [lo, hi = lo] = String(face.weight).trim().split(/\\s+/).map(weightOf); return w >= lo && w <= hi; };
+  const fauxFaces = [];
+  const fauxSeen = new Set();
+  for (const el of [...document.body.querySelectorAll('*')].slice(0, 4000)) {
+    if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) || !vis(el)) continue;
+    const cs = getComputedStyle(el);
+    const first = cs.fontFamily.split(',')[0];
+    const own = faces.filter((f) => unquote(f.family) === unquote(first));
+    if (!own.length) continue;
+    const weight = weightOf(cs.fontWeight);
+    const italic = cs.fontStyle !== 'normal';
+    if (own.some((f) => f.status === 'loaded' && covers(f, weight) && (f.style !== 'normal') === italic)) continue;
+    const key = unquote(first) + ' ' + weight + ' ' + italic;
+    if (fauxSeen.has(key)) continue;
+    fauxSeen.add(key);
+    fauxFaces.push({ family: first.trim().replace(/^["']|["']$/g, ''), weight, style: italic ? 'italic' : 'normal', text: (el.innerText || '').trim().slice(0, 40) });
+  }
   return JSON.stringify({
     jigProbe: ${PROBE_VERSION},
     url: location.href,
@@ -198,6 +224,7 @@ export const PROBE_SCRIPT = `(async () => {
     navLinksVisible: navAtRest,
     strandedCount: stranded.length,
     strandedWords: stranded.slice(0, 6),
+    fauxFaces: fauxFaces.slice(0, 6),
     head: {
       title: (document.title || '').trim(),
       description: (document.querySelector('meta[name=description]') || {}).content || '',

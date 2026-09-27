@@ -71,7 +71,8 @@ describe('decide records what is open, and only reasons the owner gave', () => {
   });
 
   it('never supplies a reason', () => {
-    expect(decide).toMatch(/The reason is the owner's, or it is not written/);
+    expect(decide).toMatch(/The reason is the owner's, in quotation marks, or it is not written as theirs/);
+    expect(decide).toMatch(/`\*\*Why \(inferred\):\*\*`, which says it\s+is yours/);
     expect(decide).toMatch(/`\*\*Why:\*\* not given`/);
   });
 

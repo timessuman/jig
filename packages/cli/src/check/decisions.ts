@@ -56,3 +56,54 @@ export function decisionHeadings(projectRoot: string): Map<string, string> {
   }
   return headings;
 }
+
+/** Each decision's section text, by name. */
+function decisionSections(body: string): Map<string, string> {
+  const sections = new Map<string, string>();
+  const lines = body.split('\n');
+  let name: string | undefined;
+  let text: string[] = [];
+  const close = () => { if (name && !NOT_A_DECISION.test(name) && !sections.has(name)) sections.set(name, text.join('\n').trim()); };
+  for (const line of lines) {
+    const heading = /^(#{1,3})\s+(.+?)\s*$/.exec(line);
+    if (heading) {
+      close();
+      name = heading[1]!.length >= 2 ? heading[2]!.replace(/[`*]/g, '').trim() : undefined;
+      text = [];
+    } else text.push(line);
+  }
+  close();
+  return sections;
+}
+
+/**
+ * Decisions whose reason cannot be told apart from the agent's.
+ *
+ * On jig-site, reasons read "given directly by the owner", followed by
+ * sentences the agent had written, and others carried no attribution at all:
+ * a later agent had no way to tell which words to weigh as the team's. A
+ * `Why` is the owner's words in quotation marks, `not given`, or labelled
+ * `**Why (inferred):**` as the agent's own.
+ *
+ * Only the decisions that differ from `before` (the file as it stood when the
+ * session began) are held to it, so a file written before this rule is not
+ * blocked for its history.
+ */
+export function unsourcedReasons(current: string, before: string): string[] {
+  const then = decisionSections(before);
+  const problems: string[] = [];
+  for (const [name, text] of decisionSections(current)) {
+    if (then.get(name) === text) continue;
+    const whys = text.split(/\n\s*\n/).filter((p) => /^\s*\*\*Why\b[^*]*:\*\*/.test(p));
+    for (const why of whys) {
+      const label = /^\s*\*\*(Why\b[^*]*):\*\*/.exec(why)![1]!;
+      const said = why.replace(/^\s*\*\*Why\b[^*]*:\*\*/, '').trim();
+      if (/inferred/i.test(label)) continue;
+      if (/^not given\b/i.test(said)) continue;
+      if (/["“][^"”]{3,}["”]/.test(said)) continue;
+      problems.push(`"${name}": its \`**${label}:**\` is not the owner's words in quotation marks. Quote what the owner said, write \`not given\`, or put what you added under \`**Why (inferred):**\`.`);
+      break;
+    }
+  }
+  return problems;
+}

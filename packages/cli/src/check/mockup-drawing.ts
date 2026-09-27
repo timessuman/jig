@@ -49,25 +49,7 @@ export function mockupDrawingProblems(root: string, specBody: string, at: string
     );
   }
 
-  const regions = specRegions(specBody);
-  for (const [size] of FRAMES) {
-    const listed = regions[size];
-    const inFrame = frames.filter((f) => f.size === size).flatMap((f) => f.labels);
-    if (!listed || listed.length === 0 || !frames.some((f) => f.size === size)) continue;
-    const named = listed.filter((r) => r.name).map((r) => r.name!);
-    const absent = named.filter((name) => !inFrame.some((label) => labelMatches(label, name)));
-    if (absent.length) {
-      problems.push(
-        `${at}: the ${size} frame has no labelled region for ${absent.map((n) => `"${n}"`).join(', ')}. ` +
-          `Every region the spec lists for a size is drawn in that size's frame, with its name in a \`.name\` label.`,
-      );
-    } else if (inFrame.length < listed.length) {
-      problems.push(
-        `${at}: the ${size} frame labels ${inFrame.length} region(s) and the spec lists ${listed.length} for ${size}. ` +
-          `Draw each one in the frame, with its name in a \`.name\` label.`,
-      );
-    }
-  }
+  problems.push(...frameRegionProblems(frames, specBody, at));
 
   const widths = new Set(frames.map((f) => f.width).filter((w): w is number => w !== undefined));
   const crossed = specSwitches(specBody);
@@ -94,6 +76,48 @@ export function mockupDrawingProblems(root: string, specBody: string, at: string
     }
   }
   return problems;
+}
+
+/** Each size's regions from the spec, looked for in that size's frame. */
+function frameRegionProblems(frames: Frame[], specBody: string, at: string): string[] {
+  const problems: string[] = [];
+  const regions = specRegions(specBody);
+  for (const [size] of FRAMES) {
+    const listed = regions[size];
+    const inFrame = frames.filter((f) => f.size === size).flatMap((f) => f.labels);
+    if (!listed || listed.length === 0 || !frames.some((f) => f.size === size)) continue;
+    const absent = listed.filter((r) => r.name && !r.optional && !regionDrawn(inFrame, r)).map((r) => r.name!);
+    if (absent.length) {
+      problems.push(
+        `${at}: the ${size} frame has no labelled region for ${absent.map((n) => `"${n}"`).join(', ')}. ` +
+          `Every region the spec lists for a size is drawn in that size's frame, with its name in a \`.name\` label.`,
+      );
+    } else if (inFrame.length < listed.filter((r) => !r.optional).length) {
+      problems.push(
+        `${at}: the ${size} frame labels ${inFrame.length} region(s) and the spec lists ${listed.filter((r) => !r.optional).length} for ${size}. ` +
+          `Draw each one in the frame, with its name in a \`.name\` label.`,
+      );
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * Whether an approved drawing still shows what the spec lists, size by size.
+ *
+ * jig-site's header spec went through five confirmed rounds after its mockup
+ * was approved, adding a toggle, a version link and GitHub's mark, and still
+ * said `mockup: approved` over a drawing with none of them. `make` built from
+ * it, and a tweak held to it could not pass. A drawing drawn before frames
+ * existed has nothing to compare, and is left alone.
+ */
+export function approvedDrawingProblems(root: string, specBody: string, at: string): string[] {
+  let html: string;
+  try { html = readFileSync(join(root, at), 'utf8'); } catch { return []; }
+  const frames = readFrames(html);
+  if (!frames.some((f) => f.size)) return [];
+  return frameRegionProblems(frames, specBody, at);
 }
 
 /**
@@ -135,11 +159,11 @@ function readFrames(html: string): Frame[] {
  * written as a description is counted, because matching a sentence against a
  * label would fail on wording and a gate that cries wolf is ignored.
  */
-export function specRegions(specBody: string): Record<string, Array<{ name?: string }>> {
+export function specRegions(specBody: string): Record<string, Array<Region>> {
   const front = specBody.split(/^---\s*$/m)[1] ?? '';
   const sizes = front.split(/^sizes\s*:/im)[1] ?? '';
-  const out: Record<string, Array<{ name?: string }>> = {};
-  const own: Record<string, Array<{ name?: string }>> = {};
+  const out: Record<string, Array<Region>> = {};
+  const own: Record<string, Array<Region>> = {};
   const sameAs: Record<string, string> = {};
   for (const [size] of [...FRAMES, ['landscape', 900] as const]) {
     const block = sizeBlock(sizes, size);
@@ -173,10 +197,35 @@ function regionEntries(block: string): string[] {
   return entries;
 }
 
-function regionName(entry: string): { name?: string } {
+/**
+ * A region as the spec names it. The name is what comes before the colon, when
+ * it is short. A parenthetical qualifies it and is not part of it: "example
+ * (rules only)" is the region a drawing labels "example (two specimens)". One
+ * that says "only" is conditional, and a drawing of the other case leaves it
+ * out. A list, "why, metadata, plain-text twin", names several regions drawn
+ * one by one. Seen on jig-site's rule page, whose drawing was flagged for
+ * three regions it drew.
+ */
+interface Region { name?: string; parts?: string[]; optional?: boolean }
+
+function regionName(entry: string): Region {
   const text = entry.trim().replace(/^["']|["']$/g, '').replace(/\\"/g, '"');
   const head = normalise(text.split(':')[0]!);
-  return head && head.split(' ').length <= 4 ? { name: head } : {};
+  const optional = /\([^)]*\bonly\b[^)]*\)/.test(head);
+  const bare = stripQualifiers(head);
+  if (!bare || bare.split(' ').length > 4) return {};
+  const parts = bare.split(/\s*,\s*(?:and\s+)?|\s+and\s+(?=[^,]*$)/).map((p) => p.trim()).filter(Boolean);
+  return { name: bare, ...(parts.length > 1 ? { parts } : {}), ...(optional ? { optional } : {}) };
+}
+
+function stripQualifiers(text: string): string {
+  return text.replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/** Whether a frame's labels show a region: by its whole name, or by each name it lists. */
+function regionDrawn(labels: string[], region: Region): boolean {
+  const found = (name: string) => labels.some((label) => labelMatches(label, name) || labelMatches(stripQualifiers(label), name));
+  return found(region.name!) || (!!region.parts && region.parts.every(found));
 }
 
 function labelMatches(label: string, name: string): boolean {

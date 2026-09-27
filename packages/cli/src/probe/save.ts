@@ -132,6 +132,27 @@ async function withPageUrl(projectRoot: string, abs: string, serve: string | und
 }
 
 /**
+ * The page a surface's probes were taken on, as they recorded it.
+ *
+ * The gate found a critique's page from the spec's `surface:` field, taken as
+ * a path. On jig-site that field is a sentence, so every rebuild left the
+ * probes stale and nothing re-took them: each critique's rebuild blocked the
+ * others until someone re-probed by hand. The probes already say which file
+ * they measured.
+ */
+export function recordedPage(projectRoot: string, surface: string): string | undefined {
+  const dir = join(projectRoot, '.jig', 'critique', surface);
+  if (!existsSync(dir)) return undefined;
+  for (const f of readdirSync(dir).filter((name) => /^probe-\d+\.json$/.test(name)).sort()) {
+    try {
+      const probe = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { pageFile?: string };
+      if (probe.pageFile && existsSync(resolve(projectRoot, probe.pageFile))) return probe.pageFile;
+    } catch { /* not a probe this can read */ }
+  }
+  return undefined;
+}
+
+/**
  * Renders and records what a critique's screen pass needs, when this machine
  * can: every width that has no probe, and every probe taken on an older
  * version of the page.
