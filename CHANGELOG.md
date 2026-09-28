@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **A spec is checked before you are asked to confirm it.** `spec` checked
+  itself against the decisions, and nothing checked it against the owner's
+  words or the facts it states: on jig-site a confirmed spec carried seven
+  errors to the built page. A reader that did not write the spec now checks
+  each quotation given as the owner's and each fact at its source, and writes
+  `.jig/specs/<name>.checked.json`. The owner gets the spec with a sheet to
+  check it by, and an agent asked to confirm for them works from the same
+  sheet. The README's new "Before you confirm a spec" says what to look for.
+- **The gate holds a spec back from the owner** while it gives a quotation as
+  the owner's that the owner never said, states a fact its reader found false,
+  cites a source the project does not have, or has no check of the spec as it
+  stands.
+
 ## 0.21.0 (2026-09-28)
 
 Dev builds, so a fix is tried on a real project before it ships, and the gate

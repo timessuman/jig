@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gate, MAX_BLOCKS } from '../src/commands/gate.js';
+import { specChecksum } from '../src/check/spec-checked.js';
 import { install, installStopHook } from '../src/commands/install.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
@@ -148,9 +149,12 @@ describe('the gate checks the command that just ran', () => {
     return path;
   };
   const runAfter = (command: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1', transcript_path: transcript(command) } });
+  // Checked by another reader, as spec's step 3c has it: these tests are about
+  // the spec's shape (spec-checked.test.ts is about the check).
   const spec = (body: string) => {
     mkdirSync(join(root, '.jig', 'specs'), { recursive: true });
     writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), body);
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.checked.json'), JSON.stringify({ spec: specChecksum(body), quotes: [], facts: [] }));
   };
   const goodSpec = `---
 feature: choose a plan

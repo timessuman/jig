@@ -10,6 +10,7 @@ import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
 import { decisionsFile, quotesNotFrom, unsourcedReasons } from '../check/decisions.js';
+import { specCheckProblems } from '../check/spec-checked.js';
 import { checksum } from '../install/manifest.js';
 
 /**
@@ -95,6 +96,32 @@ export function lastJigInvocation(transcriptPath: string | undefined): { command
     }
   }
   return found;
+}
+
+/**
+ * Everything the owner said in this session: the text of their own messages,
+ * not the command file Jig loads (`isMeta`) and not tool results, which
+ * arrive under the same `user` role.
+ */
+export function ownerWords(transcriptPath: string | undefined): string {
+  if (!transcriptPath || !existsSync(transcriptPath)) return '';
+  const said: string[] = [];
+  try {
+    for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
+      if (!line.includes('"user"')) continue;
+      let entry: { type?: string; isMeta?: boolean; message?: { content?: unknown } };
+      try { entry = JSON.parse(line); } catch { continue; }
+      if (entry.type !== 'user' || entry.isMeta) continue;
+      const content = entry.message?.content;
+      if (typeof content === 'string') said.push(content);
+      else if (Array.isArray(content)) {
+        for (const b of content as Array<{ type?: string; text?: unknown }>) if (b?.type === 'text' && typeof b.text === 'string') said.push(b.text);
+      }
+    }
+  } catch {
+    return '';
+  }
+  return said.join('\n');
 }
 
 /**
@@ -274,7 +301,7 @@ function drawingChangedAfterApproval(root: string, specPath: string, at: string)
 }
 
 /** What each command must have left behind, checked after it ran. */
-function commandProblems(root: string, command: string, surface?: string, start?: number): string[] {
+function commandProblems(root: string, command: string, surface?: string, start?: number, owner = ''): string[] {
   const problems: string[] = [];
   const spec = specFor(root, surface);
 
@@ -301,6 +328,8 @@ function commandProblems(root: string, command: string, surface?: string, start?
       if (problems.length === 0) problems.push(...navProblems(spec));
     }
   }
+
+  if (command === 'spec' && spec) problems.push(...specChecked(root, spec, start, owner));
 
   if (command === 'mockup' && spec) {
     const front = spec.body.split(/^---\s*$/m)[1] ?? '';
@@ -455,6 +484,19 @@ function drawingBeforeAsking(root: string, surface?: string): string[] {
   if (/^https?:/i.test(at) || !/\.html?$/i.test(at) || !existsSync(join(root, at))) return [];
   const found = mockupDrawingProblems(root, spec.body, at);
   return found.length ? [`Fix the drawing before you put it to the owner; they approve what the spec lists, drawn. ${found.join(' ')}`] : [];
+}
+
+/**
+ * A spec is put to the owner, and recorded as confirmed, only once a reader
+ * who did not write it has checked it (see `specCheckProblems`). Checked when
+ * the spec asks for confirmation as well as when it finishes: the owner
+ * confirms by the sheet that check produces.
+ */
+function specChecked(root: string, spec: { path: string; slug: string; body: string }, start: number | undefined, owner: string): string[] {
+  const found = decisionsFile(root);
+  let decisions = '';
+  try { if (found) decisions = readFileSync(join(root, found), 'utf8'); } catch { /* unreadable: no quotations to find there */ }
+  return specCheckProblems(root, spec, fileAtSessionStart(root, spec.path, start), owner, decisions);
 }
 
 /** The mode files Jig installed here, as `.jig/state.json` records them. */
@@ -623,8 +665,14 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   // on the stop after the owner has answered, not while the question is open;
   // `check` below still runs either way.
   const waiting = command !== undefined && ASKS_THE_OWNER.has(command) && asksOwner(lastAssistantText(opts.input.transcript_path));
-  const problems: string[] = command && !waiting ? commandProblems(root, command, invocation?.surface, sessionStart(opts.input.transcript_path)).map((p) => `/jig ${command}: ${p}`) : [];
+  const start = sessionStart(opts.input.transcript_path);
+  const owner = command === 'spec' ? ownerWords(opts.input.transcript_path) : '';
+  const problems: string[] = command && !waiting ? commandProblems(root, command, invocation?.surface, start, owner).map((p) => `/jig ${command}: ${p}`) : [];
   if (waiting && command === 'mockup') problems.push(...drawingBeforeAsking(root, invocation?.surface).map((p) => `/jig mockup: ${p}`));
+  if (waiting && command === 'spec') {
+    const spec = specFor(root, invocation?.surface);
+    if (spec) problems.push(...specChecked(root, spec, start, owner).map((p) => `/jig spec: ${p}`));
+  }
 
   const selection = selectFiles(root, false);
   const changedUi = selection.mode === 'changed' && selection.files.some((f) => isStyleBearing(f) || isReaderText(f));

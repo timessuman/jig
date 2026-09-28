@@ -454,7 +454,17 @@ it is right about you and about the world. Your yes is what `make` builds from
 without asking again, and `critique` compares the page to the spec, never the
 spec to what is true. An error you confirm reaches the page intact.
 
-Read it for these before you say yes:
+So before you are asked, a reader that did not write the spec checks it: each
+quotation it gives as yours against what you said, and each fact against the
+source it names. You get the spec with a sheet: your words and where you said
+them, each fact with its source (the ones nobody could check first), the copy
+the page will show as written, your conditions beside the lines that carry
+them, and what is left for you to decide. With the Stop hook, the spec is not
+put to you with a quotation you never said, a fact its reader found false, or a
+sheet of an earlier version of the spec.
+
+The sheet makes checking quick. It does not replace it. Read the spec for these
+before you say yes:
 
 - **Your words are yours.** Every quotation it gives as yours is something you
   said, and nothing reads as your ruling that you did not give. What the agent
@@ -484,6 +494,13 @@ Read it for these before you say yes:
 
 When something fails, say what is wrong. The spec is revised and shown to you
 again, and nothing is built until you confirm it.
+
+**Handing the check to an agent.** You can ask your agent to check a spec and
+confirm it for you. It works from the same sheet and confirms only what it
+checked itself: it opens every source marked unchecked and any it doubts, reads
+the copy as the person arriving would, and holds each condition to your words.
+What it could not check, it names to you instead of confirming. An agent's yes
+is still yours, so read what it says it did not check.
 
 ## What a search engine reads
 

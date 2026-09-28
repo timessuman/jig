@@ -452,9 +452,80 @@ to the spec, never the spec to the decisions.
   say in the confirmation message which fields those are, so the user can decide
   them instead.
 
+### 3c. Have it checked by a reader who did not write it
+
+Step 3b checks the spec against the decisions. Nothing after it checks the spec
+against the owner's words or against the facts it states: `make` builds a
+confirmed spec as written, and `critique` compares the page to the spec, never
+the spec to what is true. On jig-site a confirmed spec for a docs chapter carried
+seven errors to the built page, among them a procedure Jig does not have and a
+lock written at the wrong moment, and the owner had confirmed it. The writer
+cannot catch these, for the same reason a builder cannot review its own page.
+
+**Delegate to a subagent.** Give it the spec, `DECISIONS.md`, the owner's messages
+from this conversation, and read access to the project. Not your reasoning, and
+not your summary of what the owner meant. It writes
+`.jig/specs/<name>.checked.json`:
+
+```json
+{
+  "spec": "sha256 of the spec file with its confirmed: line removed",
+  "quotes": [
+    { "quote": "Only where the steps differ by path", "said": "the owner, this conversation", "holds": true }
+  ],
+  "facts": [
+    { "claim": "the gate records the verdicts when a critique or tweak stops", "source": "templates/COMMAND.md.tmpl:1360", "holds": false, "note": "the spec says only after the findings are fixed" },
+    { "claim": "Stitch needs an API key", "source": "https://stitch.withgoogle.com", "holds": "unchecked", "note": "no network access in this session" }
+  ],
+  "copy": ["Before you start"],
+  "conditions": [{ "owner": "three columns from 1280 up", "spec": "desktop: three columns at 1280 and wider" }],
+  "open": ["density of the chapter list: unspecified, make chooses"]
+}
+```
+
+- **`quotes`**: every quotation the spec gives as the owner's, and where the owner
+  said it. One the owner's words do not hold is removed from the spec or put back
+  as they said it.
+- **`facts`**: every statement the spec makes about how something works (the
+  product, an API, an existing page, a file, a tool), with the source the reader
+  opened: `path` or `path:line` in the project, or a URL. `holds` is `true`,
+  `false` or `"unchecked"`, with a `note` for anything but `true`. A fact that
+  does not hold is fixed in the spec before anyone is asked; `"unchecked"` says why
+  it could not be opened.
+- **`copy`**: the words the spec writes for the page to show as written:
+  headings, labels, sentences.
+- **`conditions`**: each condition the owner gave, beside the spec's line for it.
+- **`open`**: every `unspecified` field and every **Unresolved** item the spec
+  touches.
+
+Fix what it found, then have the spec checked again: the record is of the spec
+you show, and the gate compares its `spec` checksum to the file. **If you cannot
+delegate, write the record yourself, with `"reader": "the writer"` in it, and say
+in the confirmation message that nobody else checked the spec.** That is an
+honest gap the owner can close by reading more closely; a check you ran on your
+own words and reported as independent is not.
+
 ### 4. Get it confirmed
 
-Show the spec and ask the user to confirm it. Then **stop**.
+Show the spec, and with it the sheet the owner checks it by, from
+`<name>.checked.json`:
+
+- **Your words:** each quotation given as theirs, and where they said it.
+- **Facts:** each claim and its source, the ones that could not be checked
+  first.
+- **Copy the page will show as written.**
+- **Your conditions**, beside the lines that carry them.
+- **Left for you:** the `open` items, which they can decide now.
+
+The owner confirms a spec by checking it, and the sheet is what makes that a few
+minutes' work rather than a reread. Ask them to confirm it. Then **stop**.
+
+**Checking a spec for the owner.** When the owner asks an agent to check a spec
+and confirm it on their behalf, that agent works from the same sheet and confirms
+only what it checked itself: it opens every source marked `"unchecked"` and
+every one it doubts, reads the copy as the person arriving would, and holds each
+condition to the owner's own words. Anything it could not check it names to the
+owner instead of confirming.
 
 `confirmed: true` records that **the user said so in their own response**. You
 may not set it on their behalf, and you may not treat your own summary,
