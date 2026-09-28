@@ -41,7 +41,8 @@
   flipped because its readers read the same unchanged lines differently. A
   finding judged ok is now fixed when a line it cited (`file:line`) changed, or
   its file when it cited no line, or any source when it cited nothing. The rest
-  are reported as judged ok on unchanged source.
+  are reported as judged ok though the lines they cited did not change: a
+  different reading, or a fix made where the finding did not point.
 - **The gate asks for the verdict lock to be committed.** It writes
   `verdicts.lock` when a critique or tweak stops, after the agent has committed,
   so every such session on jig-site left it behind. When the verdicts are

@@ -54,7 +54,12 @@ export interface PreviousFindings {
   commit: string;
   /** Findings now judged ok or n/a, where the source they point at changed. */
   fixed: string[];
-  /** Findings now judged ok or n/a on source that has not changed where they point: a different reading, not a fix. */
+  /**
+   * Findings now judged ok or n/a where the lines they cited did not change: a
+   * different reading, or a fix made somewhere the finding did not point (on
+   * jig-site, H-46 cited the inline-code recipe in prose.ts and was fixed in the
+   * page that had not used it). Worth a look, not a verdict of its own.
+   */
   unchanged: string[];
   open: string[];
   added: string[];

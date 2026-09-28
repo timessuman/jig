@@ -1162,15 +1162,16 @@ preserve while fixing them.
 
 **Say what happened to the last round's findings.** `verdicts` compares this
 critique with the one before it in git and prints `Since the critique before
-this one: <n> fixed, <n> judged ok on unchanged source, <n> still open, <n> ruled
-by the owner, <n> new`, with the ids. Put that line in the report, as `verdicts`
-printed it, above the findings. The owner should not have to set two reports side
+this one: <n> fixed, <n> judged ok though the lines they cited did not change, <n>
+still open, <n> ruled by the owner, <n> new`, with the ids. Put that line in the
+report, as `verdicts` printed it, above the findings. The owner should not have to set two reports side
 by side to learn whether the make round worked. The comparison is made after both
 arms have written, so it tells the arms nothing.
 
 A finding counts as fixed only where the lines it cited changed. One judged ok
-where nothing it pointed at changed is two readers disagreeing about the same
-code: say which reading you stand by, and why, rather than calling it fixed.
+where nothing it pointed at changed is either two readers disagreeing about the
+same code, or a fix made somewhere the finding did not point. Look at which, and
+say so: the reading you stand by and why, or where the fix landed.
 
 List `ruled` verdicts after the findings, under their own heading, each with the
 decision it cites. They are not findings, and they are not hidden either.
