@@ -445,6 +445,46 @@ convention for *skills*, not a harness with a command system of its own, so
 there is no file to write and nothing that would read one. Ask in plain language
 instead; the skill still loads.
 
+### Before you confirm a spec
+
+`spec` checks its own work before it asks you: every decision it cites exists,
+no field hands the choice to nobody ("as appropriate", "decided by the design
+system"), and nothing contradicts `DECISIONS.md`. What it cannot check is whether
+it is right about you and about the world. Your yes is what `make` builds from
+without asking again, and `critique` compares the page to the spec, never the
+spec to what is true. An error you confirm reaches the page intact.
+
+Read it for these before you say yes:
+
+- **Your words are yours.** Every quotation it gives as yours is something you
+  said, and nothing reads as your ruling that you did not give. What the agent
+  worked out for itself is labelled as its own.
+- **Every fact holds up at its source.** Where the spec says how something works
+  (your product, an API, an existing page, a tool you depend on), open the source
+  and check. One habit of your project stated as a general rule is a fact nobody
+  decided.
+- **Words the page will show are words you would ship.** Headings, labels and
+  any copy the spec writes out are built as written. Read them as the person
+  arriving would. A sentence about how the page works (what a control costs to
+  use, where a choice is stored) is a note for the builder, not copy.
+- **Conditions you gave are there, as you gave them.** "Three columns from 1280
+  up" is written as 1280, not moved to a width that was easier to build.
+- **V1 is small, and `later:` holds what you cut.** Nothing you set aside has
+  come back in.
+- **Every size says what you expect to see.** The phone is written in full,
+  first. Each `same-as:` gives a reason that is true, and `nav:` at every size is
+  the navigation you would expect there.
+- **States cover what the page will meet.** Empty, one, a lot, loading, failure:
+  whichever the page can actually be in.
+- **Open questions were asked, not answered for you.** A spec touching an item
+  under `Unresolved` in `DECISIONS.md` carries your answer, and a field reading
+  `unspecified — make chooses one it can defend` is one you can decide now.
+- **A page that exists is described as built.** Its regions are the ones on the
+  page today, and anywhere it contradicts your decisions is said plainly.
+
+When something fails, say what is wrong. The spec is revised and shown to you
+again, and nothing is built until you confirm it.
+
 ## What a search engine reads
 
 A page's title, description and preview text are copy, and they drift because a
