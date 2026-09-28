@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.21.0 (2026-09-28)
+
+Dev builds, so a fix is tried on a real project before it ships, and the gate
+fixes that trial on jig-site turned up.
 
 ### Added
 
