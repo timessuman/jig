@@ -79,6 +79,17 @@ describe('an approved drawing that no longer shows the spec', () => {
     expect(run('make').reason ?? '').toMatch(/this one is of an earlier spec\. Stop, and ask for `\/jig mockup`/);
   });
 
+  // jig-site's Guide drawing labelled its rail "on this page (right rail, sticky)"
+  // for the spec's `on-this-page`, and the gate held make back on a region it drew.
+  it('reads hyphens, underscores and spaces in a name as one', () => {
+    writeFileSync(join(root, '.jig', 'mockups', 'rule-page.html'), drawing(['on this page (right rail, sticky)', 'chapter_nav']));
+    writeFileSync(join(root, '.jig', 'specs', 'rule-page.spec.md'), spec([
+      '      - "on-this-page: the chapter\'s own headings"',
+      '      - "chapter-nav: the chapters that exist"',
+    ].join('\n')));
+    expect(run('make').reason ?? '').not.toMatch(/no labelled region/);
+  });
+
   it('leaves a drawing made before frames alone', () => {
     writeFileSync(join(root, '.jig', 'mockups', 'rule-page.html'), '<main><h1>identity</h1></main>');
     writeFileSync(join(root, '.jig', 'specs', 'rule-page.spec.md'), spec('      - "theme toggle: one button"'));

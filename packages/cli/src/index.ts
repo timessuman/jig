@@ -9,7 +9,7 @@ import { explain } from './commands/explain.js';
 import { check } from './commands/check.js';
 import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
-import { gate, surfacePage } from './commands/gate.js';
+import { gate, surfacePage, surfacesToProbe } from './commands/gate.js';
 import { seo } from './commands/seo.js';
 import { PROBE_SCRIPT } from './probe/script.js';
 import { critiquedSurfaces, ensureProbes, recordedPage, runAndSaveProbes, saveProbe } from './probe/save.js';
@@ -318,7 +318,8 @@ program
       // Render what the review needs before judging it. A browser on this
       // machine means the probe is not a step anyone can skip; without one,
       // the gate falls back to naming what is missing.
-      for (const surface of critiquedSurfaces(projectRoot)) {
+      const critiqued = critiquedSurfaces(projectRoot);
+      for (const surface of surfacesToProbe(projectRoot, input).filter((s) => critiqued.includes(s))) {
         const page = surfacePage(projectRoot, surface) ?? recordedPage(projectRoot, surface);
         if (!page) continue;
         try {

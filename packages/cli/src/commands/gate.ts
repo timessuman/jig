@@ -209,6 +209,22 @@ export function surfacesInPlay(root: string, command: string | undefined, transc
 }
 
 /**
+ * The critiques whose probes the Stop hook refreshes before it judges: the
+ * ones it is about to judge, and no others.
+ *
+ * It refreshed every critique's probes on every stop. A change every page
+ * shares (the header gaining a link) makes every page's probes stale, so on
+ * jig-site each stop of a Guide session re-rendered home, the Reference, the
+ * header and Versions and left sixty probe files changed that no one had asked
+ * for; three sessions committed them. A page's probes are refreshed when its
+ * own critique or tweak runs, which is when anything reads them.
+ */
+export function surfacesToProbe(root: string, input: GateInput): string[] {
+  const invocation = lastJigInvocation(input.transcript_path);
+  return surfacesInPlay(root, invocation?.command, input.transcript_path, invocation?.surface);
+}
+
+/**
  * A file as it stood when this session began: its content at the last commit
  * made before then, or at HEAD when the session has no start to date it. Empty
  * when git has no copy, so everything in the file counts as this session's.
@@ -271,7 +287,10 @@ function commandProblems(root: string, command: string, surface?: string, start?
         problems.push('DECISIONS.md has no `## Unresolved` section. Round 3 asks by name what is still undecided; write what the owner named, or `None named by the owner.`');
       }
       if (/\[TODO\]/.test(body)) problems.push('DECISIONS.md still contains [TODO] markers.');
-      problems.push(...unsourcedReasons(body, fileAtSessionStart(root, found, start)).map((p) => `DECISIONS.md: ${p}`));
+      // Only the reasons this session wrote. An amendment answers for the Why it
+      // adds, not for one an earlier round wrote: on jig-site three amendments
+      // in a row had to relabel another round's reason before the gate let go.
+      problems.push(...unsourcedReasons(body, fileAtSessionStart(root, found, start), { newWhysOnly: true }).map((p) => `DECISIONS.md: ${p}`));
     }
   }
 
@@ -380,6 +399,21 @@ function commandProblems(root: string, command: string, surface?: string, start?
     }
   }
 
+  // A mode file is Jig's: `update` refreshes it, and a hand edit is flagged
+  // by its checksum. On jig-site a make round, told its three columns must fit
+  // at 1280, narrowed `--size-rail` in mode.editorial.css itself, which would
+  // have resized every editorial rail and been reported at the next update.
+  if (command !== 'update' && command !== 'init' && command !== 'install') {
+    for (const file of modeFiles(root)) {
+      let now = '';
+      try { now = readFileSync(join(root, file), 'utf8'); } catch { continue; }
+      const then = fileAtSessionStart(root, file, start);
+      if (then && now !== then) {
+        problems.push(`${file} changed in this session. A mode file is Jig's, refreshed by \`update\`; a value this project needs of its own goes in its brand file or its own stylesheet. Restore it (\`git checkout -- ${file}\`, or \`git show <commit>:${file}\` if the change is committed).`);
+      }
+    }
+  }
+
   if (command === 'critique') {
     const dir = join(root, '.jig', 'critique');
     const surfaces = existsSync(dir) ? readdirSync(dir).filter((s) => existsSync(join(dir, s, 'screen.json')) || existsSync(join(dir, s, 'code.json'))) : [];
@@ -392,12 +426,72 @@ function commandProblems(root: string, command: string, surface?: string, start?
         problems.push(`${surface}: the screen pass judged ${v.screen.judged} rules with rendered: false. Those rules are judged on a render — open the page at 360, 768 and 1280, run \`jig probe\` at each, and judge them there.`);
       }
     }
+    const own = specFor(root, surface)?.slug;
+    if (own && surfaces.includes(own)) problems.push(...reportOmissions(join(dir, own), own));
     if (surfaces.length === 0) {
       problems.push('critique wrote no verdict files. Each reader arm writes .jig/critique/<surface>/screen.json or code.json, and `jig verdicts <surface>` — not your own count — decides whether the review is complete. A report without them is not a review.');
     }
   }
 
   return problems;
+}
+
+/**
+ * A drawing is put to the owner only once it shows what the spec lists.
+ *
+ * The pause for approval skipped every check, so a drawing whose frames lacked
+ * regions went to the owner; and where the question did not read as one, the
+ * same check blocked the stop three times and let go, and on jig-site two
+ * mockup sessions reported that as "waiting on owner review". The owner then
+ * approved a drawing the gate refused make for. The shape is the agent's to fix
+ * before asking; approval is the owner's after.
+ */
+function drawingBeforeAsking(root: string, surface?: string): string[] {
+  const spec = specFor(root, surface);
+  if (!spec) return [];
+  const front = spec.body.split(/^---\s*$/m)[1] ?? '';
+  const named = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '') ?? '';
+  const at = named || `.jig/mockups/${spec.slug}.html`;
+  if (/^https?:/i.test(at) || !/\.html?$/i.test(at) || !existsSync(join(root, at))) return [];
+  const found = mockupDrawingProblems(root, spec.body, at);
+  return found.length ? [`Fix the drawing before you put it to the owner; they approve what the spec lists, drawn. ${found.join(' ')}`] : [];
+}
+
+/** The mode files Jig installed here, as `.jig/state.json` records them. */
+function modeFiles(root: string): string[] {
+  try {
+    const state = JSON.parse(readFileSync(join(root, '.jig', 'state.json'), 'utf8')) as { files?: Record<string, string> };
+    return Object.keys(state.files ?? {}).filter((f) => /(^|\/)mode\.[\w-]+\.css$/.test(f));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Findings the verdict files hold that the critique's written report does not
+ * name.
+ *
+ * The report is what the owner and the next `make` read. On jig-site the
+ * Guide's first critique held seven findings in its verdict files and listed
+ * six in REPORT.md: I-83 was in the files and nowhere in the report, and make
+ * would have left it. Checked where the project keeps a REPORT.md beside the
+ * verdicts; a rule by its id, a decision by its name.
+ */
+function reportOmissions(dir: string, surface: string): string[] {
+  let report: string;
+  try { report = readFileSync(join(dir, 'REPORT.md'), 'utf8').toLowerCase(); } catch { return []; }
+  const missing: string[] = [];
+  for (const f of VERDICT_FILES) {
+    let file: { verdicts?: unknown };
+    try { file = JSON.parse(readFileSync(join(dir, f), 'utf8')); } catch { continue; }
+    for (const v of Array.isArray(file.verdicts) ? (file.verdicts as Array<Record<string, unknown>>) : []) {
+      if (v.verdict !== 'finding') continue;
+      const key = String(v.id ?? v.decision ?? '').trim();
+      if (key && !report.includes(key.toLowerCase())) missing.push(v.id ? key : `"${key}"`);
+    }
+  }
+  if (!missing.length) return [];
+  return [`.jig/critique/${surface}/REPORT.md leaves out ${missing.length === 1 ? 'a finding' : `${missing.length} findings`} the verdict files hold: ${missing.slice(0, 8).join(', ')}. The report is what the owner and \`make\` read; name every finding in it, by id (a decision by its name).`];
 }
 
 /**
@@ -530,6 +624,7 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   // `check` below still runs either way.
   const waiting = command !== undefined && ASKS_THE_OWNER.has(command) && asksOwner(lastAssistantText(opts.input.transcript_path));
   const problems: string[] = command && !waiting ? commandProblems(root, command, invocation?.surface, sessionStart(opts.input.transcript_path)).map((p) => `/jig ${command}: ${p}`) : [];
+  if (waiting && command === 'mockup') problems.push(...drawingBeforeAsking(root, invocation?.surface).map((p) => `/jig mockup: ${p}`));
 
   const selection = selectFiles(root, false);
   const changedUi = selection.mode === 'changed' && selection.files.some((f) => isStyleBearing(f) || isReaderText(f));

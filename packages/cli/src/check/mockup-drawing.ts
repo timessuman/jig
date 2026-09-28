@@ -232,7 +232,15 @@ function regionDrawn(labels: string[], region: Region): boolean {
   return found(region.name!) || (!!region.parts && region.parts.every(found));
 }
 
-function labelMatches(label: string, name: string): boolean {
+/**
+ * A label names a region when it says the region's name, with hyphens,
+ * underscores and spaces as one: jig-site's Guide drawing labelled its rail
+ * "on this page" for the spec's `on-this-page`, and the gate held make back
+ * on a region the drawing had drawn.
+ */
+function labelMatches(rawLabel: string, rawName: string): boolean {
+  const label = rawLabel.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const name = rawName.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
   return label === name || label.startsWith(`${name} `) || label.startsWith(`${name}:`) || new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(label);
 }
 

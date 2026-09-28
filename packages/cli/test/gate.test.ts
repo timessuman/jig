@@ -308,6 +308,23 @@ Prose.`;
       expect(runAfter('mockup').reason ?? '').not.toMatch(/frame|region/);
     });
 
+    // jig-site: two mockup sessions put a drawing the check refused to the
+    // owner, reported the gate's blocks as "waiting on owner review", and the
+    // owner approved a drawing the gate then refused make for.
+    it('checks the drawing before it goes to the owner, not only after', () => {
+      jigProject();
+      spec(goodSpec);
+      const asking = () => {
+        const path = transcript('mockup');
+        writeFileSync(path, readFileSync(path, 'utf8') + JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'The drawing is ready. Do you approve it?' }] } }) + '\n');
+        return gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1', transcript_path: path } });
+      };
+      draw(all(['nav']));
+      expect(asking().reason).toMatch(/Fix the drawing before you put it to the owner.*no labelled region for "plans"/s);
+      draw(all(['nav', 'plans']));
+      expect(asking().block).toBe(false);
+    });
+
     it('counts regions a spec describes rather than names, and follows same-as', () => {
       jigProject();
       const described = goodSpec
@@ -385,6 +402,14 @@ Prose.`;
     expect(runAfter('spec').reason).toMatch(/`tablet:` is a one-line description/);
     spec(goodSpec.replace('  tablet:\n    regions: [nav, plans]\n    nav: five links in a row', '  tablet:\n    same-as: phone'));
     expect(runAfter('spec').reason).toMatch(/claims `same-as:` with no `why:`/);
+  });
+
+  // jig-site: `phone:   # judged at 360px` over a full composition was refused
+  // as a one-line size.
+  it('reads a comment after a size as a comment, not a description', () => {
+    jigProject();
+    spec(goodSpec.replace('  tablet:\n    regions: [nav, plans]', '  tablet:   # judged at 768px\n    regions: [nav, plans]'));
+    expect(runAfter('spec').reason ?? '').not.toMatch(/one-line description/);
   });
 
   it('refuses a size with no regions or nav', () => {
@@ -644,6 +669,20 @@ describe('decide keeps the owner\'s reasons apart from its own', () => {
     const reason = decide().reason ?? '';
     expect(reason).toMatch(/"New": its `\*\*Why:\*\*`/);
     expect(reason).not.toMatch(/"Old"/);
+  });
+
+  // jig-site: three amendments in a row relabelled another round's reason
+  // `**Why (inferred):**` before the gate let them stop.
+  it('holds an amendment to its own reason, not to the one an earlier round wrote', () => {
+    jigProject();
+    execFileSync('git', ['init', '-q'], { cwd: root });
+    write('### Old\n\nKept.\n\n**Why:** an old reason, written before the rule.');
+    execFileSync('git', ['add', '-A'], { cwd: root });
+    execFileSync('git', ['-c', 'user.email=t@example.test', '-c', 'user.name=t', 'commit', '-q', '-m', 'earlier decide'], { cwd: root });
+    write('### Old\n\nKept.\n\n**Why:** an old reason, written before the rule.\n\n**Amended:** a fourth feature.\n\n**Why (amendment):** "Add the tracker."');
+    expect(decide().reason ?? '').not.toMatch(/quotation marks/);
+    write('### Old\n\nKept.\n\n**Why:** an old reason, written before the rule.\n\n**Amended:** a fourth feature.\n\n**Why (amendment):** the agent thinks so.');
+    expect(decide().reason).toMatch(/"Old": its `\*\*Why \(amendment\):\*\*` is not the owner's words/);
   });
 });
 

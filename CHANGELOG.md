@@ -13,6 +13,29 @@
 
 ### Fixed
 
+- **The Stop hook refreshes only the probes it judges.** It re-rendered every
+  critiqued page on every stop, so a link added to jig-site's header left sixty
+  probe files changed on pages no one was working on, and three sessions
+  committed them. A page's probes are refreshed when its own critique or tweak
+  runs.
+- **A mockup is checked before it goes to the owner.** The pause for approval
+  skipped the drawing check, so on jig-site two mockup sessions put a drawing
+  the check refused to the owner, reported the gate's blocks as "waiting on
+  owner review", and the owner approved a drawing the gate then refused `make`
+  for.
+- **A region label may say its name with spaces.** "on this page" now labels the
+  spec's `on-this-page`; hyphens, underscores and spaces compare as one.
+- **A comment after a size is a comment.** `phone:   # judged at 360px` over a
+  full composition was refused as a one-line size.
+- **A critique's report names every finding its verdict files hold.** jig-site's
+  Guide critique held seven and listed six; make reads the report. Checked
+  where the project keeps a `REPORT.md` beside the verdicts.
+- **A session cannot change Jig's mode file.** A jig-site make round narrowed
+  `--size-rail` in `mode.editorial.css` to make three columns fit; `update`
+  owns that file, and a project's own values go in its brand file or stylesheet.
+- **A decide amendment answers for its own reason.** Like a tweak's, only the
+  `**Why…:**` paragraphs it adds must quote the owner; three jig-site amendments
+  had to relabel an earlier round's reason before the gate let them stop.
 - **A finding is fixed only where the source it cited changed.** `verdicts`
   told jig-site's fourth home critique that seven findings were fixed; four had
   flipped because its readers read the same unchanged lines differently. A
