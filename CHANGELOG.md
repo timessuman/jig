@@ -1,5 +1,75 @@
 # Changelog
 
+## 0.21.0 (2026-09-28)
+
+Dev builds, so a fix is tried on a real project before it ships, and the gate
+fixes that trial on jig-site turned up.
+
+### Added
+
+- **Dev builds.** A version carrying `-dev` (`0.21.0-dev.1`) is a local build
+  of a fix, tried on a real project before it is released. npm has no such
+  version, so its skill, its commands and its Stop hook run the `jig` on PATH
+  rather than `npx jig-ui@<version>`; a hook that could not run would let every
+  agent stop unchecked. `scripts/pack-dev.mjs` packs one. Installing a release
+  afterwards puts the `npx` hook back in place of the dev one.
+
+### Fixed
+
+- **The Stop hook refreshes only the probes it judges.** It re-rendered every
+  critiqued page on every stop, so a link added to jig-site's header left sixty
+  probe files changed on pages no one was working on, and three sessions
+  committed them. A page's probes are refreshed when its own critique or tweak
+  runs.
+- **A mockup is checked before it goes to the owner.** The pause for approval
+  skipped the drawing check, so on jig-site two mockup sessions put a drawing
+  the check refused to the owner, reported the gate's blocks as "waiting on
+  owner review", and the owner approved a drawing the gate then refused `make`
+  for.
+- **A region label may say its name with spaces.** "on this page" now labels the
+  spec's `on-this-page`; hyphens, underscores and spaces compare as one.
+- **A comment after a size is a comment.** `phone:   # judged at 360px` over a
+  full composition was refused as a one-line size.
+- **A critique's report names every finding its verdict files hold.** jig-site's
+  Guide critique held seven and listed six; make reads the report. Checked
+  where the project keeps a `REPORT.md` beside the verdicts.
+- **A session cannot change Jig's mode file.** A jig-site make round narrowed
+  `--size-rail` in `mode.editorial.css` to make three columns fit; `update`
+  owns that file, and a project's own values go in its brand file or stylesheet.
+- **A decide amendment answers for its own reason.** Like a tweak's, only the
+  `**Why…:**` paragraphs it adds must quote the owner; three jig-site amendments
+  had to relabel an earlier round's reason before the gate let them stop.
+- **A finding is fixed only where the source it cited changed.** `verdicts`
+  told jig-site's fourth home critique that seven findings were fixed; four had
+  flipped because its readers read the same unchanged lines differently. A
+  finding judged ok is now fixed when a line it cited (`file:line`) changed, or
+  its file when it cited no line, or any source when it cited nothing. The rest
+  are reported as judged ok though the lines they cited did not change: a
+  different reading, or a fix made where the finding did not point.
+- **The gate asks for the verdict lock to be committed.** It writes
+  `verdicts.lock` when a critique or tweak stops, after the agent has committed,
+  so every such session on jig-site left it behind. When the verdicts are
+  committed and the lock is not, it stops the session once to commit it.
+- **A tweak's decision quotes the owner's recorded words.** A jig-site tweak
+  shown a screenshot wrote an exception to `E-51` "given directly by the owner
+  … by reference rather than words". A tweak's new `**Why:**` now meets
+  `decide`'s rule (the owner's words in quotation marks, `not given`, or
+  `**Why (inferred):**`), and its quotations must be in tweak.json's `change`.
+  A reason `decide` wrote earlier is not the tweak's to answer for.
+- **`spec`, `mockup` and `critique` write under `.jig/` only.** On jig-site a
+  critique swapped the rule its page demonstrates to get past a block, then
+  re-judged the page it had changed, and a mockup session wrote the site's
+  stylesheet. The gate stops either.
+- **An approved drawing changed afterwards goes back to pending.** The session
+  that recorded a jig-site approval then redrew frames and moved a switch.
+- **Quoted tool output is not the page's copy.** The probe's em-dash scan skips
+  `<pre>`, `<code>`, `<samp>` and `<kbd>`, as it skips quotations: jig-site's
+  home page quotes `jig check`'s real output, whose wording has one. Probe
+  version 9.
+- **A drawing's size frames are the class `frame`, not any class containing
+  it.** jig-site's home drawing captioned its rule specimens `spec-frame`, and
+  the gate split every size frame at each one and reported regions missing.
+
 ## 0.20.1 (2026-09-27)
 
 `jig gate` run by hand no longer tells an agent that a passing tweak failed.

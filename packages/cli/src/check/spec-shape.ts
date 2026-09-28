@@ -59,7 +59,10 @@ export function specProblems(spec: { path: string; body: string }): string[] {
     // A size is a composition, not a sentence. In a live run every spec wrote
     // `phone: 360px, stacked cards, menu button top-right` — frontmatter in
     // shape, prose in substance, and nothing in it can be compared to a page.
-    if (line[1]!.trim()) {
+    // A YAML comment is not a description: on jig-site `phone:   # judged at
+    // 360px` over a full composition was refused as a one-line size, and the
+    // spec session spent three blocks and $3 finding why.
+    if (line[1]!.replace(/(^|\s)#.*$/, '').trim()) {
       problems.push(`${spec.path}: \`${size}:\` is a one-line description. A size is a composition — \`regions:\` in order, \`hierarchy:\`, \`nav:\` — each on its own line, or \`same-as:\` with a \`why:\`.`);
       continue;
     }

@@ -2,14 +2,14 @@ import { Command } from 'commander';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { assetRoot, findProjectRoot, getPackageRoot, isPublishedBuild } from './paths.js';
+import { assetRoot, findProjectRoot, getPackageRoot, isDevVersion, isPublishedBuild } from './paths.js';
 import { install } from './commands/install.js';
 import { update } from './commands/update.js';
 import { explain } from './commands/explain.js';
 import { check } from './commands/check.js';
 import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
-import { gate, surfacePage } from './commands/gate.js';
+import { gate, surfacePage, surfacesToProbe } from './commands/gate.js';
 import { seo } from './commands/seo.js';
 import { PROBE_SCRIPT } from './probe/script.js';
 import { critiquedSurfaces, ensureProbes, recordedPage, runAndSaveProbes, saveProbe } from './probe/save.js';
@@ -24,6 +24,14 @@ const { version } = JSON.parse(readFileSync(join(packageRoot, 'package.json'), '
  * otherwise — so say so rather than let an agent discover it as a 404 later.
  */
 function warnIfUnpublishedPin(): void {
+  if (isDevVersion(version)) {
+    console.warn(
+      `Dev build ${version}: the skill, its commands and the Stop hook run the \`jig\` on your PATH, ` +
+        `not npm, which has no such version. Keep this build installed while the project uses it, ` +
+        `and install a published version to go back.`,
+    );
+    return;
+  }
   if (isPublishedBuild(packageRoot)) return;
   console.warn(
     `Note: this is a source build, so the skill pins 'npx jig-ui@${version}' — a version that ` +
@@ -187,7 +195,7 @@ program
       const p = result.previous;
       if (p) {
         const list = (ids: string[]) => (ids.length ? ` (${ids.slice(0, 8).join(', ')}${ids.length > 8 ? ', …' : ''})` : '');
-        console.log(`  Since the critique before this one (${p.commit}): ${p.fixed.length} fixed${list(p.fixed)}, ${p.open.length} still open${list(p.open)}, ${p.ruled.length} ruled by the owner${list(p.ruled)}, ${p.added.length} new${list(p.added)}.`);
+        console.log(`  Since the critique before this one (${p.commit}): ${p.fixed.length} fixed${list(p.fixed)}, ${p.unchanged.length} judged ok though the lines they cited did not change${list(p.unchanged)}, ${p.open.length} still open${list(p.open)}, ${p.ruled.length} ruled by the owner${list(p.ruled)}, ${p.added.length} new${list(p.added)}.`);
       }
       console.log(`  ${result.line}`);
       process.exit(result.ok ? 0 : 1);
@@ -310,7 +318,8 @@ program
       // Render what the review needs before judging it. A browser on this
       // machine means the probe is not a step anyone can skip; without one,
       // the gate falls back to naming what is missing.
-      for (const surface of critiquedSurfaces(projectRoot)) {
+      const critiqued = critiquedSurfaces(projectRoot);
+      for (const surface of surfacesToProbe(projectRoot, input).filter((s) => critiqued.includes(s))) {
         const page = surfacePage(projectRoot, surface) ?? recordedPage(projectRoot, surface);
         if (!page) continue;
         try {

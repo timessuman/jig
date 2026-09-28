@@ -62,3 +62,28 @@ export function assetRoot(startDir: string = getPackageRoot()): string {
 export function isPublishedBuild(packageRoot: string): boolean {
   return packageRoot.split(/[\\/]/).includes('node_modules');
 }
+
+/**
+ * A version carrying `-dev` (`0.21.0-dev.1`) is a local build that is never
+ * published: a fix tried on a real project before it is released.
+ *
+ * The skill, the command file and the Stop hook name the CLI they run as
+ * `npx jig-ui@<version>`, and npm has no such version. The hook would fail,
+ * and a gate that fails lets the agent stop: the project would run unchecked
+ * while looking checked. A dev build installed with `npm i -g <tarball>` also
+ * sits in `node_modules`, so where it lives cannot tell it apart. Its version
+ * can.
+ */
+export function isDevVersion(version: string | undefined): boolean {
+  return !!version && /-dev(\.|$)/.test(version);
+}
+
+/** How the skill, the command file and the Stop hook run this CLI. */
+export function cliInvocation(version: string | undefined): string {
+  if (!version) return 'npx jig-ui';
+  return isDevVersion(version) ? 'jig' : `npx jig-ui@${version}`;
+}
+
+/** Jig's Stop hook, whichever way it runs the CLI. */
+export const JIG_GATE_HOOK = /(?:\bjig-ui@[^\s"]+|^jig) gate\b/;
+

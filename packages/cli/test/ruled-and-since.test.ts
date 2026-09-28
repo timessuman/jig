@@ -65,16 +65,25 @@ describe('the critique before this one', () => {
     git('init', '-q');
     git('config', 'user.email', 't@example.test');
     git('config', 'user.name', 't');
+    mkdirSync(join(project, 'src'), { recursive: true });
+    page(() => {});
     screen((v) => {
-      set(v, screenIds[0], { verdict: 'finding', reason: 'the focus ring is clipped at the bottom edge' });
-      set(v, screenIds[1], { verdict: 'finding', reason: 'the h2 sits as far from its list as from the one above' });
+      set(v, screenIds[0], { verdict: 'finding', reason: 'the focus ring is clipped at the bottom edge (page.astro:3)' });
+      set(v, screenIds[1], { verdict: 'finding', reason: 'the h2 sits as far from its list as from the one above, src/page.astro:6-7' });
       set(v, screenIds[2], { verdict: 'finding', reason: 'the toggle has no visible label' });
     });
     git('add', '-A');
     git('commit', '-q', '-m', 'first critique');
   });
 
+  const page = (edit: (lines: string[]) => void) => {
+    const lines = Array.from({ length: 10 }, (_, i) => `<p>line ${i + 1}</p>`);
+    edit(lines);
+    writeFileSync(join(project, 'src', 'page.astro'), lines.join('\n') + '\n');
+  };
+
   it('says which findings were fixed, which are open, which are ruled, and which are new', () => {
+    page((l) => { l[2] = '<p class="focus-ring-inset">line 3</p>'; });
     screen((v) => {
       set(v, screenIds[1], { verdict: 'finding', reason: 'the h2 still sits as far from its list as from the one above' });
       set(v, screenIds[2], { verdict: 'ruled', ruling: 'The theme toggle is icon-only', reason: 'no visible label, as the owner ruled' });
@@ -88,11 +97,40 @@ describe('the critique before this one', () => {
   });
 
   it('compares a committed critique with the one committed before it', () => {
+    page((l) => { l[2] = '<p class="focus-ring-inset">line 3</p>'; });
     screen((v) => set(v, screenIds[1], { verdict: 'finding', reason: 'the h2 still sits as far from its list as from the one above' }));
     git('add', '-A');
     git('commit', '-q', '-m', 'second critique');
     const p = run().previous!;
     expect(p.fixed).toEqual([screenIds[0], screenIds[2]]);
     expect(p.open).toEqual([screenIds[1]]);
+  });
+
+  /**
+   * jig-site's fourth home critique was told seven findings were fixed. Four
+   * had flipped because its readers read the same unchanged lines differently.
+   */
+  it('does not call a finding fixed when the lines it cited did not change', () => {
+    page((l) => { l[8] = '<p>line 9, reworded</p>'; });
+    screen();
+    const p = run().previous!;
+    expect(p.unchanged).toEqual([screenIds[0], screenIds[1]]);
+    // It cited nothing, so any change to the source counts for it.
+    expect(p.fixed).toEqual([screenIds[2]]);
+  });
+
+  it('counts a finding that cites nothing as unchanged when no source changed', () => {
+    screen();
+    const p = run().previous!;
+    expect(p.fixed).toEqual([]);
+    expect(p.unchanged).toEqual([screenIds[0], screenIds[1], screenIds[2]]);
+  });
+
+  it('counts a change to any cited line of a range', () => {
+    page((l) => { l[6] = '<p class="mt-l">line 7</p>'; });
+    screen();
+    const p = run().previous!;
+    expect(p.fixed).toContain(screenIds[1]);
+    expect(p.unchanged).toContain(screenIds[0]);
   });
 });

@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { cliInvocation, isDevVersion, JIG_GATE_HOOK } from '../paths.js';
 import { getAdapter, referenceDirFor, skillFilesFor } from '../adapters/registry.js';
 import { referenceFiles } from '../install/references.js';
 import { BLOCK_START } from '../adapters/types.js';
@@ -110,7 +111,7 @@ export function buildSkillBody(
   ) as CommandMetadata;
   return render(template, {
     command_prefix: '/jig ',
-    scripts_path: version ? `npx jig-ui@${version}` : 'npx jig-ui',
+    scripts_path: cliInvocation(version),
     // `update` must NOT carry the pin. Pinned, it refreshes to the version
     // already installed — reporting "Updated Jig → <same version>" for a no-op
     // — so a reader following the skill could never upgrade.
@@ -166,7 +167,7 @@ export function buildCommandBody(
     .replace(/\{\{command_prefix\}\}/g, '/jig ')
     .replace(/\{\{args_placeholder\}\}/g, argsPlaceholder)
     .replace(/\{\{subcommand_list\}\}/g, subcommands.join(', '))
-    .replace(/\{\{scripts_path\}\}/g, `npx jig-ui@${version}`)
+    .replace(/\{\{scripts_path\}\}/g, cliInvocation(version))
     // `update` must NOT carry the pin — its job is to move the pin forward, and
     // pinned it refreshes to the version already installed and reports success
     // for a no-op. `buildSkillBody` has always known this; the command body did
@@ -417,7 +418,8 @@ export function install(opts: InstallOptions): InstallResult {
 export function hasStopHook(projectRoot: string): boolean {
   try {
     const settings = readFileSync(join(projectRoot, '.claude', 'settings.json'), 'utf8');
-    return /\bjig-ui@[^\s"]+ gate\b/.test(settings);
+    const hooks = (JSON.parse(settings).hooks?.Stop ?? []) as Array<{ hooks?: Array<{ command?: string }> }>;
+    return hooks.some((group) => (group.hooks ?? []).some((h) => JIG_GATE_HOOK.test(h.command ?? '')));
   } catch {
     return false;
   }
@@ -433,9 +435,10 @@ export function installStopHook(projectRoot: string, version: string): boolean {
       return false;
     }
   }
-  const command = `npx --yes jig-ui@${version} gate`;
+  // A dev build is not on npm: its hook runs the `jig` on PATH (see isDevVersion).
+  const command = isDevVersion(version) ? 'jig gate' : `npx --yes jig-ui@${version} gate`;
   const hooks = (settings.hooks ?? {}) as Record<string, Array<{ matcher?: string; hooks: Array<{ type: string; command: string }> }>>;
-  const isJig = (h: { command?: string }) => /\bjig-ui@[^\s]+ gate\b/.test(h.command ?? '');
+  const isJig = (h: { command?: string }) => JIG_GATE_HOOK.test(h.command ?? '');
   const stop = (hooks.Stop ?? [])
     .map((group) => ({ ...group, hooks: group.hooks.filter((h) => !isJig(h)) }))
     .filter((group) => group.hooks.length > 0);

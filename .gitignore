@@ -25,3 +25,4 @@ graphify-out/
 # rewrite on upgrade. .gstack/ holds browse daemon logs and an audit trail.
 .gstack/
 .superpowers/
+.dev-builds/

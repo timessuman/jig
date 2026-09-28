@@ -17,7 +17,7 @@
  * `browse js "<script>"`, Playwright's `page.evaluate(script)` and a devtools
  * console all run it unchanged.
  */
-export const PROBE_VERSION = 8;
+export const PROBE_VERSION = 9;
 
 export const PROBE_SCRIPT = `(async () => {
   const doc = document.documentElement;
@@ -33,9 +33,12 @@ export const PROBE_SCRIPT = `(async () => {
   const text = document.body.innerText || '';
   // I-118: a verbatim quotation keeps its own punctuation. Text marked as a
   // quotation is the source's words, so it is taken out before the dash scan;
-  // the page's own copy around it still counts.
+  // the page's own copy around it still counts. So is a tool's output or a
+  // command shown in <pre>, <code>, <samp> or <kbd>: jig-site's home page
+  // quotes \`jig check\`'s real output, whose own wording has an em dash, and
+  // the probe blocked a page for words it had rightly not rewritten.
   let ownText = text;
-  for (const q of document.querySelectorAll('blockquote, q')) {
+  for (const q of document.querySelectorAll('blockquote, q, pre, code, samp, kbd')) {
     const quoted = (q.innerText || '').trim();
     if (quoted) ownText = ownText.split(quoted).join('\\n');
   }

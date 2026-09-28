@@ -138,7 +138,11 @@ interface Frame { size?: string; width?: number; labels: string[]; art: string[]
 
 /** Each frame from its opening tag to the next, with its `.name` labels. */
 function readFrames(html: string): Frame[] {
-  const opens = [...html.matchAll(/<\w+\b[^>]*\bclass\s*=\s*["'][^"']*\bframe\b[^"']*["'][^>]*>/gi)];
+  // `frame` as a whole class name. `\bframe\b` also matched `spec-frame`, since
+  // a hyphen is a word boundary: jig-site's home drawing captioned its rule
+  // specimens `spec-frame`, and the gate split every size frame at each one.
+  const opens = [...html.matchAll(/<\w+\b[^>]*\bclass\s*=\s*["']([^"']*)["'][^>]*>/gi)]
+    .filter((m) => m[1]!.split(/\s+/).includes('frame'));
   return opens.map((open, i) => {
     const tag = open[0];
     const body = html.slice(open.index! + tag.length, opens[i + 1]?.index ?? html.length);
@@ -228,7 +232,15 @@ function regionDrawn(labels: string[], region: Region): boolean {
   return found(region.name!) || (!!region.parts && region.parts.every(found));
 }
 
-function labelMatches(label: string, name: string): boolean {
+/**
+ * A label names a region when it says the region's name, with hyphens,
+ * underscores and spaces as one: jig-site's Guide drawing labelled its rail
+ * "on this page" for the spec's `on-this-page`, and the gate held make back
+ * on a region the drawing had drawn.
+ */
+function labelMatches(rawLabel: string, rawName: string): boolean {
+  const label = rawLabel.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const name = rawName.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
   return label === name || label.startsWith(`${name} `) || label.startsWith(`${name}:`) || new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(label);
 }
 

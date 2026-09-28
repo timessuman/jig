@@ -52,7 +52,15 @@ export interface VerdictsResult {
 export interface PreviousFindings {
   /** The commit whose verdicts this critique is compared with. */
   commit: string;
+  /** Findings now judged ok or n/a, where the source they point at changed. */
   fixed: string[];
+  /**
+   * Findings now judged ok or n/a where the lines they cited did not change: a
+   * different reading, or a fix made somewhere the finding did not point (on
+   * jig-site, H-46 cited the inline-code recipe in prose.ts and was fixed in the
+   * page that had not used it). Worth a look, not a verdict of its own.
+   */
+  unchanged: string[];
   open: string[];
   added: string[];
   ruled: string[];
@@ -414,8 +422,16 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
  * owner read two reports side by side to find out. Git has both rounds, so
  * the CLI says it.
  *
- * The earlier round is the committed verdicts when this critique's are not
+* The earlier round is the committed verdicts when this critique's are not
  * committed yet, and otherwise the commit before the one that wrote them.
+ *
+ * A finding judged ok this time is only fixed if something changed where it
+ * pointed. On jig-site `verdicts` reported seven fixed; four of them had
+ * flipped because this round's readers read the same unchanged lines
+ * differently, and the critique had to correct the count by hand. A finding
+ * that cites `file:line` is fixed when one of those lines changed (a file cited
+ * with no line, when the file did); one that cites nothing, when anything
+ * outside `.jig/` did. The rest are `unchanged`.
  */
 export function previousFindings(projectRoot: string, dir: string): PreviousFindings | undefined {
   const git = (args: string[]) => execFileSync('git', args, { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
@@ -423,40 +439,97 @@ export function previousFindings(projectRoot: string, dir: string): PreviousFind
   const files = ['screen.json', 'code.json', 'decisions.json'];
   const paths = files.map((f) => `${rel}/${f}`);
   let commit: string;
+  let target: string | undefined;
   try {
     const dirty = git(['status', '--porcelain', '--', ...paths]).trim() !== '';
     const touched = git(['log', '--format=%H', '-2', '--', ...paths]).split('\n').filter(Boolean);
     commit = dirty ? touched[0] ?? '' : touched[1] ?? '';
+    target = dirty ? undefined : touched[0];
   } catch {
     return undefined;
   }
   if (!commit) return undefined;
-  const read = (f: string, at?: string): Map<string, string> => {
-    const out = new Map<string, string>();
+  const read = (f: string, at?: string): Map<string, { verdict: string; reason: string }> => {
+    const out = new Map<string, { verdict: string; reason: string }>();
     let text: string;
     try { text = at ? git(['show', `${at}:./${rel}/${f}`]) : readFileSync(join(dir, f), 'utf8'); } catch { return out; }
     let body: { verdicts?: unknown };
     try { body = JSON.parse(text); } catch { return out; }
     for (const v of Array.isArray(body.verdicts) ? (body.verdicts as Array<Record<string, unknown>>) : []) {
       const key = String(v.id ?? v.decision ?? '').trim();
-      if (key && typeof v.verdict === 'string') out.set(f === 'decisions.json' ? `"${key}"` : key.toUpperCase(), v.verdict);
+      if (key && typeof v.verdict === 'string') out.set(f === 'decisions.json' ? `"${key}"` : key.toUpperCase(), { verdict: v.verdict, reason: String(v.reason ?? '') });
     }
     return out;
   };
-  const before = new Map<string, string>();
-  const now = new Map<string, string>();
+  const before = new Map<string, { verdict: string; reason: string }>();
+  const now = new Map<string, { verdict: string; reason: string }>();
   for (const f of files) {
     for (const [k, v] of read(f, commit)) before.set(k, v);
     for (const [k, v] of read(f)) now.set(k, v);
   }
-  const result: PreviousFindings = { commit: commit.slice(0, 7), fixed: [], open: [], added: [], ruled: [] };
+  const changed = sourceChanges(git, commit, target);
+  const result: PreviousFindings = { commit: commit.slice(0, 7), fixed: [], unchanged: [], open: [], added: [], ruled: [] };
   for (const [k, v] of before) {
-    if (v !== 'finding') continue;
-    const after = now.get(k);
+    if (v.verdict !== 'finding') continue;
+    const after = now.get(k)?.verdict;
     if (after === 'finding') result.open.push(k);
     else if (after === 'ruled') result.ruled.push(k);
-    else if (after === 'ok' || after === 'n/a') result.fixed.push(k);
+    else if (after === 'ok' || after === 'n/a') (changed(v.reason) ? result.fixed : result.unchanged).push(k);
   }
-  for (const [k, v] of now) if (v === 'finding' && before.get(k) !== 'finding') result.added.push(k);
+  for (const [k, v] of now) if (v.verdict === 'finding' && before.get(k)?.verdict !== 'finding') result.added.push(k);
   return result;
+}
+
+/** A cited path, and the lines cited in it (none: the whole file). */
+const CITATION = /([\w@.\-[\]/]*[\w\]-]\.[a-z][a-z0-9]{0,5})(?::(\d+(?:-\d+)?(?:,\s*\d+(?:-\d+)?)*))?/gi;
+
+/**
+ * Whether the source a finding's reason points at changed between `from` and
+ * `to` (the working tree when `to` is undefined). Paths are matched against
+ * the files `from` tracked outside `.jig/`, by suffix, so `prose.ts:76` finds
+ * `src/lib/prose.ts`; a word that only looks like a file name matches nothing.
+ */
+function sourceChanges(git: (args: string[]) => string, from: string, to: string | undefined): (reason: string) => boolean {
+  const range = to ? [from, to] : [from];
+  let tracked: string[] = [];
+  let changedFiles = new Set<string>();
+  try {
+    tracked = git(['ls-tree', '-r', '--name-only', from]).split('\n').filter((f) => f && !f.startsWith('.jig/'));
+    changedFiles = new Set(git(['diff', '--name-only', ...range, '--', '.', ':(exclude).jig']).split('\n').filter(Boolean));
+  } catch { /* no history to compare: nothing counts as changed */ }
+  const hunks = new Map<string, Array<[number, number]>>();
+  const oldRanges = (file: string): Array<[number, number]> => {
+    let out = hunks.get(file);
+    if (out) return out;
+    out = [];
+    try {
+      for (const m of git(['diff', '-U0', ...range, '--', file]).matchAll(/^@@ -(\d+)(?:,(\d+))? /gm)) {
+        const start = Number(m[1]);
+        const count = m[2] === undefined ? 1 : Number(m[2]);
+        // A pure insertion (count 0) lands between line `start` and the next.
+        out.push(count === 0 ? [start, start + 1] : [start, start + count - 1]);
+      }
+    } catch { /* unreadable diff: no lines changed */ }
+    hunks.set(file, out);
+    return out;
+  };
+  return (reason: string) => {
+    let cited = false;
+    for (const m of reason.matchAll(CITATION)) {
+      const path = m[1]!.replace(/^\.\//, '');
+      const matches = tracked.filter((f) => f === path || f.endsWith(`/${path}`));
+      if (!matches.length) continue;
+      cited = true;
+      const lines = (m[2] ?? '').split(',').map((r) => r.trim()).filter(Boolean).map((r) => {
+        const [a, b] = r.split('-').map(Number);
+        return [a!, b ?? a!] as [number, number];
+      });
+      for (const file of matches) {
+        if (!changedFiles.has(file)) continue;
+        if (!lines.length) return true;
+        if (oldRanges(file).some(([hs, he]) => lines.some(([s, e]) => hs <= e && he >= s))) return true;
+      }
+    }
+    return cited ? false : changedFiles.size > 0;
+  };
 }

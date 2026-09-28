@@ -79,9 +79,32 @@ describe('an approved drawing that no longer shows the spec', () => {
     expect(run('make').reason ?? '').toMatch(/this one is of an earlier spec\. Stop, and ask for `\/jig mockup`/);
   });
 
+  // jig-site's Guide drawing labelled its rail "on this page (right rail, sticky)"
+  // for the spec's `on-this-page`, and the gate held make back on a region it drew.
+  it('reads hyphens, underscores and spaces in a name as one', () => {
+    writeFileSync(join(root, '.jig', 'mockups', 'rule-page.html'), drawing(['on this page (right rail, sticky)', 'chapter_nav']));
+    writeFileSync(join(root, '.jig', 'specs', 'rule-page.spec.md'), spec([
+      '      - "on-this-page: the chapter\'s own headings"',
+      '      - "chapter-nav: the chapters that exist"',
+    ].join('\n')));
+    expect(run('make').reason ?? '').not.toMatch(/no labelled region/);
+  });
+
   it('leaves a drawing made before frames alone', () => {
     writeFileSync(join(root, '.jig', 'mockups', 'rule-page.html'), '<main><h1>identity</h1></main>');
     writeFileSync(join(root, '.jig', 'specs', 'rule-page.spec.md'), spec('      - "theme toggle: one button"'));
     expect(run('make').reason ?? '').not.toMatch(/no longer shows/);
+  });
+});
+
+// jig-site: the home drawing captioned its rule specimens `spec-frame`, and the
+// gate read each one as a new size frame, orphaning the regions after it.
+describe('a size frame is the class `frame`, not a class containing it', () => {
+  it('does not split a frame at a `spec-frame` inside it', () => {
+    writeFileSync(join(root, '.jig', 'mockups', 'rule-page.html'), ['phone', 'tablet', 'desktop', 'wide'].map((size) =>
+      `<section class="frame" data-size="${size}"><div class="region"><span class="name">identity</span></div>` +
+      `<figure class="spec-frame"><iframe></iframe></figure><div class="region"><span class="name">theme toggle</span></div></section>`).join('\n'));
+    writeFileSync(join(root, '.jig', 'specs', 'rule-page.spec.md'), spec(['      - "identity: the id"', '      - "theme toggle: one button"'].join('\n')));
+    expect(run('spec').reason ?? '').not.toMatch(/no longer shows/);
   });
 });
