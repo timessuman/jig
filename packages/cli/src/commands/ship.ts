@@ -39,8 +39,23 @@ export interface ShipResult {
 
 export const NOT_COVERED = 'security, performance, what a screen reader or a real device does, and deployment itself';
 
-/** Whether the project defers critiques to `ship`: `"critique": "at-ship"` in jig.config.json. */
-export function critiqueAtShip(projectRoot: string): boolean {
+/** A spec's own `critique:` (`each` or `at-ship`), when it states one. */
+export function specCritique(specBody: string | undefined): 'each' | 'at-ship' | undefined {
+  const front = specBody?.split(/^---\s*$/m)[1] ?? '';
+  const value = /^\s*critique\s*:\s*([\w-]+)/im.exec(front)?.[1]?.toLowerCase();
+  return value === 'each' || value === 'at-ship' ? value : undefined;
+}
+
+/**
+ * Whether a page's critiques wait for `ship`. The page's spec says so first
+ * (`critique: at-ship`, or `critique: each` for a page others reuse, judged
+ * now), and `"critique": "at-ship"` in jig.config.json says it for every page
+ * whose spec is silent. Either way the owner can critique any page at any time,
+ * and `ship` judges every one.
+ */
+export function critiqueAtShip(projectRoot: string, specBody?: string): boolean {
+  const own = specCritique(specBody);
+  if (own) return own === 'at-ship';
   try {
     return JSON.parse(readFileSync(join(projectRoot, 'jig.config.json'), 'utf8')).critique === 'at-ship';
   } catch {

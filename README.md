@@ -565,7 +565,12 @@ finding in it found late is fixed in every page built on it.
 
 A `tweak` re-judges what its change could affect, and that can wait too when you
 say so. Add `"critique": "at-ship"` to `jig.config.json` to say it once for the
-project.
+project, and `critique: each` or `critique: at-ship` in a page's spec to say it
+for that page: a header every page reuses judged each time, the chapters of a
+guide left for `ship`. `spec` asks you which, at the end of its questions, and
+says why now is worth it for a page others reuse. The spec wins where it says
+either. Neither stops you
+critiquing any page whenever you like, and `ship` judges every one.
 
 Waiting is tracked, not forgotten. The verdict lock records the page each
 critique judged, so Jig knows every page that changed since, every tweak that
@@ -794,7 +799,8 @@ Drop this in the project root so mode selection does not require asking on every
 
   // When pages are critiqued. Leave it out to decide each time; "at-ship"
   // says once that critiques and a tweak's re-judge wait for `/jig ship`,
-  // which will not pass until every page is judged as it stands.
+  // which will not pass until every page is judged as it stands. A page's
+  // spec can say otherwise for itself: `critique: each` or `critique: at-ship`.
   "critique": "at-ship"
 }
 ```

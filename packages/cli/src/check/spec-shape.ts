@@ -44,6 +44,10 @@ export function specProblems(spec: { path: string; body: string }): string[] {
   if (specIndexableField(front) === 'unreadable') {
     problems.push(`${spec.path}: \`indexable:\` is neither true nor false. Write \`indexable: true\` or \`indexable: false\`; a per-page override and its reason go in the body, where they can be read without being parsed.`);
   }
+  const critique = /^\s*critique\s*:\s*(.*)$/im.exec(front)?.[1]?.replace(/\s+#.*$/, '').trim();
+  if (critique !== undefined && !/^(each|at-ship)$/i.test(critique)) {
+    problems.push(`${spec.path}: \`critique: ${critique}\` is neither \`each\` nor \`at-ship\`. Leave it out to follow the project's default.`);
+  }
   for (const field of ['feature', 'surface', 'mode', 'sizes', 'confirmed', 'mockup']) {
     if (!has(field)) problems.push(`${spec.path} frontmatter has no \`${field}:\`.`);
   }

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gate } from '../src/commands/gate.js';
 import { ship } from '../src/commands/ship.js';
+import { specProblems } from '../src/check/spec-shape.js';
 import { checksum } from '../src/install/manifest.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
@@ -177,5 +178,39 @@ describe('a ship session', () => {
     critiqued('pricing');
     commit('critique');
     expect(session('ship').reason ?? '').not.toMatch(/not ready to ship/);
+  });
+});
+
+/**
+ * The owner: some pages critiqued as they are built, others left for ship. A
+ * page's spec says which for itself, and wins over the project's default.
+ */
+describe('each page says when it is critiqued', () => {
+  const withCritique = (value: string) => spec().replace('confirmed: true', `confirmed: true\ncritique: ${value}`);
+  const deferTrue = () => {
+    critiqued('pricing');
+    commit('critique');
+    session('critique');
+    commit('lock');
+    writeFileSync(join(dir('pricing'), 'tweak.json'), JSON.stringify({ at: '2026-09-29T11:00:00Z', change: 'tighten the plan names', ids: ['A-60'], deferred: true }));
+  };
+
+  it('lets a page whose spec waits for ship defer, the project silent', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), withCritique('at-ship'));
+    deferTrue();
+    expect(session('tweak', 'Tighten the plan names.').reason ?? '').not.toMatch(/defers its re-judge/);
+  });
+
+  it('holds a page whose spec says each, whatever the project says', () => {
+    writeFileSync(join(root, 'jig.config.json'), JSON.stringify({ surfaces: [{ match: '/', mode: 'editorial' }], critique: 'at-ship' }));
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), withCritique('each'));
+    deferTrue();
+    expect(session('tweak', 'Tighten the plan names.').reason).toMatch(/defers its re-judge, and nobody said to/);
+  });
+
+  it('names a value that is neither', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), withCritique('sometimes'));
+    expect(specProblems({ path: '.jig/specs/pricing.spec.md', body: withCritique('sometimes') }).join(' ')).toMatch(/`critique: sometimes` is neither `each` nor `at-ship`/);
+    expect(specProblems({ path: '.jig/specs/pricing.spec.md', body: withCritique('at-ship   # the chapters wait') }).join(' ')).not.toMatch(/critique:/);
   });
 });

@@ -293,6 +293,15 @@ the example shows the shape. Say it is an example, not a suggestion.
   > plan goes straight to sign-up. Nothing on this page may ask for a sales
   > call."*
 
+  End round 3 with one more: **critique this page after each build, or leave it
+  for `ship`?** Skip it only where the owner has already said, for this page or
+  in asking for the spec. Where the page sets up what later pages reuse (a
+  header, a card, a layout), say why now is worth it; otherwise offer the
+  project's default from `{{config_file}}`, or "each" where it has none. Write the
+  answer as `critique: each` or `critique: at-ship`.
+  > *For example: "each: every page has this header, so a finding in it is fixed
+  > once, now, not in ten pages later."*
+
 **Ask about the phone by name.** What does the reader see first on a phone, and
 what moves, stacks, or goes behind a control?
 > *For example: "the plans come first on the phone" — that is the answer this
@@ -360,6 +369,7 @@ description: "Three plans, every price visible. No sales call."   # ≤ 155
 mockup: pending            # approved or skipped, quoting the user: approved by `mockup`, skipped by whichever command they said it to
 mockup_at:                 # where the approved drawing is: a .jig/mockups path, or a Figma or Stitch link
 deviations: []             # `make` writes here; `spec` leaves it empty
+critique: each             # optional: each, or at-ship; left out, the project's default in {{config_file}}
 ---
 ```
 
@@ -932,8 +942,10 @@ Report the `JIG_CHECK:` line, the table, and any new deviations. Then suggest
 `{{command_prefix}}critique`, now or later: the owner decides when. A page judged
 once, as it stands, gets the verdicts it would have got straight after this build,
 so a critique can wait for a batch of pages, or for `{{command_prefix}}ship`,
-which will not pass until every page is judged. Where `{{config_file}}` says
-`"critique": "at-ship"`, the owner has already said to wait; do not ask. One
+which will not pass until every page is judged. Where the spec says
+`critique: at-ship`, or it is silent and `{{config_file}}` says
+`"critique": "at-ship"`, the owner has already said to wait; do not ask. Where the
+spec says `critique: each`, suggest it now. One
 thing to say when it applies: if this page sets up something later pages will
 reuse (a header, a card, a layout), a finding in it found late is fixed in every
 page built on it, so its critique is worth running now.
@@ -1432,8 +1444,9 @@ The gate holds both ends: it refuses a tweak that changed a verdict it did not
 name, and one that named a verdict it did not re-judge.
 
 **The re-judge can wait**, when the owner says so. Write their words in
-tweak.json as `"deferred": "<what they said>"`, or `"deferred": true` where
-`{{config_file}}` says `"critique": "at-ship"`; keep `ids` named for whoever
+tweak.json as `"deferred": "<what they said>"`, or `"deferred": true` where the
+page's spec says `critique: at-ship` (or, the spec silent, `{{config_file}}`
+does); keep `ids` named for whoever
 judges it, and leave the verdicts alone. The page then owes a critique, and
 `{{command_prefix}}ship` will not pass until one has judged it. Never defer it
 on your own account: the gate refuses a deferral nobody gave.

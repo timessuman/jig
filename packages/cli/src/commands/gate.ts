@@ -576,10 +576,10 @@ function tweakProblems(root: string, spec: { path: string; slug: string; body: s
     // owner says so: in their words here, or once for the project in
     // jig.config.json. The ids stay named, for whoever judges it.
     if (record.deferred !== undefined) {
-      if (typeof record.deferred === 'string' ? !record.deferred.trim() || !quoteHeld(record.deferred.replace(/^["“]|["”]$/g, ''), owner) : !critiqueAtShip(root)) {
+      if (typeof record.deferred === 'string' ? !record.deferred.trim() || !quoteHeld(record.deferred.replace(/^["“]|["”]$/g, ''), owner) : !critiqueAtShip(root, spec.body)) {
         problems.push(
           `.jig/critique/${surface}/tweak.json defers its re-judge, and nobody said to. \`deferred\` quotes the owner telling you to leave it for later, ` +
-            `or is \`true\` where jig.config.json says \`"critique": "at-ship"\`. Otherwise re-judge what it names.`,
+            `or is \`true\` where the page's spec says \`critique: at-ship\` (or, the spec silent, jig.config.json says \`"critique": "at-ship"\`). Otherwise re-judge what it names.`,
         );
       }
       return problems;
