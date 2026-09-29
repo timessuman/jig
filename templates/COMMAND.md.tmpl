@@ -1157,11 +1157,21 @@ Each reader arm writes its own file. The arm reports back only that it wrote it.
     { "id": "P-14", "verdict": "finding", "reason": "menu button at 360 does not open; aria-expanded never set" },
     { "id": "A-60", "verdict": "n/a", "reason": "A-60 is about competing icons; this page has none" },
     { "id": "E-51", "verdict": "ruled", "ruling": "The theme toggle is icon-only", "reason": "the toggle shows only a sun or a moon; the owner ruled it icon-only" }
+  ],
+  "differences": [
+    { "what": "the checklist gives nine checks", "where": "src/pages/guide.astro:245", "against": "README.md, 'Before you confirm a spec': ten" }
   ]
 }
 ```
 
 `screen.json` carries `rendered` and `artefacts`; `code.json` needs only `verdicts`.
+**`differences` holds what no rule names:** the page against its spec (step 3),
+or against a source it quotes or teaches. Each counts as a finding. Never carry
+one as a verdict under an id you made up: `verdicts` refuses an id the corpus
+does not hold, and on jig-site both arms of one critique invented one
+(`page-vs-corpus-1`), which the parent then had to move by hand. `ruled` is for a
+rule a decision overrides; a decision in `decisions.json` is judged `ok`,
+`finding` or `n/a`, never ruled.
 
 **And the project's own decisions, one verdict each**, in
 `.jig/critique/<surface>/decisions.json`:
@@ -1323,6 +1333,10 @@ deviation, and two critiques in a row saw it and filed nothing, because it broke
 no rule. Report it among the findings as a difference from the spec, naming the
 content and where it is: the fix is a tweak that writes it into the spec for the
 owner to confirm, or removes it.
+
+**Say in the report what each direction found**, "none" included: a report that
+does not mention the page-against-spec pass cannot be told apart from one that
+skipped it.
 
 A difference from either is a finding **unless** `deviations:` already explains it
 — that is what the recorded deviation is for. A difference explained by neither is

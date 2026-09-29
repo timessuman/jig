@@ -71,6 +71,12 @@
   record and the diff; a quotation or fact on an unchanged line, whose source
   has not changed either, carries over. On jig-site every re-check reopened
   every source, about $10 a round.
+- **A critique has a place for what no rule names.** A difference between the
+  page and its spec, or a source it teaches, goes under `differences` in the
+  arm's verdict file and counts as a finding. On jig-site both arms of one
+  critique invented rule ids to carry one, and `verdicts` refused them. The
+  report now says what the page-against-spec pass found, "none" included, and
+  `verdicts` explains that a decision is judged, never `ruled`.
 - **Every page is owed a critique again.** A critique judges every rule, so one
   written before these sixteen is incomplete, and `jig ship` lists each page
   until it is critiqued on this release.
