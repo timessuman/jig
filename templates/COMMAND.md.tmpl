@@ -6,7 +6,7 @@ these, say so, list them, and stop.
 
 There are two kinds of subcommand, and they are not run the same way.
 
-**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`, `gate`, `probe`, `seo`. Run the
+**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`, `gate`, `probe`, `seo`, `ship`. Run the
 matching command with `{{scripts_path}}`, passing the flags through unchanged,
 then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
@@ -25,10 +25,14 @@ decide     project-wide decisions, and the reason for each      once per project
 spec       what exactly is being built: its smallest useful version, at every screen size
 mockup     low-fidelity design of that spec, reviewed before any code
 make       high-fidelity: the actual page or feature, built from the spec & mockup
-critique   scrutinises what was built against the rules, its spec & mockup
+critique   scrutinises what was built against the rules, its spec & mockup;
+           now, or later: a page judged as it stands gets the same verdicts
 
 tweak      a small change the approved mockup does not show: decided if it is a
            decision, specced, built, and re-judged where it could matter
+
+ship       everything Jig checks, with nothing optional: critiques every page
+           that owes one, and says what Jig does not check
 ```
 
 ## init
@@ -925,7 +929,14 @@ and was never looked at on a phone has satisfied a third of its spec. Then run t
 self-check at the end of `{{rules_path}}/00-anti-patterns.md`.
 
 Report the `JIG_CHECK:` line, the table, and any new deviations. Then suggest
-`{{command_prefix}}critique`.
+`{{command_prefix}}critique`, now or later: the owner decides when. A page judged
+once, as it stands, gets the verdicts it would have got straight after this build,
+so a critique can wait for a batch of pages, or for `{{command_prefix}}ship`,
+which will not pass until every page is judged. Where `{{config_file}}` says
+`"critique": "at-ship"`, the owner has already said to wait; do not ask. One
+thing to say when it applies: if this page sets up something later pages will
+reuse (a header, a card, a layout), a finding in it found late is fixed in every
+page built on it, so its critique is worth running now.
 
 ## critique
 
@@ -1351,7 +1362,9 @@ because the drawing stays true, and no full critique, because nothing else moved
   a page being made, not changed. Run `{{command_prefix}}spec`, `mockup` and
   `make`.
 - **No critique record for the page yet** (`.jig/critique/<surface>/`) → nothing
-  has been judged, so nothing can be re-judged. Run `{{command_prefix}}critique`.
+  has been judged, so nothing can be re-judged. Run `{{command_prefix}}critique`,
+  unless the re-judge is deferred (step 4): then the page's first critique judges
+  it whole.
 - **The change adds, removes, reorders or regroups a region, changes the
   navigation at any size, or would make the drawing wrong** → it is not a tweak.
   Say so and name the route: `spec`, then `mockup`, then `make`. The gate checks
@@ -1418,12 +1431,60 @@ verdict and reason, adding `"tweak": "<at>"`. It changes nothing else. Then run
 The gate holds both ends: it refuses a tweak that changed a verdict it did not
 name, and one that named a verdict it did not re-judge.
 
+**The re-judge can wait**, when the owner says so. Write their words in
+tweak.json as `"deferred": "<what they said>"`, or `"deferred": true` where
+`{{config_file}}` says `"critique": "at-ship"`; keep `ids` named for whoever
+judges it, and leave the verdicts alone. The page then owes a critique, and
+`{{command_prefix}}ship` will not pass until one has judged it. Never defer it
+on your own account: the gate refuses a deferral nobody gave.
+
 ### Finish
 
 Report what changed, in the owner's words; the decision and spec lines you
 touched, if any; each re-judged verdict and what it says now; and the
 `JIG_CHECK` line. A re-judged verdict that is a finding goes to the owner: it is
-fixed by another tweak, or by `make` if it needs more.
+fixed by another tweak, or by `make` if it needs more. A deferred re-judge is
+reported as deferred, with the ids it will cover.
+
+## ship
+
+**Get the project ready to ship, by everything Jig checks.** `critique` can wait
+while pages are built and tweaked; here nothing is optional. `ship` does not
+deploy anything, and it is not a security review: Jig has no rules for security,
+performance or what a real screen reader does, and the report says so every time.
+
+### 1. Build, then ask the CLI what is owed
+
+Build the project the way it ships, then run `{{scripts_path}} ship`. It runs
+`check --all --ci` and `seo`, and reads every confirmed spec's critique: a page
+is owed a critique when it has none, when its page changed after it was judged,
+when a tweak deferred its re-judge, when its verdicts are incomplete, or when a
+finding stands that the owner has not ruled on. It prints each page's state and
+a `JIG_SHIP:` line, and exits non-zero until the project is ready. A spec that
+is not confirmed yet is in progress and not held against the ship.
+
+### 2. Clear what it names
+
+- **Mechanical or `seo` errors** → fix them as `make` would, and run `check`
+  again.
+- **A page owed a critique** → run `critique` on it by its own procedure, in
+  full: three arms, each a reader that has not seen this conversation or the
+  build. The readers are independent here as everywhere; that you are
+  orchestrating does not make you one of them.
+- **Findings** → put them to the owner. Each is fixed (by `make`, or `tweak` for
+  a small one), or the owner rules on it in their own words and the ruling is
+  recorded (`decide`, or `tweak`'s decision step), after which the verdict is
+  `ruled`. Your view that a finding is minor is not a ruling.
+
+Then build again and run `{{scripts_path}} ship` again. Repeat until it says
+`ready=yes`.
+
+### Finish
+
+Report the `JIG_SHIP:` line as printed, each page's state, what was fixed and
+what the owner ruled, and the line the CLI ends with naming what Jig does not
+check. With the Stop hook, a `ship` session is held while `jig ship` fails,
+unless you stop to ask the owner something.
 
 ## probe
 

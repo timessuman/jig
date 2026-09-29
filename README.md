@@ -377,6 +377,7 @@ overwrites a config or brand file you have edited.
 | `seo [--json]` | Audits what a search engine and a link preview read, across the whole project: a route whose metadata says `noindex` sitting in the sitemap, two pages claiming one title, a sitemap that lists nothing or lists paths a crawler drops. Whether a sitemap and a robots file exist is counted, not reported: no rule asks for either, and a site with no domain yet cannot write an honest sitemap. Needs no config, no decisions and no spec. |
 | `verdicts <surface>` | Verifies a critique's verdict files and computes its counts: every rule in each pass judged once, no id that does not exist, no rule in the wrong arm, and no verdict the render probe contradicts. |
 | `probe` | Prints the render probe — one expression the critique runs in a browser at each width. It operates the menu, measures sideways scroll, and reads whether the styles and tokens applied. |
+| `ship` | Says whether the project is ready to ship, by everything Jig checks: `check --all --ci` and `seo` with no errors, and every confirmed page critiqued as it stands, with no finding you have not ruled on. Exits non-zero until it is, and names what Jig does not check. |
 | `gate` | Run by the Stop hook `install` adds for Claude Code, not by hand. Blocks an agent from finishing while `check` fails on the files it changed, or the step it just ran left its work unfinished. |
 | `explain <rule-id \| word> [--list]` | Given an id, prints a rule in full — what it forbids, what to do instead, the version it arrived in, and who checks it. Also resolves the `P-` pattern and `M-` mode specs, which no rule index contains. Given a **word**, searches every title and body and lists what matches, so you can find a rule you cannot name. `--list` prints every id, or one section's. |
 
@@ -417,6 +418,8 @@ on the result — the CLI reports, the agent applies the judgment half.
 | `/jig mockup` | No CLI. Low-fidelity design of that spec, reviewed before code — in HTML, Figma or Google Stitch, whichever you choose |
 | `/jig make` | No CLI. High-fidelity: builds the actual page or feature from the spec and mockup |
 | `/jig critique` | `jig verdicts` + `jig probe`. Scrutinises what was built against the rules, its spec and its mockup: two reader arms write their verdicts to files, the CLI decides whether the review is complete, and a browser probe checks the verdicts against what the page actually does |
+| `/jig tweak` | No CLI. A small change to a built page that its approved mockup does not show: decided if it is a decision, specced, built, and re-judged where it could matter |
+| `/jig ship` | `jig ship` — then critiques every page that owes one, puts the findings to you, and runs again until the project is ready |
 
 `decide` runs once. The other four run for each page, feature or functionality, one
 at a time — never the whole product at once.
@@ -549,6 +552,33 @@ page to the spec alone, and nothing waits on a drawing. What `make` will not do
 is decide for you: on a spec whose mockup nobody has approved or skipped, it asks
 which. With no drawing, the spec is all there is to build from, so the check
 before you confirm it carries all the weight.
+
+### When to critique, and shipping
+
+`check` runs on every `make` and every `tweak`. It is mechanical, it takes
+seconds, and it catches a hard-coded colour before it spreads. `critique` is the
+judgment half, and it can wait: a page judged once, as it stands, gets the
+verdicts it would have got straight after it was built. Critique a page after
+each build, after a batch of pages, or only before you ship. The one page worth
+judging early is one that sets up what later pages reuse, a header or a card: a
+finding in it found late is fixed in every page built on it.
+
+A `tweak` re-judges what its change could affect, and that can wait too when you
+say so. Add `"critique": "at-ship"` to `jig.config.json` to say it once for the
+project.
+
+Waiting is tracked, not forgotten. The verdict lock records the page each
+critique judged, so Jig knows every page that changed since, every tweak that
+left its re-judge for later, and every page never judged. `/jig ship` is where
+none of it is optional: `jig ship` runs `check --all --ci` and `seo`, and names
+each page that owes a critique; the agent critiques each one in full, with
+readers that have not seen the conversation, and puts the findings to you. Each
+is fixed, or ruled on by you in your own words. It runs until `jig ship` says
+`ready=yes`.
+
+`ship` does not deploy anything, and it is not a security review. Jig has no
+rules for security, performance or what a real screen reader does, and its report
+says so on every run.
 
 ## What a search engine reads
 
@@ -760,7 +790,12 @@ Drop this in the project root so mode selection does not require asking on every
   // `check` names the pattern and its match count on every run, and says so
   // when one is excusing enough files to look like a mistake. Nothing is ever
   // exempt by default: this list is the only source.
-  "exempt": ["src/components/og-card.tsx", "src/cv/pdf/**"]
+  "exempt": ["src/components/og-card.tsx", "src/cv/pdf/**"],
+
+  // When pages are critiqued. Leave it out to decide each time; "at-ship"
+  // says once that critiques and a tweak's re-judge wait for `/jig ship`,
+  // which will not pass until every page is judged as it stands.
+  "critique": "at-ship"
 }
 ```
 

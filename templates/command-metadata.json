@@ -29,6 +29,11 @@
     "argumentHint": "[--json]",
     "status": "available"
   },
+  "ship": {
+    "description": "Say whether the project is ready to ship, by everything Jig checks: no mechanical or seo errors, and every confirmed page critiqued as it stands, with nothing the owner has not ruled on. The slash command critiques what is owed first. Security, performance and deployment are not Jig's to check.",
+    "argumentHint": "",
+    "status": "available"
+  },
   "verdicts": {
     "description": "Verify a critique's verdict files: every rule in each pass judged once, no id that does not exist, no rule in the wrong arm, rendered only with a screenshot. Computes the counts the critique reports, so the agent never writes them.",
     "argumentHint": "<surface>",

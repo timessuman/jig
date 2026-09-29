@@ -25,6 +25,15 @@
   `make` then builds from the spec alone, and asks rather than finishing on a
   spec nobody has said to draw or skip.
 
+- **A critique can wait, and `ship` is where it cannot.** `check` still runs on
+  every `make` and `tweak`; the judgment half can run after a batch of pages or
+  only before shipping, and a tweak's re-judge can wait when the owner says so
+  (or `"critique": "at-ship"` in jig.config.json says it once). The lock now
+  records the page each critique judged, so nothing that waited is forgotten.
+  `jig ship` runs `check --all --ci` and `seo` and names every confirmed page
+  that owes a critique; `/jig ship` critiques each in full and runs until it
+  says `ready=yes`. It deploys nothing, and says what Jig does not check.
+
 ### Fixed
 
 - **A `/jig` command whose words hold a `<`** read as no command at all, so

@@ -9,9 +9,11 @@ import { execFileSync } from 'node:child_process';
 import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
-import { decisionsFile, quotesNotFrom, unsourcedReasons } from '../check/decisions.js';
+import { decisionsFile, quoteHeld, quotesNotFrom, unsourcedReasons } from '../check/decisions.js';
+import { critiqueAtShip, ship } from './ship.js';
 import { mockupPending, mockupWordProblems, specCheckProblems } from '../check/spec-checked.js';
 import { checksum } from '../install/manifest.js';
+import { recordedPage } from '../probe/save.js';
 
 /**
  * `jig gate` — run by a Claude Code Stop hook that `jig install` writes.
@@ -352,7 +354,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
     if (at && /\.html?$/i.test(at) && existsSync(join(root, at))) problems.push(...mockupDrawingProblems(root, spec.body, at));
   }
 
-  if (command === 'tweak' && spec) problems.push(...tweakProblems(root, spec));
+  if (command === 'tweak' && spec) problems.push(...tweakProblems(root, spec, owner));
 
   // A spec that changed after its drawing was approved no longer has one.
   if ((command === 'spec' || command === 'make') && spec) {
@@ -555,7 +557,7 @@ function reportOmissions(dir: string, surface: string): string[] {
  * what the gate can check: the page's structure is as the owner approved it,
  * the drawing is untouched, and the review re-judges what it says it did.
  */
-function tweakProblems(root: string, spec: { path: string; slug: string; body: string }): string[] {
+function tweakProblems(root: string, spec: { path: string; slug: string; body: string }, owner = ''): string[] {
   const problems: string[] = [];
   const front = spec.body.split(/^---\s*$/m)[1] ?? '';
   if (!/^\s*confirmed\s*:\s*true\b/im.test(front)) problems.push(`${spec.path} is not confirmed. A tweak changes a page the owner has confirmed; an unconfirmed spec goes through \`spec\`.`);
@@ -570,6 +572,18 @@ function tweakProblems(root: string, spec: { path: string; slug: string; body: s
   } else {
     if (!record.change) problems.push(`.jig/critique/${surface}/tweak.json has no \`change\`: the owner's words for what changed.`);
     if (!record.ids.length) problems.push(`.jig/critique/${surface}/tweak.json names nothing to re-judge. A change that no rule and no decision could see needs no tweak; name the ones it can.`);
+    // The re-judge can wait for the page's next critique, or `ship`, when the
+    // owner says so: in their words here, or once for the project in
+    // jig.config.json. The ids stay named, for whoever judges it.
+    if (record.deferred !== undefined) {
+      if (typeof record.deferred === 'string' ? !record.deferred.trim() || !quoteHeld(record.deferred.replace(/^["“]|["”]$/g, ''), owner) : !critiqueAtShip(root)) {
+        problems.push(
+          `.jig/critique/${surface}/tweak.json defers its re-judge, and nobody said to. \`deferred\` quotes the owner telling you to leave it for later, ` +
+            `or is \`true\` where jig.config.json says \`"critique": "at-ship"\`. Otherwise re-judge what it names.`,
+        );
+      }
+      return problems;
+    }
     const unjudged = unjudgedTweakIds(join(root, '.jig', 'critique', surface), record);
     if (unjudged.length) {
       problems.push(
@@ -627,12 +641,13 @@ function structureSinceApproval(root: string, spec: { path: string; slug: string
   return problems;
 }
 
-interface TweakRecord { at: string; change: string; ids: string[] }
+interface TweakRecord { at: string; change: string; ids: string[]; deferred?: string | boolean }
 
 function readTweak(dir: string): TweakRecord | undefined {
   try {
     const raw = JSON.parse(readFileSync(join(dir, 'tweak.json'), 'utf8')) as Partial<TweakRecord>;
-    return { at: String(raw.at ?? ''), change: String(raw.change ?? '').trim(), ids: Array.isArray(raw.ids) ? raw.ids.map(String) : [] };
+    const deferred = typeof raw.deferred === 'string' || raw.deferred === true ? raw.deferred : undefined;
+    return { at: String(raw.at ?? ''), change: String(raw.change ?? '').trim(), ids: Array.isArray(raw.ids) ? raw.ids.map(String) : [], ...(deferred !== undefined ? { deferred } : {}) };
   } catch {
     return undefined;
   }
@@ -674,9 +689,15 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   // `check` below still runs either way.
   const waiting = command !== undefined && ASKS_THE_OWNER.has(command) && asksOwner(lastAssistantText(opts.input.transcript_path));
   const start = sessionStart(opts.input.transcript_path);
-  const owner = command === 'spec' || command === 'mockup' || command === 'make' ? ownerWords(opts.input.transcript_path) : '';
+  const owner = command === 'spec' || command === 'mockup' || command === 'make' || command === 'tweak' ? ownerWords(opts.input.transcript_path) : '';
   const problems: string[] = command && !waiting ? commandProblems(root, command, invocation?.surface, start, owner).map((p) => `/jig ${command}: ${p}`) : [];
   if (waiting && command === 'mockup') problems.push(...drawingBeforeAsking(root, invocation?.surface).map((p) => `/jig mockup: ${p}`));
+  // ship is where nothing is optional. It finishes when `jig ship` passes, or
+  // tells the owner plainly what still stands in the way.
+  if (command === 'ship' && !asksOwner(lastAssistantText(opts.input.transcript_path))) {
+    const result = ship({ projectRoot: root, version: opts.version });
+    if (!result.ready) problems.push(`/jig ship: the project is not ready to ship. Critique what is owed, fix what the critiques find or record the owner's ruling, and run \`jig ship\` again.\n${result.report}`);
+  }
   // make builds from a drawing the owner approved, or from the spec alone once
   // they said to skip it. Nobody having said either, it asks; it does not finish.
   if (command === 'make') {
@@ -796,8 +817,20 @@ function verdictDigests(dir: string): Record<string, string> {
   return out;
 }
 
-function writeLock(lockPath: string, dir: string, now: string): void {
-  try { writeFileSync(lockPath, JSON.stringify({ checksum: now, verdicts: verdictDigests(dir) }) + '\n', 'utf8'); } catch { /* read-only tree */ }
+/**
+ * The lock also records the page the verdicts were taken on: the file its
+ * probes name, and its checksum then. A critique can wait until `ship`, and
+ * `ship` needs to know which pages changed after they were judged; a probe's
+ * own stamp cannot say, since refreshing the probes moves it.
+ */
+function writeLock(root: string, surface: string, lockPath: string, dir: string, now: string): void {
+  const pageFile = recordedPage(root, surface);
+  let page: { file: string; checksum: string } | undefined;
+  try { if (pageFile) page = { file: pageFile, checksum: checksum(readFileSync(join(root, pageFile), 'utf8')) }; } catch { /* page gone: record none */ }
+  // And the tweak it saw, so a re-judge that tweak deferred reads as settled
+  // once a critique or a later tweak has judged the page.
+  const tweakAt = readTweak(dir)?.at;
+  try { writeFileSync(lockPath, JSON.stringify({ checksum: now, verdicts: verdictDigests(dir), ...(page ? { page } : {}), ...(tweakAt ? { tweak: tweakAt } : {}) }) + '\n', 'utf8'); } catch { /* read-only tree */ }
 }
 
 /** One checksum over a surface's verdict files, or nothing if it has none. */
@@ -832,8 +865,10 @@ export function verdictGuard(root: string, command: string | undefined, inPlay?:
     // Lock only what this critique session touched. Locking every critique
     // stamped the catalog's folder during a rule-page session, and the next
     // stop read that stamp as the catalog having been touched.
-    if (command === 'critique' && (!inPlay || inPlay.includes(surface))) {
-      writeLock(lockPath, dir, now);
+    // `ship` critiques what is owed, by the same procedure, so it locks the
+    // critiques it ran the way `critique` does.
+    if ((command === 'critique' || command === 'ship') && (!inPlay || inPlay.includes(surface))) {
+      writeLock(root, surface, lockPath, dir, now);
       problems.push(...lockLeftBehind(root, surface));
       continue;
     }
@@ -847,7 +882,7 @@ export function verdictGuard(root: string, command: string | undefined, inPlay?:
       const own = tweakVerdictProblems(dir, surface, lock.verdicts);
       problems.push(...own);
       if (own.length === 0) {
-        writeLock(lockPath, dir, now);
+        writeLock(root, surface, lockPath, dir, now);
         problems.push(...lockLeftBehind(root, surface));
       }
       continue;
