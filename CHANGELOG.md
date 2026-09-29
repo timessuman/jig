@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.22.0 (2026-09-29)
+
+A spec and a mockup are checked before the owner says yes, a critique can wait,
+and `jig ship` is where nothing is optional.
 
 ### Added
 
