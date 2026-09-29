@@ -442,14 +442,38 @@ describe('init — interactive prompts (injected, no real stdin)', () => {
     writeFileSync(join(project, 'src', 'app.css'), ':root { --brand-color: #0F766E; }\n');
   });
 
-  it('asks exactly two questions when not --yes: confirm colour, then surface mapping', async () => {
+  it('asks exactly three questions when not --yes: confirm colour, surface mapping, when to critique', async () => {
     const questions: string[] = [];
     const prompt = async (q: string) => {
       questions.push(q);
       return '';
     };
     await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: NOOP_LOG });
-    expect(questions).toHaveLength(2);
+    expect(questions).toHaveLength(3);
+    expect(questions[2]).toMatch(/When should pages be critiqued\?/);
+  });
+
+  // The owner, on jig-site: a critique after every build slows the work. When
+  // pages are critiqued is how a project works, so it is asked with its setup,
+  // and page by page is the default: nothing is written, and each spec asks.
+  it('records when pages are critiqued, and writes nothing for page by page', async () => {
+    const answering = (last: string) => async (q: string) => (/critiqued/.test(q) ? last : '');
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt: answering('ship'), log: NOOP_LOG });
+    expect(JSON.parse(readFileSync(join(project, 'jig.config.json'), 'utf8')).critique).toBe('at-ship');
+    rmSync(join(project, 'jig.config.json'));
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt: answering(''), log: NOOP_LOG });
+    expect(JSON.parse(readFileSync(join(project, 'jig.config.json'), 'utf8')).critique).toBeUndefined();
+  });
+
+  // A merge rebuilt the file from `brand` and `surfaces` alone, and an
+  // `exempt` list the owner had written went with it, without a word.
+  it('keeps every key of an edited config it merges into', async () => {
+    writeFileSync(join(project, 'jig.config.json'), JSON.stringify({ surfaces: [{ match: '/', mode: 'editorial' }], exempt: ['src/og-card.tsx'], critique: 'each' }));
+    const prompt = async (q: string) => (/\[m\]erge|merge/i.test(q) ? 'm' : /critiqued/.test(q) ? 'ship' : '');
+    await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: false, prompt, log: NOOP_LOG });
+    const config = JSON.parse(readFileSync(join(project, 'jig.config.json'), 'utf8'));
+    expect(config.exempt).toEqual(['src/og-card.tsx']);
+    expect(config.critique).toBe('each');
   });
 
   it('accepts a user-provided hex override for the brand colour', async () => {

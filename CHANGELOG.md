@@ -35,10 +35,14 @@
   says `ready=yes`. It deploys nothing, and says what Jig does not check.
   Each page can say for itself when it is critiqued: `spec` asks, and writes
   `critique: each` or `critique: at-ship`, which wins over the project's
-  default.
+  default. `init` asks for that default when it sets the project up; page by
+  page, the default, writes nothing.
 
 ### Fixed
 
+- **`init` merging into an edited `jig.config.json` dropped its other keys.** It
+  rebuilt the file from `brand` and `surfaces`, so an `exempt` list was lost
+  without a word. A merge now keeps every key.
 - **A `/jig` command whose words hold a `<`** read as no command at all, so
   the gate judged a tweak as a builder editing verdicts. The session then wrote
   `verdicts.lock` by hand; the procedure now says the lock is the gate's alone.

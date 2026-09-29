@@ -564,8 +564,10 @@ judging early is one that sets up what later pages reuse, a header or a card: a
 finding in it found late is fixed in every page built on it.
 
 A `tweak` re-judges what its change could affect, and that can wait too when you
-say so. Add `"critique": "at-ship"` to `jig.config.json` to say it once for the
-project, and `critique: each` or `critique: at-ship` in a page's spec to say it
+say so. `init` asks when you set the project up, and writes
+`"critique": "each"` or `"critique": "at-ship"` to `jig.config.json` to say it once
+for the project (the default, page by page, writes nothing); on a project already
+set up, add the key yourself. Add `critique: each` or `critique: at-ship` in a page's spec to say it
 for that page: a header every page reuses judged each time, the chapters of a
 guide left for `ship`. `spec` asks you which, at the end of its questions, and
 says why now is worth it for a page others reuse. The spec wins where it says

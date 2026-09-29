@@ -54,10 +54,16 @@ the answer and the CLI is not. So, first:
    `editorial` for first-visit content, `product` for the signed-in app,
    `operator` for dense daily tools. State the mapping in one line and let them
    correct it.
-3. **Write `jig.config.json`** with those surfaces before running anything.
-   `init` reads an existing config and honours it — writing one mode file per
-   declared mode — so this is how a decision reaches the tokens.
-4. **Then run the command.**
+3. **Ask when pages should be critiqued**: after every build, left for
+   `{{command_prefix}}ship`, or decided page by page. Page by page is the default
+   and writes nothing; each spec then asks. The other two go in as
+   `"critique": "each"` or `"critique": "at-ship"`. It is how the owner works,
+   so it is asked here, not in `decide`.
+4. **Write `jig.config.json`** with those surfaces, and the critique answer,
+   before running anything. `init` reads an existing config and honours it —
+   writing one mode file per declared mode — so this is how a decision reaches
+   the tokens.
+5. **Then run the command.**
 
 Where there is genuinely one surface, say so and move on; the point is that the
 mode was chosen rather than defaulted into.
