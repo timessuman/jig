@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Rules for the prose a page ships.** The copy rules were written for
+  interface strings: a label, a button, an error. A docs chapter, a guide or a
+  blog post was held only to those, and a paragraph could claim a figure nobody
+  measured, open with "In today's rapidly changing world" and restate its
+  introduction as its conclusion, and pass. Nine rules now cover prose longer
+  than a paragraph (`I-148` to `I-156`): a claim with no source, a sentence
+  specific in sound and empty in fact, formula openers and closers, saying it
+  twice, a rhetorical shape on repeat, enthusiasm the content has not earned,
+  stacked hedges, emoji in headings, and structure imposed on the content.
+  Four more cover writing a person puts their name to, a blog post or a case
+  study (`I-157` to `I-160`): nothing only the author could say, no point of
+  view, an even rhythm, and a feeling named rather than shown.
+- **They judge the writing, never the writer.** A finding says the copy reads
+  as generic; it never says a model wrote it. Nothing is measured: rhythm and
+  voice have no number a check could hold, and a score would reward prose that
+  games it.
+- **`check` catches two of them.** `I-150` warns on a short list of formula
+  phrases ("it is important to note", "let's dive in", "in conclusion") in the
+  text a reader sees, and leaves a quotation alone. `I-155` warns on an emoji
+  in a Markdown page's heading; in markup, `A-05` already reports it.
+- **The copy checklist asks three more questions** (`L-06`): whether every
+  figure traces to a source, whether prose says something specific once, and
+  whether a long-form piece holds something only its author could say.
+
+### Changed
+
+- **Every page is owed a critique again.** A critique judges every rule, so one
+  written before these thirteen is incomplete, and `jig ship` lists each page
+  until it is critiqued on this release.
+
 ## 0.22.0 (2026-09-29)
 
 A spec and a mockup are checked before the owner says yes, a critique can wait,

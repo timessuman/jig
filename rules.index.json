@@ -1013,5 +1013,97 @@
     "severity": "warning",
     "since": "0.17.0",
     "pass": "screen"
+  },
+  {
+    "id": "I-148",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-149",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-150",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.23.0",
+    "detector": "formula-phrase",
+    "pass": "code"
+  },
+  {
+    "id": "I-151",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-152",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-153",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-154",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-155",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.23.0",
+    "detector": "heading-emoji"
+  },
+  {
+    "id": "I-156",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-157",
+    "bucket": "judgment",
+    "severity": "warning",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-158",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-159",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "I-160",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
   }
 ]

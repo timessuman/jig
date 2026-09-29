@@ -97,27 +97,34 @@ function indentedProse(source: string): string {
     .join('\n');
 }
 
+/**
+ * The text a reader of the page sees in this file, as spans that keep their
+ * offsets in `raw`. Markdown is the prose; markup keeps its text between tags
+ * and in a few attributes; a script keeps only what sits between two tags.
+ * Other copy detectors read the same spans, so they agree on what copy is.
+ */
+export function readerSpans(file: string, raw: string): Array<{ index: number; text: string }> {
+  const markdown = MARKDOWN.test(file);
+  const indented = INDENTED.test(file);
+  const masked = markdown
+    ? markdownProse(raw)
+    : indented
+      ? indentedProse(maskNonProse(raw))
+      : maskNonProse(raw);
+  const script = SCRIPT.test(file);
+  return markdown || indented
+    ? [{ index: 0, text: masked }]
+    : proseSpans(masked, !script).filter((span) => !script || !CODEY.test(span.text));
+}
+
 export const emDash: Detector = {
   name: 'em-dash',
   appliesTo: (file) => isReaderText(file),
   run(_source, file, ctx) {
-    const markdown = MARKDOWN.test(file);
-    const indented = INDENTED.test(file);
-    const masked = markdown
-      ? markdownProse(ctx.raw)
-      : indented
-        ? indentedProse(maskNonProse(ctx.raw))
-        : maskNonProse(ctx.raw);
     const starts = buildLineIndex(ctx.raw);
     const findings: Finding[] = [];
     const seen = new Set<number>();
-    // Markdown IS the prose. Markup keeps its text between tags and in a few
-    // attributes, so only those parts of it are read.
-    const script = SCRIPT.test(file);
-    const spans = markdown || indented
-      ? [{ index: 0, text: masked }]
-      : proseSpans(masked, !script).filter((span) => !script || !CODEY.test(span.text));
-    for (const span of spans) {
+    for (const span of readerSpans(file, ctx.raw)) {
       if (!EM_DASH.test(span.text)) continue;
       for (const hit of span.text.matchAll(/\u2014/g)) {
         const line = lineForOffset(starts, span.index + hit.index!);

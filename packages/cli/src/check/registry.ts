@@ -16,6 +16,7 @@ import { safeArea } from './detectors/safe-area.js';
 import { menuState } from './detectors/menu-state.js';
 import { undeclaredToken } from './detectors/undeclared-token.js';
 import { emDash } from './detectors/em-dash.js';
+import { formulaPhrase, headingEmoji } from './detectors/prose.js';
 import { semanticElement } from './detectors/semantic-element.js';
 import { metadata } from './detectors/metadata.js';
 import { interfaceSafety } from './detectors/interface-safety.js';
@@ -45,6 +46,8 @@ const DETECTORS: Detector[] = [
   menuState,
   undeclaredToken,
   emDash,
+  formulaPhrase,
+  headingEmoji,
   semanticElement,
   metadata,
   interfaceSafety,

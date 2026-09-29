@@ -9,7 +9,7 @@ Before generating or reviewing any UI in this repository:
    It is a procedure, not a component, so step 4 never selects it and nothing
    else will. (`explain L-01` prints it too, but the file is the source.)
 4. Load the relevant section of `03-patterns.md` for the component being built.
-4b. Load `05-copy.md` whenever you write a label, button, heading, error or empty state.
+4b. Load `05-copy.md` whenever you write a label, button, heading, error or empty state, or prose a page ships (docs, a guide, a blog post).
 5. Consume tokens by semantic name only (`--color-fg`, not `--color-neutral-900`). Never write a raw colour or pixel value at the call site.
 6. Run the self-check `L-04` at the end of `00-anti-patterns.md` before finishing.
 7. Cite any rule you deliberately break, with the reason, in one line.
