@@ -10,7 +10,7 @@ import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
 import { decisionsFile, quoteHeld, quotesNotFrom, unsourcedReasons } from '../check/decisions.js';
-import { critiqueAtShip, ship } from './ship.js';
+import { critiqueAtShip, pageChecksum, ship } from './ship.js';
 import { mockupPending, mockupWordProblems, specCheckProblems } from '../check/spec-checked.js';
 import { checksum } from '../install/manifest.js';
 import { recordedPage } from '../probe/save.js';
@@ -826,7 +826,7 @@ function verdictDigests(dir: string): Record<string, string> {
 function writeLock(root: string, surface: string, lockPath: string, dir: string, now: string): void {
   const pageFile = recordedPage(root, surface);
   let page: { file: string; checksum: string } | undefined;
-  try { if (pageFile) page = { file: pageFile, checksum: checksum(readFileSync(join(root, pageFile), 'utf8')) }; } catch { /* page gone: record none */ }
+  try { if (pageFile) page = { file: pageFile, checksum: pageChecksum(readFileSync(join(root, pageFile), 'utf8')) }; } catch { /* page gone: record none */ }
   // And the tweak it saw, so a re-judge that tweak deferred reads as settled
   // once a critique or a later tweak has judged the page.
   const tweakAt = readTweak(dir)?.at;

@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gate } from '../src/commands/gate.js';
-import { ship } from '../src/commands/ship.js';
+import { pageChecksum, ship } from '../src/commands/ship.js';
 import { specProblems } from '../src/check/spec-shape.js';
 import { checksum } from '../src/install/manifest.js';
 import { repoRoot } from './helpers/registered-commands.js';
@@ -102,6 +102,19 @@ describe('jig ship', () => {
     mkdirSync(join(root, 'dist'), { recursive: true });
     writeFileSync(join(root, 'dist', 'pricing.html'), '<main>after the tweak</main>');
     writeFileSync(join(dir('pricing'), 'verdicts.lock'), JSON.stringify({ checksum: 'x', verdicts: {}, page: { file: 'dist/pricing.html', checksum: checksum('<main>before</main>') } }));
+    expect(state().report).toMatch(/✗ pricing: dist\/pricing\.html changed after it was judged/);
+  });
+
+  // jig-site: one page's new classes renamed the shared stylesheet, and every
+  // page read as changed since it was judged.
+  it('reads a page whose only change is an asset name as judged', () => {
+    critiqued('pricing');
+    mkdirSync(join(root, 'dist'), { recursive: true });
+    const page = (css: string) => `<link rel="stylesheet" href="/_astro/${css}.css"><main>judged</main>`;
+    writeFileSync(join(root, 'dist', 'pricing.html'), page('base.Dh1WGOR'));
+    writeFileSync(join(dir('pricing'), 'verdicts.lock'), JSON.stringify({ checksum: 'x', verdicts: {}, page: { file: 'dist/pricing.html', checksum: pageChecksum(page('base.ce6revOR')) } }));
+    expect(state().report).toMatch(/✓ pricing: judged as it stands/);
+    writeFileSync(join(root, 'dist', 'pricing.html'), page('base.Dh1WGOR').replace('judged', 'reworded'));
     expect(state().report).toMatch(/✗ pricing: dist\/pricing\.html changed after it was judged/);
   });
 

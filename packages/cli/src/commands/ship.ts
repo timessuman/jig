@@ -20,7 +20,7 @@ import { checksum } from '../install/manifest.js';
  * than it is.
  */
 
-export type PageState = 'judged' | 'never' | 'changed' | 'deferred' | 'incomplete' | 'findings' | 'in-progress';
+export type PageState = 'judged' | 'never' | 'changed' | 'reprobe' | 'deferred' | 'incomplete' | 'findings' | 'in-progress';
 
 export interface PageStatus {
   surface: string;
@@ -73,6 +73,17 @@ function tweakDeferred(dir: string): boolean {
   return judged !== t.at;
 }
 
+/**
+ * A page's checksum, with the names of the stylesheets and scripts it loads
+ * left out. A bundler names them by their contents, so on jig-site one page's
+ * new classes renamed the shared stylesheet and every page on the site read as
+ * changed since it was judged. Which assets a page loads still counts; what
+ * they are called does not. A change to them is a re-probe, not a critique.
+ */
+export function pageChecksum(html: string): string {
+  return checksum(html.replace(/(href|src)="[^"]*\.(css|js|mjs)(\?[^"]*)?"/g, '$1="asset.$2"'));
+}
+
 /** The page a critique's lock says it judged, and whether that page has changed since. */
 function changedSinceLock(projectRoot: string, dir: string): string | undefined {
   let lock: { page?: { file?: string; checksum?: string } };
@@ -80,7 +91,9 @@ function changedSinceLock(projectRoot: string, dir: string): string | undefined 
   const file = lock.page?.file;
   if (!file || !lock.page?.checksum) return undefined;
   try {
-    return checksum(readFileSync(join(projectRoot, file), 'utf8')) !== lock.page.checksum ? file : undefined;
+    const html = readFileSync(join(projectRoot, file), 'utf8');
+    // A lock written before asset names were left out holds the raw checksum.
+    return pageChecksum(html) !== lock.page.checksum && checksum(html) !== lock.page.checksum ? file : undefined;
   } catch {
     return undefined;
   }
@@ -101,7 +114,10 @@ export function pageStatus(projectRoot: string, surface: string): PageStatus {
   if (changed) return { surface, state: 'changed', detail: `${changed} changed after it was judged` };
   const v = verifyVerdicts({ projectRoot, surface });
   const stale = v.errors.find((e) => /was taken (on|by) an older/.test(e));
-  if (stale) return { surface, state: 'changed', detail: 'the page changed after its probes were taken' };
+  let judgedPage = false;
+  try { judgedPage = !!JSON.parse(readFileSync(join(dir, 'verdicts.lock'), 'utf8')).page?.checksum; } catch { /* no lock */ }
+  if (stale && !judgedPage) return { surface, state: 'changed', detail: 'the page changed after its probes were taken' };
+  if (stale) return { surface, state: 'reprobe', detail: `its page is as judged, but the styles or scripts it loads changed: re-probe it (\`jig verdicts ${surface} --reprobe\`)` };
   if (!v.ok) return { surface, state: 'incomplete', detail: `its critique is not complete: ${v.errors[0]}` };
   const findings = v.screen.findings + v.code.findings + v.decisions.findings;
   if (findings > 0) return { surface, state: 'findings', detail: `${findings} finding${findings === 1 ? '' : 's'} the owner has not ruled on` };
@@ -127,7 +143,7 @@ export function ship(opts: { projectRoot: string; version: string }): ShipResult
   const line =
     `JIG_SHIP: ready=${ready ? 'yes' : 'no'} mechanical=${mechanicalErrors} seo=${seoErrors} pages=${pages.length} ` +
     `judged=${count('judged')} owed=${owed.length} in-progress=${count('in-progress')}`;
-  const mark: Record<PageState, string> = { judged: '✓', never: '✗', changed: '✗', deferred: '✗', incomplete: '✗', findings: '✗', 'in-progress': '·' };
+  const mark: Record<PageState, string> = { judged: '✓', never: '✗', changed: '✗', reprobe: '✗', deferred: '✗', incomplete: '✗', findings: '✗', 'in-progress': '·' };
   const report = [
     `  ${mechanicalErrors === 0 ? '✓' : '✗'} check --all --ci: ${mechanicalErrors} mechanical error${mechanicalErrors === 1 ? '' : 's'}`,
     `  ${seoErrors === 0 ? '✓' : '✗'} seo: ${seoErrors} error${seoErrors === 1 ? '' : 's'}`,
