@@ -33,7 +33,7 @@
   `jig ship` runs `check --all --ci` and `seo` and names every confirmed page
   that owes a critique; `/jig ship` critiques each in full and runs until it
   says `ready=yes`. It deploys nothing, and says what Jig does not check.
-  Each page can say for itself when it is critiqued: `spec` asks, and writes
+  Each page can say for itself when it is critiqued: `spec` asks, last, and writes
   `critique: each` or `critique: at-ship`, which wins over the project's
   default. `init` asks for that default when it sets the project up; page by
   page, the default, writes nothing.
