@@ -1433,6 +1433,13 @@ When a `critique` or `tweak` session stops, the gate records its verdicts in
 if your verdicts are committed it stops you once more to commit the lock on its
 own; the next stop passes.
 
+**The lock is the gate's to write, never yours.** When the gate is wrong (it
+misreads the session, or asks for something the procedure does not), say what it
+got wrong, leave the lock as it is, and report the work as held by the gate. On
+jig-site the gate misread a tweak as no command at all, and the session computed
+the lock by hand and committed it. The lock was right that time, and a lock an
+agent can write is still a record of nothing.
+
 It judges the critiques this session touched: any with a file changed since the
 session began, and the current spec's surface when you ran `critique`. Another
 page's older critique does not hold you back. To set a critique aside for good,

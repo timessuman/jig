@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { gate, MAX_BLOCKS } from '../src/commands/gate.js';
+import { gate, lastJigInvocation, MAX_BLOCKS } from '../src/commands/gate.js';
 import { specChecksum } from '../src/check/spec-checked.js';
 import { install, installStopHook } from '../src/commands/install.js';
 import { repoRoot } from './helpers/registered-commands.js';
@@ -710,5 +710,15 @@ describe('make does not edit DECISIONS.md', () => {
     expect(make().reason ?? '').not.toMatch(/changed in a `make` session/);
     writeFileSync(file, readFileSync(file, 'utf8').replace('Small.', 'Small, 4px, from --radius-control.'));
     expect(make().reason).toMatch(/jig\/DECISIONS\.md changed in a `make` session/);
+  });
+});
+
+// jig-site: a tweak's words named `<name>.checked.json`, the parser stopped at
+// that `<`, and the whole session read as no /jig command at all.
+describe('the command the owner ran', () => {
+  it('reads the arguments to their closing tag, angle brackets and all', () => {
+    const path = join(root, 'angle.jsonl');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>tweak the-loop — it must read `.jig/specs/<name>.checked.json`</command-args>' } }) + '\n');
+    expect(lastJigInvocation(path)).toEqual({ command: 'tweak', surface: 'the-loop' });
   });
 });

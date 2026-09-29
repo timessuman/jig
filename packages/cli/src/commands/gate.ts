@@ -89,7 +89,10 @@ export function lastJigInvocation(transcriptPath: string | undefined): { command
       ? content.filter((b): b is { type: string; text: string } => b?.type === 'text' && typeof b.text === 'string').map((b) => b.text)
       : [];
     for (const t of texts) {
-      const args = /<command-name>\/?jig<\/command-name>[\s\S]{0,200}?<command-args>([^<]*)<\/command-args>/.exec(t)?.[1]
+      // Up to the closing tag, not the first `<`: on jig-site a tweak's words
+      // named `<name>.checked.json`, the command read as none, and the session
+      // went on without the gate knowing it was a tweak.
+      const args = /<command-name>\/?jig<\/command-name>[\s\S]{0,200}?<command-args>([\s\S]*?)<\/command-args>/.exec(t)?.[1]
         ?? /^\s*\/jig\s+([^\n]*)/.exec(t)?.[1];
       const [command, surface] = (args ?? '').trim().split(/\s+/);
       if (command && /^[a-z]+$/i.test(command)) found = { command: command.toLowerCase(), ...(surface && /^[\w.-]+$/.test(surface) ? { surface } : {}) };
