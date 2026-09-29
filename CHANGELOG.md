@@ -30,6 +30,15 @@
 
 ### Changed
 
+- **A critique reads the page against the spec, not only the spec against the
+  page.** A section, a paragraph or a claim the page carries that no line of the
+  spec asks for, and no deviation records, is now a finding. On jig-site a
+  chapter carried an accurate paragraph the owner never confirmed, and two
+  critiques saw it and filed nothing, because it broke no rule. The fix is a
+  tweak that writes it into the spec for the owner to confirm, or removes it.
+- **Each critique arm is told the shape of a `ruled` verdict.** An arm wrote
+  four that named the owner's decision only in their reason, and `verdicts`
+  refused them all.
 - **Every page is owed a critique again.** A critique judges every rule, so one
   written before these thirteen is incomplete, and `jig ship` lists each page
   until it is critiqued on this release.
