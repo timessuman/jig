@@ -60,6 +60,31 @@ describe('jig verdicts judges the project decisions too', () => {
     expect(r.line).toMatch(/findings=1/);
   });
 
+  // jig-site: an arm marked a decision `ruled`, which is a rule's verdict.
+  it('explains that a decision is judged, never ruled', () => {
+    write('decisions.json', { verdicts: [
+      { decision: 'Voice', verdict: 'ruled', reason: 'the owner decided it' },
+      { decision: 'Trial and onboarding', verdict: 'ok', reason: 'no trial language anywhere on the page' },
+    ] });
+    expect(run().errors.join('\n')).toMatch(/"Voice" is marked ruled\. A decision is not excused by a decision/);
+  });
+
+  // jig-site: both arms invented ids to carry a page's drift from its source.
+  it('counts a difference from the spec or a source as a finding, and points an invented id at it', () => {
+    write('decisions.json', { verdicts: [
+      { decision: 'Voice', verdict: 'ok', reason: 'lowercase throughout the page' },
+      { decision: 'Trial and onboarding', verdict: 'ok', reason: 'no trial language anywhere on the page' },
+    ] });
+    write('code.json', { verdicts: ids('code'), differences: [
+      { what: 'the checklist gives nine checks', where: 'src/pages/guide.astro:245', against: 'README.md, Before you confirm a spec: ten' },
+    ] });
+    expect(run().line).toMatch(/findings=1/);
+    write('code.json', { verdicts: ids('code'), differences: [{ what: 'nine checks' }] });
+    expect(run().errors.join('\n')).toMatch(/a difference needs `what`/);
+    write('code.json', { verdicts: [...ids('code'), { id: 'page-vs-corpus-1', verdict: 'finding', reason: 'nine checks, not ten' }] });
+    expect(run().errors.join('\n')).toMatch(/is not a rule: list it under `differences`/);
+  });
+
   it('names a decision left unjudged', () => {
     write('decisions.json', { verdicts: [{ decision: 'Voice', verdict: 'ok', reason: 'lowercase throughout' }] });
     expect(run().errors.join('\n')).toMatch(/1 of 2 decisions have no verdict: Trial and onboarding/);

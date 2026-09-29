@@ -1,5 +1,89 @@
 # Changelog
 
+## 0.23.0 (2026-09-29)
+
+Rules for the prose a page ships and for how it moves, a spec that says what
+moves and why, and a critique that reads the page against its spec both ways.
+
+### Added
+
+- **Rules for the prose a page ships.** The copy rules were written for
+  interface strings: a label, a button, an error. A docs chapter, a guide or a
+  blog post was held only to those, and a paragraph could claim a figure nobody
+  measured, open with "In today's rapidly changing world" and restate its
+  introduction as its conclusion, and pass. Nine rules now cover prose longer
+  than a paragraph (`I-148` to `I-156`): a claim with no source, a sentence
+  specific in sound and empty in fact, formula openers and closers, saying it
+  twice, a rhetorical shape on repeat, enthusiasm the content has not earned,
+  stacked hedges, emoji in headings, and structure imposed on the content.
+  Four more cover writing a person puts their name to, a blog post or a case
+  study (`I-157` to `I-160`): nothing only the author could say, no point of
+  view, an even rhythm, and a feeling named rather than shown.
+- **They judge the writing, never the writer.** A finding says the copy reads
+  as generic; it never says a model wrote it. Nothing is measured: rhythm and
+  voice have no number a check could hold, and a score would reward prose that
+  games it.
+- **`check` catches two of them.** `I-150` warns on a short list of formula
+  phrases ("it is important to note", "let's dive in", "in conclusion") in the
+  text a reader sees, and leaves a quotation alone. `I-155` warns on an emoji
+  in a Markdown page's heading; in markup, `A-05` already reports it.
+- **The copy checklist asks three more questions** (`L-06`): whether every
+  figure traces to a source, whether prose says something specific once, and
+  whether a long-form piece holds something only its author could say.
+
+- **Three motion rules.** `G-161`: a layout change the user caused shows
+  where things went (a deleted row's neighbours slide into the gap) rather than
+  jumping, and stays instant when the user did not cause it. `G-162`: animate
+  `transform` and `opacity`, never layout, and never `all`; `check` warns on a
+  transition or keyframe that names a layout property or `all`, and on
+  Tailwind's `transition-all`. `G-163`: one thing moves at a time. Moving
+  within the screen takes `--ease-in-out` (`T-04`). No new tokens.
+- **A spec says what moves, and why.** `motion:` lists each movement: what
+  moves, its trigger, and what it tells the reader. One that cannot say is cut
+  before it is built. The owner reads it on the confirmation sheet, `make`
+  builds that motion and no other, and `critique` judges the page against it.
+  A spec confirmed before it has none, and is judged by the rules alone.
+
+### Changed
+
+- **A critique reads the page against the spec, not only the spec against the
+  page.** A section, a paragraph or a claim the page carries that no line of the
+  spec asks for, and no deviation records, is now a finding. On jig-site a
+  chapter carried an accurate paragraph the owner never confirmed, and two
+  critiques saw it and filed nothing, because it broke no rule. The fix is a
+  tweak that writes it into the spec for the owner to confirm, or removes it.
+- **Each critique arm is told the shape of a `ruled` verdict.** An arm wrote
+  four that named the owner's decision only in their reason, and `verdicts`
+  refused them all.
+- **A CLI run from a checkout reads the checkout's rules.** `prepack` copies the
+  rules beside the CLI package for each publish, and the copies stayed behind:
+  a clone that had published read the rules as they were then, and Jig's own
+  first test run after each rule change failed 14 tests. An installed package
+  still reads its own copies.
+- **`jig ship` leaves a replaced spec to the spec that replaced it.**
+  `superseded_by: <spec>` in a spec's front matter marks it, and `ship` reports
+  it apart instead of as never critiqued, once it has checked the spec it names
+  exists. On jig-site two replaced specs were owed a critique at every `ship`,
+  each marked a different way by the agent that replaced it.
+- **A tweak that records a decision applies it to the whole page.** The owner
+  rules on one instance, and the decision states a kind; the tweak now finds the
+  other instances on the page and fixes them in the same change. On jig-site a
+  decision to set every quotation mark curly fixed the one named, and four
+  straight marks survived to the next critique.
+- **A spec's second check covers what changed.** The reader gets the earlier
+  record and the diff; a quotation or fact on an unchanged line, whose source
+  has not changed either, carries over. On jig-site every re-check reopened
+  every source, about $10 a round.
+- **A critique has a place for what no rule names.** A difference between the
+  page and its spec, or a source it teaches, goes under `differences` in the
+  arm's verdict file and counts as a finding. On jig-site both arms of one
+  critique invented rule ids to carry one, and `verdicts` refused them. The
+  report now says what the page-against-spec pass found, "none" included, and
+  `verdicts` explains that a decision is judged, never `ruled`.
+- **Every page is owed a critique again.** A critique judges every rule, so one
+  written before these sixteen is incomplete, and `jig ship` lists each page
+  until it is critiqued on this release.
+
 ## 0.22.0 (2026-09-29)
 
 A spec and a mockup are checked before the owner says yes, a critique can wait,

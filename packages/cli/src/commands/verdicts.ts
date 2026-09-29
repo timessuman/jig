@@ -197,7 +197,7 @@ function checkArm(
         ? `${name}.json: ${id} is a mechanical rule — \`jig check\` decides it, so it has no verdict here. Remove it.`
         : pass
         ? `${name}.json: ${id} is a pass: ${pass} rule — it belongs to the other arm.`
-        : `${name}.json: ${written} is not a rule or spec in this corpus. Run \`jig explain ${written}\`; an id that does not resolve is not a verdict.`);
+        : `${name}.json: ${written} is not a rule or spec in this corpus. Run \`jig explain ${written}\`; an id that does not resolve is not a verdict. A difference from the spec, or from a source the page quotes, is not a rule: list it under \`differences\` in the same file.`);
       continue;
     }
     if (typeof v.verdict !== 'string' || !RULE_VERDICTS.includes(v.verdict)) {
@@ -218,6 +218,21 @@ function checkArm(
     if (v.verdict === 'finding') findings++;
   }
   reasonProblems(`${name}.json`, reasons, errors);
+
+  // What no rule names: the page against its spec, or against a source it
+  // quotes. On jig-site both arms of one critique invented ids to carry these
+  // (`page-vs-corpus-1`), and the parent had to move them into its report by
+  // hand. Each counts as a finding until it is fixed or ruled on.
+  const differences = (file as { differences?: unknown }).differences;
+  if (differences !== undefined) {
+    if (!Array.isArray(differences)) errors.push(`${name}.json: \`differences\` is not a list.`);
+    else for (const d of differences as Array<{ what?: unknown; where?: unknown; against?: unknown }>) {
+      const said = (x: unknown) => typeof x === 'string' && x.trim() !== '';
+      if (!said(d?.what) || !said(d?.where) || !said(d?.against)) {
+        errors.push(`${name}.json: a difference needs \`what\` (what differs), \`where\` (the page's file and line) and \`against\` (the spec line or source it differs from).`);
+      } else findings++;
+    }
+  }
 
   const missing = [...required, ...extraRequired].filter((id) => !seen.has(id));
   if (missing.length) {
@@ -264,7 +279,9 @@ function checkDecisions(projectRoot: string, dir: string, errors: string[]): Arm
     if (seen.has(match)) { errors.push(`decisions.json: "${match}" is judged more than once.`); continue; }
     seen.add(match);
     if (typeof v.verdict !== 'string' || !VERDICTS.includes(v.verdict)) {
-      errors.push(`decisions.json: "${match}" has verdict ${JSON.stringify(v.verdict)} — it must be ok, finding or n/a.`);
+      errors.push(v.verdict === 'ruled'
+        ? `decisions.json: "${match}" is marked ruled. A decision is not excused by a decision: judge whether the page follows it, ok, finding or n/a. \`ruled\` is for a rule in screen.json or code.json that a decision overrides.`
+        : `decisions.json: "${match}" has verdict ${JSON.stringify(v.verdict)} — it must be ok, finding or n/a.`);
       continue;
     }
     const reason = typeof v.reason === 'string' ? v.reason.trim() : '';

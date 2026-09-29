@@ -590,6 +590,25 @@ A pulse says "look here, something is happening". On a status that has not chang
 
 **Scope: this is about motion that answers an input or carries a state change.** It is not a ceiling on every animation on the page. Slow decorative looping motion — see `P-13` — runs for seconds by design, and is not covered here. The reason the two differ is the reason the numbers differ: interaction motion sits between the user and their task, so it must get out of the way; ambient motion is never in the way, so speed would only make it noticeable.
 
+### G-161 A layout change that jumps
+❌ A row deleted, and the rows below snap up into the gap in one frame. A filter applied, and the grid reshuffles with nothing to follow. A card opened into its detail view, with nothing connecting the two.
+✅ When the user's own action moves things, show where they went. The rows below slide up into the gap. Items that stay keep their identity and move to their new place; items that go fade out where they stood. A card grows into its detail view (`view-transition-name` on both, where the browser has View Transitions). Moves within the screen take `--ease-in-out` and `--duration-base`; a whole view changing, `--duration-slow`.
+A jump makes the user find their place again, and they cannot tell a row that moved from a row that changed. The move answers "where did it go?" before they have to ask.
+**Keep it instant** when the user did not cause the change: a live table updating under someone's pointer must not slide the row they were about to click. Also when most of the view changes at once, since a cut is clearer than twenty moves. Under reduced motion the change is instant, and focus or a live region says where things went (`G-43`).
+Technique, for a layout change CSS cannot transition: record each item's position before the change, apply it, then animate each item's `transform` from the old position to zero (first, last, invert, play). Never animate the layout properties themselves (`G-162`).
+
+### G-162 Animating layout, or everything
+❌ `transition: height 200ms`, `transition: all 150ms`, a keyframe that moves `top` or `margin-left`, Tailwind's `transition-all`
+✅ Animate `transform` and `opacity`. To move, `translate`; to grow, `scale` or a clip; to appear, `opacity`. Name the properties a transition covers: `transition: opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)`.
+`width`, `height`, `margin`, `padding`, `top`, `left` and their kin change layout, so the browser works out the position of everything around the element again on every frame, and on a slow phone the motion stutters. `transform` and `opacity` do not move anything else. `all` animates every property that changes, including a layout one someone adds next month, and nobody reading the rule can tell which.
+**One accepted case:** a disclosure opening to its content's height (`P-11`). Animate `grid-template-rows` from `0fr` to `1fr` on a wrapper, which the detector does not flag, or write the `height` transition with `<!-- jig-allow G-162: a disclosure grows to its content -->`.
+The detector warns on `transition` or `transition-property` naming `all` or a layout property; a keyframe step setting one; Tailwind's `transition-all` and `transition-[<layout property>]`. `P-13`'s "Animate `transform` and `opacity`" becomes a pointer here.
+
+### G-163 Several things moving at once
+❌ A hero with a drifting gradient, a bouncing scroll arrow, a logo ticker and a pulsing "New" badge, all running together.
+✅ At a time, one thing moves: the one the user caused, or the one they need to notice now. Things that move as one count as one: a list reordering, `P-13`'s ambient layers on one surface.
+Motion is the strongest pull on the eye a page has. Two things moving split it; four make the page restless, and the one that matters (a saved state, an error arriving) competes with decoration and loses. `G-145` is the one-dot case of this rule.
+
 ---
 
 ## H. Code-level

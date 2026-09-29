@@ -48,6 +48,21 @@ export function specProblems(spec: { path: string; body: string }): string[] {
   if (critique !== undefined && !/^(each|at-ship)$/i.test(critique)) {
     problems.push(`${spec.path}: \`critique: ${critique}\` is neither \`each\` nor \`at-ship\`. Leave it out to follow the project's default.`);
   }
+  // `motion:` is optional (a spec confirmed before it has none), and when it is
+  // there each movement says what triggers it and what it tells the reader:
+  // a movement that cannot say is cut, not built (`G-42`).
+  const motion = /^motion\s*:[ \t]*(.*)\n?((?:[ \t]+-.*\n?)*)/im.exec(front);
+  if (motion) {
+    const inline = motion[1]!.replace(/\s+#.*$/, '').trim();
+    const items = motion[2]!.split('\n').map((l) => l.replace(/^[ \t]+-\s*/, '').trim()).filter(Boolean);
+    if (!items.length && !/^none$/i.test(inline)) {
+      problems.push(`${spec.path}: \`motion:\` is neither \`none\` nor a list. List each movement as \`- <what moves>: <how>, on <trigger>; tells <what the reader learns>\`, or write \`motion: none\`.`);
+    }
+    const unsaid = items.filter((i) => !/\bon\b/i.test(i) || !/\btells?\b/i.test(i));
+    if (unsaid.length) {
+      problems.push(`${spec.path}: ${unsaid.length === 1 ? 'a movement in `motion:` does' : `${unsaid.length} movements in \`motion:\` do`} not say what triggers it and what it tells the reader ("${unsaid[0]}"). Write \`on <trigger>; tells <what>\`, or cut the movement.`);
+    }
+  }
   for (const field of ['feature', 'surface', 'mode', 'sizes', 'confirmed', 'mockup']) {
     if (!has(field)) problems.push(`${spec.path} frontmatter has no \`${field}:\`.`);
   }

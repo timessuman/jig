@@ -279,7 +279,11 @@ export function explain(opts: ExplainOptions): string {
   const idBody = ids.filter((e) => !idTitle.includes(e) && matches(e.text, needle));
   const secTitle = secs.filter((e) => matches(e.title, needle));
   const secBody = secs.filter((e) => !secTitle.includes(e) && matches(e.text, needle));
-  const hits = [...idTitle.sort((a, b) => byNumber(a.id, b.id)),
+  // A title that opens with the word is about it; one that only mentions it
+  // ("A layout change that jumps") comes after, so `layout` still leads with
+  // the layout method.
+  const opens = (e: { title: string }) => (e.title.toLowerCase().startsWith(needle.toLowerCase()) ? 0 : 1);
+  const hits = [...idTitle.sort((a, b) => opens(a) - opens(b) || byNumber(a.id, b.id)),
                 ...idBody.sort((a, b) => byNumber(a.id, b.id)),
                 ...secTitle, ...secBody];
 

@@ -369,6 +369,8 @@ sizes:                     # phone first. Each size is a whole composition, not 
     why: "content is capped at 1200px, so 1600 adds margin and nothing else"
 switches: none             # the recorded switches (--breakpoint-*, T-04) this page crosses, by name; none if it crosses none. Absent, the mockup draws either side of every one
 states: [default, loading, error, success]
+motion:                    # every movement the page has, or `none`: what moves, on its trigger; tells what
+  - deleted row: rows below slide into the gap, on delete; tells where the list went
 decisions: [The Engineer Reads First]     # every DECISIONS.md entry this screen implements, by name
 later: [social sign-in, remember this device]   # cut from V1, by name — the next specs start here
 indexable: true            # from the mode — editorial yes, product/operator no. Say why when you override it.
@@ -378,11 +380,19 @@ mockup: pending            # approved or skipped, quoting the user: approved by 
 mockup_at:                 # where the approved drawing is: a .jig/mockups path, or a Figma or Stitch link
 deviations: []             # `make` writes here; `spec` leaves it empty
 critique: each             # optional: each, or at-ship; left out, the project's default in {{config_file}}
+# superseded_by: reference.spec.md   # only when another spec replaces this one; `ship` then leaves this page to that spec's critique
 ---
 ```
 
 - **`phone` is written first, and in full.** It is the most common screen, and the
   one a derived composition fails on worst.
+- **`motion:` lists every movement, and why it moves.** Each names what moves, its
+  trigger, and what it tells the reader. The trigger is the user's input, a state
+  change, arrival (once per visitor, editorial only, `G-42`) or ambient (editorial
+  only, `P-13`). A movement that cannot say what it tells the reader is cut here,
+  before it is built. Write it from the composition; it is not a question for the
+  owner, who reads it on the sheet beside `states:`. A page with nothing moving
+  says `none`.
 - **`indexable:`, `title:` and `description:` are copy, decided here.** The mode
   sets the default — `editorial` is first-visit content and is indexable,
   `product` and `operator` are what somebody reaches after signing in and are
@@ -521,7 +531,15 @@ not your summary of what the owner meant. It writes
   touches.
 
 Fix what it found, then have the spec checked again: the record is of the spec
-you show, and the gate compares its `spec` checksum to the file. **If you cannot
+you show, and the gate compares its `spec` checksum to the file.
+
+**A second check covers what changed, not the whole spec again.** Give the
+reader the earlier record and the spec's diff since it. A quotation or fact whose
+line did not change, and whose source has not changed since (`git diff` on that
+file), carries over as recorded; the reader checks the changed lines, the new
+ones, and any fact whose source moved. It still writes the whole record, with
+the new checksum. On jig-site each re-check opened every source again, about $10
+a round, to confirm facts on lines nobody had touched. **If you cannot
 delegate, write the record yourself, with `"reader": "the writer"` in it, and say
 in the confirmation message that nobody else checked the spec.** That is an
 honest gap the owner can close by reading more closely; a check you ran on your
@@ -536,6 +554,8 @@ Show the spec, and with it the sheet the owner checks it by, from
 - **Facts:** each claim and its source, the ones that could not be checked
   first.
 - **Copy the page will show as written.**
+- **What moves:** each line of `motion:`, with its trigger and what it tells
+  the reader, or that nothing moves.
 - **Your conditions**, beside the lines that carry them.
 - **Left for you:** the `open` items, which they can decide now.
 
@@ -896,6 +916,10 @@ indexable carries `noindex` instead, from its own metadata rather than from
 Then the ordinary rules apply: tokens by semantic name, the relevant
 `03-patterns.md` section for each component, `05-copy.md` for every string.
 
+**Build the motion `motion:` lists, and no other.** A movement the spec does not
+list is a deviation, recorded below like any other. A spec with no `motion:`
+(one confirmed before it existed) leaves motion to the `G-` rules alone.
+
 ### Record what you changed
 
 Building reveals that a spec was wrong somewhere — that is normal and expected.
@@ -1060,7 +1084,11 @@ owner ruled icon-only, a menu the owner put at every phone width. The verdict
 names that decision in `ruling`, exactly as its heading reads, and `verdicts`
 refuses a `ruled` with no ruling or with one the file does not hold. A ruled
 verdict is reported, and counted apart (`ruled=`); it is not a finding, and it
-does not go back to `make`, which could only leave it as it is. On jig-site a
+does not go back to `make`, which could only leave it as it is. **Put the field
+in each arm's brief, with its shape:** `{ "id": …, "verdict": "ruled", "ruling":
+"<the decision's heading>", "reason": … }`. On jig-site an arm wrote four ruled
+verdicts that named the decision only in `reason`, `verdicts` refused all four,
+and the parent had to write the field into a file it was not to edit. On jig-site a
 header critique counted 15 findings, five of them rulings labelled "owner-ruled"
 in prose: every count was inflated, and the real findings were harder to see.
 A rule the page breaks with no decision behind it is a `finding`, however sure
@@ -1129,11 +1157,21 @@ Each reader arm writes its own file. The arm reports back only that it wrote it.
     { "id": "P-14", "verdict": "finding", "reason": "menu button at 360 does not open; aria-expanded never set" },
     { "id": "A-60", "verdict": "n/a", "reason": "A-60 is about competing icons; this page has none" },
     { "id": "E-51", "verdict": "ruled", "ruling": "The theme toggle is icon-only", "reason": "the toggle shows only a sun or a moon; the owner ruled it icon-only" }
+  ],
+  "differences": [
+    { "what": "the checklist gives nine checks", "where": "src/pages/guide.astro:245", "against": "README.md, 'Before you confirm a spec': ten" }
   ]
 }
 ```
 
 `screen.json` carries `rendered` and `artefacts`; `code.json` needs only `verdicts`.
+**`differences` holds what no rule names:** the page against its spec (step 3),
+or against a source it quotes or teaches. Each counts as a finding. Never carry
+one as a verdict under an id you made up: `verdicts` refuses an id the corpus
+does not hold, and on jig-site both arms of one critique invented one
+(`page-vs-corpus-1`), which the parent then had to move by hand. `ruled` is for a
+rule a decision overrides; a decision in `decisions.json` is judged `ok`,
+`finding` or `n/a`, never ruled.
 
 **And the project's own decisions, one verdict each**, in
 `.jig/critique/<surface>/decisions.json`:
@@ -1280,6 +1318,26 @@ grouped with what, what stacks or moves on the phone. Not the colour, type or
 polish: the mockup is grayscale and low-fidelity on purpose, so its appearance is
 not a target.
 
+**Motion, against `motion:`.** Each movement on the page is judged against its
+line: one the spec does not list is a `G-42` finding, and one that tells the
+reader something other than its line says is a finding under the rule it
+breaks. With no `motion:` in the spec, the `G-` rules alone judge it.
+
+**Then the other way: the page against the spec.** Each section, paragraph,
+control or claim the page carries that no line of the spec asks for is a
+difference too, however accurate it is. The owner confirmed the spec, not the
+page; content the spec never held is content they never approved, and every
+later tweak and critique works from a spec that no longer says what is there.
+On jig-site a chapter carried an accurate paragraph with no spec line and no
+deviation, and two critiques in a row saw it and filed nothing, because it broke
+no rule. Report it among the findings as a difference from the spec, naming the
+content and where it is: the fix is a tweak that writes it into the spec for the
+owner to confirm, or removes it.
+
+**Say in the report what each direction found**, "none" included: a report that
+does not mention the page-against-spec pass cannot be told apart from one that
+skipped it.
+
 A difference from either is a finding **unless** `deviations:` already explains it
 — that is what the recorded deviation is for. A difference explained by neither is
 the more serious finding, because it means the spec has quietly stopped describing
@@ -1410,6 +1468,15 @@ jig-site a tweak shown a picture of a copy button wrote an exception to `E-51`
 gave, which every later critique would have judged the page by. The gate stops a
 tweak whose new `**Why:**` quotes words tweak.json does not hold.
 
+**A decision you record or amend covers the whole page, not the one place it
+was raised.** The owner rules on an instance ("keep this apostrophe curly") and
+the decision states a kind ("every apostrophe, curly"). Before you build, look
+through the page, and the chrome it shares, for every other instance of that
+kind, and bring each one in line in the same change; name them in your report.
+On jig-site a tweak recorded "every apostrophe and quotation mark curly" and
+fixed the one apostrophe the critique had named; three straight ones and a pair
+of straight quotation marks on the same page survived to the next critique.
+
 ### 2. Bring the spec in line, if it disagrees
 
 If the spec says something the change contradicts, or the page will no longer
@@ -1482,7 +1549,10 @@ is owed a critique when it has none, when its page changed after it was judged,
 when a tweak deferred its re-judge, when its verdicts are incomplete, or when a
 finding stands that the owner has not ruled on. It prints each page's state and
 a `JIG_SHIP:` line, and exits non-zero until the project is ready. A spec that
-is not confirmed yet is in progress and not held against the ship.
+is not confirmed yet is in progress and not held against the ship. Nor is a spec
+another has replaced: `superseded_by: <spec>` in its front matter leaves its page
+to that spec's critique, and `ship` checks the spec it names exists. Write that
+line, in those words, when a spec is replaced; a marker of your own is not read.
 
 ### 2. Clear what it names
 

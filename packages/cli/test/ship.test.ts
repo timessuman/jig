@@ -77,6 +77,19 @@ describe('jig ship', () => {
     expect(r.line).toMatch(/JIG_SHIP: ready=no mechanical=0 seo=0 pages=1 judged=0 owed=1/);
   });
 
+  // jig-site listed two replaced specs as never critiqued at every ship.
+  it('owes nothing for a spec another replaced, and names the replacement', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'plans.spec.md'), spec().replace('confirmed: true', 'confirmed: true\nsuperseded_by: pricing.spec.md   # one page now'));
+    const r = state();
+    expect(r.report).toMatch(/· plans: superseded by pricing\.spec\.md/);
+    expect(r.line).toMatch(/owed=1 in-progress=0 superseded=1/);
+  });
+
+  it('holds a replacement that does not exist', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'plans.spec.md'), spec().replace('confirmed: true', 'confirmed: true\nsuperseded_by: gone'));
+    expect(state().report).toMatch(/✗ plans: `superseded_by: gone` names a spec that does not exist/);
+  });
+
   it('passes a page judged as it stands, and says what Jig does not check', () => {
     critiqued('pricing');
     const r = state();
@@ -225,5 +238,15 @@ describe('each page says when it is critiqued', () => {
     writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), withCritique('sometimes'));
     expect(specProblems({ path: '.jig/specs/pricing.spec.md', body: withCritique('sometimes') }).join(' ')).toMatch(/`critique: sometimes` is neither `each` nor `at-ship`/);
     expect(specProblems({ path: '.jig/specs/pricing.spec.md', body: withCritique('at-ship   # the chapters wait') }).join(' ')).not.toMatch(/critique:/);
+  });
+
+  // G-42: each movement on the page says what triggers it and what it tells.
+  it('holds a movement in `motion:` that gives no trigger or reason', () => {
+    const withMotion = (value: string) => spec().replace('confirmed: true', `confirmed: true\nmotion:${value}`);
+    const problems = (value: string) => specProblems({ path: '.jig/specs/pricing.spec.md', body: withMotion(value) }).join(' ');
+    expect(problems(' none')).not.toMatch(/motion/);
+    expect(problems('\n  - deleted row: rows below slide up, on delete; tells where the list went')).not.toMatch(/motion/);
+    expect(problems('\n  - hero: the gradient drifts')).toMatch(/does not say what triggers it/);
+    expect(problems(' sometimes')).toMatch(/neither `none` nor a list/);
   });
 });

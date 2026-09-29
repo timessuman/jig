@@ -22,12 +22,12 @@ import type { Detector, Finding } from '../types.js';
  * a comment does not fire — and the mask happens inside this detector only
  * because `raw` is deliberately unmasked for everyone.
  */
-const EMOJI_RE =
+export const EMOJI_RE =
   /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu;
 
 /** Kept out: these live in the ranges above but are typographic rather than
  *  pictographic, and appear in real prose and in code. */
-const TEXTUAL = new Set(['→', '←', '↑', '↓', '↔', '⇒', '⇐', '™', '✓', '✗', '−', '∗', '⌘', '⌥', '⏎']);
+export const TEXTUAL = new Set(['→', '←', '↑', '↓', '↔', '⇒', '⇐', '™', '✓', '✗', '−', '∗', '⌘', '⌥', '⏎']);
 
 /**
  * Characters that are text by default but have an emoji form (↔ ↕ ↖ ↗ ↘ ↙ ↩ ↪

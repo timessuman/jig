@@ -243,6 +243,9 @@ away. That maps onto the tokens:
   the closer analogue, and we do not ship one: exits in this system fade or
   collapse in place rather than fly off screen, and a third easing token bought
   only that one case.
+- **Moving within the screen**, from one place to another: `--ease-in-out`. The
+  element is on screen at the start and the end, so it speeds up leaving its
+  place and slows into the new one (`G-161`).
 - **Never linear** for anything that moves. Linear reads as mechanical because
   nothing physical moves that way. Colour and opacity are the exception — a
   simple curve is enough there, and often linear is fine.

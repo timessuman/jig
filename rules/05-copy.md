@@ -1,8 +1,8 @@
 # 05 · Copy
 
 **Status:** draft v0.1
-**Scope:** universal. Interface text in every mode.
-**Load when:** writing or reviewing any user-facing string — labels, buttons, headings, errors, empty states, help text.
+**Scope:** universal. Interface text in every mode, and the prose a page ships: docs, guides, marketing pages, blog posts.
+**Load when:** writing or reviewing any user-facing string — labels, buttons, headings, errors, empty states, help text — or any prose longer than a paragraph.
 
 Interface text is interface design. A screen with perfect spacing and a vague button label is a broken screen. Most of what follows costs nothing to apply and is invisible when done well.
 
@@ -142,6 +142,89 @@ See `P-01` for *where* the message goes and `F-37` for field-level validation te
 
 ---
 
+## Prose
+
+**Scope:** prose longer than a paragraph that a page ships: docs, guides,
+marketing pages, and everything under *Long-form* below. Interface strings stay
+under the rules above; `I-79`'s 20-word sentence limit is for them, not for
+prose. A page with no prose longer than a paragraph judges these `n/a`.
+
+These rules judge whether prose is specific, sourced and authored. They never
+judge who wrote it: a finding says the copy reads as generic, never that a
+model wrote it.
+
+### I-148 A claim with no source
+❌ "Teams using Acme ship 37% faster." "A 2024 Stanford study found…" A feature described that the product does not have.
+✅ Every figure, study, quotation, date and feature a page states traces to something in the project: its data, its docs, a link to the source, the product itself. Otherwise it is cut, or written as what it is: "in our own use", "we expect".
+A made-up figure reads exactly like a real one, and it is the claim a reader is most likely to repeat. Of everything here, it costs the most when it is wrong.
+
+### I-149 Specific in sound, empty in fact
+❌ "Organisations that adopt these practices often see significant gains in efficiency."
+✅ Name who, how many, how much, compared with what. "The billing team closed the month in two days instead of five."
+The test, as `I-81` has it for headlines: if the sentence would still be true after swapping in any other product, team or year, it says nothing.
+
+### I-150 Formula openers, closers and signposts
+❌ "In today's rapidly changing world…" "It is important to note that…" "Let's dive in." "Here's the thing:" "In conclusion…" "Only time will tell."
+✅ Start with the point; end when it has been made. Signpost only where a reader would otherwise be lost.
+`check` warns on a short, fixed list of phrases that are almost never needed; the judgment half covers the same habit in other words. A quotation keeps its own words, as with `I-118`.
+
+### I-151 Saying it twice
+❌ A conclusion that restates the introduction. A lead sentence repeated as the next section's opening. The same point made again in new words two paragraphs later.
+✅ Each paragraph adds something. Where a reader needs a reminder, point back to where it was said.
+
+### I-152 A rhetorical shape on repeat
+❌ "It's not X, it's Y" in every section; three adjectives, three verbs, three clauses, sentence after sentence; every paragraph built claim, example, takeaway.
+✅ Any one of these is fine. The finding is density: the same shape often enough that a reader starts to hear it.
+
+### I-153 Enthusiasm the content has not earned
+❌ "An incredibly exciting, truly transformative opportunity." "The possibilities are endless."
+✅ Let the thing described make the case. If it is impressive, the specifics show it; if they do not, the adjectives will not.
+
+### I-154 Stacked hedges
+❌ "It may potentially suggest that this could, in some cases, help."
+✅ One qualifier, where the uncertainty is real: "The evidence suggests…"
+Exception: legal, medical and scientific text, and any claim that is genuinely uncertain, may need more.
+
+### I-155 Emoji in headings
+❌ "🚀 Getting started", "✨ Key features"
+✅ The words carry the heading. An emoji is read aloud by a screen reader as its name, and at the head of every section it reads as a template.
+In markup, `A-05` already reports every emoji, a heading's included; `check` reports this rule for a Markdown page's headings, which `A-05` does not read.
+
+### I-156 Structure imposed rather than earned
+❌ Overview, Key benefits, Challenges, Best practices, Conclusion, whatever the subject. A heading every two paragraphs. Every bullet opening with a bold phrase. A numbered list for things with no order.
+✅ Let the content decide the structure: a heading where a reader would look for one, a numbered list for a sequence, bold only where a reader scanning must stop.
+
+---
+
+## Long-form
+
+**Scope:** authored writing a person puts their name to: blog posts, essays,
+case studies, release notes written as a story. Everything under *Prose* applies
+as well. Judged by a reader, never measured: rhythm and voice have no number a
+check could hold, and a score would reward prose that games it.
+
+### I-157 Nothing only the author could say
+❌ "The migration was challenging, but the team learned valuable lessons."
+✅ "The migration looked like a weekend's work. It took three weeks, because two services wrote the same table and nobody had written that down."
+A post worth reading holds something the reader could not have written themselves: a case, a number, a mistake, a decision and its reason.
+
+### I-158 No point of view
+❌ "There are several factors to consider, each with its own trade-offs."
+✅ Say which factor mattered, and why: "The technology was not the hard part. Changing how procurement worked was."
+Balance is fine when the question is open. A post that never commits to anything has not said what its author thinks.
+
+### I-159 An even rhythm
+❌ Sentence after sentence of the same length and build; paragraphs of identical size down the page.
+✅ Short sentences where something lands, longer ones where an idea needs room. Read it aloud: an even rhythm is audible long before it is visible.
+Not a length rule, and not a count: `I-79`'s limit is for interface strings.
+
+### I-160 Feeling named, not shown
+❌ "I was fascinated by the results, which provided valuable insights."
+✅ "I did not expect the result. We had tested it three times, and it failed in exactly the same place."
+Where a post reports a reaction, the specifics carry it; a named emotion with nothing behind it reads as flat.
+
+---
+
 ## L-06 · Copy checklist
 
 1. Sentence case throughout? (`I-53`)
@@ -152,3 +235,6 @@ See `P-01` for *where* the message goes and `F-37` for field-level validation te
 6. Numerals as figures, formatted consistently? (`I-83`)
 7. One word per concept across the whole product? (`I-87`)
 8. Every error saying what happened and what to do next? (`I-90`)
+9. Every figure, study, quotation and feature traceable to a source? (`I-148`)
+10. Prose saying something specific, once, without formula? (`I-149`, `I-150`, `I-151`)
+11. For long-form: something only the author could say, and a view? (`I-157`, `I-158`)
