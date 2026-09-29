@@ -6,7 +6,7 @@ these, say so, list them, and stop.
 
 There are two kinds of subcommand, and they are not run the same way.
 
-**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`, `gate`, `probe`, `seo`. Run the
+**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`, `gate`, `probe`, `seo`, `ship`. Run the
 matching command with `{{scripts_path}}`, passing the flags through unchanged,
 then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
@@ -25,10 +25,14 @@ decide     project-wide decisions, and the reason for each      once per project
 spec       what exactly is being built: its smallest useful version, at every screen size
 mockup     low-fidelity design of that spec, reviewed before any code
 make       high-fidelity: the actual page or feature, built from the spec & mockup
-critique   scrutinises what was built against the rules, its spec & mockup
+critique   scrutinises what was built against the rules, its spec & mockup;
+           now, or later: a page judged as it stands gets the same verdicts
 
 tweak      a small change the approved mockup does not show: decided if it is a
            decision, specced, built, and re-judged where it could matter
+
+ship       everything Jig checks, with nothing optional: critiques every page
+           that owes one, and says what Jig does not check
 ```
 
 ## init
@@ -50,10 +54,16 @@ the answer and the CLI is not. So, first:
    `editorial` for first-visit content, `product` for the signed-in app,
    `operator` for dense daily tools. State the mapping in one line and let them
    correct it.
-3. **Write `jig.config.json`** with those surfaces before running anything.
-   `init` reads an existing config and honours it — writing one mode file per
-   declared mode — so this is how a decision reaches the tokens.
-4. **Then run the command.**
+3. **Ask when pages should be critiqued**: after every build, left for
+   `{{command_prefix}}ship`, or decided page by page. Page by page is the default
+   and writes nothing; each spec then asks. The other two go in as
+   `"critique": "each"` or `"critique": "at-ship"`. It is how the owner works,
+   so it is asked here, not in `decide`.
+4. **Write `jig.config.json`** with those surfaces, and the critique answer,
+   before running anything. `init` reads an existing config and honours it —
+   writing one mode file per declared mode — so this is how a decision reaches
+   the tokens.
+5. **Then run the command.**
 
 Where there is genuinely one surface, say so and move on; the point is that the
 mode was chosen rather than defaulted into.
@@ -289,6 +299,7 @@ the example shows the shape. Say it is an example, not a suggestion.
   > plan goes straight to sign-up. Nothing on this page may ask for a sales
   > call."*
 
+
 **Ask about the phone by name.** What does the reader see first on a phone, and
 what moves, stacks, or goes behind a control?
 > *For example: "the plans come first on the phone" — that is the answer this
@@ -296,6 +307,16 @@ what moves, stacks, or goes behind a control?
 > system's to settle.* If the conversation only ever
 describes the wide screen, the phone composition will be derived from it rather
 than designed — and a derived phone composition is a squeezed desktop.
+
+**Last, ask when this page is critiqued: after each build, or left for
+`ship`?** It is the one question about how the owner works rather than what the
+page is, so it comes after all of them. Skip it only where the owner has already
+said, for this page or in asking for the spec. Where the page sets up what later
+pages reuse (a header, a card, a layout), say why now is worth it; otherwise
+offer the project's default from `{{config_file}}`, or "each" where it has none.
+Write the answer as `critique: each` or `critique: at-ship`.
+> *For example: "each: every page has this header, so a finding in it is fixed
+> once, now, not in ten pages later."*
 
 ### 2. Run `L-01`
 
@@ -353,9 +374,10 @@ later: [social sign-in, remember this device]   # cut from V1, by name — the n
 indexable: true            # from the mode — editorial yes, product/operator no. Say why when you override it.
 title: "Pricing — Hoistline"          # ≤ 60 characters, the search result's first line
 description: "Three plans, every price visible. No sales call."   # ≤ 155
-mockup: pending            # `mockup` sets approved or skipped, from the user's own words
+mockup: pending            # approved or skipped, quoting the user: approved by `mockup`, skipped by whichever command they said it to
 mockup_at:                 # where the approved drawing is: a .jig/mockups path, or a Figma or Stitch link
 deviations: []             # `make` writes here; `spec` leaves it empty
+critique: each             # optional: each, or at-ship; left out, the project's default in {{config_file}}
 ---
 ```
 
@@ -452,9 +474,83 @@ to the spec, never the spec to the decisions.
   say in the confirmation message which fields those are, so the user can decide
   them instead.
 
+### 3c. Have it checked by a reader who did not write it
+
+Step 3b checks the spec against the decisions. Nothing after it checks the spec
+against the owner's words or against the facts it states: `make` builds a
+confirmed spec as written, and `critique` compares the page to the spec, never
+the spec to what is true. On jig-site a confirmed spec for a docs chapter carried
+seven errors to the built page, among them a procedure Jig does not have and a
+lock written at the wrong moment, and the owner had confirmed it. The writer
+cannot catch these, for the same reason a builder cannot review its own page.
+
+**Delegate to a subagent.** Give it the spec, `DECISIONS.md`, the owner's messages
+from this conversation, and read access to the project. Not your reasoning, and
+not your summary of what the owner meant. It writes
+`.jig/specs/<name>.checked.json`:
+
+```json
+{
+  "spec": "sha256 of the spec file with its confirmed: line removed",
+  "quotes": [
+    { "quote": "Only where the steps differ by path", "said": "the owner, this conversation", "holds": true }
+  ],
+  "facts": [
+    { "claim": "the gate records the verdicts when a critique or tweak stops", "source": "templates/COMMAND.md.tmpl:1360", "holds": false, "note": "the spec says only after the findings are fixed" },
+    { "claim": "Stitch needs an API key", "source": "https://stitch.withgoogle.com", "holds": "unchecked", "note": "no network access in this session" }
+  ],
+  "copy": ["Before you start"],
+  "conditions": [{ "owner": "three columns from 1280 up", "spec": "desktop: three columns at 1280 and wider" }],
+  "open": ["density of the chapter list: unspecified, make chooses"]
+}
+```
+
+- **`quotes`**: every quotation the spec gives as the owner's, and where the owner
+  said it. One the owner's words do not hold is removed from the spec or put back
+  as they said it.
+- **`facts`**: every statement the spec makes about how something works (the
+  product, an API, an existing page, a file, a tool), with the source the reader
+  opened: `path` or `path:line` in the project, or a URL. `holds` is `true`,
+  `false` or `"unchecked"`, with a `note` for anything but `true`. A fact that
+  does not hold is fixed in the spec before anyone is asked; `"unchecked"` says why
+  it could not be opened.
+- **`copy`**: the words the spec writes for the page to show as written:
+  headings, labels, sentences.
+- **`conditions`**: each condition the owner gave, beside the spec's line for it.
+- **`open`**: every `unspecified` field and every **Unresolved** item the spec
+  touches.
+
+Fix what it found, then have the spec checked again: the record is of the spec
+you show, and the gate compares its `spec` checksum to the file. **If you cannot
+delegate, write the record yourself, with `"reader": "the writer"` in it, and say
+in the confirmation message that nobody else checked the spec.** That is an
+honest gap the owner can close by reading more closely; a check you ran on your
+own words and reported as independent is not.
+
 ### 4. Get it confirmed
 
-Show the spec and ask the user to confirm it. Then **stop**.
+Show the spec, and with it the sheet the owner checks it by, from
+`<name>.checked.json`:
+
+- **Your words:** each quotation given as theirs, and where they said it.
+- **Facts:** each claim and its source, the ones that could not be checked
+  first.
+- **Copy the page will show as written.**
+- **Your conditions**, beside the lines that carry them.
+- **Left for you:** the `open` items, which they can decide now.
+
+The owner confirms a spec by checking it, and the sheet is what makes that a few
+minutes' work rather than a reread. Ask them to confirm it. Then **stop**.
+
+If, in confirming, they also say to skip the mockup, record that too:
+`mockup: skipped — "<their words>"`.
+
+**Checking a spec for the owner.** When the owner asks an agent to check a spec
+and confirm it on their behalf, that agent works from the same sheet and confirms
+only what it checked itself: it opens every source marked `"unchecked"` and
+every one it doubts, reads the copy as the person arriving would, and holds each
+condition to the owner's own words. Anything it could not check it names to the
+owner instead of confirming.
 
 `confirmed: true` records that **the user said so in their own response**. You
 may not set it on their behalf, and you may not treat your own summary,
@@ -673,6 +769,27 @@ Then ask **structural** questions, not whether they like it: is the most importa
 thing the first thing seen at each size? Does anything belong in a different group?
 Is anything here that V1 does not need?
 
+**Give them the sheet they check it by.** The drawing is the confirmed spec,
+drawn, so what the owner checks first is that it matches. The gate has checked
+that each region is labelled; whether each is drawn the way the spec says is
+theirs to see. Size by size, set the spec's line beside what the frame shows:
+
+- the regions in the spec's order, what comes first, what is grouped, where each
+  sits;
+- `nav:` for that size, and the navigation drawn;
+- each state in `states:` that changes the layout, and where it is drawn;
+- anything the spec says a part does that a still drawing cannot show, quoted
+  from the spec. Name only what the spec says: a behaviour it does not mention is
+  not yours to raise here, and one you add is a spec change;
+- the owner's conditions from the spec, beside the lines that carry them;
+- and what the drawing leaves out on purpose: `later:`, and colour, type and
+  spacing, which the tokens settle.
+
+**Checking a mockup for the owner.** When the owner asks an agent to check the
+drawing and approve it on their behalf, that agent renders every frame, compares
+each with its line in the spec, and approves only what it checked itself. What
+it could not check, it names to the owner instead of approving.
+
 ### 4. Every change goes into the spec first
 
 When the review moves, adds, cuts or regroups anything, **edit the spec**, then
@@ -686,13 +803,20 @@ confirmed again.
 
 ### 5. Record the outcome in the user's words
 
-- The user approves → set `mockup: approved` in the spec, and `confirmed: true` if
-  review changed it. Record where the approved drawing is in `mockup_at:` — the
-  file path, or the Figma or Stitch link. Only their own response counts; your summary of the drawing,
-  or no objection, does not.
-- The user says to skip it → `mockup: skipped — <their reason>`. For a change small
-  enough that drawing it costs more than building it, that is a reasonable call; it
-  is still theirs to make.
+- The user approves → set `mockup: approved — "<their words>"` in the spec,
+  quoting the reply that approved it, and `confirmed: true` if review changed it.
+  Record where the approved drawing is in `mockup_at:` — the file path, or the
+  Figma or Stitch link. Only their own response counts; your summary of the
+  drawing, or no objection, does not. **A condition they attach goes into the
+  spec first**, in their words, on the lines it governs: on jig-site the owner
+  approved with "three columns at 1280 and wider, inside the page margins", the
+  condition lived only in the conversation, and `make` moved the switch to 1290.
+- The user says to skip it → `mockup: skipped — "<their words>"`. For a change
+  small enough that drawing it costs more than building it, that is a reasonable
+  call; it is still theirs to make.
+
+With the Stop hook, the gate reads the quotation after `approved` or `skipped` and
+holds it to what the owner said in this session.
 
 Then stop. The next step is `{{command_prefix}}make`.
 
@@ -713,9 +837,12 @@ each finding, run the finish again, and then `critique` runs again. See step 5 o
   prevent.
 - `confirmed: false` → the spec exists but nobody has agreed to it. Ask for
   confirmation and stop.
-- `mockup: pending` → the feature has not been looked at. Run
-  `{{command_prefix}}mockup`, or ask the user whether to skip it. Do not decide to
-  skip it yourself.
+- `mockup: pending` → nobody has said whether to draw it. Unless the user already
+  said to skip it in asking for `make`, ask once: draw it with
+  `{{command_prefix}}mockup`, or skip it? If they skip it, write
+  `mockup: skipped — "<their words>"` in the spec and build from the spec alone.
+  Do not decide to skip it yourself, and do not finish with the spec still
+  pending: the gate holds a `make` that does.
 
 ### Build
 
@@ -820,7 +947,16 @@ and was never looked at on a phone has satisfied a third of its spec. Then run t
 self-check at the end of `{{rules_path}}/00-anti-patterns.md`.
 
 Report the `JIG_CHECK:` line, the table, and any new deviations. Then suggest
-`{{command_prefix}}critique`.
+`{{command_prefix}}critique`, now or later: the owner decides when. A page judged
+once, as it stands, gets the verdicts it would have got straight after this build,
+so a critique can wait for a batch of pages, or for `{{command_prefix}}ship`,
+which will not pass until every page is judged. Where the spec says
+`critique: at-ship`, or it is silent and `{{config_file}}` says
+`"critique": "at-ship"`, the owner has already said to wait; do not ask. Where the
+spec says `critique: each`, suggest it now. One
+thing to say when it applies: if this page sets up something later pages will
+reuse (a header, a card, a layout), a finding in it found late is fixed in every
+page built on it, so its critique is worth running now.
 
 ## critique
 
@@ -1246,7 +1382,9 @@ because the drawing stays true, and no full critique, because nothing else moved
   a page being made, not changed. Run `{{command_prefix}}spec`, `mockup` and
   `make`.
 - **No critique record for the page yet** (`.jig/critique/<surface>/`) → nothing
-  has been judged, so nothing can be re-judged. Run `{{command_prefix}}critique`.
+  has been judged, so nothing can be re-judged. Run `{{command_prefix}}critique`,
+  unless the re-judge is deferred (step 4): then the page's first critique judges
+  it whole.
 - **The change adds, removes, reorders or regroups a region, changes the
   navigation at any size, or would make the drawing wrong** → it is not a tweak.
   Say so and name the route: `spec`, then `mockup`, then `make`. The gate checks
@@ -1313,12 +1451,61 @@ verdict and reason, adding `"tweak": "<at>"`. It changes nothing else. Then run
 The gate holds both ends: it refuses a tweak that changed a verdict it did not
 name, and one that named a verdict it did not re-judge.
 
+**The re-judge can wait**, when the owner says so. Write their words in
+tweak.json as `"deferred": "<what they said>"`, or `"deferred": true` where the
+page's spec says `critique: at-ship` (or, the spec silent, `{{config_file}}`
+does); keep `ids` named for whoever
+judges it, and leave the verdicts alone. The page then owes a critique, and
+`{{command_prefix}}ship` will not pass until one has judged it. Never defer it
+on your own account: the gate refuses a deferral nobody gave.
+
 ### Finish
 
 Report what changed, in the owner's words; the decision and spec lines you
 touched, if any; each re-judged verdict and what it says now; and the
 `JIG_CHECK` line. A re-judged verdict that is a finding goes to the owner: it is
-fixed by another tweak, or by `make` if it needs more.
+fixed by another tweak, or by `make` if it needs more. A deferred re-judge is
+reported as deferred, with the ids it will cover.
+
+## ship
+
+**Get the project ready to ship, by everything Jig checks.** `critique` can wait
+while pages are built and tweaked; here nothing is optional. `ship` does not
+deploy anything, and it is not a security review: Jig has no rules for security,
+performance or what a real screen reader does, and the report says so every time.
+
+### 1. Build, then ask the CLI what is owed
+
+Build the project the way it ships, then run `{{scripts_path}} ship`. It runs
+`check --all --ci` and `seo`, and reads every confirmed spec's critique: a page
+is owed a critique when it has none, when its page changed after it was judged,
+when a tweak deferred its re-judge, when its verdicts are incomplete, or when a
+finding stands that the owner has not ruled on. It prints each page's state and
+a `JIG_SHIP:` line, and exits non-zero until the project is ready. A spec that
+is not confirmed yet is in progress and not held against the ship.
+
+### 2. Clear what it names
+
+- **Mechanical or `seo` errors** → fix them as `make` would, and run `check`
+  again.
+- **A page owed a critique** → run `critique` on it by its own procedure, in
+  full: three arms, each a reader that has not seen this conversation or the
+  build. The readers are independent here as everywhere; that you are
+  orchestrating does not make you one of them.
+- **Findings** → put them to the owner. Each is fixed (by `make`, or `tweak` for
+  a small one), or the owner rules on it in their own words and the ruling is
+  recorded (`decide`, or `tweak`'s decision step), after which the verdict is
+  `ruled`. Your view that a finding is minor is not a ruling.
+
+Then build again and run `{{scripts_path}} ship` again. Repeat until it says
+`ready=yes`.
+
+### Finish
+
+Report the `JIG_SHIP:` line as printed, each page's state, what was fixed and
+what the owner ruled, and the line the CLI ends with naming what Jig does not
+check. With the Stop hook, a `ship` session is held while `jig ship` fails,
+unless you stop to ask the owner something.
 
 ## probe
 
@@ -1361,6 +1548,13 @@ When a `critique` or `tweak` session stops, the gate records its verdicts in
 `.jig/critique/<surface>/verdicts.lock`. That happens after you have committed, so
 if your verdicts are committed it stops you once more to commit the lock on its
 own; the next stop passes.
+
+**The lock is the gate's to write, never yours.** When the gate is wrong (it
+misreads the session, or asks for something the procedure does not), say what it
+got wrong, leave the lock as it is, and report the work as held by the gate. On
+jig-site the gate misread a tweak as no command at all, and the session computed
+the lock by hand and committed it. The lock was right that time, and a lock an
+agent can write is still a record of nothing.
 
 It judges the critiques this session touched: any with a file changed since the
 session began, and the current spec's surface when you ran `critique`. Another

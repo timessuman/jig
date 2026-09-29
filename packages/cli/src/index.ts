@@ -11,6 +11,7 @@ import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
 import { gate, surfacePage, surfacesToProbe } from './commands/gate.js';
 import { seo } from './commands/seo.js';
+import { ship } from './commands/ship.js';
 import { PROBE_SCRIPT } from './probe/script.js';
 import { critiquedSurfaces, ensureProbes, recordedPage, runAndSaveProbes, saveProbe } from './probe/save.js';
 import { adapterNames } from './adapters/registry.js';
@@ -252,6 +253,21 @@ program
         console.log(`  ${result.line}`);
       }
       process.exit(result.findings.some((f) => f.severity === 'error') ? 1 : 0);
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('ship')
+  .description('Say whether the project is ready to ship: no mechanical or seo errors, and every confirmed page judged as it stands with nothing open.')
+  .action(() => {
+    const projectRoot = findProjectRoot(process.cwd());
+    try {
+      const result = ship({ projectRoot, version });
+      console.log(result.report);
+      process.exit(result.ready ? 0 : 1);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);

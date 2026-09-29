@@ -566,6 +566,7 @@ export async function init(opts: InitOptions): Promise<InitResult> {
 
   // ---- 4. Ask only what cannot be derived ----
   let surfaces = DEFAULT_SURFACES;
+  let critique: 'each' | 'at-ship' | undefined;
   if (!opts.yes) {
     for (let attempt = 0; attempt < 3; attempt++) {
       const answer = await prompt(
@@ -603,6 +604,16 @@ export async function init(opts: InitOptions): Promise<InitResult> {
           `using the default ('/' → product) instead.`,
       );
     }
+
+    // When pages are critiqued is how the owner works, not a design decision,
+    // so it is asked here with the rest of the project's setup and not in
+    // `decide`. The default writes nothing: each spec then asks, page by page.
+    const critiqueAnswer = (await prompt(
+      `When should pages be critiqued? Enter to decide page by page, 'each' after every build, or 'ship' to leave them for jig ship: `,
+    )).toLowerCase();
+    if (/^(e|each)$/.test(critiqueAnswer)) critique = 'each';
+    else if (/^(s|ship|at-ship)$/.test(critiqueAnswer)) critique = 'at-ship';
+    else if (critiqueAnswer) log(`  Could not read '${critiqueAnswer}' — leaving it page by page; each spec will ask.`);
   }
 
   // Tiebreaker 5: ship the plainer thing and surface the question. `--yes`
@@ -801,12 +812,12 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     // is what puts `--yes` under that contract instead of around it. Interactive
     // init still writes `surfaces`, because a human saw the mapping and accepted
     // it, and that is a declaration.
-    const config = opts.yes ? { brand: brandRelPath } : { brand: brandRelPath, surfaces };
+    const config = opts.yes ? { brand: brandRelPath } : { brand: brandRelPath, surfaces, ...(critique ? { critique } : {}) };
     const content = `${JSON.stringify(config, null, 2)}\n`;
     writeFileSync(configAbsPath, content, 'utf8');
     files[configRelPath] = checksum(content);
   } else if (configAction === 'merged') {
-    let existing: { brand?: unknown; surfaces?: unknown } = {};
+    let existing: { brand?: unknown; surfaces?: unknown; critique?: unknown } = {};
     try {
       existing = JSON.parse(readFileSync(configAbsPath, 'utf8'));
     } catch {
@@ -815,7 +826,11 @@ export async function init(opts: InitOptions): Promise<InitResult> {
     const existingBrand = typeof existing.brand === 'string' ? existing.brand : undefined;
     const brandStillResolves = existingBrand ? existsSync(join(opts.projectRoot, ...existingBrand.split('/'))) : false;
     const existingSurfaces = Array.isArray(existing.surfaces) && existing.surfaces.length > 0 ? existing.surfaces : undefined;
+    // Every key the file already has is kept: a merge that rebuilt it from
+    // `brand` and `surfaces` alone dropped an `exempt` list without a word.
     const merged = {
+      ...existing,
+      ...(existing.critique === undefined && critique ? { critique } : {}),
       brand: brandStillResolves ? existingBrand : brandRelPath,
       // Same contract as the 'written' branch: never invent a mapping under
       // `--yes`. An existing declaration is always kept.

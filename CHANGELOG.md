@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.22.0 (2026-09-29)
+
+A spec and a mockup are checked before the owner says yes, a critique can wait,
+and `jig ship` is where nothing is optional.
+
+### Added
+
+- **A spec is checked before you are asked to confirm it.** `spec` checked
+  itself against the decisions, and nothing checked it against the owner's
+  words or the facts it states: on jig-site a confirmed spec carried seven
+  errors to the built page. A reader that did not write the spec now checks
+  each quotation given as the owner's and each fact at its source, and writes
+  `.jig/specs/<name>.checked.json`. The owner gets the spec with a sheet to
+  check it by, and an agent asked to confirm for them works from the same
+  sheet. The README's new "Before you confirm a spec" says what to look for.
+- **The gate holds a spec back from the owner** while it gives a quotation as
+  the owner's that the owner never said, states a fact its reader found false,
+  cites a source the project does not have, or has no check of the spec as it
+  stands.
+- **A mockup is approved against its spec, and skipping one is plain.** The
+  owner gets the drawing with a sheet, size by size, the spec's line beside what
+  the frame shows, and the README's new "Before you approve a mockup" says what
+  to look for. An approval or a skip is recorded in the owner's words
+  (`mockup: approved — "…"`), and the gate holds one they did not say. A skip
+  can be given to `make` or at the spec's confirmation, not only to `mockup`;
+  `make` then builds from the spec alone, and asks rather than finishing on a
+  spec nobody has said to draw or skip.
+
+- **A critique can wait, and `ship` is where it cannot.** `check` still runs on
+  every `make` and `tweak`; the judgment half can run after a batch of pages or
+  only before shipping, and a tweak's re-judge can wait when the owner says so
+  (or `"critique": "at-ship"` in jig.config.json says it once). The lock now
+  records the page each critique judged, so nothing that waited is forgotten.
+  `jig ship` runs `check --all --ci` and `seo` and names every confirmed page
+  that owes a critique; `/jig ship` critiques each in full and runs until it
+  says `ready=yes`. It deploys nothing, and says what Jig does not check.
+  Each page can say for itself when it is critiqued: `spec` asks, last, and writes
+  `critique: each` or `critique: at-ship`, which wins over the project's
+  default. `init` asks for that default when it sets the project up; page by
+  page, the default, writes nothing.
+
+### Fixed
+
+- **`init` merging into an edited `jig.config.json` dropped its other keys.** It
+  rebuilt the file from `brand` and `surfaces`, so an `exempt` list was lost
+  without a word. A merge now keeps every key.
+- **A `/jig` command whose words hold a `<`** read as no command at all, so
+  the gate judged a tweak as a builder editing verdicts. The session then wrote
+  `verdicts.lock` by hand; the procedure now says the lock is the gate's alone.
+
 ## 0.21.0 (2026-09-28)
 
 Dev builds, so a fix is tried on a real project before it ships, and the gate

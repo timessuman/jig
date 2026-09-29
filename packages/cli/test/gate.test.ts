@@ -3,7 +3,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { gate, MAX_BLOCKS } from '../src/commands/gate.js';
+import { gate, lastJigInvocation, MAX_BLOCKS } from '../src/commands/gate.js';
+import { specChecksum } from '../src/check/spec-checked.js';
 import { install, installStopHook } from '../src/commands/install.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
@@ -144,13 +145,16 @@ describe('installStopHook', () => {
 describe('the gate checks the command that just ran', () => {
   const transcript = (command: string) => {
     const path = join(root, 'transcript.jsonl');
-    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>` } }) + '\n');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>\nApproved.` } }) + '\n');
     return path;
   };
   const runAfter = (command: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1', transcript_path: transcript(command) } });
+  // Checked by another reader, as spec's step 3c has it: these tests are about
+  // the spec's shape (spec-checked.test.ts is about the check).
   const spec = (body: string) => {
     mkdirSync(join(root, '.jig', 'specs'), { recursive: true });
     writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), body);
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.checked.json'), JSON.stringify({ spec: specChecksum(body), quotes: [], facts: [] }));
   };
   const goodSpec = `---
 feature: choose a plan
@@ -170,7 +174,7 @@ sizes:
     same-as: desktop
     why: content is capped, so 1600 adds margin and nothing else
 confirmed: true
-mockup: approved
+mockup: approved — "Approved"
 mockup_at: .jig/mockups/pricing.html
 ---
 Prose.`;
@@ -706,5 +710,15 @@ describe('make does not edit DECISIONS.md', () => {
     expect(make().reason ?? '').not.toMatch(/changed in a `make` session/);
     writeFileSync(file, readFileSync(file, 'utf8').replace('Small.', 'Small, 4px, from --radius-control.'));
     expect(make().reason).toMatch(/jig\/DECISIONS\.md changed in a `make` session/);
+  });
+});
+
+// jig-site: a tweak's words named `<name>.checked.json`, the parser stopped at
+// that `<`, and the whole session read as no /jig command at all.
+describe('the command the owner ran', () => {
+  it('reads the arguments to their closing tag, angle brackets and all', () => {
+    const path = join(root, 'angle.jsonl');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>tweak the-loop — it must read `.jig/specs/<name>.checked.json`</command-args>' } }) + '\n');
+    expect(lastJigInvocation(path)).toEqual({ command: 'tweak', surface: 'the-loop' });
   });
 });

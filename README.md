@@ -377,6 +377,7 @@ overwrites a config or brand file you have edited.
 | `seo [--json]` | Audits what a search engine and a link preview read, across the whole project: a route whose metadata says `noindex` sitting in the sitemap, two pages claiming one title, a sitemap that lists nothing or lists paths a crawler drops. Whether a sitemap and a robots file exist is counted, not reported: no rule asks for either, and a site with no domain yet cannot write an honest sitemap. Needs no config, no decisions and no spec. |
 | `verdicts <surface>` | Verifies a critique's verdict files and computes its counts: every rule in each pass judged once, no id that does not exist, no rule in the wrong arm, and no verdict the render probe contradicts. |
 | `probe` | Prints the render probe — one expression the critique runs in a browser at each width. It operates the menu, measures sideways scroll, and reads whether the styles and tokens applied. |
+| `ship` | Says whether the project is ready to ship, by everything Jig checks: `check --all --ci` and `seo` with no errors, and every confirmed page critiqued as it stands, with no finding you have not ruled on. Exits non-zero until it is, and names what Jig does not check. |
 | `gate` | Run by the Stop hook `install` adds for Claude Code, not by hand. Blocks an agent from finishing while `check` fails on the files it changed, or the step it just ran left its work unfinished. |
 | `explain <rule-id \| word> [--list]` | Given an id, prints a rule in full — what it forbids, what to do instead, the version it arrived in, and who checks it. Also resolves the `P-` pattern and `M-` mode specs, which no rule index contains. Given a **word**, searches every title and body and lists what matches, so you can find a rule you cannot name. `--list` prints every id, or one section's. |
 
@@ -417,6 +418,8 @@ on the result — the CLI reports, the agent applies the judgment half.
 | `/jig mockup` | No CLI. Low-fidelity design of that spec, reviewed before code — in HTML, Figma or Google Stitch, whichever you choose |
 | `/jig make` | No CLI. High-fidelity: builds the actual page or feature from the spec and mockup |
 | `/jig critique` | `jig verdicts` + `jig probe`. Scrutinises what was built against the rules, its spec and its mockup: two reader arms write their verdicts to files, the CLI decides whether the review is complete, and a browser probe checks the verdicts against what the page actually does |
+| `/jig tweak` | No CLI. A small change to a built page that its approved mockup does not show: decided if it is a decision, specced, built, and re-judged where it could matter |
+| `/jig ship` | `jig ship` — then critiques every page that owes one, puts the findings to you, and runs again until the project is ready |
 
 `decide` runs once. The other four run for each page, feature or functionality, one
 at a time — never the whole product at once.
@@ -444,6 +447,145 @@ skill can be shared through your repository while a prompt stays on one machine.
 convention for *skills*, not a harness with a command system of its own, so
 there is no file to write and nothing that would read one. Ask in plain language
 instead; the skill still loads.
+
+### Before you confirm a spec
+
+`spec` checks its own work before it asks you: every decision it cites exists,
+no field hands the choice to nobody ("as appropriate", "decided by the design
+system"), and nothing contradicts `DECISIONS.md`. What it cannot check is whether
+it is right about you and about the world. Your yes is what `make` builds from
+without asking again, and `critique` compares the page to the spec, never the
+spec to what is true. An error you confirm reaches the page intact.
+
+So before you are asked, a reader that did not write the spec checks it: each
+quotation it gives as yours against what you said, and each fact against the
+source it names. You get the spec with a sheet: your words and where you said
+them, each fact with its source (the ones nobody could check first), the copy
+the page will show as written, your conditions beside the lines that carry
+them, and what is left for you to decide. With the Stop hook, the spec is not
+put to you with a quotation you never said, a fact its reader found false, or a
+sheet of an earlier version of the spec.
+
+The sheet makes checking quick. It does not replace it. Read the spec for these
+before you say yes:
+
+- **Your words are yours.** Every quotation it gives as yours is something you
+  said, and nothing reads as your ruling that you did not give. What the agent
+  worked out for itself is labelled as its own.
+- **Every fact holds up at its source.** Where the spec says how something works
+  (your product, an API, an existing page, a tool you depend on), open the source
+  and check. One habit of your project stated as a general rule is a fact nobody
+  decided.
+- **Words the page will show are words you would ship.** Headings, labels and
+  any copy the spec writes out are built as written. Read them as the person
+  arriving would. A sentence about how the page works (what a control costs to
+  use, where a choice is stored) is a note for the builder, not copy.
+- **Conditions you gave are there, as you gave them.** "Three columns from 1280
+  up" is written as 1280, not moved to a width that was easier to build.
+- **V1 is small, and `later:` holds what you cut.** Nothing you set aside has
+  come back in.
+- **Every size says what you expect to see.** The phone is written in full,
+  first. Each `same-as:` gives a reason that is true, and `nav:` at every size is
+  the navigation you would expect there.
+- **States cover what the page will meet.** Empty, one, a lot, loading, failure:
+  whichever the page can actually be in.
+- **Open questions were asked, not answered for you.** A spec touching an item
+  under `Unresolved` in `DECISIONS.md` carries your answer, and a field reading
+  `unspecified — make chooses one it can defend` is one you can decide now.
+- **A page that exists is described as built.** Its regions are the ones on the
+  page today, and anywhere it contradicts your decisions is said plainly.
+
+When something fails, say what is wrong. The spec is revised and shown to you
+again, and nothing is built until you confirm it.
+
+**Handing the check to an agent.** You can ask your agent to check a spec and
+confirm it for you. It works from the same sheet and confirms only what it
+checked itself: it opens every source marked unchecked and any it doubts, reads
+the copy as the person arriving would, and holds each condition to your words.
+What it could not check, it names to you instead of confirming. An agent's yes
+is still yours, so read what it says it did not check.
+
+### Before you approve a mockup
+
+A mockup is the confirmed spec, drawn: one page, at every size the spec names,
+in grey. So the first thing to check is that it matches the spec. The Stop hook
+already checks that every region and navigation the spec names is labelled in
+each size's frame, and holds the drawing back from you until it is. What a label
+check cannot see is whether each is drawn the way the spec says, and that is
+yours.
+
+You get the drawing with a sheet, size by size: the spec's line beside what the
+frame shows. Read it for these before you approve:
+
+- **Every size matches its line in the spec.** The order of the regions, what
+  comes first, what sits with what, where each one is. A region that is present
+  but in the wrong place is not a match.
+- **The navigation at each size is what the spec's `nav:` says.**
+- **Nothing extra.** No region the spec does not list, and nothing from
+  `later:`.
+- **The spec's states are drawn** where one changes the layout: empty, error, a
+  lot.
+- **What a drawing cannot show is named, from your spec.** If your spec says a
+  part stays in place on scroll, or opens and closes, the sheet names it so you
+  approve that too. If your spec says nothing of the kind, there is nothing to
+  name.
+- **Now that you see it, the spec is still what you want.** If it is not, the
+  spec changes first and the drawing is redrawn from it, so the two never
+  disagree.
+- **A condition you attach is written into the spec, in your words,** before
+  the approval is recorded. `make` builds from the spec, not from the
+  conversation.
+- **You are not approving colour, type or exact spacing.** Those come from the
+  tokens; a grey drawing settles none of them.
+
+Your approval is recorded as your own words, `mockup: approved — "…"`, and with
+the Stop hook it cannot be recorded in words you did not say.
+
+**Handing the check to an agent.** It renders every frame, compares each with
+its line in the spec, confirms only what it checked, and names to you what it
+could not.
+
+**Skipping the mockup.** A mockup is not required. Say so, to `mockup`, to
+`make`, or when you confirm the spec, and it is recorded as `mockup: skipped —
+"your words"`. `make` then builds from the spec alone, `critique` compares the
+page to the spec alone, and nothing waits on a drawing. What `make` will not do
+is decide for you: on a spec whose mockup nobody has approved or skipped, it asks
+which. With no drawing, the spec is all there is to build from, so the check
+before you confirm it carries all the weight.
+
+### When to critique, and shipping
+
+`check` runs on every `make` and every `tweak`. It is mechanical, it takes
+seconds, and it catches a hard-coded colour before it spreads. `critique` is the
+judgment half, and it can wait: a page judged once, as it stands, gets the
+verdicts it would have got straight after it was built. Critique a page after
+each build, after a batch of pages, or only before you ship. The one page worth
+judging early is one that sets up what later pages reuse, a header or a card: a
+finding in it found late is fixed in every page built on it.
+
+A `tweak` re-judges what its change could affect, and that can wait too when you
+say so. `init` asks when you set the project up, and writes
+`"critique": "each"` or `"critique": "at-ship"` to `jig.config.json` to say it once
+for the project (the default, page by page, writes nothing); on a project already
+set up, add the key yourself. Add `critique: each` or `critique: at-ship` in a page's spec to say it
+for that page: a header every page reuses judged each time, the chapters of a
+guide left for `ship`. `spec` asks you which, at the end of its questions, and
+says why now is worth it for a page others reuse. The spec wins where it says
+either. Neither stops you
+critiquing any page whenever you like, and `ship` judges every one.
+
+Waiting is tracked, not forgotten. The verdict lock records the page each
+critique judged, so Jig knows every page that changed since, every tweak that
+left its re-judge for later, and every page never judged. `/jig ship` is where
+none of it is optional: `jig ship` runs `check --all --ci` and `seo`, and names
+each page that owes a critique; the agent critiques each one in full, with
+readers that have not seen the conversation, and puts the findings to you. Each
+is fixed, or ruled on by you in your own words. It runs until `jig ship` says
+`ready=yes`.
+
+`ship` does not deploy anything, and it is not a security review. Jig has no
+rules for security, performance or what a real screen reader does, and its report
+says so on every run.
 
 ## What a search engine reads
 
@@ -655,7 +797,13 @@ Drop this in the project root so mode selection does not require asking on every
   // `check` names the pattern and its match count on every run, and says so
   // when one is excusing enough files to look like a mistake. Nothing is ever
   // exempt by default: this list is the only source.
-  "exempt": ["src/components/og-card.tsx", "src/cv/pdf/**"]
+  "exempt": ["src/components/og-card.tsx", "src/cv/pdf/**"],
+
+  // When pages are critiqued. Leave it out to decide each time; "at-ship"
+  // says once that critiques and a tweak's re-judge wait for `/jig ship`,
+  // which will not pass until every page is judged as it stands. A page's
+  // spec can say otherwise for itself: `critique: each` or `critique: at-ship`.
+  "critique": "at-ship"
 }
 ```
 

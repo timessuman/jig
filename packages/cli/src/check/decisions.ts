@@ -136,8 +136,6 @@ export function unsourcedReasons(current: string, before: string, opts: { newWhy
  * the owner's words hold it; `…` may join the parts of one.
  */
 export function quotesNotFrom(current: string, before: string, words: string): string[] {
-  const norm = (t: string) => t.toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim();
-  const said = norm(words);
   const problems: string[] = [];
   for (const [name, whys] of changedWhys(current, before, true)) {
     for (const why of whys) {
@@ -145,7 +143,7 @@ export function quotesNotFrom(current: string, before: string, words: string): s
       if (/inferred/i.test(label)) continue;
       const missing = [...why.matchAll(/["“]([^"”]{3,})["”]/g)]
         .map((m) => m[1]!)
-        .filter((q) => q.split(/…|\.\.\./).map((part) => norm(part).replace(/^[\s.,;:]+|[\s.,;:!?]+$/g, '')).filter(Boolean).some((part) => !said.includes(part)));
+        .filter((q) => !quoteHeld(q, words));
       if (missing.length) {
         problems.push(`"${name}": its \`**${label}:**\` quotes "${missing[0]}", which the owner's words in tweak.json (\`change\`) do not say. Quote the owner as tweak.json records them, or put your reading under \`**Why (inferred):**\`.`);
         break;
@@ -153,4 +151,18 @@ export function quotesNotFrom(current: string, before: string, words: string): s
     }
   }
   return problems;
+}
+
+const normQuote = (t: string) => t.toLowerCase().replace(/\\(?=["'\\])/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim();
+
+/**
+ * Whether `words` hold a quotation: every part of it, where `…` joins parts,
+ * ignoring case, curly quotes, runs of whitespace and a YAML string's escapes.
+ */
+export function quoteHeld(quote: string, words: string): boolean {
+  const said = normQuote(words);
+  return quote.split(/…|\.\.\./)
+    .map((part) => normQuote(part).replace(/^[\s.,;:]+|[\s.,;:!?]+$/g, ''))
+    .filter(Boolean)
+    .every((part) => said.includes(part));
 }
