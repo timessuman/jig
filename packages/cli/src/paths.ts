@@ -35,7 +35,7 @@ export function assetRoot(startDir: string = getPackageRoot()): string {
   let current = startDir;
   const { root } = parse(startDir);
   while (true) {
-    if (existsSync(join(current, ASSET_MARKER))) return current;
+    if (existsSync(join(current, ASSET_MARKER))) return sourceOf(current);
     if (current === root) {
       throw new Error(
         `assetRoot(): could not find an ancestor of "${startDir}" containing "${ASSET_MARKER}"`,
@@ -43,6 +43,24 @@ export function assetRoot(startDir: string = getPackageRoot()): string {
     }
     current = dirname(current);
   }
+}
+
+/**
+ * In a checkout, the repository's own assets, not the copies `prepack` staged
+ * beside `packages/cli` for the last publish.
+ *
+ * Those copies are gitignored and stay behind after a release, and nothing
+ * refreshes them until the next `npm pack`. A rule added since was missing
+ * from them: the first test run after each corpus change failed 14 tests with
+ * "I-148 is not a rule or spec in this corpus", until `tarball.test.ts` ran
+ * `npm pack --dry-run`, re-staged them mid-run, and the next run passed. A
+ * CLI run from the checkout read the stale rules the same way. An installed
+ * package has no repository above it, so it keeps its own copies.
+ */
+function sourceOf(found: string): string {
+  if (isPublishedBuild(found)) return found;
+  const repo = join(found, '..', '..');
+  return existsSync(join(repo, ASSET_MARKER)) && existsSync(join(repo, 'packages', 'cli', 'package.json')) ? repo : found;
 }
 
 /**

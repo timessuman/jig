@@ -52,6 +52,11 @@
 - **Each critique arm is told the shape of a `ruled` verdict.** An arm wrote
   four that named the owner's decision only in their reason, and `verdicts`
   refused them all.
+- **A CLI run from a checkout reads the checkout's rules.** `prepack` copies the
+  rules beside the CLI package for each publish, and the copies stayed behind:
+  a clone that had published read the rules as they were then, and Jig's own
+  first test run after each rule change failed 14 tests. An installed package
+  still reads its own copies.
 - **Every page is owed a critique again.** A critique judges every rule, so one
   written before these sixteen is incomplete, and `jig ship` lists each page
   until it is critiqued on this release.
