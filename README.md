@@ -12,13 +12,13 @@ Installed as `npx jig-ui` — the bare name was taken on npm.
 Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
 They are two halves of the same thing, and the split is not arbitrary:
 
-- Of the 156 rules, **38 can be decided by a machine** — a hard-coded colour, a
+- Of the 159 rules, **39 can be decided by a machine** — a hard-coded colour, a
   contrast ratio below the floor, a removed focus ring. The CLI decides those.
-- The other **118 are judgment** — whether an empty state says anything useful,
+- The other **120 are judgment** — whether an empty state says anything useful,
   whether a label reads as an instruction, whether motion earns its place. No
   regex settles those. An agent reads the rules and applies them.
 
-Running only the CLI gets you the 38. Running only the agent gets you the 118 with
+Running only the CLI gets you the 39. Running only the agent gets you the 120 with
 no verification. **A clean `jig check` is not a clean review**, and the skill
 says so to every agent that reads it.
 
@@ -407,7 +407,7 @@ on the result — the CLI reports, the agent applies the judgment half.
 | Slash command | Equivalent |
 | --- | --- |
 | `/jig init` | `jig init` — then states the mode it chose and what it wired |
-| `/jig check` | `jig check` — then applies the 118 judgment rules and reports both halves |
+| `/jig check` | `jig check` — then applies the 120 judgment rules and reports both halves |
 | `/jig explain C-19` | `jig explain C-19` — prints the rule as-is, without paraphrasing it |
 | `/jig explain contrast` | `jig explain contrast` — every rule matching a word, when you do not have an id |
 | `/jig install --agent cursor` | `jig install --agent cursor` |
@@ -489,6 +489,9 @@ before you say yes:
   the navigation you would expect there.
 - **States cover what the page will meet.** Empty, one, a lot, loading, failure:
   whichever the page can actually be in.
+- **Everything that moves has a reason.** Each line of `motion:` names what
+  moves, what sets it off, and what it tells the reader. Cut any line that
+  can't say, and expect nothing on the page to move that the list leaves out.
 - **Open questions were asked, not answered for you.** A spec touching an item
   under `Unresolved` in `DECISIONS.md` carries your answer, and a field reading
   `unspecified — make chooses one it can defend` is one you can decide now.
@@ -746,7 +749,7 @@ treatment.
 
 | File | Contents |
 | --- | --- |
-| `rules/00-anti-patterns.md` | 125 universal rules with corrections |
+| `rules/00-anti-patterns.md` | 128 universal rules with corrections |
 | `rules/01-modes.md` | `editorial` / `product` / `operator` profiles |
 | `rules/02-tokens.md` | Token contract, naming, consumption |
 | `rules/03-patterns.md` | Component anatomy and behaviour |

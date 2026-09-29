@@ -28,6 +28,19 @@
   figure traces to a source, whether prose says something specific once, and
   whether a long-form piece holds something only its author could say.
 
+- **Three motion rules.** `G-161`: a layout change the user caused shows
+  where things went (a deleted row's neighbours slide into the gap) rather than
+  jumping, and stays instant when the user did not cause it. `G-162`: animate
+  `transform` and `opacity`, never layout, and never `all`; `check` warns on a
+  transition or keyframe that names a layout property or `all`, and on
+  Tailwind's `transition-all`. `G-163`: one thing moves at a time. Moving
+  within the screen takes `--ease-in-out` (`T-04`). No new tokens.
+- **A spec says what moves, and why.** `motion:` lists each movement: what
+  moves, its trigger, and what it tells the reader. One that cannot say is cut
+  before it is built. The owner reads it on the confirmation sheet, `make`
+  builds that motion and no other, and `critique` judges the page against it.
+  A spec confirmed before it has none, and is judged by the rules alone.
+
 ### Changed
 
 - **A critique reads the page against the spec, not only the spec against the
@@ -40,7 +53,7 @@
   four that named the owner's decision only in their reason, and `verdicts`
   refused them all.
 - **Every page is owed a critique again.** A critique judges every rule, so one
-  written before these thirteen is incomplete, and `jig ship` lists each page
+  written before these sixteen is incomplete, and `jig ship` lists each page
   until it is critiqued on this release.
 
 ## 0.22.0 (2026-09-29)

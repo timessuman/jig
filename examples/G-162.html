@@ -1,0 +1,18 @@
+<!-- G-162 · Animating layout, or everything -->
+<figure data-example="dont">
+  <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.45;color:#1f1f1f;background:#f5f5f4;padding:16px;min-height:176px;box-sizing:border-box;"><div style="display:flex;flex-direction:column;gap:6px;"><pre style="margin:0;font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#fff;border:1px solid #d6d3d1;border-radius:4px;padding:8px;white-space:pre-wrap;">.panel {
+  transition: all 200ms;
+}
+.row {
+  transition: height 200ms;
+}</pre></div></div>
+</figure>
+<figure data-example="do">
+  <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.45;color:#1f1f1f;background:#f5f5f4;padding:16px;min-height:176px;box-sizing:border-box;"><div style="display:flex;flex-direction:column;gap:6px;"><pre style="margin:0;font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#fff;border:1px solid #d6d3d1;border-radius:4px;padding:8px;white-space:pre-wrap;">.panel {
+  transition: opacity 150ms var(--ease-out),
+    transform 150ms var(--ease-out);
+}
+.row {
+  transition: transform 150ms var(--ease-in-out);
+}</pre></div></div>
+</figure>

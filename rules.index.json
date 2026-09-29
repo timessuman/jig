@@ -1105,5 +1105,27 @@
     "severity": "note",
     "since": "0.23.0",
     "pass": "code"
+  },
+  {
+    "id": "G-161",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
+  },
+  {
+    "id": "G-162",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.23.0",
+    "detector": "layout-motion",
+    "pass": "code"
+  },
+  {
+    "id": "G-163",
+    "bucket": "judgment",
+    "severity": "note",
+    "since": "0.23.0",
+    "pass": "code"
   }
 ]

@@ -17,6 +17,7 @@ import { menuState } from './detectors/menu-state.js';
 import { undeclaredToken } from './detectors/undeclared-token.js';
 import { emDash } from './detectors/em-dash.js';
 import { formulaPhrase, headingEmoji } from './detectors/prose.js';
+import { layoutMotion } from './detectors/layout-motion.js';
 import { semanticElement } from './detectors/semantic-element.js';
 import { metadata } from './detectors/metadata.js';
 import { interfaceSafety } from './detectors/interface-safety.js';
@@ -48,6 +49,7 @@ const DETECTORS: Detector[] = [
   emDash,
   formulaPhrase,
   headingEmoji,
+  layoutMotion,
   semanticElement,
   metadata,
   interfaceSafety,

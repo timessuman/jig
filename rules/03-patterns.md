@@ -429,7 +429,8 @@ it that they did not cause. Motion in those modes always means something changed
 - **Animate `transform` and `opacity`.** These run on the compositor. A loop that
   runs forever on every frame the page is open cannot afford animated `blur`,
   `box-shadow`, or anything that triggers layout — the cost is not paid once, it is
-  paid continuously, on whatever device the reader has.
+  paid continuously, on whatever device the reader has. `G-162` holds this for all motion;
+  here the cost is simply paid forever.
 
 **Anti-pattern:** ambient motion used to direct attention. It is atmosphere, not a
 signal. The moment it points at something it has become interaction motion badly

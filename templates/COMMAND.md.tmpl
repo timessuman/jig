@@ -369,6 +369,8 @@ sizes:                     # phone first. Each size is a whole composition, not 
     why: "content is capped at 1200px, so 1600 adds margin and nothing else"
 switches: none             # the recorded switches (--breakpoint-*, T-04) this page crosses, by name; none if it crosses none. Absent, the mockup draws either side of every one
 states: [default, loading, error, success]
+motion:                    # every movement the page has, or `none`: what moves, on its trigger; tells what
+  - deleted row: rows below slide into the gap, on delete; tells where the list went
 decisions: [The Engineer Reads First]     # every DECISIONS.md entry this screen implements, by name
 later: [social sign-in, remember this device]   # cut from V1, by name — the next specs start here
 indexable: true            # from the mode — editorial yes, product/operator no. Say why when you override it.
@@ -383,6 +385,13 @@ critique: each             # optional: each, or at-ship; left out, the project's
 
 - **`phone` is written first, and in full.** It is the most common screen, and the
   one a derived composition fails on worst.
+- **`motion:` lists every movement, and why it moves.** Each names what moves, its
+  trigger, and what it tells the reader. The trigger is the user's input, a state
+  change, arrival (once per visitor, editorial only, `G-42`) or ambient (editorial
+  only, `P-13`). A movement that cannot say what it tells the reader is cut here,
+  before it is built. Write it from the composition; it is not a question for the
+  owner, who reads it on the sheet beside `states:`. A page with nothing moving
+  says `none`.
 - **`indexable:`, `title:` and `description:` are copy, decided here.** The mode
   sets the default — `editorial` is first-visit content and is indexable,
   `product` and `operator` are what somebody reaches after signing in and are
@@ -536,6 +545,8 @@ Show the spec, and with it the sheet the owner checks it by, from
 - **Facts:** each claim and its source, the ones that could not be checked
   first.
 - **Copy the page will show as written.**
+- **What moves:** each line of `motion:`, with its trigger and what it tells
+  the reader, or that nothing moves.
 - **Your conditions**, beside the lines that carry them.
 - **Left for you:** the `open` items, which they can decide now.
 
@@ -895,6 +906,10 @@ indexable carries `noindex` instead, from its own metadata rather than from
 
 Then the ordinary rules apply: tokens by semantic name, the relevant
 `03-patterns.md` section for each component, `05-copy.md` for every string.
+
+**Build the motion `motion:` lists, and no other.** A movement the spec does not
+list is a deviation, recorded below like any other. A spec with no `motion:`
+(one confirmed before it existed) leaves motion to the `G-` rules alone.
 
 ### Record what you changed
 
@@ -1283,6 +1298,11 @@ at the same width and compare the structure — the regions and their order, wha
 grouped with what, what stacks or moves on the phone. Not the colour, type or
 polish: the mockup is grayscale and low-fidelity on purpose, so its appearance is
 not a target.
+
+**Motion, against `motion:`.** Each movement on the page is judged against its
+line: one the spec does not list is a `G-42` finding, and one that tells the
+reader something other than its line says is a finding under the rule it
+breaks. With no `motion:` in the spec, the `G-` rules alone judge it.
 
 **Then the other way: the page against the spec.** Each section, paragraph,
 control or claim the page carries that no line of the spec asks for is a

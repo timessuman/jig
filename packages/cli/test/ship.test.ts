@@ -226,4 +226,14 @@ describe('each page says when it is critiqued', () => {
     expect(specProblems({ path: '.jig/specs/pricing.spec.md', body: withCritique('sometimes') }).join(' ')).toMatch(/`critique: sometimes` is neither `each` nor `at-ship`/);
     expect(specProblems({ path: '.jig/specs/pricing.spec.md', body: withCritique('at-ship   # the chapters wait') }).join(' ')).not.toMatch(/critique:/);
   });
+
+  // G-42: each movement on the page says what triggers it and what it tells.
+  it('holds a movement in `motion:` that gives no trigger or reason', () => {
+    const withMotion = (value: string) => spec().replace('confirmed: true', `confirmed: true\nmotion:${value}`);
+    const problems = (value: string) => specProblems({ path: '.jig/specs/pricing.spec.md', body: withMotion(value) }).join(' ');
+    expect(problems(' none')).not.toMatch(/motion/);
+    expect(problems('\n  - deleted row: rows below slide up, on delete; tells where the list went')).not.toMatch(/motion/);
+    expect(problems('\n  - hero: the gradient drifts')).toMatch(/does not say what triggers it/);
+    expect(problems(' sometimes')).toMatch(/neither `none` nor a list/);
+  });
 });
