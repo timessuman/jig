@@ -531,7 +531,15 @@ not your summary of what the owner meant. It writes
   touches.
 
 Fix what it found, then have the spec checked again: the record is of the spec
-you show, and the gate compares its `spec` checksum to the file. **If you cannot
+you show, and the gate compares its `spec` checksum to the file.
+
+**A second check covers what changed, not the whole spec again.** Give the
+reader the earlier record and the spec's diff since it. A quotation or fact whose
+line did not change, and whose source has not changed since (`git diff` on that
+file), carries over as recorded; the reader checks the changed lines, the new
+ones, and any fact whose source moved. It still writes the whole record, with
+the new checksum. On jig-site each re-check opened every source again, about $10
+a round, to confirm facts on lines nobody had touched. **If you cannot
 delegate, write the record yourself, with `"reader": "the writer"` in it, and say
 in the confirmation message that nobody else checked the spec.** That is an
 honest gap the owner can close by reading more closely; a check you ran on your

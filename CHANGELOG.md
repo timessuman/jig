@@ -67,6 +67,10 @@
   other instances on the page and fixes them in the same change. On jig-site a
   decision to set every quotation mark curly fixed the one named, and four
   straight marks survived to the next critique.
+- **A spec's second check covers what changed.** The reader gets the earlier
+  record and the diff; a quotation or fact on an unchanged line, whose source
+  has not changed either, carries over. On jig-site every re-check reopened
+  every source, about $10 a round.
 - **Every page is owed a critique again.** A critique judges every rule, so one
   written before these sixteen is incomplete, and `jig ship` lists each page
   until it is critiqued on this release.
