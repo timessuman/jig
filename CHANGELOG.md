@@ -57,6 +57,16 @@
   a clone that had published read the rules as they were then, and Jig's own
   first test run after each rule change failed 14 tests. An installed package
   still reads its own copies.
+- **`jig ship` leaves a replaced spec to the spec that replaced it.**
+  `superseded_by: <spec>` in a spec's front matter marks it, and `ship` reports
+  it apart instead of as never critiqued, once it has checked the spec it names
+  exists. On jig-site two replaced specs were owed a critique at every `ship`,
+  each marked a different way by the agent that replaced it.
+- **A tweak that records a decision applies it to the whole page.** The owner
+  rules on one instance, and the decision states a kind; the tweak now finds the
+  other instances on the page and fixes them in the same change. On jig-site a
+  decision to set every quotation mark curly fixed the one named, and four
+  straight marks survived to the next critique.
 - **Every page is owed a critique again.** A critique judges every rule, so one
   written before these sixteen is incomplete, and `jig ship` lists each page
   until it is critiqued on this release.

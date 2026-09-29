@@ -20,7 +20,7 @@ import { checksum } from '../install/manifest.js';
  * than it is.
  */
 
-export type PageState = 'judged' | 'never' | 'changed' | 'reprobe' | 'deferred' | 'incomplete' | 'findings' | 'in-progress';
+export type PageState = 'judged' | 'never' | 'changed' | 'reprobe' | 'deferred' | 'incomplete' | 'findings' | 'in-progress' | 'superseded';
 
 export interface PageStatus {
   surface: string;
@@ -99,11 +99,27 @@ function changedSinceLock(projectRoot: string, dir: string): string | undefined 
   }
 }
 
+/** The spec a `superseded_by:` line names, if the spec has one. */
+export function supersededBy(front: string): string | undefined {
+  const named = /^\s*superseded_by\s*:\s*(.*)$/im.exec(front)?.[1]?.replace(/\s+#.*$/, '').trim();
+  return named ? named : undefined;
+}
+
 export function pageStatus(projectRoot: string, surface: string): PageStatus {
   const spec = readFileSync(join(projectRoot, '.jig', 'specs', `${surface}.spec.md`), 'utf8');
   const front = spec.split(/^---\s*$/m)[1] ?? '';
   if (!/^\s*confirmed\s*:\s*true\b/im.test(front)) {
     return { surface, state: 'in-progress', detail: 'its spec is not confirmed, so nothing of it is built to ship' };
+  }
+  // A spec another replaced: its page is the successor's, and the successor's
+  // critique judges it. On jig-site two replaced specs were listed as never
+  // critiqued at every `ship`, and agents marked them each their own way.
+  const successor = supersededBy(front);
+  if (successor !== undefined) {
+    const file = successor.replace(/(\.spec\.md)?$/, '.spec.md');
+    return existsSync(join(projectRoot, '.jig', 'specs', file))
+      ? { surface, state: 'superseded', detail: `superseded by ${file}, whose critique judges its page` }
+      : { surface, state: 'incomplete', detail: `\`superseded_by: ${successor}\` names a spec that does not exist in .jig/specs` };
   }
   const dir = join(projectRoot, '.jig', 'critique', surface);
   if (!existsSync(join(dir, 'screen.json')) && !existsSync(join(dir, 'code.json'))) {
@@ -136,14 +152,14 @@ export function ship(opts: { projectRoot: string; version: string }): ShipResult
     ? readdirSync(specsDir).filter((f) => f.endsWith('.spec.md') && !f.startsWith('_')).map((f) => f.replace(/\.spec\.md$/, '')).sort()
     : [];
   const pages = surfaces.map((s) => pageStatus(root, s));
-  const owed = pages.filter((p) => p.state !== 'judged' && p.state !== 'in-progress');
+  const owed = pages.filter((p) => p.state !== 'judged' && p.state !== 'in-progress' && p.state !== 'superseded');
   const ready = mechanicalErrors === 0 && seoErrors === 0 && owed.length === 0;
 
   const count = (state: PageState) => pages.filter((p) => p.state === state).length;
   const line =
     `JIG_SHIP: ready=${ready ? 'yes' : 'no'} mechanical=${mechanicalErrors} seo=${seoErrors} pages=${pages.length} ` +
-    `judged=${count('judged')} owed=${owed.length} in-progress=${count('in-progress')}`;
-  const mark: Record<PageState, string> = { judged: '✓', never: '✗', changed: '✗', reprobe: '✗', deferred: '✗', incomplete: '✗', findings: '✗', 'in-progress': '·' };
+    `judged=${count('judged')} owed=${owed.length} in-progress=${count('in-progress')} superseded=${count('superseded')}`;
+  const mark: Record<PageState, string> = { judged: '✓', never: '✗', changed: '✗', reprobe: '✗', deferred: '✗', incomplete: '✗', findings: '✗', 'in-progress': '·', superseded: '·' };
   const report = [
     `  ${mechanicalErrors === 0 ? '✓' : '✗'} check --all --ci: ${mechanicalErrors} mechanical error${mechanicalErrors === 1 ? '' : 's'}`,
     `  ${seoErrors === 0 ? '✓' : '✗'} seo: ${seoErrors} error${seoErrors === 1 ? '' : 's'}`,

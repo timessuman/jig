@@ -77,6 +77,19 @@ describe('jig ship', () => {
     expect(r.line).toMatch(/JIG_SHIP: ready=no mechanical=0 seo=0 pages=1 judged=0 owed=1/);
   });
 
+  // jig-site listed two replaced specs as never critiqued at every ship.
+  it('owes nothing for a spec another replaced, and names the replacement', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'plans.spec.md'), spec().replace('confirmed: true', 'confirmed: true\nsuperseded_by: pricing.spec.md   # one page now'));
+    const r = state();
+    expect(r.report).toMatch(/· plans: superseded by pricing\.spec\.md/);
+    expect(r.line).toMatch(/owed=1 in-progress=0 superseded=1/);
+  });
+
+  it('holds a replacement that does not exist', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'plans.spec.md'), spec().replace('confirmed: true', 'confirmed: true\nsuperseded_by: gone'));
+    expect(state().report).toMatch(/✗ plans: `superseded_by: gone` names a spec that does not exist/);
+  });
+
   it('passes a page judged as it stands, and says what Jig does not check', () => {
     critiqued('pricing');
     const r = state();
