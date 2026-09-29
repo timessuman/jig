@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.23.0 (2026-09-29)
+
+Rules for the prose a page ships and for how it moves, a spec that says what
+moves and why, and a critique that reads the page against its spec both ways.
 
 ### Added
 
