@@ -10,7 +10,7 @@ import { verifyVerdicts } from './verdicts.js';
 import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
 import { decisionsFile, quotesNotFrom, unsourcedReasons } from '../check/decisions.js';
-import { specCheckProblems } from '../check/spec-checked.js';
+import { mockupPending, mockupWordProblems, specCheckProblems } from '../check/spec-checked.js';
 import { checksum } from '../install/manifest.js';
 
 /**
@@ -333,6 +333,11 @@ function commandProblems(root: string, command: string, surface?: string, start?
   }
 
   if (command === 'spec' && spec) problems.push(...specChecked(root, spec, start, owner));
+
+  // The owner's word on the drawing, approved or skipped, is quoted and theirs.
+  if ((command === 'spec' || command === 'mockup' || command === 'make') && spec) {
+    problems.push(...mockupWordProblems(spec, fileAtSessionStart(root, spec.path, start), owner));
+  }
 
   if (command === 'mockup' && spec) {
     const front = spec.body.split(/^---\s*$/m)[1] ?? '';
@@ -669,9 +674,17 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   // `check` below still runs either way.
   const waiting = command !== undefined && ASKS_THE_OWNER.has(command) && asksOwner(lastAssistantText(opts.input.transcript_path));
   const start = sessionStart(opts.input.transcript_path);
-  const owner = command === 'spec' ? ownerWords(opts.input.transcript_path) : '';
+  const owner = command === 'spec' || command === 'mockup' || command === 'make' ? ownerWords(opts.input.transcript_path) : '';
   const problems: string[] = command && !waiting ? commandProblems(root, command, invocation?.surface, start, owner).map((p) => `/jig ${command}: ${p}`) : [];
   if (waiting && command === 'mockup') problems.push(...drawingBeforeAsking(root, invocation?.surface).map((p) => `/jig mockup: ${p}`));
+  // make builds from a drawing the owner approved, or from the spec alone once
+  // they said to skip it. Nobody having said either, it asks; it does not finish.
+  if (command === 'make') {
+    const spec = specFor(root, invocation?.surface);
+    if (spec && mockupPending(spec.body) && !asksOwner(lastAssistantText(opts.input.transcript_path))) {
+      problems.push(`/jig make: ${spec.path} still says \`mockup: pending\`: nobody has said whether to draw it. Ask the owner, draw it with \`/jig mockup\` or skip it; if they skip it, write \`mockup: skipped — "<their words>"\` and build from the spec alone.`);
+    }
+  }
   if (waiting && command === 'spec') {
     const spec = specFor(root, invocation?.surface);
     if (spec) problems.push(...specChecked(root, spec, start, owner).map((p) => `/jig spec: ${p}`));

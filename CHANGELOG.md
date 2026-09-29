@@ -16,6 +16,20 @@
   the owner's that the owner never said, states a fact its reader found false,
   cites a source the project does not have, or has no check of the spec as it
   stands.
+- **A mockup is approved against its spec, and skipping one is plain.** The
+  owner gets the drawing with a sheet, size by size, the spec's line beside what
+  the frame shows, and the README's new "Before you approve a mockup" says what
+  to look for. An approval or a skip is recorded in the owner's words
+  (`mockup: approved — "…"`), and the gate holds one they did not say. A skip
+  can be given to `make` or at the spec's confirmation, not only to `mockup`;
+  `make` then builds from the spec alone, and asks rather than finishing on a
+  spec nobody has said to draw or skip.
+
+### Fixed
+
+- **A `/jig` command whose words hold a `<`** read as no command at all, so
+  the gate judged a tweak as a builder editing verdicts. The session then wrote
+  `verdicts.lock` by hand; the procedure now says the lock is the gate's alone.
 
 ## 0.21.0 (2026-09-28)
 

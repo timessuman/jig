@@ -145,7 +145,7 @@ describe('installStopHook', () => {
 describe('the gate checks the command that just ran', () => {
   const transcript = (command: string) => {
     const path = join(root, 'transcript.jsonl');
-    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>` } }) + '\n');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>\nApproved.` } }) + '\n');
     return path;
   };
   const runAfter = (command: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1', transcript_path: transcript(command) } });
@@ -174,7 +174,7 @@ sizes:
     same-as: desktop
     why: content is capped, so 1600 adds margin and nothing else
 confirmed: true
-mockup: approved
+mockup: approved — "Approved"
 mockup_at: .jig/mockups/pricing.html
 ---
 Prose.`;

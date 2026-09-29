@@ -164,7 +164,7 @@ describe('mockup', () => {
 
   it('records approval only from the user, and a skip only with their reason', () => {
     expect(mockup()).toMatch(/mockup: approved/);
-    expect(mockup()).toMatch(/mockup: skipped — <their reason>/);
+    expect(mockup()).toMatch(/mockup: skipped — "<their words>"/);
     expect(mockup()).toMatch(/Only their own response counts/);
   });
 });

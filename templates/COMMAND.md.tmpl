@@ -353,7 +353,7 @@ later: [social sign-in, remember this device]   # cut from V1, by name — the n
 indexable: true            # from the mode — editorial yes, product/operator no. Say why when you override it.
 title: "Pricing — Hoistline"          # ≤ 60 characters, the search result's first line
 description: "Three plans, every price visible. No sales call."   # ≤ 155
-mockup: pending            # `mockup` sets approved or skipped, from the user's own words
+mockup: pending            # approved or skipped, quoting the user: approved by `mockup`, skipped by whichever command they said it to
 mockup_at:                 # where the approved drawing is: a .jig/mockups path, or a Figma or Stitch link
 deviations: []             # `make` writes here; `spec` leaves it empty
 ---
@@ -519,6 +519,9 @@ Show the spec, and with it the sheet the owner checks it by, from
 
 The owner confirms a spec by checking it, and the sheet is what makes that a few
 minutes' work rather than a reread. Ask them to confirm it. Then **stop**.
+
+If, in confirming, they also say to skip the mockup, record that too:
+`mockup: skipped — "<their words>"`.
 
 **Checking a spec for the owner.** When the owner asks an agent to check a spec
 and confirm it on their behalf, that agent works from the same sheet and confirms
@@ -744,6 +747,27 @@ Then ask **structural** questions, not whether they like it: is the most importa
 thing the first thing seen at each size? Does anything belong in a different group?
 Is anything here that V1 does not need?
 
+**Give them the sheet they check it by.** The drawing is the confirmed spec,
+drawn, so what the owner checks first is that it matches. The gate has checked
+that each region is labelled; whether each is drawn the way the spec says is
+theirs to see. Size by size, set the spec's line beside what the frame shows:
+
+- the regions in the spec's order, what comes first, what is grouped, where each
+  sits;
+- `nav:` for that size, and the navigation drawn;
+- each state in `states:` that changes the layout, and where it is drawn;
+- anything the spec says a part does that a still drawing cannot show, quoted
+  from the spec. Name only what the spec says: a behaviour it does not mention is
+  not yours to raise here, and one you add is a spec change;
+- the owner's conditions from the spec, beside the lines that carry them;
+- and what the drawing leaves out on purpose: `later:`, and colour, type and
+  spacing, which the tokens settle.
+
+**Checking a mockup for the owner.** When the owner asks an agent to check the
+drawing and approve it on their behalf, that agent renders every frame, compares
+each with its line in the spec, and approves only what it checked itself. What
+it could not check, it names to the owner instead of approving.
+
 ### 4. Every change goes into the spec first
 
 When the review moves, adds, cuts or regroups anything, **edit the spec**, then
@@ -757,13 +781,20 @@ confirmed again.
 
 ### 5. Record the outcome in the user's words
 
-- The user approves → set `mockup: approved` in the spec, and `confirmed: true` if
-  review changed it. Record where the approved drawing is in `mockup_at:` — the
-  file path, or the Figma or Stitch link. Only their own response counts; your summary of the drawing,
-  or no objection, does not.
-- The user says to skip it → `mockup: skipped — <their reason>`. For a change small
-  enough that drawing it costs more than building it, that is a reasonable call; it
-  is still theirs to make.
+- The user approves → set `mockup: approved — "<their words>"` in the spec,
+  quoting the reply that approved it, and `confirmed: true` if review changed it.
+  Record where the approved drawing is in `mockup_at:` — the file path, or the
+  Figma or Stitch link. Only their own response counts; your summary of the
+  drawing, or no objection, does not. **A condition they attach goes into the
+  spec first**, in their words, on the lines it governs: on jig-site the owner
+  approved with "three columns at 1280 and wider, inside the page margins", the
+  condition lived only in the conversation, and `make` moved the switch to 1290.
+- The user says to skip it → `mockup: skipped — "<their words>"`. For a change
+  small enough that drawing it costs more than building it, that is a reasonable
+  call; it is still theirs to make.
+
+With the Stop hook, the gate reads the quotation after `approved` or `skipped` and
+holds it to what the owner said in this session.
 
 Then stop. The next step is `{{command_prefix}}make`.
 
@@ -784,9 +815,12 @@ each finding, run the finish again, and then `critique` runs again. See step 5 o
   prevent.
 - `confirmed: false` → the spec exists but nobody has agreed to it. Ask for
   confirmation and stop.
-- `mockup: pending` → the feature has not been looked at. Run
-  `{{command_prefix}}mockup`, or ask the user whether to skip it. Do not decide to
-  skip it yourself.
+- `mockup: pending` → nobody has said whether to draw it. Unless the user already
+  said to skip it in asking for `make`, ask once: draw it with
+  `{{command_prefix}}mockup`, or skip it? If they skip it, write
+  `mockup: skipped — "<their words>"` in the spec and build from the spec alone.
+  Do not decide to skip it yourself, and do not finish with the spec still
+  pending: the gate holds a `make` that does.
 
 ### Build
 

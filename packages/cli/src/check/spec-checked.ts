@@ -19,9 +19,45 @@ import { quoteHeld } from './decisions.js';
  * is not put to the owner; and a source it names in the project exists.
  */
 
-/** The spec's checksum, leaving out `confirmed:`, which the owner's answer sets after the check. */
+/**
+ * The spec's checksum, leaving out `confirmed:` and `mockup:`, which the
+ * owner's answer sets after the check (a yes, and perhaps "skip the mockup").
+ */
 export function specChecksum(body: string): string {
-  return createHash('sha256').update(body.replace(/^\s*confirmed\s*:.*$/gim, '')).digest('hex');
+  return createHash('sha256').update(body.replace(/^\s*(confirmed|mockup)\s*:.*$/gim, '')).digest('hex');
+}
+
+const mockupLine = (body: string) => /^\s*mockup\s*:\s*(.*)$/im.exec(body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim() ?? '';
+
+/**
+ * A mockup approved or skipped is recorded in the owner's words, and a session
+ * that recorded it answers for them.
+ *
+ * On jig-site the owner approved a drawing "with condition: three columns at
+ * 1280 and wider", the condition lived only in the conversation, and `make`
+ * moved the switch to 1290. The word that lets `make` build without a drawing,
+ * or from one, is the owner's; it is quoted, and the quotation is theirs.
+ */
+export function mockupWordProblems(spec: { path: string; body: string }, then: string, owner: string): string[] {
+  const now = mockupLine(spec.body);
+  if (now === mockupLine(then)) return [];
+  const m = /^(approved|skipped)\b(.*)$/i.exec(now);
+  if (!m) return [];
+  const word = m[1]!.toLowerCase();
+  const quoted = /["“]([^"”]+)["”]/.exec(m[2]!)?.[1]?.trim();
+  if (!quoted) {
+    return [`${spec.path}: \`mockup: ${word}\` is recorded without the owner's words. Write \`mockup: ${word} — "<what they said>"\`, quoting the reply that ${word === 'approved' ? 'approved it' : 'said to skip it'}.`];
+  }
+  if (!quoteHeld(quoted, owner)) {
+    return [`${spec.path}: \`mockup: ${word}\` quotes "${quoted}", which the owner did not say in this session. Quote their reply as they wrote it; ${word === 'approved' ? 'an approval' : 'a skip'} nobody gave is not one.`];
+  }
+  return [];
+}
+
+/** Whether the spec still waits on the owner's word about a drawing. */
+export function mockupPending(body: string): boolean {
+  const now = mockupLine(body);
+  return !now || /^pending\b/i.test(now);
 }
 
 /**

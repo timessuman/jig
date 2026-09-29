@@ -502,6 +502,54 @@ the copy as the person arriving would, and holds each condition to your words.
 What it could not check, it names to you instead of confirming. An agent's yes
 is still yours, so read what it says it did not check.
 
+### Before you approve a mockup
+
+A mockup is the confirmed spec, drawn: one page, at every size the spec names,
+in grey. So the first thing to check is that it matches the spec. The Stop hook
+already checks that every region and navigation the spec names is labelled in
+each size's frame, and holds the drawing back from you until it is. What a label
+check cannot see is whether each is drawn the way the spec says, and that is
+yours.
+
+You get the drawing with a sheet, size by size: the spec's line beside what the
+frame shows. Read it for these before you approve:
+
+- **Every size matches its line in the spec.** The order of the regions, what
+  comes first, what sits with what, where each one is. A region that is present
+  but in the wrong place is not a match.
+- **The navigation at each size is what the spec's `nav:` says.**
+- **Nothing extra.** No region the spec does not list, and nothing from
+  `later:`.
+- **The spec's states are drawn** where one changes the layout: empty, error, a
+  lot.
+- **What a drawing cannot show is named, from your spec.** If your spec says a
+  part stays in place on scroll, or opens and closes, the sheet names it so you
+  approve that too. If your spec says nothing of the kind, there is nothing to
+  name.
+- **Now that you see it, the spec is still what you want.** If it is not, the
+  spec changes first and the drawing is redrawn from it, so the two never
+  disagree.
+- **A condition you attach is written into the spec, in your words,** before
+  the approval is recorded. `make` builds from the spec, not from the
+  conversation.
+- **You are not approving colour, type or exact spacing.** Those come from the
+  tokens; a grey drawing settles none of them.
+
+Your approval is recorded as your own words, `mockup: approved — "…"`, and with
+the Stop hook it cannot be recorded in words you did not say.
+
+**Handing the check to an agent.** It renders every frame, compares each with
+its line in the spec, confirms only what it checked, and names to you what it
+could not.
+
+**Skipping the mockup.** A mockup is not required. Say so, to `mockup`, to
+`make`, or when you confirm the spec, and it is recorded as `mockup: skipped —
+"your words"`. `make` then builds from the spec alone, `critique` compares the
+page to the spec alone, and nothing waits on a drawing. What `make` will not do
+is decide for you: on a spec whose mockup nobody has approved or skipped, it asks
+which. With no drawing, the spec is all there is to build from, so the check
+before you confirm it carries all the weight.
+
 ## What a search engine reads
 
 A page's title, description and preview text are copy, and they drift because a

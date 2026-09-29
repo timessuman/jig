@@ -158,3 +158,58 @@ describe('the facts a spec states', () => {
     expect(run('Do you confirm it?').block).toBe(false);
   });
 });
+
+/**
+ * jig-site: the owner approved a drawing "with condition: three columns at 1280
+ * and wider", the condition lived only in the conversation, and make moved the
+ * switch to 1290. An approval or a skip is recorded in the owner's words.
+ */
+describe('the owner\'s word on the drawing', () => {
+  const at = (command: string, said: string, agentSays?: string) => {
+    const path = join(root, `${command}.jsonl`);
+    const lines = [
+      { type: 'user', timestamp: new Date(Date.now() + 2000).toISOString(), message: { content: `<command-name>/jig</command-name>\n<command-args>${command} the-loop</command-args>\n${said}` } },
+      ...(agentSays ? [{ type: 'assistant', message: { content: [{ type: 'text', text: agentSays }] } }] : []),
+    ];
+    writeFileSync(path, lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
+    return gate({ projectRoot: root, version: '0.22.0', input: { session_id: command, transcript_path: path } });
+  };
+  const withMockup = (line: string) => spec('', 'true').replace(/^mockup: .*$/m, `mockup: ${line}`);
+  const committed = (body: string) => {
+    writeSpec(body);
+    writeChecked(body);
+    git('add', '.');
+    git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'spec');
+  };
+
+  it('takes a skip the owner gave to make, in their words, and builds from the spec alone', () => {
+    committed(withMockup('pending'));
+    writeSpec(withMockup('skipped — "skip the mockup, build it from the spec"'));
+    expect(at('make', 'Skip the mockup, build it from the spec.').block).toBe(false);
+  });
+
+  it('refuses a skip, or an approval, the owner did not give', () => {
+    committed(withMockup('pending'));
+    writeSpec(withMockup('skipped — "a small change, not worth drawing"'));
+    expect(at('make', 'Build it.').reason).toMatch(/quotes "a small change, not worth drawing", which the owner did not say/);
+    writeSpec(withMockup('approved'));
+    expect(at('mockup', 'Looks right.').reason).toMatch(/`mockup: approved` is recorded without the owner's words/);
+  });
+
+  it('keeps an approval as the owner gave it, condition and all', () => {
+    committed(withMockup('pending'));
+    writeSpec(withMockup('approved — "Approve, with condition: three columns at 1280 and wider"'));
+    expect(at('mockup', 'Approve, with condition: three columns at 1280 and wider.').reason ?? '').not.toMatch(/mockup: approved/);
+  });
+
+  it('lets make ask whether to draw it, and holds a make that finishes with it pending', () => {
+    committed(withMockup('pending'));
+    expect(at('make', 'Build it.', 'The spec has no drawing yet. Shall I draw it first, or skip the mockup?').block).toBe(false);
+    expect(at('make', 'Build it.', 'Built the page.').reason).toMatch(/still says `mockup: pending`: nobody has said whether to draw it/);
+  });
+
+  it('asks nothing of a spec whose word on the drawing this session left alone', () => {
+    committed(withMockup('skipped — the owner: "it reuses the approved layout"'));
+    expect(at('make', 'Build it.', 'Built the page.').reason ?? '').not.toMatch(/mockup/);
+  });
+});
