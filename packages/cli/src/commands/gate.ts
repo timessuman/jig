@@ -130,6 +130,17 @@ export function ownerWords(transcriptPath: string | undefined): string {
   return said.join('\n');
 }
 
+/**
+ * The spec a `spec` session works on: the file its command names, exactly, or
+ * none. Falling back to the newest spec checked another page's: on jig-site a
+ * session for a new chapter drafted its spec outside `.jig/specs/`, and the gate
+ * checked the chapter before it and let the draft go to the owner unchecked.
+ */
+function namedSpec(root: string, surface: string | undefined): { path: string; slug: string; body: string } | undefined {
+  if (!surface) return specFor(root, undefined);
+  return existsSync(join(root, '.jig', 'specs', `${surface}.spec.md`)) ? specFor(root, surface) : undefined;
+}
+
 /** Whether a spec's front matter says `confirmed: true`. */
 function isConfirmed(body: string): boolean {
   return /^\s*confirmed\s*:\s*true\b/im.test(body.split(/^---\s*$/m)[1] ?? '');
@@ -360,6 +371,10 @@ function commandProblems(root: string, command: string, surface?: string, start?
     }
   }
 
+  if (command === 'spec' && surface && !existsSync(join(root, '.jig', 'specs', `${surface}.spec.md`))) {
+    problems.push(`spec wrote no .jig/specs/${surface}.spec.md. The spec is that file: a draft anywhere else is read by no later step and checked by nothing.`);
+    return problems;
+  }
   if (command === 'spec' || command === 'mockup' || command === 'make' || command === 'critique' || command === 'tweak') {
     if (!spec) problems.push(`${command} needs a spec: there is no file in .jig/specs/.`);
     else {
@@ -756,7 +771,7 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   // A spec is confirmed by the owner's yes to being asked. Nothing checked
   // that: an agent could write `confirmed: true` having asked nobody.
   if (command === 'spec' && !waiting) {
-    const spec = specFor(root, invocation?.surface);
+    const spec = namedSpec(root, invocation?.surface);
     if (spec && isConfirmed(spec.body) && !isConfirmed(fileAtSessionStart(root, spec.path, start))) {
       const reply = ownerReplyAfter(opts.input.transcript_path, /\bconfirm/i);
       const said = reply === undefined ? undefined : ownerWordProblem('confirm', reply.slice(0, 400), reply, `${spec.path}: \`confirmed: true\``);
@@ -766,7 +781,12 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   }
 
   if (waiting && command === 'spec') {
-    const spec = specFor(root, invocation?.surface);
+    const spec = namedSpec(root, invocation?.surface);
+    // Asking the owner to confirm a spec that is not where Jig reads it puts an
+    // unchecked draft to them: every check below reads that file.
+    if (!spec && invocation?.surface && /\bconfirm/i.test(lastAssistantText(opts.input.transcript_path) ?? '')) {
+      problems.push(`/jig spec: you are asking the owner to confirm a spec that is not at .jig/specs/${invocation.surface}.spec.md. Write it there, with \`confirmed: false\`, have it checked (step 3c), and ask again: the checks the owner relies on read that file, and a draft kept anywhere else is checked by nothing.`);
+    }
     if (spec) problems.push(...specChecked(root, spec, start, owner).map((p) => `/jig spec: ${p}`));
     // A spec put to the owner is held to its shape too, once it is put to them
     // (its check record exists): earlier rounds ask questions of a draft. On

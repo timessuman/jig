@@ -246,6 +246,16 @@ Prose.`;
       expect(said('spec pricing', 'Does the spec hold? Confirm it?').reason ?? '').not.toMatch(/motion/);
     });
 
+    // jig-site: a spec session drafted in its scratchpad and asked the owner to
+    // confirm; the gate fell back to another page's spec and checked that.
+    it('refuses to put a spec to the owner that is not in .jig/specs, and checks no other page in its place', () => {
+      jigProject();
+      spec(goodSpec);
+      expect(said('spec tokens', 'Here is the full draft. Does this confirm, and in what words?').reason).toMatch(/not at \.jig\/specs\/tokens\.spec\.md/);
+      expect(said('spec tokens', 'Which three modes should the chapter name?').reason ?? '').not.toMatch(/\.jig\/specs\/tokens/);
+      expect(said('spec tokens', 'Done. The spec is drafted.').reason).toMatch(/spec wrote no \.jig\/specs\/tokens\.spec\.md/);
+    });
+
     it('still runs check while the question is open', () => {
       jigProject();
       writeFileSync(join(root, 'a.css'), 'body {\n  font-family: var(--font-body);\n}');

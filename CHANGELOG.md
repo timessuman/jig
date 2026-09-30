@@ -56,6 +56,12 @@
   `mockup:` too, so an agent following it was refused. Tests now fail when the
   procedure stops naming a state `ship` reports, or a line the checksum leaves
   out. A fact's `source` that holds a sentence is told to put it in `note`.
+- **A spec is drafted where Jig reads it, and checked as itself.** A spec
+  session on jig-site drafted in its scratchpad and asked the owner to confirm;
+  finding no file under the name, the gate checked the newest spec, another
+  chapter's, and let the draft through. A named spec is now checked exactly or
+  not at all, asking the owner to confirm one that is not in `.jig/specs/` is
+  refused, and so is finishing a spec session without writing it.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.
