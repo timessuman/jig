@@ -63,7 +63,9 @@
   nothing on the page, beside a `color-scheme` line that does; and claimed Jig
   knows every page that changed, which it does not for a page rendered on
   request. Its `exempt` example named one project's files as if they were a
-  pattern; it now explains how to choose your own. The slash-command table
+  pattern; it now explains how to choose your own: a file that renders outside
+  your stylesheets, or a page you will not revisit, since `check --all` and
+  `ship` read every file. The slash-command table
   lists `verdicts`, `probe` and `checksum`.
 
 ## 0.23.0 (2026-09-29)

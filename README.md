@@ -803,12 +803,13 @@ Drop this in the project root so mode selection does not require asking on every
   // Files `check` should not read, which you choose. Nothing is exempt by
   // default: this list is the only source, and Jig never fills it for you.
   //
-  // What earns an exemption is a file that renders outside the page's
+  // Two kinds of file earn one. A file that renders outside the page's
   // stylesheets, where a literal value is the only thing that works: an image
   // generated from markup (a social preview card), a PDF or email drawn by a
-  // renderer that never sees your CSS, a file a tool generates and you never
-  // edit. An old page you simply have not adopted Jig on does not need one:
-  // `check` reads only the files you change unless you ask for `--all`.
+  // renderer that never sees your CSS, a file a tool generates. And a page you
+  // have no intention of revisiting: plain `check` reads only the files you
+  // change, but `check --all` and `ship` read everything, and an old page's
+  // hard-coded values are errors once the token layer exists.
   //
   // Prefer an exact path: an exemption is a claim about one file's rendering.
   // Use a glob only for a folder that exists to hold such files; a pattern
