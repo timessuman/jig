@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **One problem is filed once.** A difference goes under `differences` only
+  when no rule or decision already holds it. On jig-site one stale number was
+  filed four times, and `ship` counted 6 findings for 3 problems.
+
 ## 0.23.0 (2026-09-29)
 
 Rules for the prose a page ships and for how it moves, a spec that says what
