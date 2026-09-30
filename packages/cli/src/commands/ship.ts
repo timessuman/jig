@@ -82,30 +82,8 @@ function tweakDeferred(dir: string): boolean {
  * changed since it was judged. Which assets a page loads still counts; what
  * they are called does not. A change to them is a re-probe, not a critique.
  */
-export function pageChecksum(html: string, volatile: RegExp[] = []): string {
-  let text = html.replace(/(href|src)="[^"]*\.(css|js|mjs)(\?[^"]*)?"/g, '$1="asset.$2"');
-  for (const re of volatile) text = text.replace(re, '\u0000');
-  return checksum(text);
-}
-
-/**
- * Text the project says changes with every release and nothing a critique
- * judges: `"volatile"` in jig.config.json, as patterns. On jig-site every page
- * of the Guide prints the version it pins (`npx jig-ui@0.23.0 check`), so each
- * release made every chapter read as changed since it was judged, and each was
- * critiqued again for a version number. A figure a page states is not
- * volatile: a count that moved is a claim a critique must see.
- */
-export function volatileText(projectRoot: string): RegExp[] {
-  let patterns: unknown;
-  try { patterns = JSON.parse(readFileSync(join(projectRoot, 'jig.config.json'), 'utf8')).volatile; } catch { return []; }
-  if (!Array.isArray(patterns)) return [];
-  const out: RegExp[] = [];
-  for (const p of patterns) {
-    if (typeof p !== 'string' || !p) continue;
-    try { out.push(new RegExp(p, 'g')); } catch { /* not a pattern: nothing is left out for it */ }
-  }
-  return out;
+export function pageChecksum(html: string): string {
+  return checksum(html.replace(/(href|src)="[^"]*\.(css|js|mjs)(\?[^"]*)?"/g, '$1="asset.$2"'));
 }
 
 /** The page a critique's lock says it judged, and whether that page has changed since. */
@@ -117,7 +95,7 @@ function changedSinceLock(projectRoot: string, dir: string): string | undefined 
   try {
     const html = readFileSync(join(projectRoot, file), 'utf8');
     // A lock written before asset names were left out holds the raw checksum.
-    const seen = [pageChecksum(html, volatileText(projectRoot)), pageChecksum(html), checksum(html)];
+    const seen = [pageChecksum(html), checksum(html)];
     return seen.includes(lock.page.checksum) ? undefined : file;
   } catch {
     return undefined;

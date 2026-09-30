@@ -38,12 +38,6 @@
   every critique and tweak on jig-site left probe files modified and each brief
   had to say to commit them. Like the lock, it now stops once to have them
   committed on their own, and only when the rest of the work is committed.
-- **A page is not re-owed a critique for its version number.** `"volatile"` in
-  jig.config.json lists text that changes with every release and nothing a
-  critique judges, as patterns, and `ship` leaves it out when it asks whether a
-  page changed since it was judged. On jig-site every release moved the version
-  each Guide page pins, and every chapter was critiqued again for it. A figure
-  the page states is not volatile: a count that moved still counts.
 - **The README no longer counts the rules `check` decides by hand.** It named
   "the seven mechanical rules" from 0.1.0; 39 are decided now. jig-site's CLI
   chapter found it. It now points at `rules.index.json`, which cannot go stale.
