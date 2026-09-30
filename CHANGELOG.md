@@ -15,6 +15,15 @@
   any quotation the owner had said; on jig-site a skip quoted "It uses the
   Guide's approved layout", a remark about the chrome, and nobody had been
   asked. The quoted words now have to say to skip it.
+- **The owner's word is held to one rule, everywhere Jig records it.** A spec
+  confirmed, a drawing approved or skipped, a re-judge left for later, a tweak's
+  change and a decision's reason are each the owner's words, and words that say
+  that thing. Each place had been guarded on its own after an agent recorded
+  its reading of the owner as theirs, and the next one arrived somewhere
+  unguarded. Now one check covers them all, and three that had none are held:
+  `confirmed: true` needs the owner's yes after they were asked, a tweak's
+  `change` must be words they said, and `decide`'s quoted reasons must be too.
+  The skill states the rule once.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.

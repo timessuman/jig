@@ -47,7 +47,8 @@ Prose.`;
 
 const run = (command: string) => {
   const path = join(root, `transcript-${command}.jsonl`);
-  writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>` } }) + '\n');
+  // The owner's words for the change are what tweak.json records as `change`.
+  writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>\ndraw the GitHub mark in the quieter text colour` } }) + '\n');
   return gate({ projectRoot: root, version: '0.19.0', input: { session_id: command, transcript_path: path } });
 };
 
@@ -163,7 +164,7 @@ describe('/jig tweak', () => {
     rejudge('A-60', '2026-09-26T14:02:00Z');
     const path = join(root, 'transcript-quoted.jsonl');
     writeFileSync(path, [
-      { type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>tweak pricing\n\nThe owner says: put it back.</command-args>' } },
+      { type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>tweak pricing\n\nThe owner says: draw the GitHub mark in the quieter text colour.</command-args>' } },
       { type: 'user', isMeta: true, message: { content: [{ type: 'text', text: 'Base directory for this skill.\n\nFindings go back to `/jig make`, then `/jig critique` again.' }] } },
       { type: 'assistant', message: { content: [{ type: 'text', text: 'Next, /jig critique would re-judge everything.' }] } },
       { type: 'user', message: { content: [{ type: 'tool_result', content: 'run `/jig critique` to judge the fix' }] } },
@@ -177,7 +178,7 @@ describe('/jig tweak', () => {
     tweakRecord(['A-60']);
     rejudge('A-60', '2026-09-26T14:02:00Z');
     const path = join(root, 'transcript-named.jsonl');
-    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>tweak pricing</command-args>' } }) + '\n');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: '<command-name>/jig</command-name>\n<command-args>tweak pricing</command-args>\ndraw the GitHub mark in the quieter text colour' } }) + '\n');
     expect(gate({ projectRoot: root, version: '0.19.0', input: { session_id: 'named', transcript_path: path } }).reason ?? '').toBe('');
   });
 

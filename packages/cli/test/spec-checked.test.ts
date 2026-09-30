@@ -54,11 +54,14 @@ const writeChecked = (body: string, record: Record<string, unknown> = {}) =>
   writeFileSync(join(root, '.jig', 'specs', 'the-loop.checked.json'), JSON.stringify({ spec: specChecksum(body), quotes: [], facts: [], ...record }));
 
 const owner = "/jig spec the-loop — skip the mockup, it reuses the Guide's approved layout. Only where the steps differ by path.";
-const run = (agentSays?: string, said = owner) => {
+const run = (agentSays?: string, said = owner, reply?: string) => {
   const path = join(root, 't.jsonl');
+  const agent = (text: string) => ({ type: 'assistant', message: { content: [{ type: 'text', text }] } });
   const lines = [
     { type: 'user', timestamp: new Date(Date.now() + 2000).toISOString(), message: { content: `<command-name>/jig</command-name>\n<command-args>spec the-loop</command-args>\n${said}` } },
-    ...(agentSays ? [{ type: 'assistant', message: { content: [{ type: 'text', text: agentSays } ] } }] : []),
+    ...(agentSays ? [agent(agentSays)] : []),
+    // The owner's answer to the agent's question, and the agent's last word.
+    ...(reply ? [{ type: 'user', message: { content: reply } }, agent('Recorded.')] : []),
   ];
   writeFileSync(path, lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
   return gate({ projectRoot: root, version: '0.21.1', input: { session_id: 's', transcript_path: path } });
@@ -82,7 +85,16 @@ describe('a spec is checked before the owner is asked', () => {
   it('keeps the check when the owner\'s yes sets confirmed', () => {
     writeChecked(spec());
     writeSpec(spec('', 'true'));
-    expect(run().block).toBe(false);
+    expect(run('Here is the spec and its sheet. Do you confirm it?', owner, 'Confirmed.').block).toBe(false);
+  });
+
+  // Nothing held `confirmed: true` to the owner's yes: an agent could set it
+  // having asked nobody.
+  it('refuses a spec recorded as confirmed that nobody was asked to confirm, or that the owner did not confirm', () => {
+    writeChecked(spec());
+    writeSpec(spec('', 'true'));
+    expect(run().reason).toMatch(/the owner was never asked to confirm it/);
+    expect(run('Here is the spec and its sheet. Do you confirm it?', owner, 'Hold on, the phone layout is wrong.').reason).toMatch(/reply to being asked does not confirm it/);
   });
 
   it('refuses a check of an earlier spec', () => {
@@ -200,7 +212,7 @@ describe('the owner\'s word on the drawing', () => {
   it('refuses a skip whose quoted words do not say to skip', () => {
     committed(withMockup('pending'));
     writeSpec(withMockup('skipped — "It uses the Guide\'s approved layout"'));
-    expect(at('make', 'It uses the Guide\'s approved layout.').reason).toMatch(/does not say to skip the mockup/);
+    expect(at('make', 'It uses the Guide\'s approved layout.').reason).toMatch(/does not skip the mockup/);
     writeSpec(withMockup('skipped — "no drawing for this one"'));
     expect(at('make', 'No drawing for this one.').reason ?? '').not.toMatch(/mockup/);
   });

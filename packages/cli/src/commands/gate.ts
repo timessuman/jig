@@ -12,6 +12,7 @@ import { isReaderText, isStyleBearing } from '../check/ext.js';
 import { decisionsFile, quoteHeld, quotesNotFrom, unsourcedReasons } from '../check/decisions.js';
 import { critiqueAtShip, pageChecksum, ship } from './ship.js';
 import { mockupPending, mockupWordProblems, specCheckProblems } from '../check/spec-checked.js';
+import { ownerWordProblem } from '../check/owner-word.js';
 import { checksum } from '../install/manifest.js';
 import { recordedPage } from '../probe/save.js';
 
@@ -127,6 +128,37 @@ export function ownerWords(transcriptPath: string | undefined): string {
     return '';
   }
   return said.join('\n');
+}
+
+/** Whether a spec's front matter says `confirmed: true`. */
+function isConfirmed(body: string): boolean {
+  return /^\s*confirmed\s*:\s*true\b/im.test(body.split(/^---\s*$/m)[1] ?? '');
+}
+
+/**
+ * What the owner said after the agent last asked them something matching
+ * `asked`: their answer to that question, and nothing said before it. Undefined
+ * when the agent never asked.
+ */
+export function ownerReplyAfter(transcriptPath: string | undefined, asked: RegExp): string | undefined {
+  if (!transcriptPath || !existsSync(transcriptPath)) return undefined;
+  const turns: Array<{ who: 'owner' | 'agent'; text: string }> = [];
+  try {
+    for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
+      let entry: { type?: string; isMeta?: boolean; message?: { content?: unknown } };
+      try { entry = JSON.parse(line); } catch { continue; }
+      if ((entry.type !== 'user' && entry.type !== 'assistant') || entry.isMeta) continue;
+      const content = entry.message?.content;
+      const texts = typeof content === 'string' ? [content] : Array.isArray(content) ? (content as Array<{ type?: string; text?: unknown }>).filter((b) => b?.type === 'text' && typeof b.text === 'string').map((b) => b.text as string) : [];
+      for (const text of texts) turns.push({ who: entry.type === 'user' ? 'owner' : 'agent', text });
+    }
+  } catch {
+    return undefined;
+  }
+  let last = -1;
+  turns.forEach((t, i) => { if (t.who === 'agent' && asked.test(t.text)) last = i; });
+  if (last < 0) return undefined;
+  return turns.slice(last + 1).filter((t) => t.who === 'owner').map((t) => t.text).join('\n');
 }
 
 /**
@@ -322,7 +354,9 @@ function commandProblems(root: string, command: string, surface?: string, start?
       // Only the reasons this session wrote. An amendment answers for the Why it
       // adds, not for one an earlier round wrote: on jig-site three amendments
       // in a row had to relabel another round's reason before the gate let go.
-      problems.push(...unsourcedReasons(body, fileAtSessionStart(root, found, start), { newWhysOnly: true }).map((p) => `DECISIONS.md: ${p}`));
+      const then = fileAtSessionStart(root, found, start);
+      problems.push(...unsourcedReasons(body, then, { newWhysOnly: true }).map((p) => `DECISIONS.md: ${p}`));
+      if (owner) problems.push(...quotesNotFrom(body, then, owner, 'the owner\'s words in this session').map((p) => `DECISIONS.md: ${p}`));
     }
   }
 
@@ -354,7 +388,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
     if (at && /\.html?$/i.test(at) && existsSync(join(root, at))) problems.push(...mockupDrawingProblems(root, spec.body, at));
   }
 
-  if (command === 'tweak' && spec) problems.push(...tweakProblems(root, spec, owner));
+  if (command === 'tweak' && spec) problems.push(...tweakProblems(root, spec, owner, start));
 
   // A spec that changed after its drawing was approved no longer has one.
   if ((command === 'spec' || command === 'make') && spec) {
@@ -557,7 +591,7 @@ function reportOmissions(dir: string, surface: string): string[] {
  * what the gate can check: the page's structure is as the owner approved it,
  * the drawing is untouched, and the review re-judges what it says it did.
  */
-function tweakProblems(root: string, spec: { path: string; slug: string; body: string }, owner = ''): string[] {
+function tweakProblems(root: string, spec: { path: string; slug: string; body: string }, owner = '', start?: number): string[] {
   const problems: string[] = [];
   const front = spec.body.split(/^---\s*$/m)[1] ?? '';
   if (!/^\s*confirmed\s*:\s*true\b/im.test(front)) problems.push(`${spec.path} is not confirmed. A tweak changes a page the owner has confirmed; an unconfirmed spec goes through \`spec\`.`);
@@ -571,15 +605,22 @@ function tweakProblems(root: string, spec: { path: string; slug: string; body: s
     problems.push(`.jig/critique/${surface}/tweak.json is missing. It names the change in the owner's words (\`change\`), when it was made (\`at\`) and the rule ids and decisions re-judged for it (\`ids\`).`);
   } else {
     if (!record.change) problems.push(`.jig/critique/${surface}/tweak.json has no \`change\`: the owner's words for what changed.`);
+    // `change` is the owner's words, and every check of this tweak's decisions
+    // reads it as theirs. Held when this session wrote it.
+    else if (owner && fileAtSessionStart(root, `.jig/critique/${surface}/tweak.json`, start) !== readFileSync(join(root, '.jig', 'critique', surface, 'tweak.json'), 'utf8') && !quoteHeld(record.change.replace(/^["“]|["”]$/g, ''), owner)) {
+      problems.push(`.jig/critique/${surface}/tweak.json: \`change\` is "${record.change.length > 90 ? `${record.change.slice(0, 90)}…` : record.change}", which the owner did not say in this session. It is their words for the change, as they gave them; what you made of them goes in the spec's Tweak entry.`);
+    }
     if (!record.ids.length) problems.push(`.jig/critique/${surface}/tweak.json names nothing to re-judge. A change that no rule and no decision could see needs no tweak; name the ones it can.`);
     // The re-judge can wait for the page's next critique, or `ship`, when the
     // owner says so: in their words here, or once for the project in
     // jig.config.json. The ids stay named, for whoever judges it.
     if (record.deferred !== undefined) {
-      if (typeof record.deferred === 'string' ? !record.deferred.trim() || !quoteHeld(record.deferred.replace(/^["“]|["”]$/g, ''), owner) : !critiqueAtShip(root, spec.body)) {
+      const said = typeof record.deferred === 'string' ? ownerWordProblem('defer', record.deferred, owner, `.jig/critique/${surface}/tweak.json: \`deferred\``) : undefined;
+      if (typeof record.deferred === 'string' ? said !== undefined : !critiqueAtShip(root, spec.body)) {
         problems.push(
           `.jig/critique/${surface}/tweak.json defers its re-judge, and nobody said to. \`deferred\` quotes the owner telling you to leave it for later, ` +
-            `or is \`true\` where the page's spec says \`critique: at-ship\` (or, the spec silent, jig.config.json says \`"critique": "at-ship"\`). Otherwise re-judge what it names.`,
+            `or is \`true\` where the page's spec says \`critique: at-ship\` (or, the spec silent, jig.config.json says \`"critique": "at-ship"\`). Otherwise re-judge what it names.` +
+            (said ? ` ${said}` : ''),
         );
       }
       return problems;
@@ -689,7 +730,7 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   // `check` below still runs either way.
   const waiting = command !== undefined && ASKS_THE_OWNER.has(command) && asksOwner(lastAssistantText(opts.input.transcript_path));
   const start = sessionStart(opts.input.transcript_path);
-  const owner = command === 'spec' || command === 'mockup' || command === 'make' || command === 'tweak' ? ownerWords(opts.input.transcript_path) : '';
+  const owner = command === 'decide' || command === 'spec' || command === 'mockup' || command === 'make' || command === 'tweak' ? ownerWords(opts.input.transcript_path) : '';
   const problems: string[] = command && !waiting ? commandProblems(root, command, invocation?.surface, start, owner).map((p) => `/jig ${command}: ${p}`) : [];
   if (waiting && command === 'mockup') problems.push(...drawingBeforeAsking(root, invocation?.surface).map((p) => `/jig mockup: ${p}`));
   // ship is where nothing is optional. It finishes when `jig ship` passes, or
@@ -706,6 +747,18 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
       problems.push(`/jig make: ${spec.path} still says \`mockup: pending\`: nobody has said whether to draw it. Ask the owner, draw it with \`/jig mockup\` or skip it; if they skip it, write \`mockup: skipped — "<their words>"\` and build from the spec alone.`);
     }
   }
+  // A spec is confirmed by the owner's yes to being asked. Nothing checked
+  // that: an agent could write `confirmed: true` having asked nobody.
+  if (command === 'spec' && !waiting) {
+    const spec = specFor(root, invocation?.surface);
+    if (spec && isConfirmed(spec.body) && !isConfirmed(fileAtSessionStart(root, spec.path, start))) {
+      const reply = ownerReplyAfter(opts.input.transcript_path, /\bconfirm/i);
+      const said = reply === undefined ? undefined : ownerWordProblem('confirm', reply.slice(0, 400), reply, `${spec.path}: \`confirmed: true\``);
+      if (reply === undefined) problems.push(`/jig spec: ${spec.path} is recorded as confirmed, and the owner was never asked to confirm it. Put it to them with its sheet and stop; record \`confirmed: true\` when they say yes.`);
+      else if (said) problems.push(`/jig spec: ${spec.path} is recorded as confirmed, but the owner's reply to being asked does not confirm it ("${reply.trim().slice(0, 120)}"). Record \`confirmed: true\` only on their yes.`);
+    }
+  }
+
   if (waiting && command === 'spec') {
     const spec = specFor(root, invocation?.surface);
     if (spec) problems.push(...specChecked(root, spec, start, owner).map((p) => `/jig spec: ${p}`));

@@ -174,6 +174,19 @@ describe('a tweak whose re-judge waits', () => {
     expect(session('tweak', 'Tighten the plan names.').reason).toMatch(/defers its re-judge, and nobody said to/);
   });
 
+  // Words the owner said, that do not say to wait, are not a deferral.
+  it('is refused when the words quoted do not say to wait', () => {
+    deferredTweak('tighten the plan names');
+    expect(session('tweak', 'Tighten the plan names.').reason).toMatch(/does not leave the re-judge for later/);
+  });
+
+  // `change` is the owner's words, and every later check reads it as theirs.
+  it('holds its change to the owner\'s words', () => {
+    deferredTweak('leave the critique for later');
+    writeFileSync(join(dir('pricing'), 'tweak.json'), JSON.stringify({ at: '2026-09-29T10:00:00Z', change: 'make the plans read as a clear ladder', ids: ['A-60'], deferred: 'leave the critique for later' }));
+    expect(session('tweak', 'Tighten the plan names. Leave the critique for later.').reason).toMatch(/`change` is "make the plans read as a clear ladder", which the owner did not say/);
+  });
+
   it('is taken as `true` where the project waits for ship', () => {
     writeFileSync(join(root, 'jig.config.json'), JSON.stringify({ surfaces: [{ match: '/', mode: 'editorial' }], critique: 'at-ship' }));
     deferredTweak(true);

@@ -145,7 +145,15 @@ describe('installStopHook', () => {
 describe('the gate checks the command that just ran', () => {
   const transcript = (command: string) => {
     const path = join(root, 'transcript.jsonl');
-    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>\nApproved.` } }) + '\n');
+    // The owner's side of a finished round: asked to confirm, they said yes,
+    // in the words the fixtures below quote as theirs.
+    const turn = (type: 'user' | 'assistant', text: string) => JSON.stringify(type === 'user' ? { type, message: { content: text } } : { type, message: { content: [{ type: 'text', text }] } });
+    writeFileSync(path, [
+      turn('user', `<command-name>/jig</command-name>\n<command-args>${command}</command-args>\nBecause it is ours.`),
+      turn('assistant', 'Does the spec hold? Confirm it and I will record it.'),
+      turn('user', 'Approved.'),
+      turn('assistant', 'Recorded.'),
+    ].join('\n') + '\n');
     return path;
   };
   const runAfter = (command: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1', transcript_path: transcript(command) } });
@@ -246,6 +254,15 @@ Prose.`;
       expect(r.reason).toMatch(/H-117/);
       expect(r.reason).not.toMatch(/DECISIONS/);
     });
+  });
+
+  // decide quoted the owner in a reason, and nothing held the quotation to
+  // what the owner said; a tweak's reasons were held, decide's were not.
+  it('holds a reason decide quotes to the owner\'s words', () => {
+    jigProject();
+    mkdirSync(join(root, 'jig'), { recursive: true });
+    writeFileSync(join(root, 'jig', 'DECISIONS.md'), '### The Stamp Rule\n\n**Why:** \"Because the stamp is the brand.\"\n\n## Unresolved\n\nNone named by the owner.\n');
+    expect(runAfter('decide').reason).toMatch(/quotes "Because the stamp is the brand\.", which the owner's words in this session do not say/);
   });
 
   it('finds DECISIONS.md beside the token layer that jig.config.json names', () => {
@@ -500,7 +517,7 @@ describe('the Stop hook is written only when someone asked for it', () => {
 describe('the block budget is per failure', () => {
   const transcript = (command: string) => {
     const path = join(root, `transcript-${command}.jsonl`);
-    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>` } }) + '\n');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>\nGiven by the owner.` } }) + '\n');
     return path;
   };
   const run = (command: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 'one-session', transcript_path: transcript(command) } });

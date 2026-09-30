@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { quoteHeld } from './decisions.js';
+import { ownerWordProblem } from './owner-word.js';
 
 /**
  * A spec is checked before the owner is asked to confirm it.
@@ -27,8 +28,6 @@ export function specChecksum(body: string): string {
   return createHash('sha256').update(body.replace(/^\s*(confirmed|mockup)\s*:.*$/gim, '')).digest('hex');
 }
 
-const SAYS_SKIP = /\bskip|\bno (mockup|drawing)|without (a )?(mockup|drawing)|(don['’]?t|do not|no need to) (draw|mock)|(mockup|drawing) (isn['’]?t|is not) needed/i;
-
 const mockupLine = (body: string) => /^\s*mockup\s*:\s*(.*)$/im.exec(body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim() ?? '';
 
 /**
@@ -45,21 +44,13 @@ export function mockupWordProblems(spec: { path: string; body: string }, then: s
   if (now === mockupLine(then)) return [];
   const m = /^(approved|skipped)\b(.*)$/i.exec(now);
   if (!m) return [];
-  const word = m[1]!.toLowerCase();
+  const word = m[1]!.toLowerCase() as 'approved' | 'skipped';
   const quoted = /["“]([^"”]+)["”]/.exec(m[2]!)?.[1]?.trim();
   if (!quoted) {
     return [`${spec.path}: \`mockup: ${word}\` is recorded without the owner's words. Write \`mockup: ${word} — "<what they said>"\`, quoting the reply that ${word === 'approved' ? 'approved it' : 'said to skip it'}.`];
   }
-  if (!quoteHeld(quoted, owner)) {
-    return [`${spec.path}: \`mockup: ${word}\` quotes "${quoted}", which the owner did not say in this session. Quote their reply as they wrote it; ${word === 'approved' ? 'an approval' : 'a skip'} nobody gave is not one.`];
-  }
-  // Words the owner said are not a skip unless they say to skip. On jig-site a
-  // spec recorded a skip quoting "It uses the Guide's approved layout", a
-  // remark about the chapter's chrome; the owner had not been asked.
-  if (word === 'skipped' && !SAYS_SKIP.test(quoted)) {
-    return [`${spec.path}: \`mockup: skipped\` quotes "${quoted}", which does not say to skip the mockup. A skip is the owner's word for it: ask them whether to draw one, and quote the answer.`];
-  }
-  return [];
+  const problem = ownerWordProblem(word === 'approved' ? 'approve' : 'skip', quoted, owner, `${spec.path}: \`mockup: ${word}\``);
+  return problem ? [problem] : [];
 }
 
 /** Whether the spec still waits on the owner's word about a drawing. */

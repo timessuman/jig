@@ -135,7 +135,7 @@ export function unsourcedReasons(current: string, before: string, opts: { newWhy
  * every later critique judges the page by. A quotation is the owner's only if
  * the owner's words hold it; `…` may join the parts of one.
  */
-export function quotesNotFrom(current: string, before: string, words: string): string[] {
+export function quotesNotFrom(current: string, before: string, words: string, source = "the owner's words in tweak.json (`change`)"): string[] {
   const problems: string[] = [];
   for (const [name, whys] of changedWhys(current, before, true)) {
     for (const why of whys) {
@@ -145,7 +145,7 @@ export function quotesNotFrom(current: string, before: string, words: string): s
         .map((m) => m[1]!)
         .filter((q) => !quoteHeld(q, words));
       if (missing.length) {
-        problems.push(`"${name}": its \`**${label}:**\` quotes "${missing[0]}", which the owner's words in tweak.json (\`change\`) do not say. Quote the owner as tweak.json records them, or put your reading under \`**Why (inferred):**\`.`);
+        problems.push(`"${name}": its \`**${label}:**\` quotes "${missing[0]}", which ${source} do not say. Quote the owner as they said it, or put your reading under \`**Why (inferred):**\`.`);
         break;
       }
     }

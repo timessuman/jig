@@ -36,6 +36,18 @@ cite the number when you follow or deliberately break one.
    `.jig/specs/<name>.checked.json` (its step 4), `{{command_prefix}}mockup`'s
    size by size against the spec (its step 3, rendering every frame). Confirm
    only what you checked yourself, and name to the owner what you could not.
+   **Recording the owner's word?** A spec confirmed, a drawing approved or
+   skipped, a re-judge left for later, a tweak's change, a decision's reason:
+   each is the owner's words, quoted as they said them, and words that say that
+   thing. A remark about the layout is not a skip of the mockup; a yes to one
+   question is not a yes to the spec. When they have not said it, ask. What you
+   read into their words goes under a label that says it is yours
+   (`**Why (inferred):**`), never inside their quotation marks.
+   **Recording something Jig has no field for?** Write it in prose, below a
+   spec's front matter or in the report. Never invent a front-matter key, a
+   verdict id or a JSON field for it: nothing reads an invented one, so what it
+   says is lost to every check. If it keeps recurring, tell the owner, since
+   Jig may be missing a field.
    **Building a screen rather than a single component?** Read `L-01 · Layout
    method` in `{{rules_path}}/03-patterns.md` and run its five steps before
    writing any markup. It is a procedure, not a component, so step 4 never
