@@ -690,10 +690,11 @@ character positions preserved, so a finding's line points at the real line in
 your `.vue` or `.tsx` file. Application code outside a style region is never read
 as CSS.
 
-The seven mechanical rules: hard-coded values past the token layer (`H-47`),
-contrast below the floor (`C-19`), removed focus rings (`E-29`), gradient text
-(`A-02`), backdrop blur (`A-04`), pure black and white (`C-18`), and the
-violet-band hue check (`A-01`, which asks rather than fails).
+Which rules it decides: every rule in `rules.index.json` that names a
+`detector`, among them hard-coded values past the token layer (`H-47`), contrast
+below the floor (`C-19`) and removed focus rings (`E-29`). A `hybrid` one warns
+and asks rather than fails (the violet-band hue check, `A-01`). `jig explain
+<id>` prints any rule with who checks it.
 
 **It also reads the token layer itself.** The token layer is not application
 code, so no detector scans it — but it is where a mistake costs most, since every

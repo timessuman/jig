@@ -44,6 +44,9 @@
   page changed since it was judged. On jig-site every release moved the version
   each Guide page pins, and every chapter was critiqued again for it. A figure
   the page states is not volatile: a count that moved still counts.
+- **The README no longer counts the rules `check` decides by hand.** It named
+  "the seven mechanical rules" from 0.1.0; 39 are decided now. jig-site's CLI
+  chapter found it. It now points at `rules.index.json`, which cannot go stale.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.
