@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { citableIds } from '../rules/citations.js';
 import { probeContradictions, readProbes } from '../probe/check.js';
@@ -340,7 +340,7 @@ function decisionsSince(projectRoot: string, dir: string, unjudged: string[]): s
   const git = (args: string[]) =>
     execFileSync('git', args, { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   try {
-    const verdictFile = relative(projectRoot, join(dir, 'decisions.json'));
+    const verdictFile = relative(projectRoot, join(dir, 'decisions.json')).split(sep).join('/');
     if (git(['status', '--porcelain', '--', verdictFile])) return [];
     const judgedIn = git(['log', '-1', '--format=%H', '--', verdictFile]);
     if (!judgedIn) return [];
