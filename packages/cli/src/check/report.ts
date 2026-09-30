@@ -32,7 +32,11 @@ export interface ReportMeta {
    *  and the only defence is that it is never invisible. */
   exempt?: string[];
   /** Per-pattern counts, so an over-broad glob names itself. */
-  exemptPatterns?: Array<{ pattern: string; count: number; tooBroad: boolean }>;
+  exemptPatterns?: Array<{ pattern: string; count: number; tooBroad: boolean; suggest?: string[] }>;
+  /** `exempt` entries Jig could not use as written, with the reason. */
+  exemptIgnored?: Array<{ entry: string; why: string }>;
+  /** What is wrong with the project's AGENTS.md or CLAUDE.md, for Jig. */
+  agentFiles?: string[];
   /**
    * How many files the detectors were handed, and how many of those actually
    * contained a style region to inspect.
@@ -191,6 +195,10 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     );
   }
 
+  for (const problem of meta.agentFiles ?? []) lines.push(`  ${problem}`);
+  for (const { entry, why } of meta.exemptIgnored ?? []) {
+    lines.push(`  jig.config.json exempt: "${entry}" is ignored: ${why}`);
+  }
   if (meta.exemptPatterns && meta.exemptPatterns.length > 0) {
     const n = meta.exempt?.length ?? 0;
     lines.push(`  ${n} file(s) exempt via jig.config.json and not scanned:`);
@@ -209,6 +217,9 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
           ? `${count} files — likely too broad, review it`
           : `${count} file${count > 1 ? 's' : ''}`;
       lines.push(`    ${pattern}  (${note})`);
+    }
+    for (const { pattern, suggest } of meta.exemptPatterns) {
+      if (suggest?.length) lines.push(`    ${pattern}: did you mean ${suggest.map((f) => `"${f}"`).join(' or ')}? Paths start at the project folder.`);
     }
     if (n > 0) {
       lines.push(`    ${meta.exempt!.slice(0, 8).join(', ')}${n > 8 ? `, and ${n - 8} more` : ''}`);

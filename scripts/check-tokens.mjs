@@ -635,6 +635,9 @@ const LIGHT_BACKGROUNDS = {
   claim('README judgment count in the split', readme, /\*\*(\d+) are judgment\*\*/, judgment);
   claim('README "only the CLI" count', readme, /only the CLI gets you the (\d+)\b/, detected);
   claim('README "only the agent" count', readme, /only the agent gets you the (\d+)\b/, judgment);
+  // "the other 95 rules" sat in the CLI section while the corpus held 120; it
+  // was prose outside every sentence above, so nothing checked it.
+  claim('README "CLI alone" count', readme, /from the CLI alone is the (\d+) judgment rules/, judgment);
   // 01-modes.md told every installed agent the anti-pattern file held "87 rules"
   // while it held 90, and nothing checked the sentence: it was prose outside any
   // id, which `explain` could not reach either. Both are now covered.

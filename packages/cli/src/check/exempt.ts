@@ -42,31 +42,58 @@ function globToRegExp(glob: string): RegExp {
   return new RegExp(`^${out}$`);
 }
 
+/** An `exempt` entry Jig could not use as written, and why. */
+export interface IgnoredExemption { entry: string; why: string }
+
 /**
- * Reads `exempt` from `jig.config.json`.
+ * Reads `exempt` from `jig.config.json`, taking a path the way people write
+ * one: `./src/card.tsx`, `src\\card.tsx` and an absolute path inside the project
+ * all mean `src/card.tsx`. An entry that still cannot be used is returned in
+ * `ignored` with the reason, so the report can say so: dropped in silence, an
+ * absolute path exempted nothing and nobody was told.
  *
- * A pattern that escapes the project is dropped. `check` reporting nothing
- * because a config contained `../../**` would be the worst possible failure —
- * a green run that inspected nothing — so an escaping pattern is treated as
- * absent rather than honoured.
+ * A pattern that escapes the project is ignored rather than honoured. `check`
+ * reporting nothing because a config contained `../../**` would be the worst
+ * possible failure, a green run that inspected nothing.
  */
-export function readExemptions(projectRoot: string): string[] {
+export function readExemptions(projectRoot: string): { patterns: string[]; ignored: IgnoredExemption[] } {
+  const none = { patterns: [], ignored: [] };
   const configPath = join(projectRoot, 'jig.config.json');
-  if (!existsSync(configPath)) return [];
+  if (!existsSync(configPath)) return none;
   let declared: unknown;
   try {
     declared = (JSON.parse(readFileSync(configPath, 'utf8')) as { exempt?: unknown }).exempt;
   } catch {
-    return [];
+    return none;
   }
-  if (!Array.isArray(declared)) return [];
-  return declared.filter(
-    (p): p is string =>
-      typeof p === 'string' &&
-      p.trim() !== '' &&
-      !p.startsWith('/') &&
-      !p.split('/').includes('..'),
-  );
+  if (!Array.isArray(declared)) return none;
+  const root = projectRoot.replace(/\\/g, '/').replace(/\/+$/, '');
+  const patterns: string[] = [];
+  const ignored: IgnoredExemption[] = [];
+  for (const raw of declared) {
+    if (typeof raw !== 'string' || !raw.trim()) continue;
+    let p = raw.trim().replace(/\\/g, '/');
+    if (p.startsWith(`${root}/`)) p = p.slice(root.length + 1);
+    p = p.replace(/^(\.\/)+/, '');
+    if (p.startsWith('/') || /^[A-Za-z]:\//.test(p)) {
+      ignored.push({ entry: raw, why: 'an absolute path outside this project. Write it from the project folder, where jig.config.json is: `src/…`' });
+    } else if (p.split('/').includes('..')) {
+      ignored.push({ entry: raw, why: 'it leaves the project folder (`..`). Write it from the project folder, where jig.config.json is: `src/…`' });
+    } else {
+      patterns.push(p);
+    }
+  }
+  return { patterns, ignored };
+}
+
+/**
+ * For a bare file name that matched nothing, the files by that name the
+ * project has: `card.tsx` is read from the project folder, and the card is
+ * usually further down.
+ */
+export function suggestPaths(pattern: string, files: string[]): string[] {
+  if (pattern.includes('/') || /[*?]/.test(pattern)) return [];
+  return files.filter((f) => f === pattern || f.endsWith(`/${pattern}`)).slice(0, 3);
 }
 
 /** A pattern excusing more than this is reported as likely too broad.

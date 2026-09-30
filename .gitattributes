@@ -1,0 +1,7 @@
+# Jig is developed on Linux and must behave the same on every OS. Its
+# templates, rules and fixtures are read line by line; a Windows checkout
+# converting them to CRLF broke dozens of tests that read them.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.tgz binary

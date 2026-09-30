@@ -46,7 +46,8 @@ describe('explain names the example', () => {
   it('prints where a rule\'s example is', async () => {
     const { explain } = await import('../src/commands/explain.js');
     const out = explain({ ruleId: 'A-139', version: 't', packageRoot: repoRoot });
-    expect(out).toMatch(/Example: .*examples\/A-139\.html/);
+    // Printed as the reader's OS writes a path: `examples\\A-139.html` on Windows.
+    expect(out).toMatch(/Example: .*examples[\\/]A-139\.html/);
   });
 });
 

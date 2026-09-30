@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { quoteHeld } from './decisions.js';
+import { ownerWordProblem } from './owner-word.js';
 
 /**
  * A spec is checked before the owner is asked to confirm it.
@@ -24,7 +25,9 @@ import { quoteHeld } from './decisions.js';
  * owner's answer sets after the check (a yes, and perhaps "skip the mockup").
  */
 export function specChecksum(body: string): string {
-  return createHash('sha256').update(body.replace(/^\s*(confirmed|mockup)\s*:.*$/gim, '')).digest('hex');
+  // Line endings are left out too: git on Windows checks a spec out with CRLF,
+  // and a check written on another machine must still hold for it.
+  return createHash('sha256').update(body.replace(/\r\n/g, '\n').replace(/^\s*(confirmed|mockup)\s*:.*$/gim, '')).digest('hex');
 }
 
 const mockupLine = (body: string) => /^\s*mockup\s*:\s*(.*)$/im.exec(body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim() ?? '';
@@ -43,15 +46,13 @@ export function mockupWordProblems(spec: { path: string; body: string }, then: s
   if (now === mockupLine(then)) return [];
   const m = /^(approved|skipped)\b(.*)$/i.exec(now);
   if (!m) return [];
-  const word = m[1]!.toLowerCase();
+  const word = m[1]!.toLowerCase() as 'approved' | 'skipped';
   const quoted = /["“]([^"”]+)["”]/.exec(m[2]!)?.[1]?.trim();
   if (!quoted) {
     return [`${spec.path}: \`mockup: ${word}\` is recorded without the owner's words. Write \`mockup: ${word} — "<what they said>"\`, quoting the reply that ${word === 'approved' ? 'approved it' : 'said to skip it'}.`];
   }
-  if (!quoteHeld(quoted, owner)) {
-    return [`${spec.path}: \`mockup: ${word}\` quotes "${quoted}", which the owner did not say in this session. Quote their reply as they wrote it; ${word === 'approved' ? 'an approval' : 'a skip'} nobody gave is not one.`];
-  }
-  return [];
+  const problem = ownerWordProblem(word === 'approved' ? 'approve' : 'skip', quoted, owner, `${spec.path}: \`mockup: ${word}\``);
+  return problem ? [problem] : [];
 }
 
 /** Whether the spec still waits on the owner's word about a drawing. */
@@ -150,7 +151,7 @@ export function specCheckProblems(root: string, spec: { path: string; slug: stri
       try { return Number(line) > readFileSync(join(root, file), 'utf8').split('\n').length; } catch { return true; }
     });
   if (missing.length) {
-    problems.push(`${recordPath} cites ${missing.length === 1 ? 'a source' : 'sources'} the project does not have: ${missing.slice(0, 4).join(', ')}. A fact is checked at a source that exists; name it as a path from the project root, or a URL.`);
+    problems.push(`${recordPath} cites ${missing.length === 1 ? 'a source' : 'sources'} the project does not have: ${missing.slice(0, 4).join(', ')}. A fact is checked at a source that exists: \`source\` is a path from the project root, \`path:line\`, or a URL, and nothing else; what you found there goes in \`note\`.`);
   }
   return problems;
 }

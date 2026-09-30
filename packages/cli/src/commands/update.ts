@@ -10,6 +10,7 @@ import { buildCommandBody, buildSkillBody, hasStopHook, installStopHook, rulesPa
 import { bundleFiles, createWriter, relKey } from '../install/writer.js';
 import { readInitManifest, writeInitManifest, isInitFileModified } from '../init/state.js';
 import { detectLegacyRules } from '../init/migrate.js';
+import { claudeInstalled, ensureAgentFiles } from '../install/agent-files.js';
 
 export interface UpdateResult {
   updated: string[];
@@ -128,6 +129,12 @@ export function update(opts: InstallOptions): UpdateResult {
   const initResult = updateInitFiles(opts);
   updated.push(...initResult.updated);
   skipped.push(...initResult.skipped);
+
+  // The project's agent instructions, kept current like the rest: Jig's block
+  // in AGENTS.md (and CLAUDE.md for Claude Code), put back if it was removed.
+  if (existsSync(join(opts.projectRoot, '.jig', 'state.json'))) {
+    updated.push(...ensureAgentFiles(opts.projectRoot, { claude: claudeInstalled(opts.projectRoot, opts.homeDir) }));
+  }
 
   return {
     updated,

@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { assetRoot, findProjectRoot, getPackageRoot, isDevVersion, isPublishedBuild } from './paths.js';
@@ -10,6 +10,7 @@ import { check } from './commands/check.js';
 import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
 import { gate, surfacePage, surfacesToProbe } from './commands/gate.js';
+import { specChecksum } from './check/spec-checked.js';
 import { seo } from './commands/seo.js';
 import { ship } from './commands/ship.js';
 import { PROBE_SCRIPT } from './probe/script.js';
@@ -92,6 +93,7 @@ program
       }
       if (result.hookOnly) {
         console.log(result.hookOnly);
+        for (const f of result.agentFiles ?? []) console.log(`  + ${f} (Jig's block for your agent; your own text in it is untouched)`);
         if (result.stopHook === true) console.log('  + .claude/settings.json (Stop hook: jig gate blocks finishing while check or a critique fails)');
         if (result.stopHook === false) console.log('  ! .claude/settings.json is not valid JSON — the Stop hook was not added. Fix the file and run install again.');
         return;
@@ -100,6 +102,7 @@ program
       warnIfUnpublishedPin();
       for (const f of result.written) console.log(`  + ${f}`);
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
+      for (const f of result.agentFiles ?? []) console.log(`  + ${f} (Jig's block for your agent; your own text in it is untouched)`);
       if (result.stopHook === true) console.log('  + .claude/settings.json (Stop hook: jig gate blocks finishing while check or a critique fails)');
       if (result.stopHook === false) console.log('  ! .claude/settings.json is not valid JSON — the Stop hook was not added. Fix the file and run install again.');
       if (result.stopHook === undefined && opts.agent === 'claude' && opts.scope === 'project') {
@@ -165,6 +168,24 @@ program
       console.error((err as Error).message);
       process.exit(1);
     }
+  });
+
+program
+  .command('checksum')
+  .description("Print a spec's checksum, the value its .checked.json records as `spec`.")
+  .argument('<spec>', 'the spec by name (tokens-and-modes) or path (.jig/specs/tokens-and-modes.spec.md)')
+  .action((name: string) => {
+    const projectRoot = findProjectRoot(process.cwd());
+    const slug = name.replace(/^.*\//, '').replace(/\.spec\.md$/, '');
+    const path = join(projectRoot, '.jig', 'specs', `${slug}.spec.md`);
+    if (!existsSync(path)) {
+      console.error(`  ✗ no spec at .jig/specs/${slug}.spec.md`);
+      process.exit(1);
+    }
+    // Agents computed this by hand from the procedure's description, and got it
+    // wrong in two sessions on jig-site; one read the CLI's compiled source to
+    // find out why. The value is Jig's to compute.
+    console.log(specChecksum(readFileSync(path, 'utf8')));
   });
 
 program
@@ -334,7 +355,12 @@ program
       // Render what the review needs before judging it. A browser on this
       // machine means the probe is not a step anyone can skip; without one,
       // the gate falls back to naming what is missing.
-      const critiqued = critiquedSurfaces(projectRoot);
+      // Run by hand there is no transcript to say which pages are in play, and
+      // every critiqued page would be rendered again: on jig-site an agent ran
+      // `jig gate` to see what it would say, and re-took three other pages'
+      // probes. By hand it reports; the Stop hook renders.
+      const byHand = !(input as { transcript_path?: string }).transcript_path;
+      const critiqued = byHand ? [] : critiquedSurfaces(projectRoot);
       for (const surface of surfacesToProbe(projectRoot, input).filter((s) => critiqued.includes(s))) {
         const page = surfacePage(projectRoot, surface) ?? recordedPage(projectRoot, surface);
         if (!page) continue;

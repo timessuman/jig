@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { gate } from '../src/commands/gate.js';
-import { pageChecksum, ship } from '../src/commands/ship.js';
-import { specProblems } from '../src/check/spec-shape.js';
+import { gate, probesLeftBehind } from '../src/commands/gate.js';
+import { registeredCommands } from './helpers/registered-commands.js';
+import { PAGE_STATES, pageChecksum, ship } from '../src/commands/ship.js';
+import { specChecksum } from '../src/check/spec-checked.js';
+import { newFieldProblems, SPEC_FIELDS, specProblems } from '../src/check/spec-shape.js';
 import { checksum } from '../src/install/manifest.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
@@ -174,6 +176,25 @@ describe('a tweak whose re-judge waits', () => {
     expect(session('tweak', 'Tighten the plan names.').reason).toMatch(/defers its re-judge, and nobody said to/);
   });
 
+  // Words the owner said, that do not say to wait, are not a deferral.
+  it('is refused when the words quoted do not say to wait', () => {
+    deferredTweak('tighten the plan names');
+    expect(session('tweak', 'Tighten the plan names.').reason).toMatch(/does not leave the re-judge for later/);
+  });
+
+  // `change` is the owner's words, and every later check reads it as theirs.
+  it('holds its change to the owner\'s words', () => {
+    deferredTweak('leave the critique for later');
+    writeFileSync(join(dir('pricing'), 'tweak.json'), JSON.stringify({ at: '2026-09-29T10:00:00Z', change: 'make the plans read as a clear ladder', ids: ['A-60'], deferred: 'leave the critique for later' }));
+    expect(session('tweak', 'Tighten the plan names. Leave the critique for later.').reason).toMatch(/`change` is "make the plans read as a clear ladder", which the owner did not say/);
+  });
+
+  it('refuses a field tweak.json does not have', () => {
+    deferredTweak('leave the critique for later');
+    writeFileSync(join(dir('pricing'), 'tweak.json'), JSON.stringify({ at: '2026-09-29T10:00:00Z', change: 'tighten the plan names', ids: ['A-60'], deferred: 'leave the critique for later', also_changed: ['the footer'] }));
+    expect(session('tweak', 'Tighten the plan names. Leave the critique for later.').reason).toMatch(/`also_changed` is not a field Jig reads/);
+  });
+
   it('is taken as `true` where the project waits for ship', () => {
     writeFileSync(join(root, 'jig.config.json'), JSON.stringify({ surfaces: [{ match: '/', mode: 'editorial' }], critique: 'at-ship' }));
     deferredTweak(true);
@@ -240,6 +261,27 @@ describe('each page says when it is critiqued', () => {
     expect(specProblems({ path: '.jig/specs/pricing.spec.md', body: withCritique('at-ship   # the chapters wait') }).join(' ')).not.toMatch(/critique:/);
   });
 
+  // The procedure's template and the gate's list are one list: a field the
+  // template shows that the gate refused would be a trap.
+  it('reads every field the spec template shows, and no other', () => {
+    const tmpl = readFileSync(join(repoRoot, 'templates', 'COMMAND.md.tmpl'), 'utf8');
+    const block = tmpl.slice(tmpl.indexOf('```yaml', tmpl.indexOf('\n## spec')), tmpl.indexOf('\n```\n', tmpl.indexOf('```yaml', tmpl.indexOf('\n## spec'))));
+    const shown = [...block.matchAll(/^#?\s?([a-z_]+):/gm)].map((m) => m[1]!).filter((k) => !['phone', 'tablet', 'desktop', 'wide', 'landscape'].includes(k));
+    expect([...new Set(shown)].sort()).toEqual([...SPEC_FIELDS].sort());
+  });
+
+  // jig-site's specs carried some forty keys Jig never defined.
+  it('refuses a front-matter key Jig does not read, when this session added it', () => {
+    const at = (extra: string) => ({ path: '.jig/specs/pricing.spec.md', body: spec().replace('confirmed: true', `confirmed: true\n${extra}`) });
+    expect(newFieldProblems(at('tree: the rail lists every section'), spec()).join(' ')).toMatch(/`tree:` is not a field Jig reads.*prose below the front matter/);
+    expect(newFieldProblems(at('superseded_layout_by: reference.spec.md'), spec()).join(' ')).toMatch(/If it is `superseded_by:`, write it there/);
+    expect(newFieldProblems(at('confirmed_fourth: true'), spec()).join(' ')).toMatch(/If it is `confirmed:`/);
+    // Jig's own fields, a key the spec already had, and anything nested pass.
+    expect(newFieldProblems(at('route: /pricing/\nsuperseded_by: plans.spec.md'), spec())).toEqual([]);
+    expect(newFieldProblems(at('tree: x'), spec().replace('confirmed: true', 'confirmed: true\ntree: y'))).toEqual([]);
+    expect(newFieldProblems({ path: 'p', body: spec().replace('    why: content is capped', '    why: content is capped\n    tree: nested is fine') }, spec())).toEqual([]);
+  });
+
   // G-42: each movement on the page says what triggers it and what it tells.
   it('holds a movement in `motion:` that gives no trigger or reason', () => {
     const withMotion = (value: string) => spec().replace('confirmed: true', `confirmed: true\nmotion:${value}`);
@@ -250,3 +292,92 @@ describe('each page says when it is critiqued', () => {
     expect(problems(' sometimes')).toMatch(/neither `none` nor a list/);
   });
 });
+
+// jig-site: every critique and tweak left a page's probe files modified,
+// re-taken by the Stop hook after the session's last commit.
+describe('probe files the gate re-took', () => {
+  const probe = (surface: string, body: string) => {
+    mkdirSync(dir(surface), { recursive: true });
+    writeFileSync(join(dir(surface), 'probe-360.json'), body);
+  };
+
+  it('stop the session once to commit them, when its other work is committed', () => {
+    probe('pricing', '{"a":1}');
+    commit('probes');
+    probe('pricing', '{"a":2}');
+    expect(probesLeftBehind(root, ['pricing']).join(' ')).toMatch(/re-took 1 probe file of pricing.*git add \.jig\/critique\/pricing\/probe-\*\.json/);
+  });
+
+  it('wait while the session has other work uncommitted, and leave other pages alone', () => {
+    probe('pricing', '{"a":1}');
+    probe('home', '{"a":1}');
+    commit('probes');
+    probe('home', '{"a":2}');
+    expect(probesLeftBehind(root, ['pricing'])).toEqual([]);
+    probe('pricing', '{"a":2}');
+    writeFileSync(join(root, 'page.html'), '<main>unfinished</main>');
+    expect(probesLeftBehind(root, ['pricing'])).toEqual([]);
+  });
+});
+
+// jig-site: a spec copied the procedure's five reasons ship owes a page, and
+// the binary has six; another computed the spec checksum as the procedure said
+// and the gate refused it. What the procedure says of these is what the code
+// does, or this fails.
+describe('the procedure says what the code does', () => {
+  const tmpl = readFileSync(join(repoRoot, 'templates', 'COMMAND.md.tmpl'), 'utf8');
+
+  // jig-site's CLI chapter reads this list and checks it against the binary:
+  // `checksum` was registered and not listed, and the site's build failed.
+  it('lists every command the binary registers as CLI-backed, and no other', () => {
+    const listed = [...(/\*\*CLI-backed\*\* — ([^.]+)\./.exec(tmpl)?.[1] ?? '').matchAll(/`([a-z-]+)`/g)].map((m) => m[1]!);
+    expect(listed.sort()).toEqual(registeredCommands());
+  });
+
+  it('names every state ship reports a page in', () => {
+    const section = tmpl.slice(tmpl.indexOf('\n## ship'), tmpl.indexOf('\n## ', tmpl.indexOf('\n## ship') + 5));
+    const said: Record<string, RegExp> = {
+      judged: /ready/, never: /has none/, changed: /changed after it was judged/, reprobe: /re-probe/,
+      deferred: /deferred its re-judge/, incomplete: /verdicts are incomplete/, findings: /not ruled on/,
+      'in-progress': /not confirmed yet is in progress/, superseded: /superseded_by/,
+    };
+    expect(Object.keys(said).sort()).toEqual([...PAGE_STATES].sort());
+    for (const state of PAGE_STATES) expect(section, `ship's procedure does not describe \`${state}\``).toMatch(said[state]!);
+  });
+
+  it('says which lines the spec checksum leaves out, and only those', () => {
+    const body = spec();
+    const ignored = SPEC_FIELDS.filter((f) => {
+      const line = new RegExp(`^${f}:.*$`, 'm');
+      const changed = line.test(body) ? body.replace(line, `${f}: something else`) : body.replace('---\nfeature', `---\n${f}: something else\nfeature`);
+      return specChecksum(changed) === specChecksum(body);
+    });
+    const line = /"spec": "[^"]*with its ([^"]+) emptied"/.exec(tmpl)?.[1] ?? '';
+    expect([...line.matchAll(/([a-z_]+):/g)].map((m) => m[1]).sort()).toEqual([...ignored].sort());
+  });
+});
+
+
+// Jig is for its users, on any framework. What installs into their projects,
+// and what they read to use it, never tells the story of the site that
+// documents it.
+describe('what Jig gives its users', () => {
+  it('names no project of its own, jig-site included', () => {
+    const files = ['templates/COMMAND.md.tmpl', 'templates/SKILL.md.tmpl', 'README.md', ...readdirSync(join(repoRoot, 'rules')).map((f) => `rules/${f}`)];
+    const naming = files.filter((f) => /jig-site/i.test(readFileSync(join(repoRoot, f), 'utf8')));
+    expect(naming).toEqual([]);
+  });
+});
+
+// Git on Windows checks files out with CRLF. A spec, its check and Jig's own
+// records written on another machine must read the same there.
+describe('a project checked out on Windows', () => {
+  const crlf = (t: string) => t.replace(/\n/g, '\r\n');
+  it('reads a CRLF spec as the LF one, and its checksum matches', () => {
+    const lf = spec().replace('confirmed: true', 'confirmed: true\nmotion: none\ncritique: at-ship');
+    expect(specChecksum(crlf(lf))).toBe(specChecksum(lf));
+    expect(specProblems({ path: 'p', body: crlf(lf) })).toEqual(specProblems({ path: 'p', body: lf }));
+    expect(newFieldProblems({ path: 'p', body: crlf(lf) }, crlf(lf))).toEqual([]);
+  });
+});
+

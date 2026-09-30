@@ -6,7 +6,7 @@ these, say so, list them, and stop.
 
 There are two kinds of subcommand, and they are not run the same way.
 
-**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`, `gate`, `probe`, `seo`, `ship`. Run the
+**CLI-backed** — `install`, `update`, `init`, `check`, `explain`, `verdicts`, `gate`, `probe`, `seo`, `ship`, `checksum`. Run the
 matching command with `{{scripts_path}}`, passing the flags through unchanged,
 then do the work below for that subcommand. Read the command's full output —
 findings are ordered by severity, not position, so `head`, `tail`, `grep` and
@@ -261,10 +261,12 @@ The commands after this run unchanged.
 ### 1. Ask, two or three questions at a time
 
 **This is a required interaction, not a suggestion.** Ask two or three questions,
-then **wait**. Do not send a questionnaire. Do not write the spec and present it
-for approval on your first response — a spec synthesised from a one-line prompt
-and handed over for a yes is the failure this command exists to prevent, and it
-looks exactly like the command working.
+then **wait**. Do not send a questionnaire. Do not hand the owner a finished
+spec for approval on your first response — a spec synthesised from a one-line
+prompt and handed over for a yes is the failure this command exists to prevent,
+and it looks exactly like the command working. (This is about what you ask the
+owner, not where you write: when you do write the spec, it goes in
+`.jig/specs/`, step 3.)
 
 Ask about **structure**, not appearance. Colour, type scale and density were
 settled at `init` and live in `{{config_file}}` and the token layer; re-deciding
@@ -327,6 +329,11 @@ hierarchy plainly enough that the squint question can be answered against it.
 
 ### 3. Write it down — one composition per screen size
 
+**Write it at `.jig/specs/<name>.spec.md` from the first draft**, with
+`confirmed: false`, never in a scratchpad or a temporary file. Every check the
+owner relies on reads that file, the check in 3c and the gate among them; a
+draft kept elsewhere is checked by nothing, and reaches the owner unchecked.
+
 `.jig/specs/<surface-slug>.spec.md`. Frontmatter carries what can be compared to
 a built page; prose carries the reasoning that no check can read.
 
@@ -340,6 +347,7 @@ phone as a squeezed desktop.
 ---
 feature: sign in to an existing account      # the task, not the screen
 surface: login page
+route: /login/             # optional: where the page is served, when the surface's name does not say
 mode: product              # from {{config_file}} — state it, never leave it implied
 confirmed: false           # only the user sets this to true; see below
 sizes:                     # phone first. Each size is a whole composition, not a diff.
@@ -384,6 +392,10 @@ critique: each             # optional: each, or at-ship; left out, the project's
 ---
 ```
 
+- **Only these fields.** The front matter holds the fields above and nothing
+  else; the gate refuses one it does not read, since nothing would check what it
+  says. Everything else a spec has to say (where its words come from, a round's
+  history, a note for `make`) goes in the prose below it.
 - **`phone` is written first, and in full.** It is the most common screen, and the
   one a derived composition fails on worst.
 - **`motion:` lists every movement, and why it moves.** Each names what moves, its
@@ -489,10 +501,9 @@ to the spec, never the spec to the decisions.
 Step 3b checks the spec against the decisions. Nothing after it checks the spec
 against the owner's words or against the facts it states: `make` builds a
 confirmed spec as written, and `critique` compares the page to the spec, never
-the spec to what is true. On jig-site a confirmed spec for a docs chapter carried
-seven errors to the built page, among them a procedure Jig does not have and a
-lock written at the wrong moment, and the owner had confirmed it. The writer
-cannot catch these, for the same reason a builder cannot review its own page.
+the spec to what is true. An error a confirmed spec carries (a feature the
+product does not have, a step in the wrong order) is built into the page, and the
+owner confirmed it without knowing. The writer cannot catch these, for the same reason a builder cannot review its own page.
 
 **Delegate to a subagent.** Give it the spec, `DECISIONS.md`, the owner's messages
 from this conversation, and read access to the project. Not your reasoning, and
@@ -501,7 +512,7 @@ not your summary of what the owner meant. It writes
 
 ```json
 {
-  "spec": "sha256 of the spec file with its confirmed: line removed",
+  "spec": "`{{scripts_path}} checksum <name>` prints it: the spec with its confirmed: and mockup: lines emptied",
   "quotes": [
     { "quote": "Only where the steps differ by path", "said": "the owner, this conversation", "holds": true }
   ],
@@ -538,8 +549,8 @@ reader the earlier record and the spec's diff since it. A quotation or fact whos
 line did not change, and whose source has not changed since (`git diff` on that
 file), carries over as recorded; the reader checks the changed lines, the new
 ones, and any fact whose source moved. It still writes the whole record, with
-the new checksum. On jig-site each re-check opened every source again, about $10
-a round, to confirm facts on lines nobody had touched. **If you cannot
+the new checksum. Opening every source again on each round costs the most on
+exactly the lines nobody touched. **If you cannot
 delegate, write the record yourself, with `"reader": "the writer"` in it, and say
 in the confirmation message that nobody else checked the spec.** That is an
 honest gap the owner can close by reading more closely; a check you ran on your
@@ -584,9 +595,9 @@ they confirm.
 renames a region at any size, the approved drawing no longer shows the page: set
 `mockup: pending`, and `{{command_prefix}}mockup` redraws it for the owner. The gate
 checks it for a drawing in frames: while `mockup: approved`, each region the spec lists must be labelled in
-its size's frame of the drawing at `mockup_at:`. On jig-site the header spec went
-through five confirmed rounds after its drawing was approved, and still said
-`approved` over a drawing of none of them.
+its size's frame of the drawing at `mockup_at:`. Otherwise a spec can go through
+several confirmed rounds after its drawing was approved and still say `approved`
+over a drawing of none of them.
 
 ## mockup
 
@@ -828,9 +839,9 @@ confirmed again.
   Record where the approved drawing is in `mockup_at:` — the file path, or the
   Figma or Stitch link. Only their own response counts; your summary of the
   drawing, or no objection, does not. **A condition they attach goes into the
-  spec first**, in their words, on the lines it governs: on jig-site the owner
-  approved with "three columns at 1280 and wider, inside the page margins", the
-  condition lived only in the conversation, and `make` moved the switch to 1290.
+  spec first**, in their words, on the lines it governs. An approval "with three
+  columns at 1280 and wider" whose condition lives only in the conversation is
+  not what `make` builds: it reads the spec, and may put the switch anywhere.
 - The user says to skip it → `mockup: skipped — "<their words>"`. For a change
   small enough that drawing it costs more than building it, that is a reasonable
   call; it is still theirs to make.
@@ -887,10 +898,9 @@ and `make` is where decisions are carried out, not taken. When the build shows a
 decision is wrong, missing or in conflict with the spec, stop and say so: the owner
 changes it through `{{command_prefix}}decide`, or `{{command_prefix}}tweak` for a
 small change to a built page. A note that a decision has been carried out belongs in
-the spec, under `deviations:` or its as-built notes, not in the decision. On jig-site
-one make round added a decision and another rewrote one to match the tokens it had
-just switched to; the next critique judged the page against text the build had
-written. The gate stops a `make` session that changed `DECISIONS.md`.
+the spec, under `deviations:` or its as-built notes, not in the decision. A build
+that adds a decision, or rewrites one to match what it just built, leaves the next
+critique judging the page against text the build wrote. The gate stops a `make` session that changed `DECISIONS.md`.
 
 Build V1 only. Nothing in `later:`, however little extra it looks.
 
@@ -1086,11 +1096,10 @@ refuses a `ruled` with no ruling or with one the file does not hold. A ruled
 verdict is reported, and counted apart (`ruled=`); it is not a finding, and it
 does not go back to `make`, which could only leave it as it is. **Put the field
 in each arm's brief, with its shape:** `{ "id": …, "verdict": "ruled", "ruling":
-"<the decision's heading>", "reason": … }`. On jig-site an arm wrote four ruled
-verdicts that named the decision only in `reason`, `verdicts` refused all four,
-and the parent had to write the field into a file it was not to edit. On jig-site a
-header critique counted 15 findings, five of them rulings labelled "owner-ruled"
-in prose: every count was inflated, and the real findings were harder to see.
+"<the decision's heading>", "reason": … }`. An arm that names the decision only
+in `reason` has every ruled verdict refused by `verdicts`, and the parent is left
+to write the field into a file it is not to edit. Rulings counted as findings
+inflate every count, and the real findings are harder to see.
 A rule the page breaks with no decision behind it is a `finding`, however sure
 you are the owner would agree.
 
@@ -1168,10 +1177,16 @@ Each reader arm writes its own file. The arm reports back only that it wrote it.
 **`differences` holds what no rule names:** the page against its spec (step 3),
 or against a source it quotes or teaches. Each counts as a finding. Never carry
 one as a verdict under an id you made up: `verdicts` refuses an id the corpus
-does not hold, and on jig-site both arms of one critique invented one
-(`page-vs-corpus-1`), which the parent then had to move by hand. `ruled` is for a
+does not hold (`page-vs-corpus-1`), and the parent is left to move it by hand. `ruled` is for a
 rule a decision overrides; a decision in `decisions.json` is judged `ok`,
 `finding` or `n/a`, never ruled.
+
+**One problem, one entry.** A difference goes under `differences` only when no
+rule and no decision holds it. A stale figure is `I-148`'s finding; a page
+paraphrasing a source the owner decided it quotes is that decision's. File it
+there and nowhere else, and let the two arms' entries agree rather than repeat.
+One stale number filed as a rule's finding, a decision's, and a difference in
+each arm is four findings for one problem, and every count built on them is wrong.
 
 **And the project's own decisions, one verdict each**, in
 `.jig/critique/<surface>/decisions.json`:
@@ -1328,9 +1343,8 @@ control or claim the page carries that no line of the spec asks for is a
 difference too, however accurate it is. The owner confirmed the spec, not the
 page; content the spec never held is content they never approved, and every
 later tweak and critique works from a spec that no longer says what is there.
-On jig-site a chapter carried an accurate paragraph with no spec line and no
-deviation, and two critiques in a row saw it and filed nothing, because it broke
-no rule. Report it among the findings as a difference from the spec, naming the
+An accurate paragraph with no spec line and no deviation breaks no rule, so a
+critique that reads only the spec against the page sees it and files nothing. Report it among the findings as a difference from the spec, naming the
 content and where it is: the fix is a tweak that writes it into the spec for the
 owner to confirm, or removes it.
 
@@ -1462,10 +1476,10 @@ its own line, `B-106`), there is nothing to decide; do not invent a decision.
 
 The owner's words are the ones tweak.json records as `change`. A `**Why:**` you
 add quotes them, in quotation marks, and nothing else; what you read into them,
-or into a screenshot the owner pointed at, goes under `**Why (inferred):**`. On
-jig-site a tweak shown a picture of a copy button wrote an exception to `E-51`
-"given directly by the owner … by reference rather than words": a ruling nobody
-gave, which every later critique would have judged the page by. The gate stops a
+or into a screenshot the owner pointed at, goes under `**Why (inferred):**`. A
+tweak shown a picture that writes an exception "given directly by the owner … by
+reference rather than words" records a ruling nobody gave, and every later
+critique judges the page by it. The gate stops a
 tweak whose new `**Why:**` quotes words tweak.json does not hold.
 
 **A decision you record or amend covers the whole page, not the one place it
@@ -1473,9 +1487,9 @@ was raised.** The owner rules on an instance ("keep this apostrophe curly") and
 the decision states a kind ("every apostrophe, curly"). Before you build, look
 through the page, and the chrome it shares, for every other instance of that
 kind, and bring each one in line in the same change; name them in your report.
-On jig-site a tweak recorded "every apostrophe and quotation mark curly" and
-fixed the one apostrophe the critique had named; three straight ones and a pair
-of straight quotation marks on the same page survived to the next critique.
+A tweak that records "every apostrophe and quotation mark curly" and fixes only
+the one the critique named leaves the rest of the page's straight marks for the
+next critique to find.
 
 ### 2. Bring the spec in line, if it disagrees
 
@@ -1547,7 +1561,9 @@ Build the project the way it ships, then run `{{scripts_path}} ship`. It runs
 `check --all --ci` and `seo`, and reads every confirmed spec's critique: a page
 is owed a critique when it has none, when its page changed after it was judged,
 when a tweak deferred its re-judge, when its verdicts are incomplete, or when a
-finding stands that the owner has not ruled on. It prints each page's state and
+finding stands that the owner has not ruled on. A page that is as judged but
+whose stylesheets or scripts changed is owed only a re-probe
+(`{{scripts_path}} verdicts <page> --reprobe`), not a critique. It prints each page's state and
 a `JIG_SHIP:` line, and exits non-zero until the project is ready. A spec that
 is not confirmed yet is in progress and not held against the ship. Nor is a spec
 another has replaced: `superseded_by: <spec>` in its front matter leaves its page
@@ -1617,14 +1633,15 @@ review, never by the builder editing the last one.
 When a `critique` or `tweak` session stops, the gate records its verdicts in
 `.jig/critique/<surface>/verdicts.lock`. That happens after you have committed, so
 if your verdicts are committed it stops you once more to commit the lock on its
-own; the next stop passes.
+own; the next stop passes. The same goes for a page's probe files: when the page
+changed since they were taken, the gate renders it again as you stop, and if
+your work is committed it stops you once to commit them on their own.
 
 **The lock is the gate's to write, never yours.** When the gate is wrong (it
 misreads the session, or asks for something the procedure does not), say what it
-got wrong, leave the lock as it is, and report the work as held by the gate. On
-jig-site the gate misread a tweak as no command at all, and the session computed
-the lock by hand and committed it. The lock was right that time, and a lock an
-agent can write is still a record of nothing.
+got wrong, leave the lock as it is, and report the work as held by the gate. A
+lock computed by hand may even be right, and a lock an agent can write is still a
+record of nothing.
 
 It judges the critiques this session touched: any with a file changed since the
 session began, and the current spec's surface when you ran `critique`. Another
@@ -1644,6 +1661,14 @@ not finished and what is still failing.
 It exists because every "run check" and "run verdicts" step in these procedures was
 skipped in a live run, and pages that did not render their styles were reported
 clean.
+
+## checksum
+
+Run `{{scripts_path}} checksum <spec>`, passing the argument through, and report the
+value it prints. It is the `spec` field of `.jig/specs/<name>.checked.json`: the
+spec's checksum with its `confirmed:` and `mockup:` lines emptied, which the owner's
+answer sets after the check. Never compute it yourself: a hand-computed value is
+easily wrong, and a wrong one reads as a spec that changed after its check.
 
 ## verdicts
 
@@ -1852,9 +1877,9 @@ weighs it as the team's and applies the rule where the team never would.
 
 What you add to explain a reason, work out from it, or carry over from what the
 owner said elsewhere goes in its own paragraph, `**Why (inferred):**`, which says it
-is yours. On jig-site, reasons read "given directly by the owner", followed by
-sentences the agent had written; a later agent could not tell which half to weigh
-as the team's. The gate checks each decision this session wrote or changed: its
+is yours. A reason that reads "given directly by the owner" and goes on in the
+agent's own sentences leaves a later agent unable to tell which half to weigh as
+the team's. The gate checks each decision this session wrote or changed: its
 `Why` is quoted, `not given`, or labelled inferred.
 
 **Record what is still open in its own section, at the end:**

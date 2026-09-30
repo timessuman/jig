@@ -91,7 +91,8 @@ describe('selectFiles', () => {
   // .venv, ...) used to abort the whole scan with EACCES and exit 1 — no
   // report at all. It must be skipped, and the rest of the tree still
   // walked.
-  it('skips an unreadable directory rather than aborting the whole scan', () => {
+  // Windows has no permission bits for chmod to take away, so nothing is locked there.
+  it.skipIf(process.platform === 'win32')('skips an unreadable directory rather than aborting the whole scan', () => {
     writeFileSync(join(root, 'a.css'), '.a{}');
     mkdirSync(join(root, 'locked'), { recursive: true });
     writeFileSync(join(root, 'locked', 'b.css'), '.b{}');

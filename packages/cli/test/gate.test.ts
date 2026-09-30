@@ -145,7 +145,15 @@ describe('installStopHook', () => {
 describe('the gate checks the command that just ran', () => {
   const transcript = (command: string) => {
     const path = join(root, 'transcript.jsonl');
-    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>\nApproved.` } }) + '\n');
+    // The owner's side of a finished round: asked to confirm, they said yes,
+    // in the words the fixtures below quote as theirs.
+    const turn = (type: 'user' | 'assistant', text: string) => JSON.stringify(type === 'user' ? { type, message: { content: text } } : { type, message: { content: [{ type: 'text', text }] } });
+    writeFileSync(path, [
+      turn('user', `<command-name>/jig</command-name>\n<command-args>${command}</command-args>\nBecause it is ours.`),
+      turn('assistant', 'Does the spec hold? Confirm it and I will record it.'),
+      turn('user', 'Approved.'),
+      turn('assistant', 'Recorded.'),
+    ].join('\n') + '\n');
     return path;
   };
   const runAfter = (command: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 's1', transcript_path: transcript(command) } });
@@ -224,6 +232,30 @@ Prose.`;
       expect(said('decide', 'Done. The decisions are recorded.').reason).toMatch(/decide wrote no DECISIONS\.md/);
     });
 
+    // jig-site: a spec went to the owner with a `motion:` line its shape check
+    // refuses; the check ran only after the owner answered.
+    it('holds a spec put to the owner to its shape, but not a draft still asking questions', () => {
+      jigProject();
+      const draft = goodSpec.replace('confirmed: true', 'confirmed: false\nmotion: sometimes');
+      mkdirSync(join(root, '.jig', 'specs'), { recursive: true });
+      writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), draft);
+      expect(said('spec pricing', 'Which plan should be first?').reason ?? '').not.toMatch(/motion/);
+      spec(draft);
+      expect(said('spec pricing', 'Does the spec hold? Confirm it?').reason).toMatch(/`motion:` is neither `none` nor a list/);
+      spec(goodSpec.replace('confirmed: true', 'confirmed: false\nmotion: none — the header\'s motion is its own spec\'s'));
+      expect(said('spec pricing', 'Does the spec hold? Confirm it?').reason ?? '').not.toMatch(/motion/);
+    });
+
+    // jig-site: a spec session drafted in its scratchpad and asked the owner to
+    // confirm; the gate fell back to another page's spec and checked that.
+    it('refuses to put a spec to the owner that is not in .jig/specs, and checks no other page in its place', () => {
+      jigProject();
+      spec(goodSpec);
+      expect(said('spec tokens', 'Here is the full draft. Does this confirm, and in what words?').reason).toMatch(/not at \.jig\/specs\/tokens\.spec\.md/);
+      expect(said('spec tokens', 'Which three modes should the chapter name?').reason ?? '').not.toMatch(/\.jig\/specs\/tokens/);
+      expect(said('spec tokens', 'Done. The spec is drafted.').reason).toMatch(/spec wrote no \.jig\/specs\/tokens\.spec\.md/);
+    });
+
     it('still runs check while the question is open', () => {
       jigProject();
       writeFileSync(join(root, 'a.css'), 'body {\n  font-family: var(--font-body);\n}');
@@ -232,6 +264,15 @@ Prose.`;
       expect(r.reason).toMatch(/H-117/);
       expect(r.reason).not.toMatch(/DECISIONS/);
     });
+  });
+
+  // decide quoted the owner in a reason, and nothing held the quotation to
+  // what the owner said; a tweak's reasons were held, decide's were not.
+  it('holds a reason decide quotes to the owner\'s words', () => {
+    jigProject();
+    mkdirSync(join(root, 'jig'), { recursive: true });
+    writeFileSync(join(root, 'jig', 'DECISIONS.md'), '### The Stamp Rule\n\n**Why:** \"Because the stamp is the brand.\"\n\n## Unresolved\n\nNone named by the owner.\n');
+    expect(runAfter('decide').reason).toMatch(/quotes "Because the stamp is the brand\.", which the owner's words in this session do not say/);
   });
 
   it('finds DECISIONS.md beside the token layer that jig.config.json names', () => {
@@ -486,7 +527,7 @@ describe('the Stop hook is written only when someone asked for it', () => {
 describe('the block budget is per failure', () => {
   const transcript = (command: string) => {
     const path = join(root, `transcript-${command}.jsonl`);
-    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>` } }) + '\n');
+    writeFileSync(path, JSON.stringify({ type: 'user', message: { content: `<command-name>/jig</command-name>\n<command-args>${command}</command-args>\nGiven by the owner.` } }) + '\n');
     return path;
   };
   const run = (command: string) => gate({ projectRoot: root, version: '0.10.0', input: { session_id: 'one-session', transcript_path: transcript(command) } });

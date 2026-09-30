@@ -136,9 +136,12 @@ function withLock(lock: string, fn: () => void): void {
       try { writeSync(fd, `${process.pid} ${Date.now()}`); } finally { closeSync(fd); }
       break;
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+      // EEXIST: held. On Windows a lock file being deleted while another
+      // process has it open is "delete pending", and creating it fails with
+      // EPERM, EACCES or EBUSY until it is gone: held too, for a moment.
+      if (!BUSY.has((err as NodeJS.ErrnoException).code ?? '')) throw err;
       if (lockIsStale(lock) || Date.now() > deadline) {
-        try { unlinkSync(lock); } catch { /* another waiter took it over first */ }
+        unlinkRetrying(lock);
         continue;
       }
       sleep(10 + Math.random() * 20);
@@ -147,7 +150,27 @@ function withLock(lock: string, fn: () => void): void {
   try {
     fn();
   } finally {
-    try { unlinkSync(lock); } catch { /* already removed */ }
+    unlinkRetrying(lock);
+  }
+}
+
+const BUSY = new Set(['EEXIST', 'EPERM', 'EACCES', 'EBUSY']);
+
+/**
+ * Deletes the lock, retrying briefly where Windows refuses because another
+ * process has it open for a moment (checking whether it is stale). Left in
+ * place, a released lock read as held until it went stale, ten seconds later.
+ */
+function unlinkRetrying(lock: string): void {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    try {
+      unlinkSync(lock);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code ?? '';
+      if (code === 'ENOENT' || !BUSY.has(code)) return; // gone, or another waiter took it over
+      sleep(5 + attempt * 5);
+    }
   }
 }
 

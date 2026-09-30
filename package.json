@@ -10,5 +10,9 @@
     "build": "npm run build --workspaces --if-present",
     "check-tokens": "node scripts/check-tokens.mjs"
   },
-  "version": "0.23.0"
+  "version": "0.24.0",
+  "allowScripts": {
+    "esbuild": true,
+    "fsevents": false
+  }
 }

@@ -4,6 +4,8 @@ import { check } from './check.js';
 import { seo } from './seo.js';
 import { verifyVerdicts } from './verdicts.js';
 import { checksum } from '../install/manifest.js';
+import { lf, readText } from '../text.js';
+import { agentFileProblems } from '../install/agent-files.js';
 
 /**
  * Whether the project is ready to ship, by everything Jig can check.
@@ -20,7 +22,9 @@ import { checksum } from '../install/manifest.js';
  * than it is.
  */
 
-export type PageState = 'judged' | 'never' | 'changed' | 'reprobe' | 'deferred' | 'incomplete' | 'findings' | 'in-progress' | 'superseded';
+/** Every state `ship` reports a page in. The procedure describes each (tested). */
+export const PAGE_STATES = ['judged', 'never', 'changed', 'reprobe', 'deferred', 'incomplete', 'findings', 'in-progress', 'superseded'] as const;
+export type PageState = (typeof PAGE_STATES)[number];
 
 export interface PageStatus {
   surface: string;
@@ -93,7 +97,8 @@ function changedSinceLock(projectRoot: string, dir: string): string | undefined 
   try {
     const html = readFileSync(join(projectRoot, file), 'utf8');
     // A lock written before asset names were left out holds the raw checksum.
-    return pageChecksum(html) !== lock.page.checksum && checksum(html) !== lock.page.checksum ? file : undefined;
+    const seen = [pageChecksum(html), checksum(html)];
+    return seen.includes(lock.page.checksum) ? undefined : file;
   } catch {
     return undefined;
   }
@@ -106,7 +111,7 @@ export function supersededBy(front: string): string | undefined {
 }
 
 export function pageStatus(projectRoot: string, surface: string): PageStatus {
-  const spec = readFileSync(join(projectRoot, '.jig', 'specs', `${surface}.spec.md`), 'utf8');
+  const spec = readText(join(projectRoot, '.jig', 'specs', `${surface}.spec.md`));
   const front = spec.split(/^---\s*$/m)[1] ?? '';
   if (!/^\s*confirmed\s*:\s*true\b/im.test(front)) {
     return { surface, state: 'in-progress', detail: 'its spec is not confirmed, so nothing of it is built to ship' };
@@ -153,7 +158,9 @@ export function ship(opts: { projectRoot: string; version: string }): ShipResult
     : [];
   const pages = surfaces.map((s) => pageStatus(root, s));
   const owed = pages.filter((p) => p.state !== 'judged' && p.state !== 'in-progress' && p.state !== 'superseded');
-  const ready = mechanicalErrors === 0 && seoErrors === 0 && owed.length === 0;
+  // The instructions every agent starts from are part of what ships.
+  const agentFiles = agentFileProblems(root);
+  const ready = mechanicalErrors === 0 && seoErrors === 0 && owed.length === 0 && agentFiles.length === 0;
 
   const count = (state: PageState) => pages.filter((p) => p.state === state).length;
   const line =
@@ -163,6 +170,7 @@ export function ship(opts: { projectRoot: string; version: string }): ShipResult
   const report = [
     `  ${mechanicalErrors === 0 ? '✓' : '✗'} check --all --ci: ${mechanicalErrors} mechanical error${mechanicalErrors === 1 ? '' : 's'}`,
     `  ${seoErrors === 0 ? '✓' : '✗'} seo: ${seoErrors} error${seoErrors === 1 ? '' : 's'}`,
+    ...agentFiles.map((p) => `  ✗ ${p}`),
     ...pages.map((p) => `  ${mark[p.state]} ${p.surface}: ${p.detail}`),
     owed.length ? `  Critique each page marked ✗ (\`/jig critique <page>\`); fix what it finds, or record the owner's ruling, and run \`jig ship\` again.` : '',
     `  Not checked by Jig, here or anywhere: ${NOT_COVERED}.`,

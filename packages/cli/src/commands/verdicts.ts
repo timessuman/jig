@@ -1,12 +1,13 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { citableIds } from '../rules/citations.js';
 import { probeContradictions, readProbes } from '../probe/check.js';
 import { PROBE_WIDTHS } from '../probe/save.js';
 import { decisionHeadings, decisionNames, decisionsFile } from '../check/decisions.js';
 import { specIndexableField } from '../check/spec-shape.js';
+import { lf, readText } from '../text.js';
 
 /**
  * Verifies a critique's verdict files, and computes its counts.
@@ -144,7 +145,7 @@ function specIndexable(projectRoot: string, surface: string): boolean {
   const path = join(projectRoot, '.jig', 'specs', `${surface}.spec.md`);
   let front = '';
   try {
-    front = readFileSync(path, 'utf8').split(/^---\s*$/m)[1] ?? '';
+    front = readText(path).split(/^---\s*$/m)[1] ?? '';
   } catch { /* no spec: fall through to the mode */ }
   const declared = specIndexableField(front);
   if (declared === true || declared === false) return declared;
@@ -156,10 +157,23 @@ function specIndexable(projectRoot: string, surface: string): boolean {
 function specNeedsNav(projectRoot: string, surface: string): boolean {
   const path = join(projectRoot, '.jig', 'specs', `${surface}.spec.md`);
   if (!existsSync(path)) return false;
-  const front = readFileSync(path, 'utf8').split(/^---\s*$/m)[1] ?? '';
+  const front = readText(path).split(/^---\s*$/m)[1] ?? '';
   const navField = [...front.matchAll(/^\s*nav:\s*(.+)$/gim)].some((m) => !/^\s*(none|n\/a|-)\b/i.test(m[1]));
   const navRegion = /^\s*-\s*(nav|navigation)\s*:/im.test(front);
   return navField || navRegion;
+}
+
+/**
+ * Fields a verdict file holds that Jig does not read, where they could hold
+ * judgments: a list or an object. On jig-site arms carried findings under ids
+ * the corpus does not have; a field of their own would carry them past every
+ * count the same way. A note in plain text is left alone.
+ */
+export function unreadFields(label: string, file: Record<string, unknown> | null, known: string[]): string[] {
+  if (!file || typeof file !== 'object') return [];
+  return Object.entries(file)
+    .filter(([k, v]) => !known.includes(k) && v !== null && typeof v === 'object' && Object.keys(v).length > 0)
+    .map(([k]) => `${label}: \`${k}\` is not a field Jig reads, so nothing counts what it holds. A rule's verdict goes in \`verdicts\`; what no rule names, in \`differences\`; a note, in the report.`);
 }
 
 function checkArm(
@@ -234,6 +248,8 @@ function checkArm(
     }
   }
 
+  errors.push(...unreadFields(`${name}.json`, file as Record<string, unknown>, ['verdicts', 'differences', 'rendered', 'artefacts']));
+
   const missing = [...required, ...extraRequired].filter((id) => !seen.has(id));
   if (missing.length) {
     errors.push(`${name}.json: ${missing.length} of ${total} ids have no verdict: ${missing.join(', ')}. Re-run the arm; never report a short pass.`);
@@ -264,6 +280,7 @@ function checkDecisions(projectRoot: string, dir: string, errors: string[]): Arm
 
   const list = Array.isArray(file.verdicts) ? (file.verdicts as Array<{ decision?: unknown; verdict?: unknown; reason?: unknown }>) : [];
   if (!Array.isArray(file.verdicts)) errors.push('decisions.json has no "verdicts" array.');
+  errors.push(...unreadFields('decisions.json', file as Record<string, unknown>, ['verdicts']));
 
   const seen = new Set<string>();
   const reasons: Array<{ label: string; verdict: string; reason: string }> = [];
@@ -323,7 +340,7 @@ function decisionsSince(projectRoot: string, dir: string, unjudged: string[]): s
   const git = (args: string[]) =>
     execFileSync('git', args, { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   try {
-    const verdictFile = relative(projectRoot, join(dir, 'decisions.json'));
+    const verdictFile = relative(projectRoot, join(dir, 'decisions.json')).split(sep).join('/');
     if (git(['status', '--porcelain', '--', verdictFile])) return [];
     const judgedIn = git(['log', '-1', '--format=%H', '--', verdictFile]);
     if (!judgedIn) return [];
@@ -400,7 +417,7 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   };
   let specFront = '';
   try {
-    specFront = readFileSync(join(opts.projectRoot, '.jig', 'specs', `${opts.surface}.spec.md`), 'utf8').split(/^---\s*$/m)[1] ?? '';
+    specFront = readText(join(opts.projectRoot, '.jig', 'specs', `${opts.surface}.spec.md`)).split(/^---\s*$/m)[1] ?? '';
   } catch { /* no spec */ }
   if (specIndexableField(specFront) === 'unreadable') {
     errors.push(`.jig/specs/${opts.surface}.spec.md: \`indexable:\` is neither true nor false, so this review cannot tell whether the page is meant to be found and does not guess. Write \`indexable: true\` or \`indexable: false\`, and put the reason in the spec's body.`);
@@ -469,7 +486,7 @@ export function previousFindings(projectRoot: string, dir: string): PreviousFind
   const read = (f: string, at?: string): Map<string, { verdict: string; reason: string }> => {
     const out = new Map<string, { verdict: string; reason: string }>();
     let text: string;
-    try { text = at ? git(['show', `${at}:./${rel}/${f}`]) : readFileSync(join(dir, f), 'utf8'); } catch { return out; }
+    try { text = at ? lf(git(['show', `${at}:./${rel}/${f}`])) : readText(join(dir, f)); } catch { return out; }
     let body: { verdicts?: unknown };
     try { body = JSON.parse(text); } catch { return out; }
     for (const v of Array.isArray(body.verdicts) ? (body.verdicts as Array<Record<string, unknown>>) : []) {

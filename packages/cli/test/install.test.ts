@@ -284,11 +284,14 @@ describe('install — codex reference material lives beside its skill', () => {
 });
 
 describe('install — generic uses the shared skill-dir convention', () => {
-  it('generic writes SKILL.md and rules under .agents/skills/jig/, not AGENTS.md', () => {
+  it('generic writes SKILL.md and rules under .agents/skills/jig/, and only a short block in AGENTS.md', () => {
     install({ ...opts(), agent: 'generic' });
     expect(existsSync(join(project, '.agents', 'skills', 'jig', 'SKILL.md'))).toBe(true);
     expect(existsSync(join(project, '.agents', 'skills', 'jig', 'rules', '00-anti-patterns.md'))).toBe(true);
-    expect(existsSync(join(project, 'AGENTS.md'))).toBe(false);
+    // AGENTS.md carries the project's guide to Jig, not the skill itself.
+    const agents = readFileSync(join(project, 'AGENTS.md'), 'utf8');
+    expect(agents).toContain('.agents/skills/jig/SKILL.md');
+    expect(agents).not.toContain('00-anti-patterns');
   });
 
   it('generic supports global scope too, at ~/.agents/skills/jig/', () => {
@@ -518,7 +521,9 @@ describe('installing a second agent does not orphan the first', () => {
         if (entry.isDirectory()) walk(next);
         // `.claude/settings.json` is the user's file; install merges a Stop
         // hook into it and `update` re-merges it, so no manifest owns it.
-        else if (entry.name !== 'manifest.json' && next !== '.claude/settings.json') onDisk.push(next);
+        // AGENTS.md and CLAUDE.md are the project's own too: Jig keeps a
+        // marked block in them and never owns the files.
+        else if (entry.name !== 'manifest.json' && !['.claude/settings.json', 'AGENTS.md', 'CLAUDE.md'].includes(next)) onDisk.push(next);
       }
     };
     walk('');

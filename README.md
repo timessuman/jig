@@ -2,10 +2,25 @@
 
 A design system written to be consumed by coding agents, not read by designers.
 
-Framework-agnostic. Tokens are CSS custom properties; rules are stated in CSS
-properties and behaviour, never in one framework's class names.
+**Jig is framework-agnostic.** It works with what you already build with:
 
-Installed as `npx jig-ui` — the bare name was taken on npm.
+- **Any framework.** React and Next.js, Vue and Nuxt, Svelte and SvelteKit,
+  Astro, Angular, Solid, Rails, Laravel, Django, Phoenix, ASP.NET, or plain
+  HTML. `check` reads each one's files as they are (see
+  [What `check` covers](#what-check-covers)).
+- **Any way you style.** Plain CSS, SCSS or Less, CSS modules, Tailwind, or
+  CSS-in-JS.
+- **Any content.** Pages built ahead of time or rendered from a backend.
+- **Any coding agent.** Claude Code, Codex, Cursor, opencode, Gemini CLI, or any
+  other that reads a skill file.
+- **Any operating system.** macOS, Linux and Windows.
+
+Nothing in it belongs to one framework: the tokens are CSS custom properties,
+and every rule is stated in CSS properties and behaviour, never in one
+framework's class names.
+
+Installed as `npx jig-ui` — the bare name was taken on npm. It needs Node 22 or
+later.
 
 ## Two ways to use it
 
@@ -85,14 +100,33 @@ but never adds one.
 
 Every agent reads a `skills/jig/SKILL.md`, so adding a new harness is a config
 change rather than a new code path. Codex uses the cross-agent `.agents/`
-directory and additionally gets a short pointer block in `AGENTS.md` — that file
-is read into every session, so it names the skill rather than restating it.
+directory.
 
-Install writes the skill file **and its rules** to one place only — beside the
-skill file itself. Nothing of Jig's is vendored into your repo; your agent reads
-the rules from the install. Installing at project scope when the same agent is
+Install writes the skill file **and its rules** to one place only, beside the
+skill file itself: in your repo's agent folder at project scope (the default),
+in your home directory with `--scope global`. Your agent reads the rules from
+there; nothing is copied into your source. At project scope it also keeps a
+block in `AGENTS.md` (below). Installing at project scope when the same agent is
 already installed globally warns rather than creating a second, contradicting
 skill.
+
+### Your agent's instructions: `AGENTS.md` and `CLAUDE.md`
+
+Most people run Jig through an agent, and `AGENTS.md` is the file agents read at
+the start of every session. So Jig makes sure your project has one: `init`,
+`install` and `update` create it if it is missing, or add Jig's block to the one
+you have. The block is short: load the Jig skill before any UI work, how the
+loop runs, the owner's-word rule, and what each of Jig's files is for.
+
+With Claude Code, which reads `CLAUDE.md` instead, Jig also adds a block there
+that imports `AGENTS.md` (`@AGENTS.md`), so every session loads it without the
+agent having to choose to.
+
+Jig owns only what sits between its markers, `<!-- jig:start -->` and
+`<!-- jig:end -->`. Write your own instructions above or below the block; Jig
+never reads or changes them. If the block goes missing or is edited, `check`
+says so, `ship` is not ready until it is back, a session that removed it is held
+by the Stop hook, and `jig update` puts it back.
 
 ## Set the project up
 
@@ -100,9 +134,9 @@ skill.
 npx jig-ui@latest init
 ```
 
-`init` is the only command that writes into your repo. It runs on a project
-with nothing in it and on one with years of CSS, and behaves differently in
-each — because the useful thing to do differs.
+`init` sets the project up: the token layer, `jig.config.json`, one import in
+your stylesheet, and Jig's block in `AGENTS.md` for your agent. It runs on a project with nothing in it and on one with years of
+CSS, and behaves differently in each, because the useful thing to do differs.
 
 ### An existing site
 
@@ -157,15 +191,17 @@ set of cards with no list element — rather than a wall.
 #### When you do run `init`
 
 The token layer is a set of custom property declarations. Declarations nothing
-references change no pixel, so adding it does not restyle your site.
+references change no pixel, so adding it does not restyle anything you have
+styled. One line is the exception, below.
 
 - **Different names never collide.** Your tokens and Jig's sit side by side; each
   is used by whoever asks for it. You can adopt one token at a time, or none.
 - **If a name is the same in both, yours wins.** The import goes above your own
   rules, and the later declaration is the one that applies.
 - **One line does more than declare a token:** `color-scheme: light dark`, which
-  tells the browser your page supports both, so scrollbars and form controls
-  follow the reader's system setting.
+  tells the browser your page supports both. On a reader's dark system,
+  scrollbars, form controls and any background you have not set yourself turn
+  dark. If your site is light only, remove that line from the brand file.
 
 #### You decide how it is wired
 
@@ -233,8 +269,9 @@ are a list. That is the whole loop. Repeat it wherever it is worth repeating.
 The first `check --all` on a big repo is a long list, and the list is not a
 to-do. Read it in this order:
 
-1. **`check --all --ci` first.** Mechanical bucket, errors only, exit code you
-   can put in CI. It is the short list, and every line on it is decidable.
+1. **`check --all --ci` first.** The rules a machine decides, and nothing else,
+   with an exit code you can put in CI: it fails on any error. It is the short
+   list, and every line on it is decidable.
 2. **Then warnings, by rule rather than by file.** The report groups by rule id,
    and a rule firing forty times is one decision made once, not forty.
 3. **Then one page at a time.** `check` defaults to the files you changed, so
@@ -329,9 +366,6 @@ coherent monochrome UI and makes the missing decision visible instead of
 inventing a purple (`A-01`). Set `--brand-h/-s/-l` in the brand file when you
 have decided, or tell your agent to ask you.
 
-Add `--yes` to accept every derived default non-interactively — the mode CI and
-agents run in.
-
 ### Where the token layer goes
 
 Beside the stylesheet it wires, so it sits with the rest of your CSS rather than
@@ -370,11 +404,12 @@ overwrites a config or brand file you have edited.
 
 | Command | What it does |
 | --- | --- |
-| `install --agent <name> [--scope project\|global] [--hook]` | Puts the skill and its rules where your agent will find them. Writes nothing else into your repo, unless you ask for `--hook`. |
-| `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. The only command that writes into your repo. |
+| `install --agent <name> [--scope project\|global] [--hook]` | Puts the skill and its rules where your agent will find them. At project scope, also keeps Jig's block in `AGENTS.md` (and `CLAUDE.md` for Claude Code); with `--hook`, adds the Stop hook. |
+| `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. |
 | `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
 | `seo [--json]` | Audits what a search engine and a link preview read, across the whole project: a route whose metadata says `noindex` sitting in the sitemap, two pages claiming one title, a sitemap that lists nothing or lists paths a crawler drops. Whether a sitemap and a robots file exist is counted, not reported: no rule asks for either, and a site with no domain yet cannot write an honest sitemap. Needs no config, no decisions and no spec. |
+| `checksum <spec>` | Prints a spec's checksum, the value its `.checked.json` records as `spec`, so the spec's reader never computes it by hand. |
 | `verdicts <surface>` | Verifies a critique's verdict files and computes its counts: every rule in each pass judged once, no id that does not exist, no rule in the wrong arm, and no verdict the render probe contradicts. |
 | `probe` | Prints the render probe — one expression the critique runs in a browser at each width. It operates the menu, measures sideways scroll, and reads whether the styles and tokens applied. |
 | `ship` | Says whether the project is ready to ship, by everything Jig checks: `check --all --ci` and `seo` with no errors, and every confirmed page critiqued as it stands, with no finding you have not ruled on. Exits non-zero until it is, and names what Jig does not check. |
@@ -417,12 +452,17 @@ on the result — the CLI reports, the agent applies the judgment half.
 | `/jig spec invoice page` | No CLI. What exactly is being built — a page, feature or functionality — at its smallest useful version, at every screen size |
 | `/jig mockup` | No CLI. Low-fidelity design of that spec, reviewed before code — in HTML, Figma or Google Stitch, whichever you choose |
 | `/jig make` | No CLI. High-fidelity: builds the actual page or feature from the spec and mockup |
-| `/jig critique` | `jig verdicts` + `jig probe`. Scrutinises what was built against the rules, its spec and its mockup: two reader arms write their verdicts to files, the CLI decides whether the review is complete, and a browser probe checks the verdicts against what the page actually does |
+| `/jig critique` | `jig verdicts` + `jig probe`. Scrutinises what was built against the rules, its spec and its mockup: three readers that cannot see each other (one looks at the rendered page, one reads the source, one holds it to your decisions) write their verdicts to files, the CLI decides whether the review is complete, and a browser probe checks the verdicts against what the page actually does |
 | `/jig tweak` | No CLI. A small change to a built page that its approved mockup does not show: decided if it is a decision, specced, built, and re-judged where it could matter |
 | `/jig ship` | `jig ship` — then critiques every page that owes one, puts the findings to you, and runs again until the project is ready |
+| `/jig verdicts <page>` | `jig verdicts <page>` — reports whether a critique is complete, unchanged |
+| `/jig probe` | `jig probe` — the render probe a critique runs in a browser |
+| `/jig checksum <spec>` | `jig checksum <spec>` — the value a spec's check records |
 
-`decide` runs once. The other four run for each page, feature or functionality, one
-at a time — never the whole product at once.
+`decide` runs once. `spec`, `mockup` (or skipping it), `make` and `critique` run for
+each page, feature or functionality, one at a time, never the whole product at
+once; `tweak` handles a small change to a built page, and `ship` checks the whole
+project before you release.
 
 Where each lands:
 
@@ -579,7 +619,10 @@ critiquing any page whenever you like, and `ship` judges every one.
 
 Waiting is tracked, not forgotten. The verdict lock records the page each
 critique judged, so Jig knows every page that changed since, every tweak that
-left its re-judge for later, and every page never judged. `/jig ship` is where
+left its re-judge for later, and every page never judged. It knows a page by its
+built file: a page rendered only on request is not tracked this way yet, and a
+built page whose content comes from a backend reads as changed when that content
+does. `/jig ship` is where
 none of it is optional: `jig ship` runs `check --all --ci` and `seo`, and names
 each page that owes a critique; the agent critiques each one in full, with
 readers that have not seen the conversation, and puts the findings to you. Each
@@ -668,8 +711,8 @@ In CI:
 code — nothing model-dependent, no network. As a pre-commit hook, plain `check`
 looks at changed files only.
 
-What you will not get from the CLI alone is the other 95 rules. `check` says so
-rather than letting a narrow pass read as a broad one.
+What you will not get from the CLI alone is the 120 judgment rules. `check` says
+so rather than letting a narrow pass read as a broad one.
 
 ## What `check` covers
 
@@ -690,10 +733,11 @@ character positions preserved, so a finding's line points at the real line in
 your `.vue` or `.tsx` file. Application code outside a style region is never read
 as CSS.
 
-The seven mechanical rules: hard-coded values past the token layer (`H-47`),
-contrast below the floor (`C-19`), removed focus rings (`E-29`), gradient text
-(`A-02`), backdrop blur (`A-04`), pure black and white (`C-18`), and the
-violet-band hue check (`A-01`, which asks rather than fails).
+Which rules it decides: every rule in `rules.index.json` that names a
+`detector`, among them hard-coded values past the token layer (`H-47`), contrast
+below the floor (`C-19`) and removed focus rings (`E-29`). A `hybrid` one warns
+and asks rather than fails (the violet-band hue check, `A-01`). `jig explain
+<id>` prints any rule with who checks it.
 
 **It also reads the token layer itself.** The token layer is not application
 code, so no detector scans it — but it is where a mistake costs most, since every
@@ -736,10 +780,10 @@ npx jig-ui@latest update
 ```
 
 Files you have edited are left alone. Upgrading from a pre-0.4.0 install that
-vendored rules into your project's `.jig/`? `init` and `check` detect the
-leftover files, report them, and — with your consent, and never for a file you
-have edited — offer to remove just the install artifacts, keeping your tokens
-and config untouched.
+vendored rules into your project's `.jig/`? `init` detects the leftover files,
+reports them, and — with your consent, and never for a file you have edited —
+offers to remove just the install artifacts, keeping your tokens and config
+untouched. (`update`, finding no install, names them and points you to `init`.)
 
 Cursor's skill moved from `.cursor/rules/jig.mdc` to
 `.cursor/skills/jig/SKILL.md`; `init` finds the old file and offers the same
@@ -760,12 +804,15 @@ treatment.
 | `<css dir>/jig/mode.*.css` | Density, scale, rhythm, motion |
 | `<css dir>/jig/theme.css` | The barrel — brand + mode. This is what you import. With more than one mode, `theme.<mode>.css`, one per mode, each imported by its routes' layout. |
 | `.jig/state.json` | What `init` wrote, with checksums. `update` reads it to leave your edits alone. |
+| `AGENTS.md`, `CLAUDE.md` | Your agent's instructions. Jig keeps one marked block in each (`CLAUDE.md` only with Claude Code); the rest is yours. |
 | `.jig/specs/`, `.jig/mockups/`, `.jig/critique/` | The design loop's record: what was agreed, what was drawn, what the review found. |
 
-`rules/*` and `rules.index.json` live beside your installed skill file, not
-in the project — see above.
+`rules/*` and `rules.index.json` live beside your installed skill file: in
+your repo's agent folder at project scope, in your home directory at global
+scope. See Install, above.
 
-Which of these an agent loads, and when, is `AGENTS.md`.
+Which of these an agent loads, and when, is the skill file's to say: `SKILL.md`,
+beside the rules.
 
 ## Per-project declaration
 
@@ -787,20 +834,19 @@ Drop this in the project root so mode selection does not require asking on every
     { "match": "/admin/**", "mode": "operator"  }
   ],
 
-  // Files that render OUTSIDE the cascade, where a literal is the only thing
-  // that works: an OG card serialised into an SVG `foreignObject` carries no
-  // stylesheet, and a PDF drawn by a React renderer never sees CSS.
+  // Files `check` should skip. Empty unless you add to it; Jig never does.
+  // Add:
+  //   - a file that renders outside your stylesheets (a generated social
+  //     card, a PDF or email template), where literal values are the only
+  //     thing that works;
+  //   - an old page you will not revisit. Plain `check` reads only the files
+  //     you change, but `check --all` and `ship` read every file.
   //
-  // Prefer an exact path. An exemption is a claim about ONE file's rendering
-  // context, and that is usually literally true of one file. Reach for a glob
-  // only where the directory exists to hold them — `src/cv/pdf/**` is a fact
-  // about that tree; `**/*-card.tsx` is a naming coincidence that would also
-  // excuse every real card component you have.
-  //
-  // `check` names the pattern and its match count on every run, and says so
-  // when one is excusing enough files to look like a mistake. Nothing is ever
-  // exempt by default: this list is the only source.
-  "exempt": ["src/components/og-card.tsx", "src/cv/pdf/**"],
+  // Write each path from the project folder (where this file is), the way
+  // your editor shows it: "src/social-card.tsx". A whole folder:
+  // "src/emails/**". `check` lists every entry and how many files it
+  // matched on every run, and tells you when one matches nothing.
+  "exempt": ["src/social-card.tsx", "src/emails/**"],
 
   // When pages are critiqued. Leave it out to decide each time; "at-ship"
   // says once that critiques and a tweak's re-judge wait for `/jig ship`,

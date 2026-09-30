@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -45,20 +45,29 @@ sizes:
     same-as: desktop
     why: content is capped
 confirmed: ${confirmed}
-mockup: skipped — the owner: "it reuses the Guide's approved layout"
+mockup: skipped — the owner: "skip the mockup, it reuses the Guide's approved layout"
 ---
 ${extra}`;
 
-const writeSpec = (body: string) => writeFileSync(join(root, '.jig', 'specs', 'the-loop.spec.md'), body);
+// Written by the session: dated after it began, as `run`'s transcript dates it.
+const writeSpec = (body: string) => {
+  const path = join(root, '.jig', 'specs', 'the-loop.spec.md');
+  writeFileSync(path, body);
+  const t = (Date.now() + 5000) / 1000;
+  utimesSync(path, t, t);
+};
 const writeChecked = (body: string, record: Record<string, unknown> = {}) =>
   writeFileSync(join(root, '.jig', 'specs', 'the-loop.checked.json'), JSON.stringify({ spec: specChecksum(body), quotes: [], facts: [], ...record }));
 
-const owner = "/jig spec the-loop — it reuses the Guide's approved layout. Only where the steps differ by path.";
-const run = (agentSays?: string, said = owner) => {
+const owner = "/jig spec the-loop — skip the mockup, it reuses the Guide's approved layout. Only where the steps differ by path.";
+const run = (agentSays?: string, said = owner, reply?: string) => {
   const path = join(root, 't.jsonl');
+  const agent = (text: string) => ({ type: 'assistant', message: { content: [{ type: 'text', text }] } });
   const lines = [
     { type: 'user', timestamp: new Date(Date.now() + 2000).toISOString(), message: { content: `<command-name>/jig</command-name>\n<command-args>spec the-loop</command-args>\n${said}` } },
-    ...(agentSays ? [{ type: 'assistant', message: { content: [{ type: 'text', text: agentSays } ] } }] : []),
+    ...(agentSays ? [agent(agentSays)] : []),
+    // The owner's answer to the agent's question, and the agent's last word.
+    ...(reply ? [{ type: 'user', message: { content: reply } }, agent('Recorded.')] : []),
   ];
   writeFileSync(path, lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
   return gate({ projectRoot: root, version: '0.21.1', input: { session_id: 's', transcript_path: path } });
@@ -82,7 +91,32 @@ describe('a spec is checked before the owner is asked', () => {
   it('keeps the check when the owner\'s yes sets confirmed', () => {
     writeChecked(spec());
     writeSpec(spec('', 'true'));
-    expect(run().block).toBe(false);
+    expect(run('Here is the spec and its sheet. Do you confirm it?', owner, 'Confirmed.').block).toBe(false);
+  });
+
+  // jig-site: after the owner's yes the agent reported "`confirmed: true` is
+  // set", and the check read that report as the question.
+  it('takes the owner\'s answer to the question, whatever the agent says after it', () => {
+    writeChecked(spec());
+    writeSpec(spec('', 'true'));
+    const path = join(root, 't.jsonl');
+    const agent = (text: string) => ({ type: 'assistant', message: { content: [{ type: 'text', text }] } });
+    writeFileSync(path, [
+      { type: 'user', timestamp: new Date(Date.now() + 2000).toISOString(), message: { content: `<command-name>/jig</command-name>\n<command-args>spec the-loop</command-args>\n${owner}` } },
+      agent('Here is the spec and its sheet. Do you confirm it?'),
+      { type: 'user', message: { content: 'Confirmed.' } },
+      agent('Recorded: `confirmed: true` is set, and the check is current.'),
+    ].map((l) => JSON.stringify(l)).join('\n') + '\n');
+    expect(gate({ projectRoot: root, version: '0.21.1', input: { session_id: 's', transcript_path: path } }).reason ?? '').not.toMatch(/confirm/);
+  });
+
+  // Nothing held `confirmed: true` to the owner's yes: an agent could set it
+  // having asked nobody.
+  it('refuses a spec recorded as confirmed that nobody was asked to confirm, or that the owner did not confirm', () => {
+    writeChecked(spec());
+    writeSpec(spec('', 'true'));
+    expect(run().reason).toMatch(/the owner was never asked to confirm it/);
+    expect(run('Here is the spec and its sheet. Do you confirm it?', owner, 'Hold on, the phone layout is wrong.').reason).toMatch(/reply to being asked does not confirm it/);
   });
 
   it('refuses a check of an earlier spec', () => {
@@ -100,6 +134,17 @@ describe('a spec is checked before the owner is asked', () => {
 });
 
 describe('a quotation given as the owner\'s', () => {
+  // jig-site: a fresh session found an uncommitted draft holding the owner's
+  // words from an earlier session, and was told to strip them.
+  it('leaves alone a draft the session found and did not write, committed or not', () => {
+    const body = spec('Per the owner: "Every chapter opens on the path they last chose."');
+    writeSpec(body);
+    const t = (Date.now() - 60_000) / 1000;
+    utimesSync(join(root, '.jig', 'specs', 'the-loop.spec.md'), t, t);
+    writeChecked(body);
+    expect(run('Do you confirm it?').reason ?? '').not.toMatch(/as the owner's that the owner's words do not hold/);
+  });
+
   it('is held to the owner\'s words', () => {
     const body = spec('Per the owner: "Every chapter opens on the path they last chose."');
     writeSpec(body);
@@ -194,6 +239,15 @@ describe('the owner\'s word on the drawing', () => {
     expect(at('make', 'Build it.').reason).toMatch(/quotes "a small change, not worth drawing", which the owner did not say/);
     writeSpec(withMockup('approved'));
     expect(at('mockup', 'Looks right.').reason).toMatch(/`mockup: approved` is recorded without the owner's words/);
+  });
+
+  // jig-site: a skip quoted a remark about the chapter's chrome.
+  it('refuses a skip whose quoted words do not say to skip', () => {
+    committed(withMockup('pending'));
+    writeSpec(withMockup('skipped — "It uses the Guide\'s approved layout"'));
+    expect(at('make', 'It uses the Guide\'s approved layout.').reason).toMatch(/does not skip the mockup/);
+    writeSpec(withMockup('skipped — "no drawing for this one"'));
+    expect(at('make', 'No drawing for this one.').reason ?? '').not.toMatch(/mockup/);
   });
 
   it('keeps an approval as the owner gave it, condition and all', () => {

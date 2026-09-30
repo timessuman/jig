@@ -57,6 +57,24 @@ describe('jig.config.json can exempt a file', () => {
     expect(files.has('src/app.css'), 'exemption leaked to another file').toBe(true);
   });
 
+  // A path written the way people write one works, and one that cannot work
+  // is named with what to write instead, never dropped in silence.
+  it('takes ./, backslashes and an absolute path inside the project as the project-relative path', () => {
+    for (const entry of ['./src/og-card.css', 'src\\og-card.css', join(project, 'src', 'og-card.css')]) {
+      writeFileSync(join(project, 'jig.config.json'), JSON.stringify({ exempt: [entry] }));
+      const files = new Set(run().findings.map((f) => f.file));
+      expect(files.has('src/og-card.css'), `"${entry}" did not exempt it`).toBe(false);
+    }
+  });
+
+  it('says why it ignores a path outside the project, and where a bare name is', () => {
+    writeFileSync(join(project, 'jig.config.json'), JSON.stringify({ exempt: ['/etc/og-card.css', '../other/x.css', 'og-card.css'] }));
+    const report = run().report;
+    expect(report).toMatch(/exempt: "\/etc\/og-card\.css" is ignored: an absolute path outside this project/);
+    expect(report).toMatch(/exempt: "\.\.\/other\/x\.css" is ignored: it leaves the project folder/);
+    expect(report).toMatch(/og-card\.css: did you mean "src\/og-card\.css"\?/);
+  });
+
   it('accepts a glob, since these come in families', () => {
     writeFileSync(join(project, 'jig.config.json'),
       JSON.stringify({ exempt: ['src/*-card.css'] }));

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { lf, readText } from '../text.js';
 
 /** The newest `.jig/specs/<slug>.spec.md`, or a `.md` beside it. */
 export function newestSpec(projectRoot: string): { path: string; slug: string; body: string } | undefined {
@@ -10,7 +11,7 @@ export function newestSpec(projectRoot: string): { path: string; slug: string; b
   const newest = files
     .map((f) => ({ f, at: statSync(join(dir, f)).mtimeMs }))
     .sort((a, b) => b.at - a.at)[0]!.f;
-  return { path: `.jig/specs/${newest}`, slug: newest.replace(/\.spec\.md$|\.md$/, ''), body: readFileSync(join(dir, newest), 'utf8') };
+  return { path: `.jig/specs/${newest}`, slug: newest.replace(/\.spec\.md$|\.md$/, ''), body: readText(join(dir, newest)) };
 }
 
 /**
@@ -21,7 +22,7 @@ export function newestSpec(projectRoot: string): { path: string; slug: string; b
 export function specFor(projectRoot: string, surface: string | undefined): { path: string; slug: string; body: string } | undefined {
   if (surface) {
     const path = join(projectRoot, '.jig', 'specs', `${surface}.spec.md`);
-    if (existsSync(path)) return { path: `.jig/specs/${surface}.spec.md`, slug: surface, body: readFileSync(path, 'utf8') };
+    if (existsSync(path)) return { path: `.jig/specs/${surface}.spec.md`, slug: surface, body: readText(path) };
   }
   return newestSpec(projectRoot);
 }
@@ -34,7 +35,7 @@ export function specFor(projectRoot: string, surface: string | undefined): { pat
  * not apply. The procedure said all of this in words.
  */
 export function specProblems(spec: { path: string; body: string }): string[] {
-  const parts = spec.body.split(/^---\s*$/m);
+  const parts = lf(spec.body).split(/^---\s*$/m);
   const front = parts.length >= 3 ? parts[1]! : '';
   if (!front.trim()) {
     return [`${spec.path} has no frontmatter. A spec is the frontmatter — feature, surface, mode, sizes (phone, tablet, desktop), states, decisions, later, mockup, confirmed — with the reasoning below it. Rewrite it in that shape.`];
@@ -55,7 +56,8 @@ export function specProblems(spec: { path: string; body: string }): string[] {
   if (motion) {
     const inline = motion[1]!.replace(/\s+#.*$/, '').trim();
     const items = motion[2]!.split('\n').map((l) => l.replace(/^[ \t]+-\s*/, '').trim()).filter(Boolean);
-    if (!items.length && !/^none$/i.test(inline)) {
+    // `none`, alone or followed by why nothing moves: `none — the chrome's own motion is its spec's`.
+    if (!items.length && !/^none\b(\s*$|\s*[—–:,;(-])/i.test(inline)) {
       problems.push(`${spec.path}: \`motion:\` is neither \`none\` nor a list. List each movement as \`- <what moves>: <how>, on <trigger>; tells <what the reader learns>\`, or write \`motion: none\`.`);
     }
     const unsaid = items.filter((i) => !/\bon\b/i.test(i) || !/\btells?\b/i.test(i));
@@ -158,4 +160,43 @@ export function specIndexableField(front: string): boolean | 'absent' | 'unreada
   if (value === 'true' || value === 'yes') return true;
   if (value === 'false' || value === 'no') return false;
   return 'unreadable';
+}
+
+/**
+ * The front-matter fields Jig reads. Everything else a spec says belongs in the
+ * prose below its front matter, where the owner and the spec's reader read it.
+ */
+export const SPEC_FIELDS = [
+  'feature', 'surface', 'route', 'mode', 'indexable', 'title', 'description', 'sizes', 'switches',
+  'states', 'motion', 'decisions', 'later', 'mockup', 'mockup_at', 'deviations', 'critique',
+  'superseded_by', 'confirmed',
+] as const;
+
+const topLevelKeys = (body: string) =>
+  [...(body.split(/^---\s*$/m)[1] ?? '').matchAll(/^([A-Za-z_][\w-]*)\s*:/gm)].map((m) => m[1]!);
+
+/**
+ * Front-matter keys this session added that Jig does not read.
+ *
+ * When the procedure named no place for something, agents made one: on
+ * jig-site ten specs carried some forty keys Jig never defined (`tree:`,
+ * `rails:`, `confirmed_fourth:`, `superseded_layout_by:` beside another spec's
+ * `superseded_by:` for the same thing). Nothing reads an invented key, so what
+ * it says reaches no check, and the next agent invents another. Only keys this
+ * session added are held, so a spec is not blocked for its history.
+ */
+export function newFieldProblems(spec: { path: string; body: string }, then: string): string[] {
+  spec = { ...spec, body: lf(spec.body) };
+  then = lf(then);
+  const had = new Set(topLevelKeys(then));
+  const known = new Set<string>(SPEC_FIELDS);
+  const added = [...new Set(topLevelKeys(spec.body))].filter((k) => !known.has(k) && !had.has(k));
+  if (!added.length) return [];
+  const near = (k: string) => SPEC_FIELDS.find((f) => k.includes(f) || f.startsWith(k.replace(/[-_].*$/, '')));
+  return added.map((k) => {
+    const hint = near(k);
+    return `${spec.path}: \`${k}:\` is not a field Jig reads, so nothing checks what it says. ` +
+      (hint ? `If it is \`${hint}:\`, write it there. ` : '') +
+      `Otherwise put it in the prose below the front matter. Jig's fields: ${SPEC_FIELDS.join(', ')}.`;
+  });
 }

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { declaredSwitches } from '../probe/switches.js';
+import { lf, readText } from '../text.js';
 
 /**
  * What an HTML mockup must hold before the owner reviews it.
@@ -23,7 +24,7 @@ const FRAMES = [['phone', 360], ['tablet', 768], ['desktop', 1280], ['wide', 160
 
 export function mockupDrawingProblems(root: string, specBody: string, at: string): string[] {
   let html: string;
-  try { html = readFileSync(join(root, at), 'utf8'); } catch { return []; }
+  try { html = readText(join(root, at)); } catch { return []; }
   const frames = readFrames(html);
   const problems: string[] = [];
 
@@ -114,7 +115,7 @@ function frameRegionProblems(frames: Frame[], specBody: string, at: string): str
  */
 export function approvedDrawingProblems(root: string, specBody: string, at: string): string[] {
   let html: string;
-  try { html = readFileSync(join(root, at), 'utf8'); } catch { return []; }
+  try { html = readText(join(root, at)); } catch { return []; }
   const frames = readFrames(html);
   if (!frames.some((f) => f.size)) return [];
   return frameRegionProblems(frames, specBody, at);
