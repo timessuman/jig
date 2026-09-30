@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, unlinkSync }
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { getPackageRoot } from '../src/paths.js';
 import { readManifest, writeManifest, type Manifest } from '../src/install/manifest.js';
 
@@ -101,7 +102,10 @@ describe('a manifest write does not drop another run’s entries', () => {
         { length: 4 },
         (_, i) =>
           new Promise<void>((resolve, reject) => {
-            const child = spawn('npx', ['tsx', script, String(i)], { stdio: 'ignore' });
+            // Node itself runs tsx's CLI: `npx` is `npx.cmd` on Windows, which
+            // spawn cannot start, and on a fresh machine four npx at once
+            // raced to download tsx.
+            const child = spawn(process.execPath, [createRequire(import.meta.url).resolve('tsx/cli'), script, String(i)], { stdio: 'ignore' });
             child.on('error', reject);
             child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
           }),

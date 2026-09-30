@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, chmodSync, readdirSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { install } from '../src/commands/install.js';
 import { init } from '../src/commands/init.js';
 import { readManifest } from '../src/install/manifest.js';
@@ -184,7 +184,7 @@ describe('init — writing', () => {
   it('falls back to the directory name for the brand slug when there is no package.json', async () => {
     rmSync(join(project, 'package.json'));
     const result = await init({ projectRoot: project, packageRoot: repoRoot, homeDir: home, version: '0.1.0', yes: true, log: NOOP_LOG });
-    const base = project.split('/').pop()!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const base = basename(project).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     expect(result.brand.relPath).toBe(`src/jig/brand.${base}.css`);
   });
 

@@ -1,5 +1,5 @@
 # Jig runs wherever its users do: Linux, macOS and Windows, on every Node it
-# supports (engines: >=20). A pass here, on all of them, is what lets the
+# supports (engines: >=22). A pass here, on all of them, is what lets the
 # README say so.
 name: ci
 
@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node: [20, 22]
+        node: [22, 24]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
