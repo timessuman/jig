@@ -9,7 +9,7 @@ import { loadSpecs } from '../rules/specs.js';
 import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
-import { applyExemptions, readExemptions } from '../check/exempt.js';
+import { applyExemptions, readExemptions, suggestPaths } from '../check/exempt.js';
 import { applyWaivers, type Waived } from '../check/waiver.js';
 import { maskNonStyleRegions } from '../check/styles.js';
 import { maskComments } from '../check/css.js';
@@ -148,8 +148,11 @@ export function check(opts: CheckOptions): CheckResult {
   // in a `foreignObject`, a PDF drawn by a React renderer. They cannot consume
   // a custom property, so holding them to the token layer makes `check`
   // impossible to pass, and a check that cannot pass gets switched off.
-  const exemptions = readExemptions(opts.projectRoot);
-  const { scanned: files, exempt, byPattern } = applyExemptions(selection.files, exemptions);
+  const { patterns: exemptions, ignored: exemptIgnored } = readExemptions(opts.projectRoot);
+  const { scanned: files, exempt, byPattern: counted } = applyExemptions(selection.files, exemptions);
+  // Across the whole project, a bare name that matched nothing is usually a
+  // file further down: name where it is.
+  const byPattern = counted.map((p) => ({ ...p, suggest: p.count === 0 && selection.mode !== 'changed' ? suggestPaths(p.pattern, selection.files) : [] }));
 
   const bucketFilter = opts.ci ? (b: string) => b === 'mechanical' : undefined;
   // Does ANY stylesheet in this project sit on the token layer? Host files
@@ -307,6 +310,7 @@ export function check(opts: CheckOptions): CheckResult {
     withStyles,
     exempt,
     exemptPatterns: byPattern,
+    exemptIgnored,
     scope: selection.mode,
     modeUnwired: modeWiringProblems(opts.projectRoot),
     waived,

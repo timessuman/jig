@@ -53,6 +53,11 @@
   checksum leaves out, or a command the CLI registers.
 - **The README no longer counts the rules `check` decides by hand.** It named
   "the seven mechanical rules" from 0.1.0; it now points at `rules.index.json`.
+- **An `exempt` path works the way you write it.** `./src/card.tsx`,
+  `src\\card.tsx` and an absolute path inside the project all mean
+  `src/card.tsx`. A path outside the project was dropped without a word; it is
+  now named in the report with what to write instead, and a bare file name that
+  matches nothing is answered with where that file is.
 - **A fact's `source` that holds a sentence** is told to put it in `note`.
 - **The README says what Jig does.** It said `init` was the only command that
   writes into your repo and that nothing of Jig's is kept in it (a project-scope

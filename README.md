@@ -800,23 +800,19 @@ Drop this in the project root so mode selection does not require asking on every
     { "match": "/admin/**", "mode": "operator"  }
   ],
 
-  // Files `check` should not read, which you choose. Nothing is exempt by
-  // default: this list is the only source, and Jig never fills it for you.
+  // Files `check` should skip. Empty unless you add to it; Jig never does.
+  // Add:
+  //   - a file that renders outside your stylesheets (a generated social
+  //     card, a PDF or email template), where literal values are the only
+  //     thing that works;
+  //   - an old page you will not revisit. Plain `check` reads only the files
+  //     you change, but `check --all` and `ship` read every file.
   //
-  // Two kinds of file earn one. A file that renders outside the page's
-  // stylesheets, where a literal value is the only thing that works: an image
-  // generated from markup (a social preview card), a PDF or email drawn by a
-  // renderer that never sees your CSS, a file a tool generates. And a page you
-  // have no intention of revisiting: plain `check` reads only the files you
-  // change, but `check --all` and `ship` read everything, and an old page's
-  // hard-coded values are errors once the token layer exists.
-  //
-  // Prefer an exact path: an exemption is a claim about one file's rendering.
-  // Use a glob only for a folder that exists to hold such files; a pattern
-  // that matches by name (`**/*-card.tsx`) would also excuse every real
-  // component that happens to share it. `check` names each pattern and how
-  // many files it matches on every run, so a list cannot grow quietly.
-  "exempt": ["<a file that renders outside your CSS>", "<a folder of them>/**"],
+  // Write each path from the project folder (where this file is), the way
+  // your editor shows it: "src/social-card.tsx". A whole folder:
+  // "src/emails/**". `check` lists every entry and how many files it
+  // matched on every run, and tells you when one matches nothing.
+  "exempt": ["src/social-card.tsx", "src/emails/**"],
 
   // When pages are critiqued. Leave it out to decide each time; "at-ship"
   // says once that critiques and a tweak's re-judge wait for `/jig ship`,
