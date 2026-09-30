@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gate, probesLeftBehind } from '../src/commands/gate.js';
+import { registeredCommands } from './helpers/registered-commands.js';
 import { PAGE_STATES, pageChecksum, ship, volatileText } from '../src/commands/ship.js';
 import { specChecksum } from '../src/check/spec-checked.js';
 import { newFieldProblems, SPEC_FIELDS, specProblems } from '../src/check/spec-shape.js';
@@ -339,6 +340,13 @@ describe('probe files the gate re-took', () => {
 // does, or this fails.
 describe('the procedure says what the code does', () => {
   const tmpl = readFileSync(join(repoRoot, 'templates', 'COMMAND.md.tmpl'), 'utf8');
+
+  // jig-site's CLI chapter reads this list and checks it against the binary:
+  // `checksum` was registered and not listed, and the site's build failed.
+  it('lists every command the binary registers as CLI-backed, and no other', () => {
+    const listed = [...(/\*\*CLI-backed\*\* — ([^.]+)\./.exec(tmpl)?.[1] ?? '').matchAll(/`([a-z-]+)`/g)].map((m) => m[1]!);
+    expect(listed.sort()).toEqual(registeredCommands());
+  });
 
   it('names every state ship reports a page in', () => {
     const section = tmpl.slice(tmpl.indexOf('\n## ship'), tmpl.indexOf('\n## ', tmpl.indexOf('\n## ship') + 5));
