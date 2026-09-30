@@ -111,7 +111,7 @@ describe('a manifest write does not drop another run’s entries', () => {
             child.stderr!.on('data', (d) => { stderr += String(d); });
             child.on('error', reject);
             // A failure says why: the child's error, not only its exit code.
-            child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}: ${stderr.trim().slice(-600)}`))));
+            child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}: ${stderr.trim().slice(0, 600)}`))));
           }),
       ),
     );
