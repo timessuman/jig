@@ -45,6 +45,13 @@
 
 ### Fixed
 
+- **Jig works the same on Linux, macOS and Windows, and is tested on all three.**
+  Every change now runs the full suite on each, on Node 22 and 24. The first run
+  found that rendering a page needed a WebSocket Node 20 does not have, so Jig
+  now needs Node 22 or later (Node 20 is end-of-life) and says so if it is run
+  on an older one; and that on Windows no browser was ever found to render with:
+  Edge, Chrome installed per user, and commands on PATH are now found.
+
 - **The docs say what the code does.** The README said `check` reports a
   pre-0.4.0 install's leftovers (only `init` does); the procedure named five
   reasons `ship` owes a page (there are six, one a re-probe) and described the

@@ -2,10 +2,25 @@
 
 A design system written to be consumed by coding agents, not read by designers.
 
-Framework-agnostic. Tokens are CSS custom properties; rules are stated in CSS
-properties and behaviour, never in one framework's class names.
+**Jig is framework-agnostic.** It works with what you already build with:
 
-Installed as `npx jig-ui` — the bare name was taken on npm.
+- **Any framework.** React and Next.js, Vue and Nuxt, Svelte and SvelteKit,
+  Astro, Angular, Solid, Rails, Laravel, Django, Phoenix, ASP.NET, or plain
+  HTML. `check` reads each one's files as they are (see
+  [What `check` covers](#what-check-covers)).
+- **Any way you style.** Plain CSS, SCSS or Less, CSS modules, Tailwind, or
+  CSS-in-JS.
+- **Any content.** Pages built ahead of time or rendered from a backend.
+- **Any coding agent.** Claude Code, Codex, Cursor, opencode, Gemini CLI, or any
+  other that reads a skill file.
+- **Any operating system.** macOS, Linux and Windows.
+
+Nothing in it belongs to one framework: the tokens are CSS custom properties,
+and every rule is stated in CSS properties and behaviour, never in one
+framework's class names.
+
+Installed as `npx jig-ui` — the bare name was taken on npm. It needs Node 22 or
+later.
 
 ## Two ways to use it
 

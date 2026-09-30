@@ -139,6 +139,11 @@ export async function runProbe(opts: { url: string; width: number; height?: numb
 }
 
 async function evaluate(endpoint: string, url: string, width: number, height: number, timeoutMs: number, expression: string): Promise<string> {
+  // Node has a WebSocket built in from 22. On an older Node the probe would
+  // fail with "WebSocket is not defined"; say what to do instead.
+  if (typeof WebSocket === 'undefined') {
+    throw new Error(`rendering a page needs Node 22 or later (this is Node ${process.versions.node}). Upgrade Node, then run it again.`);
+  }
   const socket = new WebSocket(endpoint);
   let nextId = 1;
   const pending = new Map<number, { done: (value: Record<string, unknown>) => void; fail: (err: Error) => void }>();

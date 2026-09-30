@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import { getPackageRoot } from '../src/paths.js';
 import { readManifest, writeManifest, type Manifest } from '../src/install/manifest.js';
 
@@ -88,7 +89,7 @@ describe('a manifest write does not drop another run’s entries', () => {
     const script = join(root, 'w.mjs');
     writeFileSync(
       script,
-      `import { writeManifest } from ${JSON.stringify(manifestModule)};\n` +
+      `import { writeManifest } from ${JSON.stringify(pathToFileURL(manifestModule).href)};\n` +
         `const i = process.argv[2];\n` +
         `for (let n = 0; n < 10; n++) {\n` +
         `  writeManifest(${JSON.stringify(root)}, { version: '0.4.0', agent: 'claude',\n` +
@@ -138,7 +139,7 @@ describe('the manifest lock', () => {
     const script = join(root, 'w.mjs');
     writeFileSync(
       script,
-      `import { writeManifest } from ${JSON.stringify(manifestModule)};\n` +
+      `import { writeManifest } from ${JSON.stringify(pathToFileURL(manifestModule).href)};\n` +
         `writeManifest(${JSON.stringify(root)}, { version: '0.4.0', agent: 'claude', scope: 'project',\n` +
         `  installedAt: new Date().toISOString(), files: { 'b.md': 'sha256:b' } }, ${JSON.stringify(dir)});\n` +
         `process.stdout.write(String(Date.now()));\n`,
@@ -147,7 +148,7 @@ describe('the manifest lock', () => {
     writeFileSync(lockPath(), `${process.pid} ${Date.now()}`);
     let out = '';
     const done = new Promise<void>((resolve, reject) => {
-      const child = spawn('npx', ['tsx', script], { stdio: ['ignore', 'pipe', 'ignore'] });
+      const child = spawn(process.execPath, [createRequire(import.meta.url).resolve('tsx/cli'), script], { stdio: ['ignore', 'pipe', 'ignore'] });
       child.stdout.on('data', (d) => (out += d));
       child.on('error', reject);
       child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
