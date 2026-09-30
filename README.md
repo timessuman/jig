@@ -806,7 +806,13 @@ Drop this in the project root so mode selection does not require asking on every
   // says once that critiques and a tweak's re-judge wait for `/jig ship`,
   // which will not pass until every page is judged as it stands. A page's
   // spec can say otherwise for itself: `critique: each` or `critique: at-ship`.
-  "critique": "at-ship"
+  "critique": "at-ship",
+
+  // Text that changes with every release and nothing a critique judges, as
+  // patterns: a docs site printing the version it pins. `ship` does not count
+  // a page as changed for it. Never a figure the page states: a count that
+  // moved is a claim, and the critique has to see it.
+  "volatile": ["jig-ui@[0-9][^\\s\"<]*"]
 }
 ```
 

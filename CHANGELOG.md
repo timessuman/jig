@@ -38,6 +38,12 @@
   every critique and tweak on jig-site left probe files modified and each brief
   had to say to commit them. Like the lock, it now stops once to have them
   committed on their own, and only when the rest of the work is committed.
+- **A page is not re-owed a critique for its version number.** `"volatile"` in
+  jig.config.json lists text that changes with every release and nothing a
+  critique judges, as patterns, and `ship` leaves it out when it asks whether a
+  page changed since it was judged. On jig-site every release moved the version
+  each Guide page pins, and every chapter was critiqued again for it. A figure
+  the page states is not volatile: a count that moved still counts.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.

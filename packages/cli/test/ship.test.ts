@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gate, probesLeftBehind } from '../src/commands/gate.js';
-import { pageChecksum, ship } from '../src/commands/ship.js';
+import { pageChecksum, ship, volatileText } from '../src/commands/ship.js';
 import { newFieldProblems, SPEC_FIELDS, specProblems } from '../src/check/spec-shape.js';
 import { checksum } from '../src/install/manifest.js';
 import { repoRoot } from './helpers/registered-commands.js';
@@ -128,6 +128,20 @@ describe('jig ship', () => {
     writeFileSync(join(dir('pricing'), 'verdicts.lock'), JSON.stringify({ checksum: 'x', verdicts: {}, page: { file: 'dist/pricing.html', checksum: pageChecksum(page('base.ce6revOR')) } }));
     expect(state().report).toMatch(/✓ pricing: judged as it stands/);
     writeFileSync(join(root, 'dist', 'pricing.html'), page('base.Dh1WGOR').replace('judged', 'reworded'));
+    expect(state().report).toMatch(/✗ pricing: dist\/pricing\.html changed after it was judged/);
+  });
+
+  // jig-site: each release moved the version every Guide page pins, and every
+  // chapter read as changed. A count that moved is still a change.
+  it('reads a page whose only change is text the project calls volatile as judged', () => {
+    writeFileSync(join(root, 'jig.config.json'), JSON.stringify({ surfaces: [{ match: '/', mode: 'editorial' }], volatile: ['jig-ui@[0-9][^\\s"<]*'] }));
+    critiqued('pricing');
+    mkdirSync(join(root, 'dist'), { recursive: true });
+    const page = (v: string, n = '107') => `<main><code>npx jig-ui@${v} check</code> applies the ${n} judgment rules</main>`;
+    writeFileSync(join(root, 'dist', 'pricing.html'), page('0.23.0'));
+    writeFileSync(join(dir('pricing'), 'verdicts.lock'), JSON.stringify({ checksum: 'x', verdicts: {}, page: { file: 'dist/pricing.html', checksum: pageChecksum(page('0.22.0'), volatileText(root)) } }));
+    expect(state().report).toMatch(/✓ pricing: judged as it stands/);
+    writeFileSync(join(root, 'dist', 'pricing.html'), page('0.23.0', '120'));
     expect(state().report).toMatch(/✗ pricing: dist\/pricing\.html changed after it was judged/);
   });
 
