@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gate } from '../src/commands/gate.js';
 import { pageChecksum, ship } from '../src/commands/ship.js';
-import { specProblems } from '../src/check/spec-shape.js';
+import { newFieldProblems, SPEC_FIELDS, specProblems } from '../src/check/spec-shape.js';
 import { checksum } from '../src/install/manifest.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
@@ -187,6 +187,12 @@ describe('a tweak whose re-judge waits', () => {
     expect(session('tweak', 'Tighten the plan names. Leave the critique for later.').reason).toMatch(/`change` is "make the plans read as a clear ladder", which the owner did not say/);
   });
 
+  it('refuses a field tweak.json does not have', () => {
+    deferredTweak('leave the critique for later');
+    writeFileSync(join(dir('pricing'), 'tweak.json'), JSON.stringify({ at: '2026-09-29T10:00:00Z', change: 'tighten the plan names', ids: ['A-60'], deferred: 'leave the critique for later', also_changed: ['the footer'] }));
+    expect(session('tweak', 'Tighten the plan names. Leave the critique for later.').reason).toMatch(/`also_changed` is not a field Jig reads/);
+  });
+
   it('is taken as `true` where the project waits for ship', () => {
     writeFileSync(join(root, 'jig.config.json'), JSON.stringify({ surfaces: [{ match: '/', mode: 'editorial' }], critique: 'at-ship' }));
     deferredTweak(true);
@@ -251,6 +257,27 @@ describe('each page says when it is critiqued', () => {
     writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), withCritique('sometimes'));
     expect(specProblems({ path: '.jig/specs/pricing.spec.md', body: withCritique('sometimes') }).join(' ')).toMatch(/`critique: sometimes` is neither `each` nor `at-ship`/);
     expect(specProblems({ path: '.jig/specs/pricing.spec.md', body: withCritique('at-ship   # the chapters wait') }).join(' ')).not.toMatch(/critique:/);
+  });
+
+  // The procedure's template and the gate's list are one list: a field the
+  // template shows that the gate refused would be a trap.
+  it('reads every field the spec template shows, and no other', () => {
+    const tmpl = readFileSync(join(repoRoot, 'templates', 'COMMAND.md.tmpl'), 'utf8');
+    const block = tmpl.slice(tmpl.indexOf('```yaml', tmpl.indexOf('\n## spec')), tmpl.indexOf('\n```\n', tmpl.indexOf('```yaml', tmpl.indexOf('\n## spec'))));
+    const shown = [...block.matchAll(/^#?\s?([a-z_]+):/gm)].map((m) => m[1]!).filter((k) => !['phone', 'tablet', 'desktop', 'wide', 'landscape'].includes(k));
+    expect([...new Set(shown)].sort()).toEqual([...SPEC_FIELDS].sort());
+  });
+
+  // jig-site's specs carried some forty keys Jig never defined.
+  it('refuses a front-matter key Jig does not read, when this session added it', () => {
+    const at = (extra: string) => ({ path: '.jig/specs/pricing.spec.md', body: spec().replace('confirmed: true', `confirmed: true\n${extra}`) });
+    expect(newFieldProblems(at('tree: the rail lists every section'), spec()).join(' ')).toMatch(/`tree:` is not a field Jig reads.*prose below the front matter/);
+    expect(newFieldProblems(at('superseded_layout_by: reference.spec.md'), spec()).join(' ')).toMatch(/If it is `superseded_by:`, write it there/);
+    expect(newFieldProblems(at('confirmed_fourth: true'), spec()).join(' ')).toMatch(/If it is `confirmed:`/);
+    // Jig's own fields, a key the spec already had, and anything nested pass.
+    expect(newFieldProblems(at('route: /pricing/\nsuperseded_by: plans.spec.md'), spec())).toEqual([]);
+    expect(newFieldProblems(at('tree: x'), spec().replace('confirmed: true', 'confirmed: true\ntree: y'))).toEqual([]);
+    expect(newFieldProblems({ path: 'p', body: spec().replace('    why: content is capped', '    why: content is capped\n    tree: nested is fine') }, spec())).toEqual([]);
   });
 
   // G-42: each movement on the page says what triggers it and what it tells.

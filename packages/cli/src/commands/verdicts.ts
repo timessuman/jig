@@ -162,6 +162,19 @@ function specNeedsNav(projectRoot: string, surface: string): boolean {
   return navField || navRegion;
 }
 
+/**
+ * Fields a verdict file holds that Jig does not read, where they could hold
+ * judgments: a list or an object. On jig-site arms carried findings under ids
+ * the corpus does not have; a field of their own would carry them past every
+ * count the same way. A note in plain text is left alone.
+ */
+export function unreadFields(label: string, file: Record<string, unknown> | null, known: string[]): string[] {
+  if (!file || typeof file !== 'object') return [];
+  return Object.entries(file)
+    .filter(([k, v]) => !known.includes(k) && v !== null && typeof v === 'object' && Object.keys(v).length > 0)
+    .map(([k]) => `${label}: \`${k}\` is not a field Jig reads, so nothing counts what it holds. A rule's verdict goes in \`verdicts\`; what no rule names, in \`differences\`; a note, in the report.`);
+}
+
 function checkArm(
   name: 'screen' | 'code',
   file: ReturnType<typeof readJson>,
@@ -234,6 +247,8 @@ function checkArm(
     }
   }
 
+  errors.push(...unreadFields(`${name}.json`, file as Record<string, unknown>, ['verdicts', 'differences', 'rendered', 'artefacts']));
+
   const missing = [...required, ...extraRequired].filter((id) => !seen.has(id));
   if (missing.length) {
     errors.push(`${name}.json: ${missing.length} of ${total} ids have no verdict: ${missing.join(', ')}. Re-run the arm; never report a short pass.`);
@@ -264,6 +279,7 @@ function checkDecisions(projectRoot: string, dir: string, errors: string[]): Arm
 
   const list = Array.isArray(file.verdicts) ? (file.verdicts as Array<{ decision?: unknown; verdict?: unknown; reason?: unknown }>) : [];
   if (!Array.isArray(file.verdicts)) errors.push('decisions.json has no "verdicts" array.');
+  errors.push(...unreadFields('decisions.json', file as Record<string, unknown>, ['verdicts']));
 
   const seen = new Set<string>();
   const reasons: Array<{ label: string; verdict: string; reason: string }> = [];

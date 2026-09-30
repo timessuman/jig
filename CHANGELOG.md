@@ -24,6 +24,15 @@
   `confirmed: true` needs the owner's yes after they were asked, a tweak's
   `change` must be words they said, and `decide`'s quoted reasons must be too.
   The skill states the rule once.
+- **A field Jig does not read is refused where it would be written.** When the
+  procedure named no place for something, agents made one: jig-site's specs
+  carried some forty front-matter keys Jig never defined, two specs marked the
+  same thing two ways, and arms carried findings under invented ids. Nothing
+  read any of it. A spec key a session adds, a verdict-file field holding a list
+  or an object, and a tweak.json field outside `at`, `change`, `ids` and
+  `deferred` are now refused, each pointing at the place that exists. A spec's
+  earlier keys are not held against it. `route:` joins the spec's fields, since
+  six of jig-site's specs needed it.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.

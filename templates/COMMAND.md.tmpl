@@ -340,6 +340,7 @@ phone as a squeezed desktop.
 ---
 feature: sign in to an existing account      # the task, not the screen
 surface: login page
+route: /login/             # optional: where the page is served, when the surface's name does not say
 mode: product              # from {{config_file}} — state it, never leave it implied
 confirmed: false           # only the user sets this to true; see below
 sizes:                     # phone first. Each size is a whole composition, not a diff.
@@ -384,6 +385,10 @@ critique: each             # optional: each, or at-ship; left out, the project's
 ---
 ```
 
+- **Only these fields.** The front matter holds the fields above and nothing
+  else; the gate refuses one it does not read, since nothing would check what it
+  says. Everything else a spec has to say (where its words come from, a round's
+  history, a note for `make`) goes in the prose below it.
 - **`phone` is written first, and in full.** It is the most common screen, and the
   one a derived composition fails on worst.
 - **`motion:` lists every movement, and why it moves.** Each names what moves, its

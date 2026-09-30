@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
-import { navProblems, specFor, specProblems } from '../check/spec-shape.js';
+import { newFieldProblems, navProblems, specFor, specProblems } from '../check/spec-shape.js';
 import { findChrome } from '../probe/browser.js';
 import { check } from './check.js';
 import { approvedDrawingProblems, mockupDrawingProblems, specRegions } from '../check/mockup-drawing.js';
@@ -364,6 +364,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
     if (!spec) problems.push(`${command} needs a spec: there is no file in .jig/specs/.`);
     else {
       problems.push(...specProblems(spec));
+      problems.push(...newFieldProblems(spec, fileAtSessionStart(root, spec.path, start)));
       if (problems.length === 0) problems.push(...navProblems(spec));
     }
   }
@@ -610,6 +611,11 @@ function tweakProblems(root: string, spec: { path: string; slug: string; body: s
     else if (owner && fileAtSessionStart(root, `.jig/critique/${surface}/tweak.json`, start) !== readFileSync(join(root, '.jig', 'critique', surface, 'tweak.json'), 'utf8') && !quoteHeld(record.change.replace(/^["“]|["”]$/g, ''), owner)) {
       problems.push(`.jig/critique/${surface}/tweak.json: \`change\` is "${record.change.length > 90 ? `${record.change.slice(0, 90)}…` : record.change}", which the owner did not say in this session. It is their words for the change, as they gave them; what you made of them goes in the spec's Tweak entry.`);
     }
+    try {
+      const raw = JSON.parse(readFileSync(join(root, '.jig', 'critique', surface, 'tweak.json'), 'utf8')) as Record<string, unknown>;
+      const extra = Object.keys(raw).filter((k) => !['at', 'change', 'ids', 'deferred'].includes(k));
+      if (extra.length) problems.push(`.jig/critique/${surface}/tweak.json: ${extra.map((k) => `\`${k}\``).join(', ')} ${extra.length === 1 ? 'is not a field' : 'are not fields'} Jig reads. tweak.json holds \`at\`, \`change\`, \`ids\` and \`deferred\`; what else you have to say goes in the spec's Tweak entry.`);
+    } catch { /* unreadable: readTweak already said so */ }
     if (!record.ids.length) problems.push(`.jig/critique/${surface}/tweak.json names nothing to re-judge. A change that no rule and no decision could see needs no tweak; name the ones it can.`);
     // The re-judge can wait for the page's next critique, or `ship`, when the
     // owner says so: in their words here, or once for the project in
@@ -767,7 +773,7 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
     // jig-site a spec went to the owner with a `motion:` line the shape check
     // refuses, because that check ran only after the owner had answered.
     if (spec && existsSync(join(root, '.jig', 'specs', `${spec.slug}.checked.json`))) {
-      problems.push(...specProblems(spec).map((p) => `/jig spec: ${p}`));
+      problems.push(...[...specProblems(spec), ...newFieldProblems(spec, fileAtSessionStart(root, spec.path, start))].map((p) => `/jig spec: ${p}`));
     }
   }
 

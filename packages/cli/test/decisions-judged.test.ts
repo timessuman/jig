@@ -85,6 +85,18 @@ describe('jig verdicts judges the project decisions too', () => {
     expect(run().errors.join('\n')).toMatch(/is not a rule: list it under `differences`/);
   });
 
+  // A field of an arm's own would carry judgments past every count.
+  it('refuses a field Jig does not read that holds judgments, and leaves a note alone', () => {
+    write('decisions.json', { verdicts: [
+      { decision: 'Voice', verdict: 'ok', reason: 'lowercase throughout the page' },
+      { decision: 'Trial and onboarding', verdict: 'ok', reason: 'no trial language anywhere on the page' },
+    ] });
+    write('code.json', { verdicts: ids('code'), extra_findings: [{ id: 'nav', reason: 'the rail overlaps' }], note: 'read on a phone too' });
+    const r = run();
+    expect(r.errors.join('\n')).toMatch(/code\.json: `extra_findings` is not a field Jig reads/);
+    expect(r.errors.join('\n')).not.toMatch(/`note`/);
+  });
+
   it('names a decision left unjudged', () => {
     write('decisions.json', { verdicts: [{ decision: 'Voice', verdict: 'ok', reason: 'lowercase throughout' }] });
     expect(run().errors.join('\n')).toMatch(/1 of 2 decisions have no verdict: Trial and onboarding/);

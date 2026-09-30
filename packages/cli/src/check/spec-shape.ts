@@ -160,3 +160,40 @@ export function specIndexableField(front: string): boolean | 'absent' | 'unreada
   if (value === 'false' || value === 'no') return false;
   return 'unreadable';
 }
+
+/**
+ * The front-matter fields Jig reads. Everything else a spec says belongs in the
+ * prose below its front matter, where the owner and the spec's reader read it.
+ */
+export const SPEC_FIELDS = [
+  'feature', 'surface', 'route', 'mode', 'indexable', 'title', 'description', 'sizes', 'switches',
+  'states', 'motion', 'decisions', 'later', 'mockup', 'mockup_at', 'deviations', 'critique',
+  'superseded_by', 'confirmed',
+] as const;
+
+const topLevelKeys = (body: string) =>
+  [...(body.split(/^---\s*$/m)[1] ?? '').matchAll(/^([A-Za-z_][\w-]*)\s*:/gm)].map((m) => m[1]!);
+
+/**
+ * Front-matter keys this session added that Jig does not read.
+ *
+ * When the procedure named no place for something, agents made one: on
+ * jig-site ten specs carried some forty keys Jig never defined (`tree:`,
+ * `rails:`, `confirmed_fourth:`, `superseded_layout_by:` beside another spec's
+ * `superseded_by:` for the same thing). Nothing reads an invented key, so what
+ * it says reaches no check, and the next agent invents another. Only keys this
+ * session added are held, so a spec is not blocked for its history.
+ */
+export function newFieldProblems(spec: { path: string; body: string }, then: string): string[] {
+  const had = new Set(topLevelKeys(then));
+  const known = new Set<string>(SPEC_FIELDS);
+  const added = [...new Set(topLevelKeys(spec.body))].filter((k) => !known.has(k) && !had.has(k));
+  if (!added.length) return [];
+  const near = (k: string) => SPEC_FIELDS.find((f) => k.includes(f) || f.startsWith(k.replace(/[-_].*$/, '')));
+  return added.map((k) => {
+    const hint = near(k);
+    return `${spec.path}: \`${k}:\` is not a field Jig reads, so nothing checks what it says. ` +
+      (hint ? `If it is \`${hint}:\`, write it there. ` : '') +
+      `Otherwise put it in the prose below the front matter. Jig's fields: ${SPEC_FIELDS.join(', ')}.`;
+  });
+}
