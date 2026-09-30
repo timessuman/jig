@@ -149,7 +149,7 @@ export function specCheckProblems(root: string, spec: { path: string; slug: stri
       try { return Number(line) > readFileSync(join(root, file), 'utf8').split('\n').length; } catch { return true; }
     });
   if (missing.length) {
-    problems.push(`${recordPath} cites ${missing.length === 1 ? 'a source' : 'sources'} the project does not have: ${missing.slice(0, 4).join(', ')}. A fact is checked at a source that exists; name it as a path from the project root, or a URL.`);
+    problems.push(`${recordPath} cites ${missing.length === 1 ? 'a source' : 'sources'} the project does not have: ${missing.slice(0, 4).join(', ')}. A fact is checked at a source that exists: \`source\` is a path from the project root, \`path:line\`, or a URL, and nothing else; what you found there goes in \`note\`.`);
   }
   return problems;
 }

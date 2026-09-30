@@ -737,10 +737,10 @@ npx jig-ui@latest update
 ```
 
 Files you have edited are left alone. Upgrading from a pre-0.4.0 install that
-vendored rules into your project's `.jig/`? `init` and `check` detect the
-leftover files, report them, and — with your consent, and never for a file you
-have edited — offer to remove just the install artifacts, keeping your tokens
-and config untouched.
+vendored rules into your project's `.jig/`? `init` detects the leftover files,
+reports them, and — with your consent, and never for a file you have edited —
+offers to remove just the install artifacts, keeping your tokens and config
+untouched. (`update`, finding no install, names them and points you to `init`.)
 
 Cursor's skill moved from `.cursor/rules/jig.mdc` to
 `.cursor/skills/jig/SKILL.md`; `init` finds the old file and offers the same

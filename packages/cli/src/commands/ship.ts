@@ -20,7 +20,9 @@ import { checksum } from '../install/manifest.js';
  * than it is.
  */
 
-export type PageState = 'judged' | 'never' | 'changed' | 'reprobe' | 'deferred' | 'incomplete' | 'findings' | 'in-progress' | 'superseded';
+/** Every state `ship` reports a page in. The procedure describes each (tested). */
+export const PAGE_STATES = ['judged', 'never', 'changed', 'reprobe', 'deferred', 'incomplete', 'findings', 'in-progress', 'superseded'] as const;
+export type PageState = (typeof PAGE_STATES)[number];
 
 export interface PageStatus {
   surface: string;

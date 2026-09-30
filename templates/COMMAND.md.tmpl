@@ -506,7 +506,7 @@ not your summary of what the owner meant. It writes
 
 ```json
 {
-  "spec": "sha256 of the spec file with its confirmed: line removed",
+  "spec": "sha256 of the spec file with its confirmed: and mockup: lines removed",
   "quotes": [
     { "quote": "Only where the steps differ by path", "said": "the owner, this conversation", "holds": true }
   ],
@@ -1560,7 +1560,9 @@ Build the project the way it ships, then run `{{scripts_path}} ship`. It runs
 `check --all --ci` and `seo`, and reads every confirmed spec's critique: a page
 is owed a critique when it has none, when its page changed after it was judged,
 when a tweak deferred its re-judge, when its verdicts are incomplete, or when a
-finding stands that the owner has not ruled on. It prints each page's state and
+finding stands that the owner has not ruled on. A page that is as judged but
+whose stylesheets or scripts changed is owed only a re-probe
+(`{{scripts_path}} verdicts <page> --reprobe`), not a critique. It prints each page's state and
 a `JIG_SHIP:` line, and exits non-zero until the project is ready. A spec that
 is not confirmed yet is in progress and not held against the ship. Nor is a spec
 another has replaced: `superseded_by: <spec>` in its front matter leaves its page

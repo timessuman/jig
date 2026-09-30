@@ -4,7 +4,8 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gate, probesLeftBehind } from '../src/commands/gate.js';
-import { pageChecksum, ship, volatileText } from '../src/commands/ship.js';
+import { PAGE_STATES, pageChecksum, ship, volatileText } from '../src/commands/ship.js';
+import { specChecksum } from '../src/check/spec-checked.js';
 import { newFieldProblems, SPEC_FIELDS, specProblems } from '../src/check/spec-shape.js';
 import { checksum } from '../src/install/manifest.js';
 import { repoRoot } from './helpers/registered-commands.js';
@@ -329,6 +330,36 @@ describe('probe files the gate re-took', () => {
     probe('pricing', '{"a":2}');
     writeFileSync(join(root, 'page.html'), '<main>unfinished</main>');
     expect(probesLeftBehind(root, ['pricing'])).toEqual([]);
+  });
+});
+
+// jig-site: a spec copied the procedure's five reasons ship owes a page, and
+// the binary has six; another computed the spec checksum as the procedure said
+// and the gate refused it. What the procedure says of these is what the code
+// does, or this fails.
+describe('the procedure says what the code does', () => {
+  const tmpl = readFileSync(join(repoRoot, 'templates', 'COMMAND.md.tmpl'), 'utf8');
+
+  it('names every state ship reports a page in', () => {
+    const section = tmpl.slice(tmpl.indexOf('\n## ship'), tmpl.indexOf('\n## ', tmpl.indexOf('\n## ship') + 5));
+    const said: Record<string, RegExp> = {
+      judged: /ready/, never: /has none/, changed: /changed after it was judged/, reprobe: /re-probe/,
+      deferred: /deferred its re-judge/, incomplete: /verdicts are incomplete/, findings: /not ruled on/,
+      'in-progress': /not confirmed yet is in progress/, superseded: /superseded_by/,
+    };
+    expect(Object.keys(said).sort()).toEqual([...PAGE_STATES].sort());
+    for (const state of PAGE_STATES) expect(section, `ship's procedure does not describe \`${state}\``).toMatch(said[state]!);
+  });
+
+  it('says which lines the spec checksum leaves out, and only those', () => {
+    const body = spec();
+    const ignored = SPEC_FIELDS.filter((f) => {
+      const line = new RegExp(`^${f}:.*$`, 'm');
+      const changed = line.test(body) ? body.replace(line, `${f}: something else`) : body.replace('---\nfeature', `---\n${f}: something else\nfeature`);
+      return specChecksum(changed) === specChecksum(body);
+    });
+    const line = /"spec": "sha256 of the spec file with its ([^"]+) removed"/.exec(tmpl)?.[1] ?? '';
+    expect([...line.matchAll(/([a-z_]+):/g)].map((m) => m[1]).sort()).toEqual([...ignored].sort());
   });
 });
 

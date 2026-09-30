@@ -47,6 +47,15 @@
 - **The README no longer counts the rules `check` decides by hand.** It named
   "the seven mechanical rules" from 0.1.0; 39 are decided now. jig-site's CLI
   chapter found it. It now points at `rules.index.json`, which cannot go stale.
+- **Where the docs said something the code does not, they now agree, and a
+  test holds two of them together.** jig-site's CLI chapter spec carried three
+  errors its reader traced to Jig itself. The README said `check` reports a
+  pre-0.4.0 install's leftovers (only `init` does); the procedure named five
+  reasons `ship` owes a page and the binary has six (a re-probe); and it said
+  the spec checksum leaves out `confirmed:`, where the code leaves out
+  `mockup:` too, so an agent following it was refused. Tests now fail when the
+  procedure stops naming a state `ship` reports, or a line the checksum leaves
+  out. A fact's `source` that holds a sentence is told to put it in `note`.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.
