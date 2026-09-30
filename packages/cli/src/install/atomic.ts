@@ -28,7 +28,7 @@ export function writeFileAtomic(path: string, content: string): void {
   const tmp = join(dir, `.${process.pid}-${Date.now()}.tmp`);
   try {
     writeFileSync(tmp, content, 'utf8');
-    renameSync(tmp, path);
+    renameWithRetry(tmp, path);
   } catch (err) {
     try {
       unlinkSync(tmp);
@@ -38,3 +38,27 @@ export function writeFileAtomic(path: string, content: string): void {
     throw err;
   }
 }
+
+/**
+ * `rename`, retried briefly on Windows.
+ *
+ * Windows refuses to rename over a file another process has open (EPERM,
+ * EACCES or EBUSY), where Linux and macOS replace it. Two `jig` runs at once,
+ * one reading the manifest while the other writes it, failed there and nowhere
+ * else. The file is free again within milliseconds, so wait and try again, as
+ * graceful-fs does, for up to about two seconds.
+ */
+function renameWithRetry(from: string, to: string): void {
+  const retryable = new Set(['EPERM', 'EACCES', 'EBUSY']);
+  for (let waited = 0, delay = 10; ; waited += delay, delay = Math.min(delay * 2, 200)) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code ?? '';
+      if (process.platform !== 'win32' || !retryable.has(code) || waited > 2000) throw err;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delay);
+    }
+  }
+}
+

@@ -56,6 +56,9 @@
   no regions at all, a spec's check no longer matched it, and every comparison
   with a file's committed copy read as a change. Every text file Jig parses or
   compares is now read with its line endings normalised.
+- **Two Jig runs at once no longer fail on Windows.** Windows refuses to replace
+  a file another process has open, where Linux and macOS allow it; writing a
+  file Jig records (the install manifest among them) now retries briefly there.
 
 - **The docs say what the code does.** The README said `check` reports a
   pre-0.4.0 install's leftovers (only `init` does); the procedure named five

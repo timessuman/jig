@@ -106,9 +106,12 @@ describe('a manifest write does not drop another run’s entries', () => {
             // Node itself runs tsx's CLI: `npx` is `npx.cmd` on Windows, which
             // spawn cannot start, and on a fresh machine four npx at once
             // raced to download tsx.
-            const child = spawn(process.execPath, [createRequire(import.meta.url).resolve('tsx/cli'), script, String(i)], { stdio: 'ignore' });
+            const child = spawn(process.execPath, [createRequire(import.meta.url).resolve('tsx/cli'), script, String(i)], { stdio: ['ignore', 'ignore', 'pipe'] });
+            let stderr = '';
+            child.stderr!.on('data', (d) => { stderr += String(d); });
             child.on('error', reject);
-            child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+            // A failure says why: the child's error, not only its exit code.
+            child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}: ${stderr.trim().slice(-600)}`))));
           }),
       ),
     );

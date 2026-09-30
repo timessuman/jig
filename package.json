@@ -12,6 +12,7 @@
   },
   "version": "0.23.0",
   "allowScripts": {
-    "esbuild": true
+    "esbuild": true,
+    "fsevents": false
   }
 }
