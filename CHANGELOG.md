@@ -54,6 +54,17 @@
 - **The README no longer counts the rules `check` decides by hand.** It named
   "the seven mechanical rules" from 0.1.0; it now points at `rules.index.json`.
 - **A fact's `source` that holds a sentence** is told to put it in `note`.
+- **The README says what Jig does.** It said `init` was the only command that
+  writes into your repo and that nothing of Jig's is kept in it (a project-scope
+  install writes the skill and rules into your repo's agent folder); pointed
+  agents at `AGENTS.md`, which users do not receive; counted 95 rules the CLI
+  cannot decide (it is 120), two critique readers (three) and four per-page
+  commands; described `check --ci` as errors only; said the token layer changes
+  nothing on the page, beside a `color-scheme` line that does; and claimed Jig
+  knows every page that changed, which it does not for a page rendered on
+  request. Its `exempt` example named one project's files as if they were a
+  pattern; it now explains how to choose your own. The slash-command table
+  lists `verdicts`, `probe` and `checksum`.
 
 ## 0.23.0 (2026-09-29)
 
