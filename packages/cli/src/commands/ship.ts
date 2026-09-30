@@ -4,6 +4,7 @@ import { check } from './check.js';
 import { seo } from './seo.js';
 import { verifyVerdicts } from './verdicts.js';
 import { checksum } from '../install/manifest.js';
+import { lf, readText } from '../text.js';
 
 /**
  * Whether the project is ready to ship, by everything Jig can check.
@@ -109,7 +110,7 @@ export function supersededBy(front: string): string | undefined {
 }
 
 export function pageStatus(projectRoot: string, surface: string): PageStatus {
-  const spec = readFileSync(join(projectRoot, '.jig', 'specs', `${surface}.spec.md`), 'utf8');
+  const spec = readText(join(projectRoot, '.jig', 'specs', `${surface}.spec.md`));
   const front = spec.split(/^---\s*$/m)[1] ?? '';
   if (!/^\s*confirmed\s*:\s*true\b/im.test(front)) {
     return { surface, state: 'in-progress', detail: 'its spec is not confirmed, so nothing of it is built to ship' };

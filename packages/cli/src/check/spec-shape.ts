@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { lf, readText } from '../text.js';
 
 /** The newest `.jig/specs/<slug>.spec.md`, or a `.md` beside it. */
 export function newestSpec(projectRoot: string): { path: string; slug: string; body: string } | undefined {
@@ -10,7 +11,7 @@ export function newestSpec(projectRoot: string): { path: string; slug: string; b
   const newest = files
     .map((f) => ({ f, at: statSync(join(dir, f)).mtimeMs }))
     .sort((a, b) => b.at - a.at)[0]!.f;
-  return { path: `.jig/specs/${newest}`, slug: newest.replace(/\.spec\.md$|\.md$/, ''), body: readFileSync(join(dir, newest), 'utf8') };
+  return { path: `.jig/specs/${newest}`, slug: newest.replace(/\.spec\.md$|\.md$/, ''), body: readText(join(dir, newest)) };
 }
 
 /**
@@ -21,7 +22,7 @@ export function newestSpec(projectRoot: string): { path: string; slug: string; b
 export function specFor(projectRoot: string, surface: string | undefined): { path: string; slug: string; body: string } | undefined {
   if (surface) {
     const path = join(projectRoot, '.jig', 'specs', `${surface}.spec.md`);
-    if (existsSync(path)) return { path: `.jig/specs/${surface}.spec.md`, slug: surface, body: readFileSync(path, 'utf8') };
+    if (existsSync(path)) return { path: `.jig/specs/${surface}.spec.md`, slug: surface, body: readText(path) };
   }
   return newestSpec(projectRoot);
 }
@@ -34,7 +35,7 @@ export function specFor(projectRoot: string, surface: string | undefined): { pat
  * not apply. The procedure said all of this in words.
  */
 export function specProblems(spec: { path: string; body: string }): string[] {
-  const parts = spec.body.split(/^---\s*$/m);
+  const parts = lf(spec.body).split(/^---\s*$/m);
   const front = parts.length >= 3 ? parts[1]! : '';
   if (!front.trim()) {
     return [`${spec.path} has no frontmatter. A spec is the frontmatter — feature, surface, mode, sizes (phone, tablet, desktop), states, decisions, later, mockup, confirmed — with the reasoning below it. Rewrite it in that shape.`];
@@ -185,6 +186,8 @@ const topLevelKeys = (body: string) =>
  * session added are held, so a spec is not blocked for its history.
  */
 export function newFieldProblems(spec: { path: string; body: string }, then: string): string[] {
+  spec = { ...spec, body: lf(spec.body) };
+  then = lf(then);
   const had = new Set(topLevelKeys(then));
   const known = new Set<string>(SPEC_FIELDS);
   const added = [...new Set(topLevelKeys(spec.body))].filter((k) => !known.has(k) && !had.has(k));

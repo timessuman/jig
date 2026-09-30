@@ -7,6 +7,7 @@ import { probeContradictions, readProbes } from '../probe/check.js';
 import { PROBE_WIDTHS } from '../probe/save.js';
 import { decisionHeadings, decisionNames, decisionsFile } from '../check/decisions.js';
 import { specIndexableField } from '../check/spec-shape.js';
+import { lf, readText } from '../text.js';
 
 /**
  * Verifies a critique's verdict files, and computes its counts.
@@ -144,7 +145,7 @@ function specIndexable(projectRoot: string, surface: string): boolean {
   const path = join(projectRoot, '.jig', 'specs', `${surface}.spec.md`);
   let front = '';
   try {
-    front = readFileSync(path, 'utf8').split(/^---\s*$/m)[1] ?? '';
+    front = readText(path).split(/^---\s*$/m)[1] ?? '';
   } catch { /* no spec: fall through to the mode */ }
   const declared = specIndexableField(front);
   if (declared === true || declared === false) return declared;
@@ -156,7 +157,7 @@ function specIndexable(projectRoot: string, surface: string): boolean {
 function specNeedsNav(projectRoot: string, surface: string): boolean {
   const path = join(projectRoot, '.jig', 'specs', `${surface}.spec.md`);
   if (!existsSync(path)) return false;
-  const front = readFileSync(path, 'utf8').split(/^---\s*$/m)[1] ?? '';
+  const front = readText(path).split(/^---\s*$/m)[1] ?? '';
   const navField = [...front.matchAll(/^\s*nav:\s*(.+)$/gim)].some((m) => !/^\s*(none|n\/a|-)\b/i.test(m[1]));
   const navRegion = /^\s*-\s*(nav|navigation)\s*:/im.test(front);
   return navField || navRegion;
@@ -416,7 +417,7 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   };
   let specFront = '';
   try {
-    specFront = readFileSync(join(opts.projectRoot, '.jig', 'specs', `${opts.surface}.spec.md`), 'utf8').split(/^---\s*$/m)[1] ?? '';
+    specFront = readText(join(opts.projectRoot, '.jig', 'specs', `${opts.surface}.spec.md`)).split(/^---\s*$/m)[1] ?? '';
   } catch { /* no spec */ }
   if (specIndexableField(specFront) === 'unreadable') {
     errors.push(`.jig/specs/${opts.surface}.spec.md: \`indexable:\` is neither true nor false, so this review cannot tell whether the page is meant to be found and does not guess. Write \`indexable: true\` or \`indexable: false\`, and put the reason in the spec's body.`);
@@ -485,7 +486,7 @@ export function previousFindings(projectRoot: string, dir: string): PreviousFind
   const read = (f: string, at?: string): Map<string, { verdict: string; reason: string }> => {
     const out = new Map<string, { verdict: string; reason: string }>();
     let text: string;
-    try { text = at ? git(['show', `${at}:./${rel}/${f}`]) : readFileSync(join(dir, f), 'utf8'); } catch { return out; }
+    try { text = at ? lf(git(['show', `${at}:./${rel}/${f}`])) : readText(join(dir, f)); } catch { return out; }
     let body: { verdicts?: unknown };
     try { body = JSON.parse(text); } catch { return out; }
     for (const v of Array.isArray(body.verdicts) ? (body.verdicts as Array<Record<string, unknown>>) : []) {

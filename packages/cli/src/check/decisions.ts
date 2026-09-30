@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
+import { lf, readText } from '../text.js';
 
 /**
  * The project's decisions, by name, from `DECISIONS.md`.
@@ -45,7 +46,7 @@ export function decisionHeadings(projectRoot: string): Map<string, string> {
   if (!path) return headings;
   let body: string;
   try {
-    body = readFileSync(join(projectRoot, path), 'utf8');
+    body = readText(join(projectRoot, path));
   } catch {
     return headings;
   }

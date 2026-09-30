@@ -25,7 +25,9 @@ import { ownerWordProblem } from './owner-word.js';
  * owner's answer sets after the check (a yes, and perhaps "skip the mockup").
  */
 export function specChecksum(body: string): string {
-  return createHash('sha256').update(body.replace(/^\s*(confirmed|mockup)\s*:.*$/gim, '')).digest('hex');
+  // Line endings are left out too: git on Windows checks a spec out with CRLF,
+  // and a check written on another machine must still hold for it.
+  return createHash('sha256').update(body.replace(/\r\n/g, '\n').replace(/^\s*(confirmed|mockup)\s*:.*$/gim, '')).digest('hex');
 }
 
 const mockupLine = (body: string) => /^\s*mockup\s*:\s*(.*)$/im.exec(body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim() ?? '';

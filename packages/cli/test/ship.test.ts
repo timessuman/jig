@@ -368,3 +368,16 @@ describe('what Jig gives its users', () => {
     expect(naming).toEqual([]);
   });
 });
+
+// Git on Windows checks files out with CRLF. A spec, its check and Jig's own
+// records written on another machine must read the same there.
+describe('a project checked out on Windows', () => {
+  const crlf = (t: string) => t.replace(/\n/g, '\r\n');
+  it('reads a CRLF spec as the LF one, and its checksum matches', () => {
+    const lf = spec().replace('confirmed: true', 'confirmed: true\nmotion: none\ncritique: at-ship');
+    expect(specChecksum(crlf(lf))).toBe(specChecksum(lf));
+    expect(specProblems({ path: 'p', body: crlf(lf) })).toEqual(specProblems({ path: 'p', body: lf }));
+    expect(newFieldProblems({ path: 'p', body: crlf(lf) }, crlf(lf))).toEqual([]);
+  });
+});
+

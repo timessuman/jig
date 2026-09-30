@@ -51,6 +51,11 @@
   now needs Node 22 or later (Node 20 is end-of-life) and says so if it is run
   on an older one; and that on Windows no browser was ever found to render with:
   Edge, Chrome installed per user, and commands on PATH are now found.
+- **A project checked out on Windows reads the same as anywhere else.** Git on
+  Windows gives files CRLF line endings. Jig parsed a spec with them as having
+  no regions at all, a spec's check no longer matched it, and every comparison
+  with a file's committed copy read as a change. Every text file Jig parses or
+  compares is now read with its line endings normalised.
 
 - **The docs say what the code does.** The README said `check` reports a
   pre-0.4.0 install's leftovers (only `init` does); the procedure named five

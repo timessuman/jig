@@ -15,6 +15,7 @@ import { mockupPending, mockupWordProblems, specCheckProblems } from '../check/s
 import { ownerWordProblem } from '../check/owner-word.js';
 import { checksum } from '../install/manifest.js';
 import { recordedPage } from '../probe/save.js';
+import { lf, readText } from '../text.js';
 
 /**
  * `jig gate` — run by a Claude Code Stop hook that `jig install` writes.
@@ -321,11 +322,11 @@ function fileAtSessionStart(root: string, path: string, start: number | undefine
   // earlier session, was told they were unsupported, and turned them into
   // paraphrase.
   try {
-    if (start !== undefined && statSync(join(root, path)).mtimeMs < start - 1000) return readFileSync(join(root, path), 'utf8');
+    if (start !== undefined && statSync(join(root, path)).mtimeMs < start - 1000) return readText(join(root, path));
   } catch { /* no such file: git decides */ }
   try {
     const base = start === undefined ? 'HEAD' : git(['rev-list', '-1', `--before=@${Math.floor(start / 1000)}`, 'HEAD']).trim();
-    return base ? git(['show', `${base}:./${path}`]) : '';
+    return base ? lf(git(['show', `${base}:./${path}`])) : '';
   } catch {
     return '';
   }
@@ -358,8 +359,8 @@ function drawingChangedAfterApproval(root: string, specPath: string, at: string)
   try {
     const approvedIn = git(['log', '-1', '--format=%H', '-G', '^mockup[[:space:]]*:[[:space:]]*approved', '--', specPath]).trim();
     if (!approvedIn) return undefined;
-    const then = git(['show', `${approvedIn}:./${at}`]);
-    return then !== readFileSync(join(root, at), 'utf8') ? approvedIn.slice(0, 7) : undefined;
+    const then = lf(git(['show', `${approvedIn}:./${at}`]));
+    return then !== readText(join(root, at)) ? approvedIn.slice(0, 7) : undefined;
   } catch {
     return undefined;
   }
@@ -374,7 +375,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
     const found = decisionsFile(root);
     if (!found) problems.push('decide wrote no DECISIONS.md beside the token layer.');
     else {
-      const body = readFileSync(join(root, found), 'utf8');
+      const body = readText(join(root, found));
       if (!/^##\s+Unresolved\s*$/im.test(body)) {
         problems.push('DECISIONS.md has no `## Unresolved` section. Round 3 asks by name what is still undecided; write what the owner named, or `None named by the owner.`');
       }
@@ -479,7 +480,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
     const found = decisionsFile(root);
     if (found) {
       let now = '';
-      try { now = readFileSync(join(root, found), 'utf8'); } catch { /* unreadable: nothing to compare */ }
+      try { now = readText(join(root, found)); } catch { /* unreadable: nothing to compare */ }
       const then = fileAtSessionStart(root, found, start);
       if (then && now !== then) {
         problems.push(`${found} changed in a \`make\` session. make carries decisions out; it does not take them. Restore it (\`git checkout -- ${found}\`, or \`git show <commit>:${found}\` if the change is committed), and put what the owner must decide to them: \`/jig decide\`, or \`/jig tweak\` for a small change to a built page.`);
@@ -495,7 +496,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
     const found = decisionsFile(root);
     if (found) {
       let now = '';
-      try { now = readFileSync(join(root, found), 'utf8'); } catch { /* unreadable: nothing to compare */ }
+      try { now = readText(join(root, found)); } catch { /* unreadable: nothing to compare */ }
       const then = fileAtSessionStart(root, found, start);
       if (now && now !== then) {
         problems.push(...unsourcedReasons(now, then, { newWhysOnly: true }).map((p) => `${found}: ${p}`));
@@ -512,7 +513,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
   if (command !== 'update' && command !== 'init' && command !== 'install') {
     for (const file of modeFiles(root)) {
       let now = '';
-      try { now = readFileSync(join(root, file), 'utf8'); } catch { continue; }
+      try { now = readText(join(root, file)); } catch { continue; }
       const then = fileAtSessionStart(root, file, start);
       if (then && now !== then) {
         problems.push(`${file} changed in this session. A mode file is Jig's, refreshed by \`update\`; a value this project needs of its own goes in its brand file or its own stylesheet. Restore it (\`git checkout -- ${file}\`, or \`git show <commit>:${file}\` if the change is committed).`);
@@ -572,7 +573,7 @@ function drawingBeforeAsking(root: string, surface?: string): string[] {
 function specChecked(root: string, spec: { path: string; slug: string; body: string }, start: number | undefined, owner: string): string[] {
   const found = decisionsFile(root);
   let decisions = '';
-  try { if (found) decisions = readFileSync(join(root, found), 'utf8'); } catch { /* unreadable: no quotations to find there */ }
+  try { if (found) decisions = readText(join(root, found)); } catch { /* unreadable: no quotations to find there */ }
   return specCheckProblems(root, spec, fileAtSessionStart(root, spec.path, start), owner, decisions);
 }
 
@@ -598,7 +599,7 @@ function modeFiles(root: string): string[] {
  */
 function reportOmissions(dir: string, surface: string): string[] {
   let report: string;
-  try { report = readFileSync(join(dir, 'REPORT.md'), 'utf8').toLowerCase(); } catch { return []; }
+  try { report = readText(join(dir, 'REPORT.md')).toLowerCase(); } catch { return []; }
   const missing: string[] = [];
   for (const f of VERDICT_FILES) {
     let file: { verdicts?: unknown };
@@ -640,7 +641,7 @@ function tweakProblems(root: string, spec: { path: string; slug: string; body: s
     if (!record.change) problems.push(`.jig/critique/${surface}/tweak.json has no \`change\`: the owner's words for what changed.`);
     // `change` is the owner's words, and every check of this tweak's decisions
     // reads it as theirs. Held when this session wrote it.
-    else if (owner && fileAtSessionStart(root, `.jig/critique/${surface}/tweak.json`, start) !== readFileSync(join(root, '.jig', 'critique', surface, 'tweak.json'), 'utf8') && !quoteHeld(record.change.replace(/^["“]|["”]$/g, ''), owner)) {
+    else if (owner && fileAtSessionStart(root, `.jig/critique/${surface}/tweak.json`, start) !== readText(join(root, '.jig', 'critique', surface, 'tweak.json')) && !quoteHeld(record.change.replace(/^["“]|["”]$/g, ''), owner)) {
       problems.push(`.jig/critique/${surface}/tweak.json: \`change\` is "${record.change.length > 90 ? `${record.change.slice(0, 90)}…` : record.change}", which the owner did not say in this session. It is their words for the change, as they gave them; what you made of them goes in the spec's Tweak entry.`);
     }
     try {
@@ -704,7 +705,7 @@ function structureSinceApproval(root: string, spec: { path: string; slug: string
   const when = judged ? `when the last critique judged it (${baseline.slice(0, 7)})` : `when the owner approved the mockup (${baseline.slice(0, 7)})`;
   const problems: string[] = [];
   let thenBody = '';
-  try { thenBody = git(['show', `${baseline}:./${spec.path}`]); } catch { return []; }
+  try { thenBody = lf(git(['show', `${baseline}:./${spec.path}`])); } catch { return []; }
   const shape = (body: string) => JSON.stringify(Object.entries(specRegions(body)).sort(([a], [b]) => a.localeCompare(b)).map(([size, regions]) => [size, regions.length, regions.map((r) => r.name ?? '')]));
   if (shape(thenBody) !== shape(spec.body)) {
     problems.push(`${spec.path}: the regions under \`sizes:\` differ from the ones the page had ${when}. A change to what the page holds is not a tweak: take it through \`spec\` and \`mockup\`.`);
@@ -712,7 +713,7 @@ function structureSinceApproval(root: string, spec: { path: string; slug: string
   const at = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '');
   if (at && !/^https?:/i.test(at) && existsSync(join(root, at))) {
     try {
-      if (git(['show', `${baseline}:./${at}`]) !== readFileSync(join(root, at), 'utf8')) {
+      if (lf(git(['show', `${baseline}:./${at}`])) !== readText(join(root, at))) {
         problems.push(`${at} has changed since ${when.replace(/^when /, '')}. A tweak leaves the drawing as approved; a change the drawing must show goes through \`mockup\`.`);
       }
     } catch { /* the drawing was added after that commit, or never committed */ }
