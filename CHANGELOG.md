@@ -11,6 +11,10 @@
   refuses. Earlier rounds, still asking questions of a draft, are not held.
 - **`motion: none` can say why.** `none — the header's motion is its own spec's`
   is accepted, as a bare `none` was.
+- **A skipped mockup is skipped in the owner's words for it.** The gate took
+  any quotation the owner had said; on jig-site a skip quoted "It uses the
+  Guide's approved layout", a remark about the chrome, and nobody had been
+  asked. The quoted words now have to say to skip it.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.

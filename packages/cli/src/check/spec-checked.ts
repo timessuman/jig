@@ -27,6 +27,8 @@ export function specChecksum(body: string): string {
   return createHash('sha256').update(body.replace(/^\s*(confirmed|mockup)\s*:.*$/gim, '')).digest('hex');
 }
 
+const SAYS_SKIP = /\bskip|\bno (mockup|drawing)|without (a )?(mockup|drawing)|(don['’]?t|do not|no need to) (draw|mock)|(mockup|drawing) (isn['’]?t|is not) needed/i;
+
 const mockupLine = (body: string) => /^\s*mockup\s*:\s*(.*)$/im.exec(body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim() ?? '';
 
 /**
@@ -50,6 +52,12 @@ export function mockupWordProblems(spec: { path: string; body: string }, then: s
   }
   if (!quoteHeld(quoted, owner)) {
     return [`${spec.path}: \`mockup: ${word}\` quotes "${quoted}", which the owner did not say in this session. Quote their reply as they wrote it; ${word === 'approved' ? 'an approval' : 'a skip'} nobody gave is not one.`];
+  }
+  // Words the owner said are not a skip unless they say to skip. On jig-site a
+  // spec recorded a skip quoting "It uses the Guide's approved layout", a
+  // remark about the chapter's chrome; the owner had not been asked.
+  if (word === 'skipped' && !SAYS_SKIP.test(quoted)) {
+    return [`${spec.path}: \`mockup: skipped\` quotes "${quoted}", which does not say to skip the mockup. A skip is the owner's word for it: ask them whether to draw one, and quote the answer.`];
   }
   return [];
 }

@@ -45,7 +45,7 @@ sizes:
     same-as: desktop
     why: content is capped
 confirmed: ${confirmed}
-mockup: skipped — the owner: "it reuses the Guide's approved layout"
+mockup: skipped — the owner: "skip the mockup, it reuses the Guide's approved layout"
 ---
 ${extra}`;
 
@@ -53,7 +53,7 @@ const writeSpec = (body: string) => writeFileSync(join(root, '.jig', 'specs', 't
 const writeChecked = (body: string, record: Record<string, unknown> = {}) =>
   writeFileSync(join(root, '.jig', 'specs', 'the-loop.checked.json'), JSON.stringify({ spec: specChecksum(body), quotes: [], facts: [], ...record }));
 
-const owner = "/jig spec the-loop — it reuses the Guide's approved layout. Only where the steps differ by path.";
+const owner = "/jig spec the-loop — skip the mockup, it reuses the Guide's approved layout. Only where the steps differ by path.";
 const run = (agentSays?: string, said = owner) => {
   const path = join(root, 't.jsonl');
   const lines = [
@@ -194,6 +194,15 @@ describe('the owner\'s word on the drawing', () => {
     expect(at('make', 'Build it.').reason).toMatch(/quotes "a small change, not worth drawing", which the owner did not say/);
     writeSpec(withMockup('approved'));
     expect(at('mockup', 'Looks right.').reason).toMatch(/`mockup: approved` is recorded without the owner's words/);
+  });
+
+  // jig-site: a skip quoted a remark about the chapter's chrome.
+  it('refuses a skip whose quoted words do not say to skip', () => {
+    committed(withMockup('pending'));
+    writeSpec(withMockup('skipped — "It uses the Guide\'s approved layout"'));
+    expect(at('make', 'It uses the Guide\'s approved layout.').reason).toMatch(/does not say to skip the mockup/);
+    writeSpec(withMockup('skipped — "no drawing for this one"'));
+    expect(at('make', 'No drawing for this one.').reason ?? '').not.toMatch(/mockup/);
   });
 
   it('keeps an approval as the owner gave it, condition and all', () => {
