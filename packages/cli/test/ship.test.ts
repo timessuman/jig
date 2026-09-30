@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -357,3 +357,14 @@ describe('the procedure says what the code does', () => {
   });
 });
 
+
+// Jig is for its users, on any framework. What installs into their projects,
+// and what they read to use it, never tells the story of the site that
+// documents it.
+describe('what Jig gives its users', () => {
+  it('names no project of its own, jig-site included', () => {
+    const files = ['templates/COMMAND.md.tmpl', 'templates/SKILL.md.tmpl', 'README.md', ...readdirSync(join(repoRoot, 'rules')).map((f) => `rules/${f}`)];
+    const naming = files.filter((f) => /jig-site/i.test(readFileSync(join(repoRoot, f), 'utf8')));
+    expect(naming).toEqual([]);
+  });
+});

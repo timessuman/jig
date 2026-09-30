@@ -2,77 +2,58 @@
 
 ## Unreleased
 
+### Added
+
+- **`jig checksum <spec>`** prints a spec's checksum, the value its
+  `.checked.json` records. It had been left to agents to compute from the
+  procedure's description, and a hand-computed value was easily wrong.
+- **`route:` is a spec field**, for a page whose surface name does not say where
+  it is served.
+
 ### Changed
 
-- **A spec is held to its shape before the owner is asked to confirm it.** The
-  gate checked a spec's fields only on the stop after the owner answered; while
-  it waited for the yes, only the second reader's record was checked. On
-  jig-site a spec went to the owner with a `motion:` line the shape check
-  refuses. Earlier rounds, still asking questions of a draft, are not held.
-- **`motion: none` can say why.** `none — the header's motion is its own spec's`
-  is accepted, as a bare `none` was.
-- **A skipped mockup is skipped in the owner's words for it.** The gate took
-  any quotation the owner had said; on jig-site a skip quoted "It uses the
-  Guide's approved layout", a remark about the chrome, and nobody had been
-  asked. The quoted words now have to say to skip it.
 - **The owner's word is held to one rule, everywhere Jig records it.** A spec
   confirmed, a drawing approved or skipped, a re-judge left for later, a tweak's
-  change and a decision's reason are each the owner's words, and words that say
-  that thing. Each place had been guarded on its own after an agent recorded
-  its reading of the owner as theirs, and the next one arrived somewhere
-  unguarded. Now one check covers them all, and three that had none are held:
-  `confirmed: true` needs the owner's yes after they were asked, a tweak's
-  `change` must be words they said, and `decide`'s quoted reasons must be too.
-  The skill states the rule once.
+  change and a decision's reason are each the owner's own words, and words that
+  say that thing: a remark about the layout is not a skip of the mockup, and a
+  yes to one question is not a yes to the spec. One check now covers all of
+  them. Three had no check before: `confirmed: true` needs the owner's yes to
+  being asked, a tweak's `change` must be words they said, and `decide`'s quoted
+  reasons must be too. The skill states the rule.
 - **A field Jig does not read is refused where it would be written.** When the
-  procedure named no place for something, agents made one: jig-site's specs
-  carried some forty front-matter keys Jig never defined, two specs marked the
-  same thing two ways, and arms carried findings under invented ids. Nothing
-  read any of it. A spec key a session adds, a verdict-file field holding a list
-  or an object, and a tweak.json field outside `at`, `change`, `ids` and
-  `deferred` are now refused, each pointing at the place that exists. A spec's
-  earlier keys are not held against it. `route:` joins the spec's fields, since
-  six of jig-site's specs needed it.
+  procedure named no place for something, agents invented one: front-matter
+  keys, verdict ids, JSON fields that nothing reads, so what they said reached
+  no check. A spec key a session adds, a verdict-file field holding a list or an
+  object, and an unknown tweak.json field are now refused, each pointing at the
+  place that exists. Keys a spec already had are not held against it.
+- **A spec is drafted where Jig reads it, and checked as itself.** It is written
+  at `.jig/specs/<name>.spec.md` from the first draft, and its shape is checked
+  before the owner is asked to confirm it. Asking to confirm a spec that is not
+  there is refused, and so is finishing a spec session without writing it. A
+  named spec is never checked in place of another page's.
+- **A critique files one problem once.** A difference goes under `differences`
+  only when no rule or decision already holds it, so the counts `ship` reports
+  count problems, not entries.
 - **The gate asks for the probe files it re-takes to be committed.** It renders
-  a changed page again as a session stops, after the session's last commit, so
-  every critique and tweak on jig-site left probe files modified and each brief
-  had to say to commit them. Like the lock, it now stops once to have them
-  committed on their own, and only when the rest of the work is committed.
-- **The README no longer counts the rules `check` decides by hand.** It named
-  "the seven mechanical rules" from 0.1.0; 39 are decided now. jig-site's CLI
-  chapter found it. It now points at `rules.index.json`, which cannot go stale.
-- **Where the docs said something the code does not, they now agree, and a
-  test holds two of them together.** jig-site's CLI chapter spec carried three
-  errors its reader traced to Jig itself. The README said `check` reports a
+  a changed page again as a session stops, after the last commit; like the
+  lock, it now stops once to have those files committed on their own.
+- **`jig gate` run by hand reports and renders nothing.** Without a transcript
+  it cannot tell which pages are in play, and it had re-rendered every one.
+- **`motion: none` can say why**, as in `none — this page adds no movement`.
+- **A file a session never wrote is taken as it found it**, committed or not,
+  so a session is not answerable for a draft it found.
+
+### Fixed
+
+- **The docs say what the code does.** The README said `check` reports a
   pre-0.4.0 install's leftovers (only `init` does); the procedure named five
-  reasons `ship` owes a page and the binary has six (a re-probe); and it said
-  the spec checksum leaves out `confirmed:`, where the code leaves out
-  `mockup:` too, so an agent following it was refused. Tests now fail when the
-  procedure stops naming a state `ship` reports, or a line the checksum leaves
-  out. A fact's `source` that holds a sentence is told to put it in `note`.
-- **A spec is drafted where Jig reads it, and checked as itself.** A spec
-  session on jig-site drafted in its scratchpad and asked the owner to confirm;
-  finding no file under the name, the gate checked the newest spec, another
-  chapter's, and let the draft through. A named spec is now checked exactly or
-  not at all, asking the owner to confirm one that is not in `.jig/specs/` is
-  refused, and so is finishing a spec session without writing it.
-- **The gate reads the owner's answer to the question, and leaves alone what a
-  session found.** The confirmation check read the agent's own report after the
-  owner's yes ("`confirmed: true` is set") as the question, found no reply, and
-  held a confirmed spec. It now pairs each question with the answer that
-  follows it. And a file a session never wrote is taken as it found it, even
-  uncommitted: a fresh session had found a draft holding the owner's words
-  from an earlier one, was told they were unsupported, and paraphrased them.
-- **`jig checksum <spec>` prints a spec's checksum.** A spec's check records
-  it, and agents computed it by hand from the procedure's description: two
-  sessions on jig-site got it wrong, and one read the CLI's compiled source to
-  find out why. The value is Jig's to compute.
-- **`jig gate` run by hand reports and renders nothing.** With no transcript
-  to say which pages are in play it re-took every critiqued page's probes: an
-  agent that ran it to preview the gate re-rendered three other chapters.
-- **One problem is filed once.** A difference goes under `differences` only
-  when no rule or decision already holds it. On jig-site one stale number was
-  filed four times, and `ship` counted 6 findings for 3 problems.
+  reasons `ship` owes a page (there are six, one a re-probe) and described the
+  spec checksum as leaving out one line where the code leaves out two. Tests
+  now fail when the procedure stops naming a state `ship` reports, a line the
+  checksum leaves out, or a command the CLI registers.
+- **The README no longer counts the rules `check` decides by hand.** It named
+  "the seven mechanical rules" from 0.1.0; it now points at `rules.index.json`.
+- **A fact's `source` that holds a sentence** is told to put it in `note`.
 
 ## 0.23.0 (2026-09-29)
 
