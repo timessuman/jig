@@ -4,6 +4,13 @@
 
 ### Changed
 
+- **A spec is held to its shape before the owner is asked to confirm it.** The
+  gate checked a spec's fields only on the stop after the owner answered; while
+  it waited for the yes, only the second reader's record was checked. On
+  jig-site a spec went to the owner with a `motion:` line the shape check
+  refuses. Earlier rounds, still asking questions of a draft, are not held.
+- **`motion: none` can say why.** `none — the header's motion is its own spec's`
+  is accepted, as a bare `none` was.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.

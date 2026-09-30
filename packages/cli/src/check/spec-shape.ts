@@ -55,7 +55,8 @@ export function specProblems(spec: { path: string; body: string }): string[] {
   if (motion) {
     const inline = motion[1]!.replace(/\s+#.*$/, '').trim();
     const items = motion[2]!.split('\n').map((l) => l.replace(/^[ \t]+-\s*/, '').trim()).filter(Boolean);
-    if (!items.length && !/^none$/i.test(inline)) {
+    // `none`, alone or followed by why nothing moves: `none — the chrome's own motion is its spec's`.
+    if (!items.length && !/^none\b(\s*$|\s*[—–:,;(-])/i.test(inline)) {
       problems.push(`${spec.path}: \`motion:\` is neither \`none\` nor a list. List each movement as \`- <what moves>: <how>, on <trigger>; tells <what the reader learns>\`, or write \`motion: none\`.`);
     }
     const unsaid = items.filter((i) => !/\bon\b/i.test(i) || !/\btells?\b/i.test(i));

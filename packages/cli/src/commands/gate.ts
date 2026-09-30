@@ -709,6 +709,13 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   if (waiting && command === 'spec') {
     const spec = specFor(root, invocation?.surface);
     if (spec) problems.push(...specChecked(root, spec, start, owner).map((p) => `/jig spec: ${p}`));
+    // A spec put to the owner is held to its shape too, once it is put to them
+    // (its check record exists): earlier rounds ask questions of a draft. On
+    // jig-site a spec went to the owner with a `motion:` line the shape check
+    // refuses, because that check ran only after the owner had answered.
+    if (spec && existsSync(join(root, '.jig', 'specs', `${spec.slug}.checked.json`))) {
+      problems.push(...specProblems(spec).map((p) => `/jig spec: ${p}`));
+    }
   }
 
   const selection = selectFiles(root, false);

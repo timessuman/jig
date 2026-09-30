@@ -224,6 +224,20 @@ Prose.`;
       expect(said('decide', 'Done. The decisions are recorded.').reason).toMatch(/decide wrote no DECISIONS\.md/);
     });
 
+    // jig-site: a spec went to the owner with a `motion:` line its shape check
+    // refuses; the check ran only after the owner answered.
+    it('holds a spec put to the owner to its shape, but not a draft still asking questions', () => {
+      jigProject();
+      const draft = goodSpec.replace('confirmed: true', 'confirmed: false\nmotion: sometimes');
+      mkdirSync(join(root, '.jig', 'specs'), { recursive: true });
+      writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), draft);
+      expect(said('spec pricing', 'Which plan should be first?').reason ?? '').not.toMatch(/motion/);
+      spec(draft);
+      expect(said('spec pricing', 'Does the spec hold? Confirm it?').reason).toMatch(/`motion:` is neither `none` nor a list/);
+      spec(goodSpec.replace('confirmed: true', 'confirmed: false\nmotion: none — the header\'s motion is its own spec\'s'));
+      expect(said('spec pricing', 'Does the spec hold? Confirm it?').reason ?? '').not.toMatch(/motion/);
+    });
+
     it('still runs check while the question is open', () => {
       jigProject();
       writeFileSync(join(root, 'a.css'), 'body {\n  font-family: var(--font-body);\n}');
