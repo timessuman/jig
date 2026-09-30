@@ -19,13 +19,17 @@ import { PROBE_SCRIPT } from './script.js';
  */
 
 const CHROME_ENV = ['JIG_CHROME', 'CHROME_PATH', 'PUPPETEER_EXECUTABLE_PATH', 'CHROMIUM_PATH'];
-const CHROME_COMMANDS = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge', 'brave-browser'];
+const CHROME_COMMANDS = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge', 'brave-browser', 'chrome', 'msedge'];
 const CHROME_APPS = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/Applications/Chromium.app/Contents/MacOS/Chromium',
   '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  // Every Windows machine has Edge; Chrome is often installed per user.
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+  ...(process.env.LOCALAPPDATA ? [join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe')] : []),
 ];
 
 /** Browsers a tool already downloaded here: Playwright's and Puppeteer's
@@ -74,11 +78,16 @@ export function findChrome(): string | undefined {
 }
 
 function which(command: string): string | undefined {
-  const dirs = (process.env.PATH ?? '').split(process.platform === 'win32' ? ';' : ':');
+  const windows = process.platform === 'win32';
+  const dirs = (process.env.PATH ?? '').split(windows ? ';' : ':');
+  // On Windows a command is found by its extension: `chrome` is `chrome.exe`.
+  const exts = windows ? (process.env.PATHEXT ?? '.EXE;.CMD;.BAT').split(';').filter(Boolean) : [''];
   for (const dir of dirs) {
     if (!dir) continue;
-    const candidate = join(dir, command);
-    if (existsSync(candidate)) return candidate;
+    for (const ext of exts) {
+      const candidate = join(dir, command + ext);
+      if (existsSync(candidate)) return candidate;
+    }
   }
   return undefined;
 }
