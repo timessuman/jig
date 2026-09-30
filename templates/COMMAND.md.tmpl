@@ -514,7 +514,7 @@ not your summary of what the owner meant. It writes
 
 ```json
 {
-  "spec": "sha256 of the spec file with its confirmed: and mockup: lines removed",
+  "spec": "`{{scripts_path}} checksum <name>` prints it: the spec with its confirmed: and mockup: lines emptied",
   "quotes": [
     { "quote": "Only where the steps differ by path", "said": "the owner, this conversation", "holds": true }
   ],
@@ -1669,6 +1669,14 @@ not finished and what is still failing.
 It exists because every "run check" and "run verdicts" step in these procedures was
 skipped in a live run, and pages that did not render their styles were reported
 clean.
+
+## checksum
+
+Run `{{scripts_path}} checksum <spec>`, passing the argument through, and report the
+value it prints. It is the `spec` field of `.jig/specs/<name>.checked.json`: the
+spec's checksum with its `confirmed:` and `mockup:` lines emptied, which the owner's
+answer sets after the check. Never compute it yourself; on jig-site two sessions
+did, got it wrong, and one read the CLI's compiled source to find out why.
 
 ## verdicts
 

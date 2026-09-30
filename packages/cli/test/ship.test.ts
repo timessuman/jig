@@ -358,7 +358,7 @@ describe('the procedure says what the code does', () => {
       const changed = line.test(body) ? body.replace(line, `${f}: something else`) : body.replace('---\nfeature', `---\n${f}: something else\nfeature`);
       return specChecksum(changed) === specChecksum(body);
     });
-    const line = /"spec": "sha256 of the spec file with its ([^"]+) removed"/.exec(tmpl)?.[1] ?? '';
+    const line = /"spec": "[^"]*with its ([^"]+) emptied"/.exec(tmpl)?.[1] ?? '';
     expect([...line.matchAll(/([a-z_]+):/g)].map((m) => m[1]).sort()).toEqual([...ignored].sort());
   });
 });

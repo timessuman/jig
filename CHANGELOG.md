@@ -69,6 +69,13 @@
   follows it. And a file a session never wrote is taken as it found it, even
   uncommitted: a fresh session had found a draft holding the owner's words
   from an earlier one, was told they were unsupported, and paraphrased them.
+- **`jig checksum <spec>` prints a spec's checksum.** A spec's check records
+  it, and agents computed it by hand from the procedure's description: two
+  sessions on jig-site got it wrong, and one read the CLI's compiled source to
+  find out why. The value is Jig's to compute.
+- **`jig gate` run by hand reports and renders nothing.** With no transcript
+  to say which pages are in play it re-took every critiqued page's probes: an
+  agent that ran it to preview the gate re-rendered three other chapters.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.

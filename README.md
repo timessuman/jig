@@ -375,6 +375,7 @@ overwrites a config or brand file you have edited.
 | `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
 | `seo [--json]` | Audits what a search engine and a link preview read, across the whole project: a route whose metadata says `noindex` sitting in the sitemap, two pages claiming one title, a sitemap that lists nothing or lists paths a crawler drops. Whether a sitemap and a robots file exist is counted, not reported: no rule asks for either, and a site with no domain yet cannot write an honest sitemap. Needs no config, no decisions and no spec. |
+| `checksum <spec>` | Prints a spec's checksum, the value its `.checked.json` records as `spec`, so the spec's reader never computes it by hand. |
 | `verdicts <surface>` | Verifies a critique's verdict files and computes its counts: every rule in each pass judged once, no id that does not exist, no rule in the wrong arm, and no verdict the render probe contradicts. |
 | `probe` | Prints the render probe — one expression the critique runs in a browser at each width. It operates the menu, measures sideways scroll, and reads whether the styles and tokens applied. |
 | `ship` | Says whether the project is ready to ship, by everything Jig checks: `check --all --ci` and `seo` with no errors, and every confirmed page critiqued as it stands, with no finding you have not ruled on. Exits non-zero until it is, and names what Jig does not check. |
