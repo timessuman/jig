@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.24.0 (2026-09-30)
+
+The owner's word held to one rule, Jig's instructions in your project's AGENTS.md,
+and Jig tested on Linux, macOS and Windows.
 
 ### Added
 
