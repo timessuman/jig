@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { gate } from '../src/commands/gate.js';
+import { gate, probesLeftBehind } from '../src/commands/gate.js';
 import { pageChecksum, ship } from '../src/commands/ship.js';
 import { newFieldProblems, SPEC_FIELDS, specProblems } from '../src/check/spec-shape.js';
 import { checksum } from '../src/install/manifest.js';
@@ -290,3 +290,31 @@ describe('each page says when it is critiqued', () => {
     expect(problems(' sometimes')).toMatch(/neither `none` nor a list/);
   });
 });
+
+// jig-site: every critique and tweak left a page's probe files modified,
+// re-taken by the Stop hook after the session's last commit.
+describe('probe files the gate re-took', () => {
+  const probe = (surface: string, body: string) => {
+    mkdirSync(dir(surface), { recursive: true });
+    writeFileSync(join(dir(surface), 'probe-360.json'), body);
+  };
+
+  it('stop the session once to commit them, when its other work is committed', () => {
+    probe('pricing', '{"a":1}');
+    commit('probes');
+    probe('pricing', '{"a":2}');
+    expect(probesLeftBehind(root, ['pricing']).join(' ')).toMatch(/re-took 1 probe file of pricing.*git add \.jig\/critique\/pricing\/probe-\*\.json/);
+  });
+
+  it('wait while the session has other work uncommitted, and leave other pages alone', () => {
+    probe('pricing', '{"a":1}');
+    probe('home', '{"a":1}');
+    commit('probes');
+    probe('home', '{"a":2}');
+    expect(probesLeftBehind(root, ['pricing'])).toEqual([]);
+    probe('pricing', '{"a":2}');
+    writeFileSync(join(root, 'page.html'), '<main>unfinished</main>');
+    expect(probesLeftBehind(root, ['pricing'])).toEqual([]);
+  });
+});
+

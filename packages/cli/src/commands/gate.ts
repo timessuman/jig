@@ -799,6 +799,7 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
   }
 
   problems.push(...verdictGuard(root, command, surfacesInPlay(root, command, opts.input.transcript_path, invocation?.surface)));
+  problems.push(...probesLeftBehind(root, surfacesInPlay(root, command, opts.input.transcript_path, invocation?.surface)));
 
   const critiqueDir = join(root, '.jig', 'critique');
   if (existsSync(critiqueDir)) {
@@ -983,6 +984,39 @@ function lockLeftBehind(root: string, surface: string): string[] {
     return [];
   }
   return [`${rel}/${LOCK} was written when you stopped, after the verdicts it records were committed. Commit it on its own (\`git add ${rel}/${LOCK} && git commit -m "chore: record ${surface}'s verdict lock"\`), and nothing else.`];
+}
+
+/**
+ * Probe files the Stop hook re-took for the pages in play, left behind after
+ * the session committed its work.
+ *
+ * The hook renders a page again when it changed since its probes were taken,
+ * and it does that at the stop, after the agent's last commit. On jig-site
+ * every critique and tweak left a page's probe files modified, and a brief had
+ * to tell each session to commit them. Stopping once more to commit them costs
+ * one turn; the next stop finds them current and passes. A session that has
+ * left other work uncommitted is not committing, and the probes wait with it.
+ */
+export function probesLeftBehind(root: string, surfaces: string[]): string[] {
+  if (!surfaces.length) return [];
+  let lines: string[];
+  try {
+    lines = execFileSync('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+      .split('\n').filter(Boolean);
+  } catch {
+    return [];
+  }
+  const path = (l: string) => l.slice(3).replace(/^"|"$/g, '');
+  const isProbe = (p: string) => /^\.jig\/critique\/[^/]+\/probe-[^/]+\.json$/.test(p);
+  const isLock = (p: string) => /^\.jig\/critique\/[^/]+\/verdicts\.lock$/.test(p);
+  if (lines.some((l) => !isProbe(path(l)) && !isLock(path(l)))) return [];
+  const left = lines.map(path).filter((p) => isProbe(p) && surfaces.some((s) => p.startsWith(`.jig/critique/${s}/`)));
+  if (!left.length) return [];
+  const bySurface = [...new Set(left.map((p) => p.split('/')[2]!))];
+  return [
+    `The gate re-took ${left.length} probe file${left.length === 1 ? '' : 's'} of ${bySurface.join(', ')} when you stopped, after your last commit: the page changed since they were taken. ` +
+      `Commit them on their own (\`git add ${bySurface.map((s) => `.jig/critique/${s}/probe-*.json`).join(' ')} && git commit -m "chore: re-take ${bySurface.join(', ')}'s probes"\`), and nothing else.`,
+  ];
 }
 
 function tweakVerdictProblems(dir: string, surface: string, lockedVerdicts: Record<string, string> | undefined): string[] {

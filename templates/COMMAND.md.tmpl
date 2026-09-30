@@ -1630,7 +1630,9 @@ review, never by the builder editing the last one.
 When a `critique` or `tweak` session stops, the gate records its verdicts in
 `.jig/critique/<surface>/verdicts.lock`. That happens after you have committed, so
 if your verdicts are committed it stops you once more to commit the lock on its
-own; the next stop passes.
+own; the next stop passes. The same goes for a page's probe files: when the page
+changed since they were taken, the gate renders it again as you stop, and if
+your work is committed it stops you once to commit them on their own.
 
 **The lock is the gate's to write, never yours.** When the gate is wrong (it
 misreads the session, or asks for something the procedure does not), say what it

@@ -33,6 +33,11 @@
   `deferred` are now refused, each pointing at the place that exists. A spec's
   earlier keys are not held against it. `route:` joins the spec's fields, since
   six of jig-site's specs needed it.
+- **The gate asks for the probe files it re-takes to be committed.** It renders
+  a changed page again as a session stops, after the session's last commit, so
+  every critique and tweak on jig-site left probe files modified and each brief
+  had to say to commit them. Like the lock, it now stops once to have them
+  committed on their own, and only when the rest of the work is committed.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.
