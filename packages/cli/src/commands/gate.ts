@@ -166,10 +166,19 @@ export function ownerReplyAfter(transcriptPath: string | undefined, asked: RegEx
   } catch {
     return undefined;
   }
-  let last = -1;
-  turns.forEach((t, i) => { if (t.who === 'agent' && asked.test(t.text)) last = i; });
-  if (last < 0) return undefined;
-  return turns.slice(last + 1).filter((t) => t.who === 'owner').map((t) => t.text).join('\n');
+  // The latest question the owner answered: an agent turn matching `asked`
+  // with an owner turn after it, and that answer up to the agent's next turn.
+  // Taking the last agent turn that mentions it read the agent's own report
+  // after the answer ("`confirmed: true` is set") as the question, and found
+  // no reply: on jig-site a confirmed spec was held for want of a second yes.
+  let answer: string | undefined;
+  turns.forEach((t, i) => {
+    if (t.who !== 'agent' || !asked.test(t.text)) return;
+    const reply: string[] = [];
+    for (let j = i + 1; j < turns.length && turns[j]!.who === 'owner'; j++) reply.push(turns[j]!.text);
+    if (reply.length) answer = reply.join('\n');
+  });
+  return answer;
 }
 
 /**
@@ -306,6 +315,14 @@ export function surfacesToProbe(root: string, input: GateInput): string[] {
  */
 function fileAtSessionStart(root: string, path: string, start: number | undefined): string {
   const git = (args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  // A file this session never wrote is as it found it, committed or not. Read
+  // from git alone, an uncommitted draft counted as all this session's work: on
+  // jig-site a fresh session found a spec holding the owner's quotations from an
+  // earlier session, was told they were unsupported, and turned them into
+  // paraphrase.
+  try {
+    if (start !== undefined && statSync(join(root, path)).mtimeMs < start - 1000) return readFileSync(join(root, path), 'utf8');
+  } catch { /* no such file: git decides */ }
   try {
     const base = start === undefined ? 'HEAD' : git(['rev-list', '-1', `--before=@${Math.floor(start / 1000)}`, 'HEAD']).trim();
     return base ? git(['show', `${base}:./${path}`]) : '';

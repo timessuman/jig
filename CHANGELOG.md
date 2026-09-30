@@ -62,6 +62,13 @@
   chapter's, and let the draft through. A named spec is now checked exactly or
   not at all, asking the owner to confirm one that is not in `.jig/specs/` is
   refused, and so is finishing a spec session without writing it.
+- **The gate reads the owner's answer to the question, and leaves alone what a
+  session found.** The confirmation check read the agent's own report after the
+  owner's yes ("`confirmed: true` is set") as the question, found no reply, and
+  held a confirmed spec. It now pairs each question with the answer that
+  follows it. And a file a session never wrote is taken as it found it, even
+  uncommitted: a fresh session had found a draft holding the owner's words
+  from an earlier one, was told they were unsupported, and paraphrased them.
 - **One problem is filed once.** A difference goes under `differences` only
   when no rule or decision already holds it. On jig-site one stale number was
   filed four times, and `ship` counted 6 findings for 3 problems.
