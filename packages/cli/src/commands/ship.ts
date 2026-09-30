@@ -5,6 +5,7 @@ import { seo } from './seo.js';
 import { verifyVerdicts } from './verdicts.js';
 import { checksum } from '../install/manifest.js';
 import { lf, readText } from '../text.js';
+import { agentFileProblems } from '../install/agent-files.js';
 
 /**
  * Whether the project is ready to ship, by everything Jig can check.
@@ -157,7 +158,9 @@ export function ship(opts: { projectRoot: string; version: string }): ShipResult
     : [];
   const pages = surfaces.map((s) => pageStatus(root, s));
   const owed = pages.filter((p) => p.state !== 'judged' && p.state !== 'in-progress' && p.state !== 'superseded');
-  const ready = mechanicalErrors === 0 && seoErrors === 0 && owed.length === 0;
+  // The instructions every agent starts from are part of what ships.
+  const agentFiles = agentFileProblems(root);
+  const ready = mechanicalErrors === 0 && seoErrors === 0 && owed.length === 0 && agentFiles.length === 0;
 
   const count = (state: PageState) => pages.filter((p) => p.state === state).length;
   const line =
@@ -167,6 +170,7 @@ export function ship(opts: { projectRoot: string; version: string }): ShipResult
   const report = [
     `  ${mechanicalErrors === 0 ? '✓' : '✗'} check --all --ci: ${mechanicalErrors} mechanical error${mechanicalErrors === 1 ? '' : 's'}`,
     `  ${seoErrors === 0 ? '✓' : '✗'} seo: ${seoErrors} error${seoErrors === 1 ? '' : 's'}`,
+    ...agentFiles.map((p) => `  ✗ ${p}`),
     ...pages.map((p) => `  ${mark[p.state]} ${p.surface}: ${p.detail}`),
     owed.length ? `  Critique each page marked ✗ (\`/jig critique <page>\`); fix what it finds, or record the owner's ruling, and run \`jig ship\` again.` : '',
     `  Not checked by Jig, here or anywhere: ${NOT_COVERED}.`,

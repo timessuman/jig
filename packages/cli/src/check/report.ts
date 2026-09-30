@@ -35,6 +35,8 @@ export interface ReportMeta {
   exemptPatterns?: Array<{ pattern: string; count: number; tooBroad: boolean; suggest?: string[] }>;
   /** `exempt` entries Jig could not use as written, with the reason. */
   exemptIgnored?: Array<{ entry: string; why: string }>;
+  /** What is wrong with the project's AGENTS.md or CLAUDE.md, for Jig. */
+  agentFiles?: string[];
   /**
    * How many files the detectors were handed, and how many of those actually
    * contained a style region to inspect.
@@ -193,6 +195,7 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
     );
   }
 
+  for (const problem of meta.agentFiles ?? []) lines.push(`  ${problem}`);
   for (const { entry, why } of meta.exemptIgnored ?? []) {
     lines.push(`  jig.config.json exempt: "${entry}" is ignored: ${why}`);
   }

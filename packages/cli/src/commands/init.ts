@@ -22,6 +22,7 @@ import { vendorHeader } from '../install/vendor.js';
 import { relKey } from './install.js';
 import { check } from './check.js';
 import { extractColorComponents } from '../check/color.js';
+import { claudeInstalled, ensureAgentFiles } from '../install/agent-files.js';
 
 const MODES = ['editorial', 'product', 'operator'] as const;
 type Mode = (typeof MODES)[number];
@@ -1160,6 +1161,11 @@ export async function init(opts: InitOptions): Promise<InitResult> {
         'and every spec is invisible to the next agent. Commit it.',
     );
   }
+
+  // ---- 5b. Agent instructions ----
+  // Most people run Jig through an agent, and AGENTS.md is what it reads first.
+  const agentFiles = ensureAgentFiles(opts.projectRoot, { claude: claudeInstalled(opts.projectRoot, opts.homeDir) });
+  if (agentFiles.length) log(`\n  Wrote Jig's instructions for your agent into ${agentFiles.join(' and ')}; your own text in them is untouched.`);
 
   // ---- 6. Baseline ----
   const baselineResult = check({ projectRoot: opts.projectRoot, homeDir: opts.homeDir, version: opts.version, all: true, ci: false });

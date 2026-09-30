@@ -15,6 +15,7 @@ import {
 import { render, renderCommandTable, type CommandMetadata } from '../template/render.js';
 import { licencePathFor, upsertBlock, vendorHeader } from '../install/vendor.js';
 import { createWriter, bundleFiles, relKey } from '../install/writer.js';
+import { claudeInstalled, ensureAgentFiles } from '../install/agent-files.js';
 // Re-exported: `update` and the tests import it from here, and moving the
 // definition should not move every call site.
 export { relKey };
@@ -53,6 +54,8 @@ export interface InstallResult {
   /** Claude, project scope: whether the Stop hook running `jig gate` was
    *  merged into `.claude/settings.json` (false: that file is not valid JSON). */
   stopHook?: boolean;
+  /** AGENTS.md and CLAUDE.md, where this install wrote Jig's block into them. */
+  agentFiles?: string[];
   /**
    * Set, with nothing written, when this would be a project-scope install
    * for an agent that already has a global one — installing anyway would
@@ -241,6 +244,7 @@ export function install(opts: InstallOptions): InstallResult {
         written: [],
         skipped: [],
         stopHook: installStopHook(opts.projectRoot, opts.version),
+        agentFiles: ensureAgentFiles(opts.projectRoot, { claude: true }),
         hookOnly:
           `Jig's skill is installed globally for 'claude' (${globalReferenceDir} under your home directory), ` +
           `so it stays there. Added only this project's Stop hook.`,
@@ -399,7 +403,14 @@ export function install(opts: InstallOptions): InstallResult {
     ? installStopHook(installRoot, opts.version)
     : undefined;
 
-  return { written, skipped, stopHook };
+  // The project's agent instructions: AGENTS.md always, CLAUDE.md for Claude
+  // Code. Not in `written` either: both are the project's own files, which
+  // Jig only keeps a marked block in.
+  const agentFiles = opts.scope === 'project'
+    ? ensureAgentFiles(opts.projectRoot, { claude: opts.agent === 'claude' || claudeInstalled(opts.projectRoot, opts.homeDir) })
+    : [];
+
+  return { written, skipped, stopHook, agentFiles };
 }
 
 /**

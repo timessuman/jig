@@ -100,15 +100,33 @@ but never adds one.
 
 Every agent reads a `skills/jig/SKILL.md`, so adding a new harness is a config
 change rather than a new code path. Codex uses the cross-agent `.agents/`
-directory and additionally gets a short pointer block in `AGENTS.md` — that file
-is read into every session, so it names the skill rather than restating it.
+directory.
 
 Install writes the skill file **and its rules** to one place only, beside the
 skill file itself: in your repo's agent folder at project scope (the default),
-in your home directory with `--scope global`, and nowhere else. Your agent reads
-the rules from there; nothing is copied into your source. Installing at project
-scope when the same agent is already installed globally warns rather than
-creating a second, contradicting skill.
+in your home directory with `--scope global`. Your agent reads the rules from
+there; nothing is copied into your source. At project scope it also keeps a
+block in `AGENTS.md` (below). Installing at project scope when the same agent is
+already installed globally warns rather than creating a second, contradicting
+skill.
+
+### Your agent's instructions: `AGENTS.md` and `CLAUDE.md`
+
+Most people run Jig through an agent, and `AGENTS.md` is the file agents read at
+the start of every session. So Jig makes sure your project has one: `init`,
+`install` and `update` create it if it is missing, or add Jig's block to the one
+you have. The block is short: load the Jig skill before any UI work, how the
+loop runs, the owner's-word rule, and what each of Jig's files is for.
+
+With Claude Code, which reads `CLAUDE.md` instead, Jig also adds a block there
+that imports `AGENTS.md` (`@AGENTS.md`), so every session loads it without the
+agent having to choose to.
+
+Jig owns only what sits between its markers, `<!-- jig:start -->` and
+`<!-- jig:end -->`. Write your own instructions above or below the block; Jig
+never reads or changes them. If the block goes missing or is edited, `check`
+says so, `ship` is not ready until it is back, a session that removed it is held
+by the Stop hook, and `jig update` puts it back.
 
 ## Set the project up
 
@@ -116,8 +134,8 @@ creating a second, contradicting skill.
 npx jig-ui@latest init
 ```
 
-`init` sets the project up: the token layer, `jig.config.json`, and one import in
-your stylesheet. It runs on a project with nothing in it and on one with years of
+`init` sets the project up: the token layer, `jig.config.json`, one import in
+your stylesheet, and Jig's block in `AGENTS.md` for your agent. It runs on a project with nothing in it and on one with years of
 CSS, and behaves differently in each, because the useful thing to do differs.
 
 ### An existing site
@@ -386,7 +404,7 @@ overwrites a config or brand file you have edited.
 
 | Command | What it does |
 | --- | --- |
-| `install --agent <name> [--scope project\|global] [--hook]` | Puts the skill and its rules where your agent will find them. Writes nothing else into your repo, unless you ask for `--hook`. |
+| `install --agent <name> [--scope project\|global] [--hook]` | Puts the skill and its rules where your agent will find them. At project scope, also keeps Jig's block in `AGENTS.md` (and `CLAUDE.md` for Claude Code); with `--hook`, adds the Stop hook. |
 | `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. |
 | `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
@@ -786,6 +804,7 @@ treatment.
 | `<css dir>/jig/mode.*.css` | Density, scale, rhythm, motion |
 | `<css dir>/jig/theme.css` | The barrel — brand + mode. This is what you import. With more than one mode, `theme.<mode>.css`, one per mode, each imported by its routes' layout. |
 | `.jig/state.json` | What `init` wrote, with checksums. `update` reads it to leave your edits alone. |
+| `AGENTS.md`, `CLAUDE.md` | Your agent's instructions. Jig keeps one marked block in each (`CLAUDE.md` only with Claude Code); the rest is yours. |
 | `.jig/specs/`, `.jig/mockups/`, `.jig/critique/` | The design loop's record: what was agreed, what was drawn, what the review found. |
 
 `rules/*` and `rules.index.json` live beside your installed skill file: in

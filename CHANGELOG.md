@@ -9,6 +9,14 @@
   procedure's description, and a hand-computed value was easily wrong.
 - **`route:` is a spec field**, for a page whose surface name does not say where
   it is served.
+- **Your project's `AGENTS.md` carries Jig's instructions for your agent.**
+  `init`, `install` and `update` create the file if it is missing, or add Jig's
+  block to the one you have: load the skill before UI work, how the loop runs,
+  the owner's-word rule, and what each of Jig's files is for. With Claude Code,
+  a block in `CLAUDE.md` imports it, so every session loads it. Jig owns only
+  what is between its markers. `check` reports the block missing or edited,
+  `ship` is not ready without it, the Stop hook holds a session that removed it,
+  and `jig update` puts it back.
 
 ### Changed
 

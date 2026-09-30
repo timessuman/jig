@@ -19,6 +19,7 @@ import { modeWiringProblems } from '../check/mode-wiring.js';
 import { collectDeclaredProperties } from '../check/declared-properties.js';
 import { auditTokenLayer } from '../check/token-audit.js';
 import type { Finding } from '../check/types.js';
+import { agentFileProblems } from '../install/agent-files.js';
 
 export interface CheckOptions {
   projectRoot: string;
@@ -313,6 +314,7 @@ export function check(opts: CheckOptions): CheckResult {
     exemptIgnored,
     scope: selection.mode,
     modeUnwired: modeWiringProblems(opts.projectRoot),
+    agentFiles: agentFileProblems(opts.projectRoot, opts.homeDir || undefined),
     waived,
   });
 

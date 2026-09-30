@@ -93,6 +93,7 @@ program
       }
       if (result.hookOnly) {
         console.log(result.hookOnly);
+        for (const f of result.agentFiles ?? []) console.log(`  + ${f} (Jig's block for your agent; your own text in it is untouched)`);
         if (result.stopHook === true) console.log('  + .claude/settings.json (Stop hook: jig gate blocks finishing while check or a critique fails)');
         if (result.stopHook === false) console.log('  ! .claude/settings.json is not valid JSON — the Stop hook was not added. Fix the file and run install again.');
         return;
@@ -101,6 +102,7 @@ program
       warnIfUnpublishedPin();
       for (const f of result.written) console.log(`  + ${f}`);
       for (const f of result.skipped) console.log(`  · ${f} (edited locally, left alone)`);
+      for (const f of result.agentFiles ?? []) console.log(`  + ${f} (Jig's block for your agent; your own text in it is untouched)`);
       if (result.stopHook === true) console.log('  + .claude/settings.json (Stop hook: jig gate blocks finishing while check or a critique fails)');
       if (result.stopHook === false) console.log('  ! .claude/settings.json is not valid JSON — the Stop hook was not added. Fix the file and run install again.');
       if (result.stopHook === undefined && opts.agent === 'claude' && opts.scope === 'project') {

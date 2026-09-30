@@ -1,5 +1,6 @@
 import type { Adapter, AdapterContext, RenderedFile } from './types.js';
 import { agentsPointer } from './types.js';
+import { agentsGuide } from '../install/agent-files.js';
 
 export const codex: Adapter = {
   name: 'codex',
@@ -25,7 +26,10 @@ export const codex: Adapter = {
     // less certain, so the pointer guarantees an agent can still find the rules
     // either way. It is a few lines, not the whole system.
     const agentsPath = ctx.scope === 'global' ? '.codex/AGENTS.md' : 'AGENTS.md';
-    files.push({ relPath: agentsPath, content: agentsPointer(skillPath) });
+    // At project scope it is the guide every agent's AGENTS.md carries
+    // (install/agent-files.ts); globally, where no project is in view, the
+    // pointer.
+    files.push({ relPath: agentsPath, content: ctx.scope === 'global' ? agentsPointer(skillPath) : agentsGuide() });
 
     // Codex's custom prompts are GLOBAL ONLY. OpenAI's documentation is
     // explicit: they load from `~/.codex/prompts` (or `$CODEX_HOME/prompts`),

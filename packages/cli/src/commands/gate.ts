@@ -16,6 +16,7 @@ import { ownerWordProblem } from '../check/owner-word.js';
 import { checksum } from '../install/manifest.js';
 import { recordedPage } from '../probe/save.js';
 import { lf, readText } from '../text.js';
+import { agentFileProblems } from '../install/agent-files.js';
 
 /**
  * `jig gate` — run by a Claude Code Stop hook that `jig install` writes.
@@ -838,6 +839,14 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
 
   problems.push(...verdictGuard(root, command, surfacesInPlay(root, command, opts.input.transcript_path, invocation?.surface)));
   problems.push(...probesLeftBehind(root, surfacesInPlay(root, command, opts.input.transcript_path, invocation?.surface)));
+  // AGENTS.md (and CLAUDE.md) carry Jig's instructions for every agent. A
+  // session that edited or removed Jig's block is held until it is put back;
+  // one that only found it out of date is told so by `check`.
+  const touched = ['AGENTS.md', 'CLAUDE.md'].some((f) => {
+    const now = existsSync(join(root, f)) ? readText(join(root, f)) : '';
+    return fileAtSessionStart(root, f, start) !== now;
+  });
+  if (touched) problems.push(...agentFileProblems(root).map((p) => `Jig's agent instructions: ${p}`));
 
   const critiqueDir = join(root, '.jig', 'critique');
   if (existsSync(critiqueDir)) {
