@@ -113,6 +113,16 @@
           }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-compact.sh"
+          }
+        ]
+      }
     ]
   }
 }

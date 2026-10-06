@@ -26,3 +26,8 @@ graphify-out/
 .gstack/
 .superpowers/
 .dev-builds/
+
+# The owner's loop tooling for trying Jig on a real project: run scripts,
+# briefs and their results. Kept here rather than in /tmp, which is cleaned
+# and once took a whole round's runner and briefs with it. Not part of Jig.
+/.loop/
