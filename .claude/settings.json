@@ -1,5 +1,79 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm test -w *)",
+      "Bash(npm run build)",
+      "Bash(npm run typecheck*)",
+      "Bash(npm run check-tokens)",
+      "Bash(npm ci)",
+      "Bash(node scripts/*)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch)",
+      "Bash(git branch --show-current)",
+      "Bash(git ls-files*)",
+      "Bash(graphify query *)",
+      "Bash(graphify path *)",
+      "Bash(graphify explain *)",
+      "Bash(graphify update .)",
+      "Bash(~/.claude/skills/gstack/browse/dist/browse *)",
+      "Bash($HOME/.claude/skills/gstack/browse/dist/browse *)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr diff*)",
+      "Bash(gh pr checks*)",
+      "Bash(gh run list*)",
+      "Bash(gh run view*)",
+      "Bash(gh issue view*)",
+      "Skill(graphify)",
+      "Skill(review)",
+      "Skill(investigate)",
+      "Skill(security-review)",
+      "Skill(github)",
+      "Skill(superpowers:systematic-debugging)",
+      "Skill(superpowers:test-driven-development)",
+      "Skill(superpowers:verification-before-completion)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Bash(env)",
+      "Bash(printenv*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -fdx*)",
+      "Bash(npm publish*)",
+      "Bash(npm unpublish*)",
+      "Bash(npm deprecate*)",
+      "Bash(npm dist-tag*)",
+      "Bash(npm owner*)",
+      "Bash(npm token*)",
+      "Bash(npm login*)",
+      "Bash(npm adduser*)",
+      "Bash(gh secret*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh release delete*)"
+    ]
+  },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash|Grep",
@@ -16,6 +90,26 @@
           {
             "type": "command",
             "command": "command -v graphify >/dev/null 2>&1 && graphify hook-guard read || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/secret-scan.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/verify.sh"
           }
         ]
       }
