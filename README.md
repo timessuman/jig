@@ -406,7 +406,7 @@ overwrites a config or brand file you have edited.
 | --- | --- |
 | `install --agent <name> [--scope project\|global] [--hook]` | Puts the skill and its rules where your agent will find them. At project scope, also keeps Jig's block in `AGENTS.md` (and `CLAUDE.md` for Claude Code); with `--hook`, adds the Stop hook. |
 | `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. |
-| `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
+| `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id, and exits non-zero on any mechanical error. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
 | `seo [--json]` | Audits what a search engine and a link preview read, across the whole project: a route whose metadata says `noindex` sitting in the sitemap, two pages claiming one title, a sitemap that lists nothing or lists paths a crawler drops. Whether a sitemap and a robots file exist is counted, not reported: no rule asks for either, and a site with no domain yet cannot write an honest sitemap. Needs no config, no decisions and no spec. |
 | `checksum <spec>` | Prints a spec's checksum, the value its `.checked.json` records as `spec`, so the spec's reader never computes it by hand. |
@@ -422,7 +422,7 @@ Flags worth knowing:
 | --- | --- |
 | `check --all` | Scan the whole repo instead of just changed files. Use on a first run. |
 | `explain --list` | Every rule id and title. Add a section letter (`explain G --list`) for one section. |
-| `check --ci` | Mechanical bucket only — deterministic, and exits non-zero on any error. |
+| `check --ci` | Mechanical bucket only, so the run is deterministic. |
 | `check --json` | Machine-readable findings, for tooling or for reading every finding when the terminal output elides repeats. |
 | `init --yes` | Non-interactive; accept every derived default. |
 | `install --scope global` | Install once for every project. |
@@ -697,7 +697,7 @@ No agent required. `check` is a linter with a design system behind it.
 ```bash
 npx jig-ui@latest check --all      # everything
 npx jig-ui@latest check            # just what changed
-npx jig-ui@latest check --ci       # for CI: deterministic, non-zero on error
+npx jig-ui@latest check --ci       # for CI: mechanical rules only, deterministic
 npx jig-ui@latest check --json     # for tooling
 ```
 

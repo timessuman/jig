@@ -6,7 +6,7 @@ import { assetRoot, findProjectRoot, getPackageRoot, isDevVersion, isPublishedBu
 import { install } from './commands/install.js';
 import { update } from './commands/update.js';
 import { explain } from './commands/explain.js';
-import { check } from './commands/check.js';
+import { check, checkExitCode } from './commands/check.js';
 import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
 import { gate, surfacePage, surfacesToProbe } from './commands/gate.js';
@@ -237,7 +237,7 @@ program
     'scan every file in the repo, not just those changed since HEAD (same rules either way)',
     false,
   )
-  .option('--ci', 'mechanical bucket only; exits non-zero on any error, deterministic', false)
+  .option('--ci', 'mechanical bucket only, so the run is deterministic', false)
   .option('--json', 'emit findings as JSON', false)
   .action((opts: { all: boolean; ci: boolean; json: boolean }) => {
     const projectRoot = findProjectRoot(process.cwd());
@@ -250,7 +250,9 @@ program
         ci: opts.ci,
       });
       console.log(opts.json ? JSON.stringify(result.findings, null, 2) : result.report);
-      if (opts.ci && result.hasError) process.exit(1);
+      // Non-zero on a mechanical error, with or without --ci. See checkExitCode.
+      const code = checkExitCode(result);
+      if (code !== 0) process.exit(code);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);

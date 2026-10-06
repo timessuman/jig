@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **`jig check` exits non-zero on a mechanical error, with or without `--ci`.**
+  It used to exit 0 whatever it found, so a pre-commit hook, a CI step or a
+  script running it as a linter read a run full of errors as a pass. Judgment
+  findings are still reported without failing the run. `--ci` now only limits
+  the run to the mechanical rules.
+
+### Fixed
+
+- **`check` no longer says it examined nothing while reporting findings.** A
+  file styled only with utility classes, such as `class="p-[13px]"`, is read by
+  H-47 but was left out of the styled-file count. A change to such a file
+  reported H-47 errors and, below them, that no file carried a style region. The
+  count now includes markup whose class attributes hold classes.
+
 ## 0.24.0 (2026-09-30)
 
 The owner's word held to one rule, Jig's instructions in your project's AGENTS.md,

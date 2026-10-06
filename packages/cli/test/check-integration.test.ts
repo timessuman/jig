@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { check } from '../src/commands/check.js';
+import { check, checkExitCode } from '../src/commands/check.js';
 
 let project: string;
 let home: string;
@@ -49,6 +49,23 @@ describe('check — end to end', () => {
     // prevent — see ReportMeta.withStyles.
     expect(result.report).toContain('Nothing inspected.');
     expect(result.report).toMatch(/styled=0/);
+  });
+
+  it('exits non-zero on a mechanical error without --ci', () => {
+    // Plain `check` used to exit 0 whatever it found, so a pre-commit hook or
+    // CI step running it as a linter read a run full of errors as a pass.
+    mkdirSync(join(project, 'src'), { recursive: true });
+    writeFileSync(join(project, 'src', 'Button.css'), '.button {\n  outline: none;\n}\n');
+
+    const plain = check({ projectRoot: project, homeDir: home, version: '0.1.0', all: true, ci: false });
+    expect(plain.hasError).toBe(true);
+    expect(checkExitCode(plain)).toBe(1);
+  });
+
+  it('exits 0 when nothing mechanical is an error', () => {
+    const clean = check({ projectRoot: project, homeDir: home, version: '0.1.0', all: true, ci: false });
+    expect(clean.hasError).toBe(false);
+    expect(checkExitCode(clean)).toBe(0);
   });
 
   it('--ci restricts to the mechanical bucket and is what a caller checks for a non-zero exit', () => {
