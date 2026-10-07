@@ -435,9 +435,12 @@ mean it could never move.
 
 ### As slash commands
 
-Every command is also a slash command in your agent, installed alongside the
-skill. `/jig check --all` does what `npx jig-ui check --all` does, and then acts
-on the result — the CLI reports, the agent applies the judgment half.
+Every command but `gate`, which only the Stop hook runs, is also a slash command
+in your agent, installed alongside the skill. `/jig check --all` does what
+`npx jig-ui check --all` does, and then acts on the result — the CLI reports, the
+agent applies the judgment half. Six slash commands are agent procedures with no
+command of their own in the CLI: `decide`, `spec`, `mockup`, `make`, `critique` and
+`tweak` (`critique` runs `verdicts` and `probe` along the way).
 
 | Slash command | Equivalent |
 | --- | --- |

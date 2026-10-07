@@ -32,6 +32,10 @@
   inline `<code>` earlier in the prose, such as a rule id, removed those
   characters from the output block below it, the block no longer matched, and
   its dash was reported. Quotations are now left out of the text as it is read.
+- **The README no longer says every command is also a slash command.** `gate`
+  has no slash form (only the Stop hook runs it), and six slash commands are
+  agent procedures with no command of their own in the CLI. The table under it
+  was right; the sentence above it now says what the table does.
 - **`check` no longer says it examined nothing while reporting findings.** A
   file styled only with utility classes, such as `class="p-[13px]"`, is read by
   H-47 but was left out of the styled-file count. A change to such a file
