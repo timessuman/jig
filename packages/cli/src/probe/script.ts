@@ -36,12 +36,18 @@ export const PROBE_SCRIPT = `(async () => {
   // the page's own copy around it still counts. So is a tool's output or a
   // command shown in <pre>, <code>, <samp> or <kbd>: jig-site's home page
   // quotes \`jig check\`'s real output, whose own wording has an em dash, and
-  // the probe blocked a page for words it had rightly not rewritten.
-  let ownText = text;
-  for (const q of document.querySelectorAll('blockquote, q, pre, code, samp, kbd')) {
-    const quoted = (q.innerText || '').trim();
-    if (quoted) ownText = ownText.split(quoted).join('\\n');
-  }
+  // the probe blocked a page for words it had rightly not rewritten. The
+  // quotations are hidden while the text is read, not cut out of it by string:
+  // an inline <code>A-01</code> earlier in the prose removed "A-01" from the
+  // output block below it, so the block no longer matched and its dash counted.
+  const quotedEls = [...document.querySelectorAll('blockquote, q, pre, code, samp, kbd')];
+  const hide = document.createElement('style');
+  hide.textContent = '[data-jig-quoted] { display: none !important; }';
+  for (const q of quotedEls) q.setAttribute('data-jig-quoted', '');
+  document.head.appendChild(hide);
+  const ownText = document.body.innerText || '';
+  hide.remove();
+  for (const q of quotedEls) q.removeAttribute('data-jig-quoted');
   const junk = [...new Set(text.match(/\\$\\{|\\{\\{|\\bundefined\\b|\\bNaN\\b|\\[object Object\\]/g) || [])];
   const unresolved = new Set();
   for (const sheet of document.styleSheets) {

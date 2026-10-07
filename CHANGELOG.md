@@ -22,6 +22,16 @@
   at every width. A critique reports them and finishes; `ship` counts them as
   findings, and the gate holds make and tweak until the page is fixed. A verdict
   the probe contradicts still means the review re-runs.
+- **A quoted `mockup:` value reads as the value it holds.** A spec that wrote
+  `mockup: "skipped — the owner: \"…\""`, valid YAML, read to the gate as the
+  word `"skipped`, so every tweak of the page was refused for having no approved
+  drawing, and the check that the owner's words are quoted was silently skipped.
+- **An em dash inside tool output no longer counts as the page's own.** The
+  probe leaves quotations and `<pre>`, `<code>`, `<samp>` and `<kbd>` out of the
+  dash scan, but it cut them out of the page's text one string at a time. An
+  inline `<code>` earlier in the prose, such as a rule id, removed those
+  characters from the output block below it, the block no longer matched, and
+  its dash was reported. Quotations are now left out of the text as it is read.
 - **`check` no longer says it examined nothing while reporting findings.** A
   file styled only with utility classes, such as `class="p-[13px]"`, is read by
   H-47 but was left out of the styled-file count. A change to such a file

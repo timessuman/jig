@@ -300,6 +300,7 @@ describe('the CLI can run the probe itself', () => {
       '<html><head><title>t</title></head><body><main>' +
       '<blockquote><p>Frame one — the quoted rule keeps its dash</p></blockquote>' +
       '<p>As the spec says, <q>free — forever</q>.</p>' +
+      '<p>Its rule, <code>A-01</code>, is hybrid.</p>' +
       '<pre><samp>⚠ A-01  Violet hue — a deliberate choice?</samp></pre><p>Run <code>jig check — all</code>.</p>' +
       '<p>Our own label — wrongly dashed</p>' +
       '</main></body></html>');

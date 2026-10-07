@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { gate, probesLeftBehind } from '../src/commands/gate.js';
 import { registeredCommands } from './helpers/registered-commands.js';
 import { PAGE_STATES, pageChecksum, ship } from '../src/commands/ship.js';
-import { specChecksum } from '../src/check/spec-checked.js';
+import { mockupField, specChecksum } from '../src/check/spec-checked.js';
 import { newFieldProblems, SPEC_FIELDS, specProblems } from '../src/check/spec-shape.js';
 import { checksum } from '../src/install/manifest.js';
 import { saveProbe } from '../src/probe/save.js';
@@ -215,6 +215,20 @@ describe('a tweak whose re-judge waits', () => {
     deferredTweak('leave the critique for later');
     expect(session('tweak', 'Tighten the plan names. Leave the critique for later.').reason ?? '').not.toMatch(/defers its re-judge/);
     expect(state().report).toMatch(/✗ pricing: a tweak deferred its re-judge/);
+  });
+
+  // jig-site: three specs held their mockup word as a quoted YAML value, and
+  // the gate refused every tweak of them as having no approved drawing.
+  it('reads a quoted mockup value as the value YAML gives', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), spec().replace(
+      'mockup: skipped — the owner: "a small page"',
+      'mockup: "skipped — the owner: \\"a small page\\""',
+    ));
+    deferredTweak('leave the critique for later');
+    expect(session('tweak', 'Tighten the plan names. Leave the critique for later.').reason ?? '').not.toMatch(/`mockup:` is/);
+    expect(mockupField('---\nmockup: "skipped — the owner: \\"a small page\\""\n---')).toBe('skipped — the owner: "a small page"');
+    expect(mockupField("---\nmockup: 'approved — the owner''s \"yes\"'\n---")).toBe('approved — the owner\'s "yes"');
+    expect(mockupField('---\nmockup: pending\n---')).toBe('pending');
   });
 
   it('is refused when nobody said to wait', () => {
