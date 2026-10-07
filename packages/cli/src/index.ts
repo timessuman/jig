@@ -212,6 +212,10 @@ program
         console.error(`  The page changed after these probes. \`jig verdicts ${surface} --reprobe\` re-takes them on the page as it is now.`);
       }
       if (result.ok) console.log(`  Every rule in both passes has a verdict.`);
+      if (result.measured.length) {
+        console.log(`  The page fails ${result.measured.length} check(s) the render probe measured. They are findings on the page, for make or tweak to fix; a critique reports them and leaves the page as it is:`);
+        for (const failure of result.measured) console.log(`  ! ${failure}`);
+      }
       const since = result.decisions.since ?? [];
       if (since.length) console.log(`  ${since.length} decision(s) recorded after this critique, for the next one to judge: ${since.join(', ')}.`);
       const p = result.previous;

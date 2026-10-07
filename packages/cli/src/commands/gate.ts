@@ -860,6 +860,14 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
           `jig verdicts ${surface}: the critique is not complete. Re-run the arm it names — do not edit the verdict files to pass.\n` +
             shown.join('\n') + (v.errors.length > shown.length ? `\n  … and ${v.errors.length - shown.length} more` : ''),
         );
+      } else if (v.measured.length && command !== 'critique') {
+        // A critique reports these and leaves the page alone; the session
+        // that builds the page is the one that fixes them.
+        const shown = v.measured.slice(0, 6).map((e) => `  ${e}`);
+        problems.push(
+          `jig verdicts ${surface}: the page fails what the render probe measured. Fix the page, then re-take the probes (\`jig verdicts ${surface} --reprobe\`).\n` +
+            shown.join('\n') + (v.measured.length > shown.length ? `\n  … and ${v.measured.length - shown.length} more` : ''),
+        );
       }
     }
   }

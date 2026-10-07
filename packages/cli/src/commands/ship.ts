@@ -141,6 +141,10 @@ export function pageStatus(projectRoot: string, surface: string): PageStatus {
   if (stale) return { surface, state: 'reprobe', detail: `its page is as judged, but the styles or scripts it loads changed: re-probe it (\`jig verdicts ${surface} --reprobe\`)` };
   if (!v.ok) return { surface, state: 'incomplete', detail: `its critique is not complete: ${v.errors[0]}` };
   const findings = v.screen.findings + v.code.findings + v.decisions.findings;
+  if (v.measured.length) {
+    const also = findings > 0 ? `, and ${findings} finding${findings === 1 ? '' : 's'} the owner has not ruled on` : '';
+    return { surface, state: 'findings', detail: `the page fails ${v.measured.length} check${v.measured.length === 1 ? '' : 's'} the render probe measured (\`jig verdicts ${surface}\` lists them)${also}` };
+  }
   if (findings > 0) return { surface, state: 'findings', detail: `${findings} finding${findings === 1 ? '' : 's'} the owner has not ruled on` };
   return { surface, state: 'judged', detail: 'judged as it stands, nothing open' };
 }

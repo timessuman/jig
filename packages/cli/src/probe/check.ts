@@ -97,14 +97,34 @@ type VerdictOf = (id: string) => string | undefined;
 const TITLE_BUDGET = 60;
 const DESCRIPTION_BUDGET = 155;
 
+export interface ProbeCheck {
+  /** Verdicts the measurement contradicts: the review is wrong, and its arm re-runs. */
+  contradictions: string[];
+  /**
+   * What the page fails whatever the verdicts say: findings on the page, for
+   * make or tweak to fix. A critique reports them; it never edits the page to
+   * clear them. Held on them as an unfinished review, a critique session edited
+   * the page, reverted the edit as no critique's to make, and spent its whole
+   * budget doing both.
+   */
+  failures: string[];
+}
+
+/** Every probe error of both kinds, contradictions first. */
+export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf, indexable = true): string[] {
+  const { contradictions, failures } = probeCheck(probes, verdictOf, indexable);
+  return [...contradictions, ...failures];
+}
+
 /**
- * Verdicts the measurement contradicts, plus failures no verdict may excuse.
+ * Verdicts the measurement contradicts, and failures no verdict may excuse.
  *
  * Only `ok` (and `n/a`) can be contradicted: a `finding` already says what the
  * probe says. Everything here was a false pass in arm test 3.
  */
-export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf, indexable = true): string[] {
+export function probeCheck(probes: ProbeResult[], verdictOf: VerdictOf, indexable = true): ProbeCheck {
   const errors: string[] = [];
+  const failures: string[] = [];
   const clean = (id: string) => ['ok', 'n/a'].includes(verdictOf(id) ?? '');
   const at = (p: ProbeResult) => `probe-${p.width}.json`;
 
@@ -113,28 +133,28 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf,
       errors.push(`D-115 is "${verdictOf('D-115')}", but ${at(p)} measured the page ${p.scrollWidth}px wide in a ${p.clientWidth}px viewport — it scrolls sideways.`);
     }
     if (p.defaultFont) {
-      errors.push(`${at(p)}: the page renders in the browser's default font (${p.bodyFont ?? 'unknown'}) — its styles are not applying. No review of this page can pass until they do.`);
+      failures.push(`${at(p)}: the page renders in the browser's default font (${p.bodyFont ?? 'unknown'}) — its styles are not applying. No review of this page can pass until they do.`);
     }
     if (p.fauxFaces?.length) {
       const shown = p.fauxFaces.map((f) => `${f.family} ${f.weight}${f.style === 'italic' ? ' italic' : ''} ("${f.text}")`).join(', ');
-      errors.push(`${at(p)}: the page asks for ${shown}, and no loaded face covers ${p.fauxFaces.length === 1 ? 'it' : 'them'}, so the browser fakes the weight or slant from the nearest face it has. Load that weight, or use one the page already loads.`);
+      failures.push(`${at(p)}: the page asks for ${shown}, and no loaded face covers ${p.fauxFaces.length === 1 ? 'it' : 'them'}, so the browser fakes the weight or slant from the nearest face it has. Load that weight, or use one the page already loads.`);
     }
     if (p.unresolvedTokens.length) {
-      errors.push(`${at(p)}: ${p.unresolvedTokens.length} token(s) have no value in the browser (${p.unresolvedTokens.slice(0, 6).join(', ')}) — every property using them is dropped (H-117).`);
+      failures.push(`${at(p)}: ${p.unresolvedTokens.length} token(s) have no value in the browser (${p.unresolvedTokens.slice(0, 6).join(', ')}) — every property using them is dropped (H-117).`);
     }
     // H-119: the markup is the document, and its order is the reading order.
     // A screen reader, a reader-mode button and a keyboard user all take the
     // page in markup order; when that is not what the page shows, one of the
     // two is wrong and only a person can say which.
     for (const inv of p.orderInversions ?? []) {
-      errors.push(`${at(p)}: "${inv.seenFirst}" is read first on screen but comes after "${inv.markupFirst}" in the markup. At this width the markup order is not the reading order (H-119) — reorder the document, or move it with CSS that leaves the order intact.`);
+      failures.push(`${at(p)}: "${inv.seenFirst}" is read first on screen but comes after "${inv.markupFirst}" in the markup. At this width the markup order is not the reading order (H-119) — reorder the document, or move it with CSS that leaves the order intact.`);
     }
     // I-118 where the source cannot reach: a string assembled in code — a
     // description built in a framework's frontmatter, a label from a script —
     // arrives on the page having passed no file check. The render is where
     // every route ends, whatever built the string.
     if (p.emDashes?.length) {
-      errors.push(`${at(p)}: the rendered page shows an em dash in ${p.emDashes.map((t) => `"${t}"`).join(', ')} (I-118) — use a full stop, a comma, a colon, or a second element.`);
+      failures.push(`${at(p)}: the rendered page shows an em dash in ${p.emDashes.map((t) => `"${t}"`).join(', ')} (I-118) — use a full stop, a comma, a colon, or a second element.`);
     }
     // B-106 as a browser without `text-wrap: pretty` shows it: Firefox, and
     // Safari before 26. The declaration the rule names is not enough there.
@@ -156,17 +176,17 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf,
     if (head && p.width === probes[0]?.width) {
       const noindex = /noindex/i.test(head.robots);
       if (indexable && !noindex) {
-        if (!head.title) errors.push(`${at(p)}: the page served no <title> (J-121) — a search result then shows a truncated URL.`);
-        else if (head.title.length > TITLE_BUDGET) errors.push(`${at(p)}: the title served is ${head.title.length} characters, past the ${TITLE_BUDGET} a search result shows (J-122): "${head.title}".`);
-        if (!head.description) errors.push(`${at(p)}: the page served no meta description (J-121) — the search engine writes one from whatever text it finds first, usually the navigation.`);
-        else if (head.description.length > DESCRIPTION_BUDGET) errors.push(`${at(p)}: the description served is ${head.description.length} characters, past the ${DESCRIPTION_BUDGET} (J-122).`);
+        if (!head.title) failures.push(`${at(p)}: the page served no <title> (J-121) — a search result then shows a truncated URL.`);
+        else if (head.title.length > TITLE_BUDGET) failures.push(`${at(p)}: the title served is ${head.title.length} characters, past the ${TITLE_BUDGET} a search result shows (J-122): "${head.title}".`);
+        if (!head.description) failures.push(`${at(p)}: the page served no meta description (J-121) — the search engine writes one from whatever text it finds first, usually the navigation.`);
+        else if (head.description.length > DESCRIPTION_BUDGET) failures.push(`${at(p)}: the description served is ${head.description.length} characters, past the ${DESCRIPTION_BUDGET} (J-122).`);
       }
       if (!indexable && !noindex) {
-        errors.push(`${at(p)}: this page is not indexable, and the page served no noindex (J-123). robots.txt is public and advisory, and is not this.`);
+        failures.push(`${at(p)}: this page is not indexable, and the page served no noindex (J-123). robots.txt is public and advisory, and is not this.`);
       }
     }
     if (p.junkText.length) {
-      errors.push(`${at(p)}: the rendered text contains ${p.junkText.map((j) => `"${j}"`).join(', ')} — template code or a failed value is showing to readers.`);
+      failures.push(`${at(p)}: the rendered text contains ${p.junkText.map((j) => `"${j}"`).join(', ')} — template code or a failed value is showing to readers.`);
     }
   }
 
@@ -203,5 +223,5 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf,
       if (broken.length) errors.push(`P-14 is "${verdictOf('P-14')}", but ${at(phone)} operated the menu: ${broken.join('; ')}.`);
     }
   }
-  return errors;
+  return { contradictions: errors, failures };
 }

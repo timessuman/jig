@@ -1242,9 +1242,13 @@ The probe opens the phone menu, presses Escape, measures sideways scroll, and re
 whether the styles and tokens actually applied. `verdicts` refuses `rendered: true`
 without a probe at each width, and refuses an `ok` the probe contradicts — a `P-14`
 "ok" on a menu that did not open, a `D-115` "ok" on a page that scrolls sideways. It
-also fails a page that renders in the browser's default font, or shows `${` to
-readers, whatever the verdicts say. Never write a probe file yourself: when it
-disagrees with you, it is the review that is wrong.
+also names what the page fails whatever the verdicts say: it renders in the
+browser's default font, shows `${` or an em dash to readers, or serves a missing
+or overlong title or description. Those are findings on the page, listed under
+`!` and counted as `measured=` on the `JIG_VERDICTS` line. Put each in the report;
+make or tweak fixes them, and the critique leaves the page as it is.
+Never write a probe file yourself: when it disagrees with you, it is the review
+that is wrong.
 Then run:
 
 ```

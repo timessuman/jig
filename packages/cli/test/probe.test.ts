@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PROBE_SCRIPT } from '../src/probe/script.js';
-import { probeContradictions, readProbes, type ProbeResult } from '../src/probe/check.js';
+import { probeCheck, probeContradictions, readProbes, type ProbeResult } from '../src/probe/check.js';
 import { saveProbe } from '../src/probe/save.js';
 import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
@@ -86,6 +86,17 @@ describe('probeContradictions', () => {
     expect(errors[0]).toMatch(/the rendered page shows an em dash in "Team — \$49 a month" \(I-118\)/);
   });
 
+  it('keeps what the page fails apart from what the review got wrong', () => {
+    const head = { title: 'Pricing', description: 'd'.repeat(200), canonical: '', robots: '', ogTitle: '', ogImage: '' };
+    const page = probe({ width: 768, sidewaysScroll: true, scrollWidth: 900, clientWidth: 768, emDashes: ['a — b'], head, junkText: ['${price}'] });
+    const { contradictions, failures } = probeCheck([page], verdicts({ 'D-115': 'ok' }));
+    expect(contradictions).toHaveLength(1);
+    expect(contradictions[0]).toMatch(/D-115 is "ok"/);
+    expect(failures.join('\n')).toMatch(/I-118/);
+    expect(failures.join('\n')).toMatch(/J-122/);
+    expect(failures.join('\n')).toMatch(/template code or a failed value/);
+  });
+
   // H-119: a screen reader and a keyboard user take the page in markup order.
   // A column moved with CSS is not an inversion; a block lifted above the one
   // that precedes it in the markup is.
@@ -156,6 +167,23 @@ describe('jig verdicts reads the probes', () => {
     expect(run().errors).toEqual([]);
     record({ width: 768, menu: null, navLinksVisible: 5, sidewaysScroll: true, scrollWidth: 800, clientWidth: 768 });
     expect(run().errors.join('\n')).toMatch(/D-115 is "ok"/);
+  });
+
+  // A critique judges and does not edit. Held on an em dash as an unfinished
+  // review, a critique session edited the page, reverted the edit, and spent
+  // its whole budget doing both.
+  it('leaves the critique complete when the page fails what the probe measured, and names the failure', () => {
+    const page = join(project, 'pricing.html');
+    writeFileSync(page, '<html><body><a href="/">home</a></body></html>');
+    const record = (over: Partial<ProbeResult>) =>
+      saveProbe({ projectRoot: project, surface: 'pricing', json: JSON.stringify({ ...probe(), url: `file://${page}`, ...over }) });
+    record({ emDashes: ['Team — $49 a month'] });
+    for (const width of [768, 1280, 1600]) record({ width, menu: null, navLinksVisible: 5 });
+    const r = run();
+    expect(r.ok).toBe(true);
+    expect(r.errors).toEqual([]);
+    expect(r.measured.join('\n')).toMatch(/em dash in "Team — \$49 a month" \(I-118\)/);
+    expect(r.line).toMatch(/ measured=1$/);
   });
 
   it('counts a screen pass with no render as skipped, not run', () => {

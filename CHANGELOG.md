@@ -12,6 +12,16 @@
 
 ### Fixed
 
+- **A critique is no longer held on what the page fails.** An em dash on the
+  rendered page, a missing or overlong title or description, unresolved tokens
+  or the browser's default font are failures of the page, not of the review.
+  `verdicts` reported them as a critique left incomplete, so the gate held the
+  critique session until they were gone, and the session could clear them only
+  by editing the page, which a critique never does. They are now listed apart,
+  under `!`, as `measured=` on the `JIG_VERDICTS` line, and once each rather than
+  at every width. A critique reports them and finishes; `ship` counts them as
+  findings, and the gate holds make and tweak until the page is fixed. A verdict
+  the probe contradicts still means the review re-runs.
 - **`check` no longer says it examined nothing while reporting findings.** A
   file styled only with utility classes, such as `class="p-[13px]"`, is read by
   H-47 but was left out of the styled-file count. A change to such a file
