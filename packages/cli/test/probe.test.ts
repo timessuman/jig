@@ -126,6 +126,18 @@ describe('probeContradictions', () => {
     expect(probeContradictions([probe({ width: 768, sidewaysScroll: true, scrollWidth: 900, clientWidth: 768 })], verdicts({ 'D-115': 'ok' }))[0]).toMatch(/900px wide in a 768px viewport/);
   });
 
+  // M-01 and L-01 step 6: in a control run a spec said the code would wrap,
+  // the build scrolled it in a box, and the page itself still fit the screen.
+  it('fails a box that scrolls sideways on an editorial phone, and only there', () => {
+    const box = { box: 'pre', text: 'const reading = await client.next(', scrollWidth: 612, clientWidth: 328 };
+    const failures = (over: Partial<ProbeResult>, mode?: string) => probeCheck([probe({ sidewaysBoxes: [box], ...over })], verdicts({}), true, mode).failures;
+    expect(failures({}, 'editorial').join('\n')).toMatch(/a box scrolls sideways on a phone: pre \("const reading.*612px in 328px.*M-01.*wraps its long lines/);
+    expect(failures({}, 'product')).toEqual([]);
+    expect(failures({}, undefined)).toEqual([]);
+    expect(failures({ width: 768 }, 'editorial')).toEqual([]);
+    expect(probeCheck([probe()], verdicts({}), true, 'editorial').failures).toEqual([]);
+  });
+
   it('fails an unstyled page, undefined tokens and leaked template text whatever the verdicts say', () => {
     const errors = probeContradictions([probe({ defaultFont: true, bodyFont: '"Times New Roman"', unresolvedTokens: ['--font-body'], junkText: ['${'] })], verdicts({}));
     expect(errors.join('\n')).toMatch(/default font/);
@@ -309,6 +321,24 @@ describe('the CLI can run the probe itself', () => {
     const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'pricing', 'probe-360.json'), 'utf8'));
     expect(probe.emDashes.join(' | ')).toMatch(/Our own label — wrongly dashed/);
     expect(probe.emDashes.join(' | ')).not.toMatch(/quoted rule|forever|deliberate choice|jig check/);
+  }, 120_000);
+
+  it('measures a code block or table that scrolls in its own box, and not one that wraps', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-boxes-'));
+    const long = 'const reading = await client.readings.next({ harbour: "tidewell-north-pier", units: "metric" });';
+    writeFileSync(join(root, 'page.html'),
+      '<html><head><title>t</title><meta name="viewport" content="width=device-width"></head><body><main>' +
+      `<pre class="scrolls" style="overflow-x:auto">${long}</pre>` +
+      `<pre class="wraps" style="white-space:pre-wrap;overflow-wrap:anywhere">${long}</pre>` +
+      '</main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'docs'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'docs', page: 'page.html' });
+    const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'docs', 'probe-360.json'), 'utf8'));
+    expect(probe.sidewaysScroll).toBe(false);
+    expect(probe.sidewaysBoxes.map((b: { box: string }) => b.box)).toEqual(['pre.scrolls']);
   }, 120_000);
 
   // jig-site: a heading asked for a weight the site never loaded, the browser

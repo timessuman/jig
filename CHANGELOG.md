@@ -4,6 +4,14 @@
 
 ### Added
 
+- **The render probe measures a box that scrolls sideways.** `editorial`
+  allows no scrolling region on a phone (`M-01`), and the probe only measured
+  a page wider than the screen. In a control run on this release's reflow
+  text, a spec said the code would wrap and the built page scrolled it in a
+  box, and nothing caught it. The probe now records each box that scrolls
+  sideways, and on an `editorial` surface at phone width each is a measured
+  failure: a critique reports it, `ship` counts it, and the gate holds make and
+  tweak until the page reflows.
 - **J-164: an indexable page a link preview cannot read.** A page pasted into a
   message or a post is met as a card before anyone opens it, and the card is
   built from `og:title` and `og:description`. Section J said it covered the link

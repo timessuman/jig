@@ -13,6 +13,8 @@ export interface ProbeResult {
   recordedAt?: string;
   width: number;
   sidewaysScroll: boolean;
+  /** Boxes inside the page that scroll sideways (M-01 in `editorial` at phone width). */
+  sidewaysBoxes?: Array<{ box: string; text: string; scrollWidth: number; clientWidth: number }>;
   scrollWidth: number;
   clientWidth: number;
   defaultFont: boolean;
@@ -111,8 +113,8 @@ export interface ProbeCheck {
 }
 
 /** Every probe error of both kinds, contradictions first. */
-export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf, indexable = true): string[] {
-  const { contradictions, failures } = probeCheck(probes, verdictOf, indexable);
+export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf, indexable = true, mode?: string): string[] {
+  const { contradictions, failures } = probeCheck(probes, verdictOf, indexable, mode);
   return [...contradictions, ...failures];
 }
 
@@ -122,7 +124,7 @@ export function probeContradictions(probes: ProbeResult[], verdictOf: VerdictOf,
  * Only `ok` (and `n/a`) can be contradicted: a `finding` already says what the
  * probe says. Everything here was a false pass in arm test 3.
  */
-export function probeCheck(probes: ProbeResult[], verdictOf: VerdictOf, indexable = true): ProbeCheck {
+export function probeCheck(probes: ProbeResult[], verdictOf: VerdictOf, indexable = true, mode?: string): ProbeCheck {
   const errors: string[] = [];
   const failures: string[] = [];
   const clean = (id: string) => ['ok', 'n/a'].includes(verdictOf(id) ?? '');
@@ -131,6 +133,12 @@ export function probeCheck(probes: ProbeResult[], verdictOf: VerdictOf, indexabl
   for (const p of probes) {
     if (p.sidewaysScroll && clean('D-115')) {
       errors.push(`D-115 is "${verdictOf('D-115')}", but ${at(p)} measured the page ${p.scrollWidth}px wide in a ${p.clientWidth}px viewport — it scrolls sideways.`);
+    }
+    // M-01: on a phone, `editorial` reflows what is wider than the screen
+    // instead of scrolling it in a box (L-01, step 6).
+    if (mode === 'editorial' && p.width <= 480 && p.sidewaysBoxes?.length) {
+      const shown = p.sidewaysBoxes.map((b) => `${b.box}${b.text ? ` ("${b.text}")` : ''}, ${b.scrollWidth}px in ${b.clientWidth}px`).join('; ');
+      failures.push(`${at(p)}: ${p.sidewaysBoxes.length === 1 ? 'a box scrolls' : `${p.sidewaysBoxes.length} boxes scroll`} sideways on a phone: ${shown}. \`editorial\` allows no scrolling region on mobile (M-01): a code block wraps its long lines, keeping its line breaks and indents, and a wide table stacks its rows (L-01, step 6).`);
     }
     if (p.defaultFont) {
       failures.push(`${at(p)}: the page renders in the browser's default font (${p.bodyFont ?? 'unknown'}) — its styles are not applying. No review of this page can pass until they do.`);

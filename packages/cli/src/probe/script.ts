@@ -217,6 +217,17 @@ export const PROBE_SCRIPT = `(async () => {
     fauxSeen.add(key);
     fauxFaces.push({ family: first.trim().replace(/^["']|["']$/g, ''), weight, style: italic ? 'italic' : 'normal', text: (el.innerText || '').trim().slice(0, 40) });
   }
+  // M-01: \`editorial\` allows no box that scrolls sideways on a phone; a code
+  // block wraps and a wide table stacks (L-01, step 6). In a control run a
+  // spec said the code would wrap and the built page scrolled it, and nothing
+  // measured the box: the page itself was not wider than the screen.
+  const sidewaysBoxes = [];
+  for (const el of [...document.body.querySelectorAll('*')].slice(0, 4000)) {
+    if (sidewaysBoxes.length >= 5) break;
+    const ox = getComputedStyle(el).overflowX;
+    if ((ox !== 'auto' && ox !== 'scroll') || el.scrollWidth <= el.clientWidth + 1 || !vis(el)) continue;
+    sidewaysBoxes.push({ box: el.tagName.toLowerCase() + (el.classList[0] ? '.' + el.classList[0] : ''), text: (el.innerText || '').trim().replace(/\\s+/g, ' ').slice(0, 40), scrollWidth: el.scrollWidth, clientWidth: el.clientWidth });
+  }
   return JSON.stringify({
     jigProbe: ${PROBE_VERSION},
     url: location.href,
@@ -224,6 +235,7 @@ export const PROBE_SCRIPT = `(async () => {
     scrollWidth: doc.scrollWidth,
     clientWidth: doc.clientWidth,
     sidewaysScroll: doc.scrollWidth > doc.clientWidth,
+    sidewaysBoxes,
     bodyFont: getComputedStyle(document.body).fontFamily,
     defaultFont: getComputedStyle(document.body).fontFamily === defaultFont,
     unresolvedTokens: [...unresolved],

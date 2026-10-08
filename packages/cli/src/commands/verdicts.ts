@@ -429,7 +429,8 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   if (specIndexableField(specFront) === 'unreadable') {
     errors.push(`.jig/specs/${opts.surface}.spec.md: \`indexable:\` is neither true nor false, so this review cannot tell whether the page is meant to be found and does not guess. Write \`indexable: true\` or \`indexable: false\`, and put the reason in the spec's body.`);
   } else {
-    const probed = probeCheck(probes, verdictOf, specIndexable(opts.projectRoot, opts.surface));
+    const mode = /^\s*mode\s*:\s*["']?(\w+)/im.exec(specFront)?.[1]?.toLowerCase();
+    const probed = probeCheck(probes, verdictOf, specIndexable(opts.projectRoot, opts.surface), mode);
     errors.push(...probed.contradictions);
     // Text on the page is the same at every width: one failure, not four.
     const seen = new Set<string>();
