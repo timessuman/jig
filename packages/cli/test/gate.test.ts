@@ -72,7 +72,7 @@ describe('jig gate', () => {
 // the agent changed now holds it until the warning is fixed or waived.
 describe('jig gate — warnings', () => {
   const html = (body: string) =>
-    `<!doctype html><html><head><title>t</title><meta name="description" content="d"></head><body><main>\n${body}\n</main></body></html>`;
+    `<!doctype html><html><head><title>t</title><meta name="description" content="d"><meta property="og:title" content="t"><meta property="og:description" content="d"></head><body><main>\n${body}\n</main></body></html>`;
 
   it('blocks on a warning in a changed file, and names it', () => {
     jigProject();

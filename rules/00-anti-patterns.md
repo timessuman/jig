@@ -713,6 +713,11 @@ A second copy of the positioning is a second thing to keep in step by hand, whic
 ✅ Concatenate the static routes unconditionally, and let a failed read yield the stale list rather than an empty one. When a list is genuinely empty, prove it before shipping.
 An empty sitemap is not a missing sitemap. It is a positive claim, and the crawler believes it.
 
+### J-164 An indexable page a link preview cannot read
+❌ A link pasted into a message or a post that shows a bare address, or the site's name over a line of its navigation
+✅ Every indexable page states its own preview: `og:title` and `og:description`, beside its `<title>` and meta description, and `og:type` for what it is (`article` for a post). An image and `og:url` take the page's full address: add them once the site has one, never as a relative path.
+The card is met before the page, often by someone who never opens it. Without these tags each service builds the card from whatever it finds, and they find different things. A preview is copy, like the title and description: the change that rewrites the page rewrites its card (`J-120`), and a value the page already holds is read, not typed again (`J-126`).
+
 ---
 
 ## K. Safety at the interface

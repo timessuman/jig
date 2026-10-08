@@ -865,6 +865,13 @@
     "pass": "code"
   },
   {
+    "id": "J-164",
+    "bucket": "mechanical",
+    "severity": "warning",
+    "since": "0.25.0",
+    "detector": "metadata"
+  },
+  {
     "id": "K-128",
     "bucket": "mechanical",
     "severity": "error",

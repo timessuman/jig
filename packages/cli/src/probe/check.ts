@@ -27,7 +27,7 @@ export interface ProbeResult {
   strandedWords?: Array<{ word: string; text: string }>;
   /** Text in a web font's weight or style that no loaded face covers, so the browser synthesises it. */
   fauxFaces?: Array<{ family: string; weight: number; style: string; text: string }>;
-  head?: { title: string; description: string; canonical: string; robots: string; ogTitle: string; ogImage: string };
+  head?: { title: string; description: string; canonical: string; robots: string; ogTitle: string; ogImage: string; ogDescription?: string };
   contentWidth?: number;
   contentMaxWidth?: string;
   longestLine?: { width: number; chars: number; text: string } | null;
@@ -180,6 +180,12 @@ export function probeCheck(probes: ProbeResult[], verdictOf: VerdictOf, indexabl
         else if (head.title.length > TITLE_BUDGET) failures.push(`${at(p)}: the title served is ${head.title.length} characters, past the ${TITLE_BUDGET} a search result shows (J-122): "${head.title}".`);
         if (!head.description) failures.push(`${at(p)}: the page served no meta description (J-121) — the search engine writes one from whatever text it finds first, usually the navigation.`);
         else if (head.description.length > DESCRIPTION_BUDGET) failures.push(`${at(p)}: the description served is ${head.description.length} characters, past the ${DESCRIPTION_BUDGET} (J-122).`);
+        // J-164. A probe taken before it read og:description cannot say it is
+        // missing, so only a probe that read it reports it.
+        if (typeof head.ogDescription === 'string' && (!head.ogTitle || !head.ogDescription)) {
+          const missing = [!head.ogTitle && 'og:title', !head.ogDescription && 'og:description'].filter(Boolean).join(' and ');
+          failures.push(`${at(p)}: the page served no ${missing} (J-164) — a link to it, pasted into a message or a post, shows a card built from whatever the page happens to carry.`);
+        }
       }
       if (!indexable && !noindex) {
         failures.push(`${at(p)}: this page is not indexable, and the page served no noindex (J-123). robots.txt is public and advisory, and is not this.`);

@@ -240,6 +240,7 @@ export const PROBE_SCRIPT = `(async () => {
       canonical: (document.querySelector('link[rel=canonical]') || {}).href || '',
       robots: (document.querySelector('meta[name=robots]') || {}).content || '',
       ogTitle: (document.querySelector('meta[property="og:title"]') || {}).content || '',
+      ogDescription: (document.querySelector('meta[property="og:description"]') || {}).content || '',
       ogImage: (document.querySelector('meta[property="og:image"]') || {}).content || '',
     },
     contentWidth: Math.round(region.getBoundingClientRect().width),

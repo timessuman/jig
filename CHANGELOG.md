@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- **J-164: an indexable page a link preview cannot read.** A page pasted into a
+  message or a post is met as a card before anyone opens it, and the card is
+  built from `og:title` and `og:description`. Section J said it covered the link
+  preview, and no rule asked for one, so `seo` and `check` passed a site with no
+  preview on any page. `check` reports it in a file that writes its own
+  `<head>`; elsewhere a layout may write it, and the render decides: the probe
+  now reads `og:description`, and a served page missing either tag is a
+  finding on the page. An image and `og:url` need the page's full address, so
+  the rule asks for them once a site has one. 160 rules, 40 of them decided by
+  a machine.
+
 ### Changed
 
 - **spec, mockup and tweak each end with what the gate holds them to.** A short

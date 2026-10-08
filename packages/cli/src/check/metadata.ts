@@ -21,6 +21,11 @@ export interface MetadataStrings {
    *  read, and absence and value are different questions. */
   hasTitle: boolean;
   hasDescription: boolean;
+  /** What a link preview reads (J-164): a preview title, and a preview
+   *  description, however the framework declares them. */
+  hasPreviewTitle: boolean;
+  hasPreviewDescription: boolean;
+  hasPreview: boolean;
   /** Any construct that declares metadata at all, framework included. */
   declares: boolean;
   /** A title built from a value rather than written: `title: post.title`. The
@@ -66,6 +71,11 @@ function firstGroup(match: RegExpMatchArray | null): { value: string; index: num
   return { value, index: match.index ?? 0 };
 }
 
+// A preview is `og:title` and `og:description`: a `<meta property>`, Nuxt's
+// `ogTitle`, a keyed `og:title`, or a title inside Next's `openGraph` object.
+const PREVIEW_TITLE = /property\s*=\s*["']og:title["']|(?:^|[\s{,])["']?(?:ogTitle|og:title)["']?\s*:|openGraph\s*:\s*\{[^}]*?\btitle\s*:/;
+const PREVIEW_DESCRIPTION = /property\s*=\s*["']og:description["']|(?:^|[\s{,])["']?(?:ogDescription|og:description)["']?\s*:|openGraph\s*:\s*\{[^}]*?\bdescription\s*:/;
+
 export function readMetadata(source: string): MetadataStrings {
   const htmlTitle = firstGroup(HTML_TITLE.exec(source));
   const title = htmlTitle ?? firstGroup(KEYED_TITLE.exec(source));
@@ -86,6 +96,9 @@ export function readMetadata(source: string): MetadataStrings {
     description: description && !/^\{|\$\{/.test(description.value) ? description : undefined,
     hasTitle: ANY_TITLE.test(source),
     hasDescription: ANY_DESCRIPTION.test(source),
+    hasPreviewTitle: PREVIEW_TITLE.test(source),
+    hasPreviewDescription: PREVIEW_DESCRIPTION.test(source),
+    hasPreview: PREVIEW_TITLE.test(source) && PREVIEW_DESCRIPTION.test(source),
     declares: DECLARES.test(source),
     computedTitle: COMPUTED_TITLE.test(source),
     noindex: NOINDEX.some((re) => re.test(source)),

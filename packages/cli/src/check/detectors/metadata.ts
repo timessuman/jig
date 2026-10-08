@@ -4,7 +4,7 @@ import { mkFinding } from '../finding.js';
 import { DESCRIPTION_BUDGET, TITLE_BUDGET, isWholeDocument, readMetadata } from '../metadata.js';
 import type { Detector, Finding } from '../types.js';
 
-// J-121 / J-122 / J-123 / J-125, the parts a file can settle on its own.
+// J-121 / J-122 / J-123 / J-125 / J-164, the parts a file can settle on its own.
 //
 // Frameworks declare metadata in a dozen shapes and a page may inherit all of
 // it from a layout, so **absence** is only reported for a document that carries
@@ -56,12 +56,18 @@ export const metadata: Detector = {
       if (indexable && !found.hasDescription) {
         at('J-121', 0, 'this page has no meta description — the search engine writes one from whatever text it finds first, usually the navigation');
       }
+      if (indexable && !found.hasPreview) {
+        const missing = [!found.hasPreviewTitle && 'og:title', !found.hasPreviewDescription && 'og:description'].filter(Boolean).join(' and ');
+        at('J-164', 0, found.hasPreviewTitle || found.hasPreviewDescription
+          ? `this page has no ${missing} — a link to it, pasted into a message or a post, shows a card with that part guessed`
+          : 'this page has no link preview (og:title and og:description) — a link to it, pasted into a message or a post, shows a card built from whatever the page happens to carry');
+      }
       if (!indexable && !found.noindex) {
         at('J-123', 0, `this surface is ${ctx.mode}, which is what somebody reaches after signing in, and the page carries no noindex — robots.txt is public and advisory, and is not this`);
       }
     }
 
-    // Four rules name this detector, so the runner calls it once per rule.
+    // Five rules name this detector, so the runner calls it once per rule.
     // Each call returns its own.
     return findings.filter((f) => f.ruleId === ctx.ruleId);
   },
