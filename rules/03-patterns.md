@@ -564,10 +564,20 @@ everything else follows from.
    fluid: they track the viewport between a floor and a ceiling with no media
    query at all. A hand-written ladder of sizes per breakpoint reintroduces the
    jumps the scale exists to remove, and goes stale the moment the scale changes.
-5. **Content that is genuinely wider scrolls inside itself.** A code block, a
-   wide table, a long identifier: its own container scrolls with a visible edge
-   (`E-62`), keeps its type size, and the page never scrolls sideways (`D-115`).
-   `editorial` allows no scrolling region on mobile at all (`M-01`).
+5. **Content that is genuinely wider scrolls inside itself, except in
+   `editorial` on a phone.** A code block, a wide table, a long identifier: its
+   own container scrolls with a visible edge (`E-62`), keeps its type size, and
+   the page never scrolls sideways (`D-115`). `editorial` allows no scrolling
+   region on mobile (`M-01`), so there each one reflows instead:
+   - **A code block** keeps its line breaks and indents and wraps a long line
+     (`white-space: pre-wrap`, `overflow-wrap: anywhere`). What is copied is
+     the source as written, not the wrapped lines.
+   - **A table too wide to fit** stacks its rows: each row a block, each cell a
+     line with its column's name in front. It stays a `<table>` with its header
+     row, so a screen reader still reads it as one. Where it fits, it stays a
+     table: the switch is the width at which its columns stop fitting.
+   - **A long identifier** (a URL, a hash, a file path) breaks where it must
+     (`overflow-wrap: anywhere`).
 6. **Each transition happens where the content needs it.** The width at which
    three columns stop fitting is a property of the columns, not of a device. Set
    it from the content, and expect the numbers to differ per component.

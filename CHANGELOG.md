@@ -19,6 +19,21 @@
 
 ### Changed
 
+- **`editorial` on a phone says what replaces a scrolling box.** `L-01` sent a
+  wide code block or table to scroll inside itself, and the same sentence said
+  `editorial` allows no scrolling region on mobile, naming nothing in its
+  place. `L-01`, `D-115` and `M-01` now say it: a code block keeps its line
+  breaks and indents and wraps its long lines, a table too wide for the screen
+  stacks its rows with each cell's column name in front and stays a `<table>`,
+  and a long identifier breaks where it must.
+- **`E-51`'s near-universal glyphs are a test, not a list.** Close, search and
+  menu were read as the only icon-only controls allowed. The rule now asks
+  whether most readers would name the glyph the same way without its label,
+  with examples that pass (a theme's sun and moon, a well-known service's mark)
+  and that do not.
+- **`E-28` says what a browser's own tab stop on an `<iframe>` gets.** One that
+  only shows something is taken out of the tab order rather than given states;
+  one the reader uses keeps its stop and shows focus.
 - **spec, mockup and tweak each end with what the gate holds them to.** A short
   "Before you stop" list names the checks the Stop hook makes on what that
   command records, beyond the shape its steps already teach: where it may write, whose words a quotation is, the check record's
@@ -34,6 +49,12 @@
 
 ### Fixed
 
+- **`I-118` exempts quoted output in the rule and in `check`, as the probe
+  already did.** The rule exempted a quotation in `<blockquote>` or `<q>`; the
+  render probe also leaves `<pre>`, `<code>`, `<samp>` and `<kbd>` alone, and
+  `check` exempted none of them. A page quoting a tool's real output was told
+  by `check` to rewrite it, and by the rule to keep the quotation's own
+  punctuation. All three now agree.
 - **A critique is no longer held on what the page fails.** An em dash on the
   rendered page, a missing or overlong title or description, unresolved tokens
   or the browser's default font are failures of the page, not of the review.
