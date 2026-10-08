@@ -4,6 +4,13 @@
 
 ### Changed
 
+- **spec, mockup and tweak each end with what the gate holds them to.** A short
+  "Before you stop" list names the checks the Stop hook makes on what that
+  command records, beyond the shape its steps already teach: where it may write, whose words a quotation is, the check record's
+  format, what counts as the owner's confirmation or approval, and what
+  `tweak.json` holds. Sessions learned these from refusals, and each refusal
+  cost a round of fixing, re-checking and committing. A test pairs each check
+  with its line in the list, so a check added without one fails.
 - **`jig check` exits non-zero on a mechanical error, with or without `--ci`.**
   It used to exit 0 whatever it found, so a pre-commit hook, a CI step or a
   script running it as a linter read a run full of errors as a pass. Judgment

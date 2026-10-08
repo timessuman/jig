@@ -599,6 +599,34 @@ its size's frame of the drawing at `mockup_at:`. Otherwise a spec can go through
 several confirmed rounds after its drawing was approved and still say `approved`
 over a drawing of none of them.
 
+### Before you stop: what the gate holds a spec to
+
+With the Stop hook, each of these keeps the session open until it is fixed. Get
+them right as you write, not after the gate names them:
+
+- **A spec writes under `.jig/` only.** A change to `DECISIONS.md`, a stylesheet or
+  a page is for `{{command_prefix}}decide`, `make` or `tweak`: record in the spec
+  what the owner said, and hand the change on.
+- **The front matter holds Jig's fields and nothing else.** Anything more goes in
+  the prose below it.
+- **Quotation marks within a few words after "owner", or after "the user said",
+  mark the owner's words.** What is inside them must be what the owner said: in
+  this conversation, in `DECISIONS.md`, or already in the spec. To name a
+  decision, a heading or a file near the word "owner", leave the quotation marks
+  off.
+- **`<name>.checked.json` is of the spec as it stands.** Its `spec` value matches
+  `{{scripts_path}} checksum <name>`, so an edit after the check means a second
+  check, of what changed.
+- **Each fact has one `source`:** a path from the project root, `path:line`, or a
+  URL, and nothing else. The file exists and the line is in it. Two places are two
+  facts; what you found at the source goes in `note`.
+- **`holds` is `true`, `false` or `"unchecked"`, with a `note` for anything but
+  `true`.** A fact found false is fixed in the spec before the owner is asked.
+- **`confirmed: true` only on the owner's yes, in this session, to the sheet you
+  showed them.** Words in the request that started the session came before the
+  sheet existed, and are not a reply to it, even when they say the owner
+  confirms. Show the sheet and stop.
+
 ## mockup
 
 **Low-fidelity design.** Draw the confirmed spec in grayscale, at every size it
@@ -848,6 +876,22 @@ confirmed again.
 
 With the Stop hook, the gate reads the quotation after `approved` or `skipped` and
 holds it to what the owner said in this session.
+
+### Before you stop: what the gate holds a mockup to
+
+- **A mockup writes under `.jig/` only:** the drawing in `.jig/mockups/`, and the
+  spec's `mockup:` and `mockup_at:` lines.
+- **The drawing shows what the spec lists**, at every size, and either side of each
+  switch the page crosses. The gate checks this before you put it to the owner.
+- **`mockup:` stays `pending` until the owner answers.** Then it is `approved` or
+  `skipped`, followed by their words in quotation marks: the reply that approves
+  this drawing, or says to skip it. Words that only say they looked at it, or
+  that are about something else, are not their word on the drawing. Ask them
+  whether they approve it for `make`, and quote the answer.
+- **`mockup_at:` names the approved drawing**, a file under `.jig/mockups/` that
+  exists, or a link.
+- **An approved drawing does not change.** Changing it after approval sets
+  `mockup: pending` and puts it to the owner again.
 
 Then stop. The next step is `{{command_prefix}}make`.
 
@@ -1543,6 +1587,21 @@ does); keep `ids` named for whoever
 judges it, and leave the verdicts alone. The page then owes a critique, and
 `{{command_prefix}}ship` will not pass until one has judged it. Never defer it
 on your own account: the gate refuses a deferral nobody gave.
+
+### Before you stop: what the gate holds a tweak to
+
+- **The spec is confirmed, and its mockup approved or skipped.** A page that has
+  neither goes through `mockup` and `make`.
+- **The page's regions and its approved drawing stay as they were.** A change to
+  what the page holds goes through `spec` and `mockup`.
+- **`tweak.json` holds `at`, `change`, `ids` and, when the owner said so,
+  `deferred`, and no other field.**
+- **`change` is the owner's words for the change, exactly as they gave them in
+  this session.** Nothing goes before or after them, not even a label such as
+  "the owner's words:". What you made of them goes in the spec's Tweak entry.
+- **`ids` names at least one rule or decision**, and each is re-judged by a reader
+  that did not make the change, unless `deferred` quotes the owner telling you to
+  leave it for later (or is `true` where the page's critique waits for ship).
 
 ### Finish
 
