@@ -1,7 +1,7 @@
 import { buildLineIndex, lineForOffset, sourceLine } from '../css.js';
 import { isReaderText } from '../ext.js';
 import { mkFinding } from '../finding.js';
-import { DESCRIPTION_BUDGET, TITLE_BUDGET, isWholeDocument, readMetadata } from '../metadata.js';
+import { DESCRIPTION_BUDGET, HTML_DESCRIPTION, HTML_DESCRIPTION_REVERSED, TITLE_BUDGET, isWholeDocument, readMetadata } from '../metadata.js';
 import type { Detector, Finding } from '../types.js';
 
 // J-121 / J-122 / J-123 / J-125 / J-164, the parts a file can settle on its own.
@@ -64,6 +64,17 @@ export const metadata: Detector = {
       }
       if (!indexable && !found.noindex) {
         at('J-123', 0, `this surface is ${ctx.mode}, which is what somebody reaches after signing in, and the page carries no noindex — robots.txt is public and advisory, and is not this`);
+      }
+    } else {
+      // A head fragment (`<svelte:head>`, Astro, Helmet, `next/head`) that
+      // writes this page's own description tag and no og:description. Whatever
+      // a layout adds, it cannot know a description written here, so a link to
+      // the page shows a card without it. In a control run a SvelteKit page did
+      // exactly this, and no whole document was there for the check to read.
+      const own = HTML_DESCRIPTION.exec(raw) ?? HTML_DESCRIPTION_REVERSED.exec(raw);
+      const indexable = ctx.mode !== 'product' && ctx.mode !== 'operator';
+      if (indexable && own && found.description && !found.hasPreviewDescription) {
+        at('J-164', own.index, `this file writes the page's description but no og:description${found.hasPreviewTitle ? '' : ' or og:title'} — a link to it, pasted into a message or a post, shows a card without the description written here`);
       }
     }
 

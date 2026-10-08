@@ -9,7 +9,9 @@
   built from `og:title` and `og:description`. Section J said it covered the link
   preview, and no rule asked for one, so `seo` and `check` passed a site with no
   preview on any page. `check` reports it in a file that writes its own
-  `<head>`; elsewhere a layout may write it, and the render decides: the probe
+  `<head>`, and in a head fragment (`<svelte:head>`, Astro, `next/head`) that
+  writes the page's own description and no `og:description`, which no layout
+  can supply; elsewhere a layout may write it, and the render decides: the probe
   now reads `og:description`, and a served page missing either tag is a
   finding on the page. An image and `og:url` need the page's full address, so
   the rule asks for them once a site has one. 160 rules, 40 of them decided by

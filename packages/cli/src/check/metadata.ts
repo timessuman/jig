@@ -40,8 +40,8 @@ const QUOTED = `(?:"([^"]*)"|'([^']*)'|\`([^\`]*)\`)`;
 
 /** `<title>x</title>` and `<meta name="description" content="x">`. */
 const HTML_TITLE = /<title[^>]*>([\s\S]*?)<\/title\s*>/i;
-const HTML_DESCRIPTION = /<meta[^>]+name\s*=\s*["']description["'][^>]*content\s*=\s*["']([^"']*)["']/i;
-const HTML_DESCRIPTION_REVERSED = /<meta[^>]+content\s*=\s*["']([^"']*)["'][^>]*name\s*=\s*["']description["']/i;
+export const HTML_DESCRIPTION = /<meta[^>]+name\s*=\s*["']description["'][^>]*content\s*=\s*["']([^"']*)["']/i;
+export const HTML_DESCRIPTION_REVERSED = /<meta[^>]+content\s*=\s*["']([^"']*)["'][^>]*name\s*=\s*["']description["']/i;
 
 /** Next (`export const metadata`), Nuxt (`useSeoMeta`), Remix/React Router
  *  (`meta`), SvelteKit (`<svelte:head>`), Astro and Hugo/Jekyll front matter. */

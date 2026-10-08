@@ -36,6 +36,30 @@ describe('J-164 in a file that writes its own head', () => {
   });
 });
 
+describe('J-164 in a head fragment that writes its own description', () => {
+  const tag = '<meta name="description" content="Three plans." />';
+
+  it('reports a description with no og:description, in every shape a page writes its head', () => {
+    for (const [file, raw] of [
+      ['+page.svelte', `<svelte:head><title>Pricing</title>${tag}</svelte:head><main>x</main>`],
+      ['pricing.astro', `---\n---\n<Layout><Fragment slot="head">${tag}</Fragment></Layout>`],
+      ['Pricing.tsx', `import Head from 'next/head';\nexport default () => <><Head>${tag}</Head><main>x</main></>;`],
+      ['Pricing.vue', `<template><Head>${tag}</Head><main>x</main></template>`],
+    ]) {
+      expect(run(raw!, 'editorial', file!)[0]?.message, file).toMatch(/no og:description or og:title/);
+    }
+  });
+
+  it('passes a fragment that states the preview too', () => {
+    expect(run(`<svelte:head>${tag}<meta property="og:title" content="Pricing" /><meta property="og:description" content="Three plans." /></svelte:head>`, 'editorial', '+page.svelte')).toEqual([]);
+  });
+
+  it('leaves alone a layout that fills the description from a value, and a page after sign-in', () => {
+    expect(run('<svelte:head><meta name="description" content={description} /></svelte:head>', 'editorial', '+layout.svelte')).toEqual([]);
+    expect(run(`<svelte:head>${tag}</svelte:head>`, 'product', '+page.svelte')).toEqual([]);
+  });
+});
+
 describe('J-164 on the rendered page', () => {
   const probe = (head: Partial<NonNullable<ProbeResult['head']>>): ProbeResult => ({
     jigProbe: 9, width: 360, sidewaysScroll: false, scrollWidth: 360, clientWidth: 360,
