@@ -16,6 +16,8 @@ import type { Detector, Finding } from '../types.js';
 // after signing in; an admin screen in a search result is an invitation, and a
 // sign-in page in one invites credential stuffing.
 
+const HEAD_FRAGMENT = /<svelte:head[\s>]|<head[\s>]|<Head[\s>]|<Helmet[\s>]|slot\s*=\s*["']head["']/;
+
 const INVENTED_DATE = /(?:lastModified|datePublished|dateModified|publishedTime|modifiedTime)\s*:\s*(?:new Date\(\s*\)|Date\.now\(\s*\))/;
 
 export const metadata: Detector = {
@@ -71,7 +73,9 @@ export const metadata: Detector = {
       // a layout adds, it cannot know a description written here, so a link to
       // the page shows a card without it. In a control run a SvelteKit page did
       // exactly this, and no whole document was there for the check to read.
-      const own = HTML_DESCRIPTION.exec(raw) ?? HTML_DESCRIPTION_REVERSED.exec(raw);
+      // Only where the file writes into a head: on jig-site a build script's
+      // regular expression held the same text.
+      const own = HEAD_FRAGMENT.test(raw) ? (HTML_DESCRIPTION.exec(raw) ?? HTML_DESCRIPTION_REVERSED.exec(raw)) : null;
       const indexable = ctx.mode !== 'product' && ctx.mode !== 'operator';
       if (indexable && own && found.description && !found.hasPreviewDescription) {
         at('J-164', own.index, `this file writes the page's description but no og:description${found.hasPreviewTitle ? '' : ' or og:title'} — a link to it, pasted into a message or a post, shows a card without the description written here`);

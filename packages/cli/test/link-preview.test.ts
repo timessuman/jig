@@ -57,6 +57,8 @@ describe('J-164 in a head fragment that writes its own description', () => {
   it('leaves alone a layout that fills the description from a value, and a page after sign-in', () => {
     expect(run('<svelte:head><meta name="description" content={description} /></svelte:head>', 'editorial', '+layout.svelte')).toEqual([]);
     expect(run(`<svelte:head>${tag}</svelte:head>`, 'product', '+page.svelte')).toEqual([]);
+    // A script that only holds the text, here in a regular expression, writes no head.
+    expect(run(`out.replace(/<meta name="description" content="[^"]*"/, '')`, 'editorial', 'verify.mjs')).toEqual([]);
   });
 });
 
