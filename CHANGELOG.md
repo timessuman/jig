@@ -49,6 +49,12 @@
 
 ### Fixed
 
+- **The skill and `spec` say `L-01` has six steps, and `spec` names the sixth.**
+  `L-01` gained step 6, how a screen collapses, and both kept telling the agent
+  to run "its five steps", so it stopped before the one that gives the phone
+  composition. In a control run on this release's reflow text, a spec chose a
+  sideways-scrolling code block for an `editorial` phone. A test now ties the
+  count to `L-01`'s own step headings.
 - **`I-118` exempts quoted output in the rule and in `check`, as the probe
   already did.** The rule exempted a quotation in `<blockquote>` or `<q>`; the
   render probe also leaves `<pre>`, `<code>`, `<samp>` and `<kbd>` alone, and

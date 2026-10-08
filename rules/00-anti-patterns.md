@@ -365,7 +365,7 @@ Without `viewport-fit=cover`, the browser keeps the page inside the safe area on
 
 ### D-115 The page scrolls sideways on a phone
 ❌ At phone width the whole page is wider than the screen — a data table, a long URL, an image, a `width: 100vw` element or a fixed-width block pushes it out, and the reader can drag the page left and right
-✅ At every width, nothing makes the page wider than the screen. Content that is genuinely wider — a data table, a code block — scrolls inside its own container with a visible edge (`E-62`), and the page itself never does. `editorial` goes further and allows no scrolling regions on mobile at all (`M-01`): there a code block wraps its long lines and a wide table stacks its rows (`L-01`, step 5).
+✅ At every width, nothing makes the page wider than the screen. Content that is genuinely wider — a data table, a code block — scrolls inside its own container with a visible edge (`E-62`), and the page itself never does. `editorial` goes further and allows no scrolling regions on mobile at all (`M-01`): there a code block wraps its long lines and a wide table stacks its rows (`L-01`, step 6).
 Judge it on a render, not in the source: at 360px, `document.documentElement.scrollWidth` must not be greater than `document.documentElement.clientWidth`. The usual causes are each one line to fix — `overflow-wrap: anywhere` on text the author does not control, `max-width: 100%` on media, `width: 100%` instead of `100vw` (which includes the scrollbar), and a wrapper with `overflow-x: auto` around anything tabular.
 A page that scrolls sideways is not merely untidy. The reader's vertical swipes drift, the page slides half off the screen, and every line of text needs re-centring before it can be read.
 

@@ -85,7 +85,7 @@ Resolved values: `02-tokens.md` — the option sets for type, spacing, radius an
 - One hero maximum, at the top. A second full-viewport section is a second hero.
 - Every page states its subject above the fold in text, not only in an image.
 - Prose blocks are measure-capped even when the container is wide.
-- No horizontal scrolling regions on mobile. Reflow instead: a code block wraps its long lines, keeping its line breaks and indents, and a table too wide for the screen stacks its rows, each cell with its column's name (`L-01`, step 5).
+- No horizontal scrolling regions on mobile. Reflow instead: a code block wraps its long lines, keeping its line breaks and indents, and a table too wide for the screen stacks its rows, each cell with its column's name (`L-01`, step 6).
 - JavaScript: **none by default.** A content page ships no script unless a feature on it needs some: a theme toggle, a search box, a filter. That is a default, not an absolute zero. Each script names, in a comment, the feature and the decision or rule that asks for it, and a review judges whether the feature needs it and whether it is as small as the feature allows, not whether it exists. What the budget forbids is script no feature asks for: a framework runtime to render static text, a library for one effect, tracking bundled into the page. **Behaviour a rule requires is not a feature and is not counted**: a few lines whose only job is something a rule asks for and the browser does not give, such as `Escape` closing a `<details>` menu, or a tap outside closing a menu in a fixed header (`P-14`), are allowed in every mode, under 1 KB, with the rule named in a comment. Nothing else rides along in them.
 
 ---

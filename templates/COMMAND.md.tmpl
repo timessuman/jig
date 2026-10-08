@@ -322,10 +322,12 @@ Write the answer as `critique: each` or `critique: at-ship`.
 
 ### 2. Run `L-01`
 
-Read `L-01 · Layout method` in `{{rules_path}}/03-patterns.md` and run its five
+Read `L-01 · Layout method` in `{{rules_path}}/03-patterns.md` and run its six
 steps against the answers. The spec's structural half **is** that output — group,
-order by importance, space from the inside out, align to a grid, and state the
-hierarchy plainly enough that the squint question can be answered against it.
+order by importance, space from the inside out, align to a grid, state the
+hierarchy plainly enough that the squint question can be answered against it,
+and decide how it collapses. Step 6 is where the phone composition comes from,
+including what this mode does with a code block or table wider than the screen.
 
 ### 3. Write it down — one composition per screen size
 
@@ -483,7 +485,7 @@ to the spec, never the spec to the decisions.
 - **"The design system decides" is not a value.** When the user defers — "you decide",
   "whatever Jig says", "leave it to the system" — that is an instruction to look the
   answer up, not a phrase to copy into the spec. Search in this order: the `P-`
-  pattern for the component (`{{command_prefix}}explain <component>`), `L-01`'s five
+  pattern for the component (`{{command_prefix}}explain <component>`), `L-01`'s six
   steps, then the rules. Write the composition that lookup gives — "stacked, Pro
   first", "Menu button, links in a vertical list" — and cite the id it came from.
   Three of six specs in a live run wrote "arrangement decided by design system" into
