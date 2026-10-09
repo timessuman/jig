@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.25.0 (2026-10-09)
+
+Link previews, code and tables that reflow on an `editorial` phone, and the
+gate's rules stated before a session stops.
 
 ### Added
 
