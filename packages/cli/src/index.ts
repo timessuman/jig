@@ -6,7 +6,7 @@ import { assetRoot, findProjectRoot, getPackageRoot, isDevVersion, isPublishedBu
 import { install } from './commands/install.js';
 import { update } from './commands/update.js';
 import { explain } from './commands/explain.js';
-import { check } from './commands/check.js';
+import { check, checkExitCode } from './commands/check.js';
 import { init } from './commands/init.js';
 import { verifyVerdicts } from './commands/verdicts.js';
 import { gate, surfacePage, surfacesToProbe } from './commands/gate.js';
@@ -212,6 +212,10 @@ program
         console.error(`  The page changed after these probes. \`jig verdicts ${surface} --reprobe\` re-takes them on the page as it is now.`);
       }
       if (result.ok) console.log(`  Every rule in both passes has a verdict.`);
+      if (result.measured.length) {
+        console.log(`  The page fails ${result.measured.length} check(s) the render probe measured. They are findings on the page, for make or tweak to fix; a critique reports them and leaves the page as it is:`);
+        for (const failure of result.measured) console.log(`  ! ${failure}`);
+      }
       const since = result.decisions.since ?? [];
       if (since.length) console.log(`  ${since.length} decision(s) recorded after this critique, for the next one to judge: ${since.join(', ')}.`);
       const p = result.previous;
@@ -237,7 +241,7 @@ program
     'scan every file in the repo, not just those changed since HEAD (same rules either way)',
     false,
   )
-  .option('--ci', 'mechanical bucket only; exits non-zero on any error, deterministic', false)
+  .option('--ci', 'mechanical bucket only, so the run is deterministic', false)
   .option('--json', 'emit findings as JSON', false)
   .action((opts: { all: boolean; ci: boolean; json: boolean }) => {
     const projectRoot = findProjectRoot(process.cwd());
@@ -250,7 +254,9 @@ program
         ci: opts.ci,
       });
       console.log(opts.json ? JSON.stringify(result.findings, null, 2) : result.report);
-      if (opts.ci && result.hasError) process.exit(1);
+      // Non-zero on a mechanical error, with or without --ci. See checkExitCode.
+      const code = checkExitCode(result);
+      if (code !== 0) process.exit(code);
     } catch (err) {
       console.error((err as Error).message);
       process.exit(1);

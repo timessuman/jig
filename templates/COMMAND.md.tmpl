@@ -322,10 +322,12 @@ Write the answer as `critique: each` or `critique: at-ship`.
 
 ### 2. Run `L-01`
 
-Read `L-01 · Layout method` in `{{rules_path}}/03-patterns.md` and run its five
+Read `L-01 · Layout method` in `{{rules_path}}/03-patterns.md` and run its six
 steps against the answers. The spec's structural half **is** that output — group,
-order by importance, space from the inside out, align to a grid, and state the
-hierarchy plainly enough that the squint question can be answered against it.
+order by importance, space from the inside out, align to a grid, state the
+hierarchy plainly enough that the squint question can be answered against it,
+and decide how it collapses. Step 6 is where the phone composition comes from,
+including what this mode does with a code block or table wider than the screen.
 
 ### 3. Write it down — one composition per screen size
 
@@ -483,7 +485,7 @@ to the spec, never the spec to the decisions.
 - **"The design system decides" is not a value.** When the user defers — "you decide",
   "whatever Jig says", "leave it to the system" — that is an instruction to look the
   answer up, not a phrase to copy into the spec. Search in this order: the `P-`
-  pattern for the component (`{{command_prefix}}explain <component>`), `L-01`'s five
+  pattern for the component (`{{command_prefix}}explain <component>`), `L-01`'s six
   steps, then the rules. Write the composition that lookup gives — "stacked, Pro
   first", "Menu button, links in a vertical list" — and cite the id it came from.
   Three of six specs in a live run wrote "arrangement decided by design system" into
@@ -598,6 +600,34 @@ checks it for a drawing in frames: while `mockup: approved`, each region the spe
 its size's frame of the drawing at `mockup_at:`. Otherwise a spec can go through
 several confirmed rounds after its drawing was approved and still say `approved`
 over a drawing of none of them.
+
+### Before you stop: what the gate holds a spec to
+
+With the Stop hook, each of these keeps the session open until it is fixed. Get
+them right as you write, not after the gate names them:
+
+- **A spec writes under `.jig/` only.** A change to `DECISIONS.md`, a stylesheet or
+  a page is for `{{command_prefix}}decide`, `make` or `tweak`: record in the spec
+  what the owner said, and hand the change on.
+- **The front matter holds Jig's fields and nothing else.** Anything more goes in
+  the prose below it.
+- **Quotation marks within a few words after "owner", or after "the user said",
+  mark the owner's words.** What is inside them must be what the owner said: in
+  this conversation, in `DECISIONS.md`, or already in the spec. To name a
+  decision, a heading or a file near the word "owner", leave the quotation marks
+  off.
+- **`<name>.checked.json` is of the spec as it stands.** Its `spec` value matches
+  `{{scripts_path}} checksum <name>`, so an edit after the check means a second
+  check, of what changed.
+- **Each fact has one `source`:** a path from the project root, `path:line`, or a
+  URL, and nothing else. The file exists and the line is in it. Two places are two
+  facts; what you found at the source goes in `note`.
+- **`holds` is `true`, `false` or `"unchecked"`, with a `note` for anything but
+  `true`.** A fact found false is fixed in the spec before the owner is asked.
+- **`confirmed: true` only on the owner's yes, in this session, to the sheet you
+  showed them.** Words in the request that started the session came before the
+  sheet existed, and are not a reply to it, even when they say the owner
+  confirms. Show the sheet and stop.
 
 ## mockup
 
@@ -848,6 +878,22 @@ confirmed again.
 
 With the Stop hook, the gate reads the quotation after `approved` or `skipped` and
 holds it to what the owner said in this session.
+
+### Before you stop: what the gate holds a mockup to
+
+- **A mockup writes under `.jig/` only:** the drawing in `.jig/mockups/`, and the
+  spec's `mockup:` and `mockup_at:` lines.
+- **The drawing shows what the spec lists**, at every size, and either side of each
+  switch the page crosses. The gate checks this before you put it to the owner.
+- **`mockup:` stays `pending` until the owner answers.** Then it is `approved` or
+  `skipped`, followed by their words in quotation marks: the reply that approves
+  this drawing, or says to skip it. Words that only say they looked at it, or
+  that are about something else, are not their word on the drawing. Ask them
+  whether they approve it for `make`, and quote the answer.
+- **`mockup_at:` names the approved drawing**, a file under `.jig/mockups/` that
+  exists, or a link.
+- **An approved drawing does not change.** Changing it after approval sets
+  `mockup: pending` and puts it to the owner again.
 
 Then stop. The next step is `{{command_prefix}}make`.
 
@@ -1242,9 +1288,13 @@ The probe opens the phone menu, presses Escape, measures sideways scroll, and re
 whether the styles and tokens actually applied. `verdicts` refuses `rendered: true`
 without a probe at each width, and refuses an `ok` the probe contradicts — a `P-14`
 "ok" on a menu that did not open, a `D-115` "ok" on a page that scrolls sideways. It
-also fails a page that renders in the browser's default font, or shows `${` to
-readers, whatever the verdicts say. Never write a probe file yourself: when it
-disagrees with you, it is the review that is wrong.
+also names what the page fails whatever the verdicts say: it renders in the
+browser's default font, shows `${` or an em dash to readers, or serves a missing
+or overlong title or description. Those are findings on the page, listed under
+`!` and counted as `measured=` on the `JIG_VERDICTS` line. Put each in the report;
+make or tweak fixes them, and the critique leaves the page as it is.
+Never write a probe file yourself: when it disagrees with you, it is the review
+that is wrong.
 Then run:
 
 ```
@@ -1539,6 +1589,21 @@ does); keep `ids` named for whoever
 judges it, and leave the verdicts alone. The page then owes a critique, and
 `{{command_prefix}}ship` will not pass until one has judged it. Never defer it
 on your own account: the gate refuses a deferral nobody gave.
+
+### Before you stop: what the gate holds a tweak to
+
+- **The spec is confirmed, and its mockup approved or skipped.** A page that has
+  neither goes through `mockup` and `make`.
+- **The page's regions and its approved drawing stay as they were.** A change to
+  what the page holds goes through `spec` and `mockup`.
+- **`tweak.json` holds `at`, `change`, `ids` and, when the owner said so,
+  `deferred`, and no other field.**
+- **`change` is the owner's words for the change, exactly as they gave them in
+  this session.** Nothing goes before or after them, not even a label such as
+  "the owner's words:". What you made of them goes in the spec's Tweak entry.
+- **`ids` names at least one rule or decision**, and each is re-judged by a reader
+  that did not make the change, unless `deferred` quotes the owner telling you to
+  leave it for later (or is `true` where the page's critique waits for ship).
 
 ### Finish
 

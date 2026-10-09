@@ -365,7 +365,7 @@ Without `viewport-fit=cover`, the browser keeps the page inside the safe area on
 
 ### D-115 The page scrolls sideways on a phone
 ❌ At phone width the whole page is wider than the screen — a data table, a long URL, an image, a `width: 100vw` element or a fixed-width block pushes it out, and the reader can drag the page left and right
-✅ At every width, nothing makes the page wider than the screen. Content that is genuinely wider — a data table, a code block — scrolls inside its own container with a visible edge (`E-62`), and the page itself never does. `editorial` goes further and allows no scrolling regions on mobile at all (`M-01`).
+✅ At every width, nothing makes the page wider than the screen. Content that is genuinely wider — a data table, a code block — scrolls inside its own container with a visible edge (`E-62`), and the page itself never does. `editorial` goes further and allows no scrolling regions on mobile at all (`M-01`): there a code block wraps its long lines and a wide table stacks its rows (`L-01`, step 6).
 Judge it on a render, not in the source: at 360px, `document.documentElement.scrollWidth` must not be greater than `document.documentElement.clientWidth`. The usual causes are each one line to fix — `overflow-wrap: anywhere` on text the author does not control, `max-width: 100%` on media, `width: 100%` instead of `100vw` (which includes the scrollbar), and a wrapper with `overflow-x: auto` around anything tabular.
 A page that scrolls sideways is not merely untidy. The reader's vertical swipes drift, the page slides half off the screen, and every line of text needs re-centring before it can be read.
 
@@ -376,6 +376,7 @@ Agents render the happy path. This section exists because that is the single mos
 ### E-28 Missing states
 ❌ A component with only a default appearance
 ✅ Every interactive element defines: `hover`, `focus-visible`, `active`, `disabled`. Every data view defines: loading, empty, error, and partial/truncated.
+A browser makes an `<iframe>` a tab stop whether or not anything in it can be used. One that only shows something, with nothing inside to operate or scroll, is taken out of the tab order (`tabindex="-1"`) rather than given states it has no use for; a keyboard reader otherwise meets a stop with nothing to see. One the reader uses (a player, a map, a form) keeps its stop and shows focus.
 
 ### E-29 Focus removed without replacement
 ❌ `outline: none` with nothing in its place
@@ -411,7 +412,7 @@ Where disabling is genuinely right, put a message beside it or a tooltip on it e
 ❌ A toolbar of icon-only buttons whose meaning depends on recognising the glyph
 ✅ A visible text label beside the icon, or the icon plus label on the primary path.
 This is **not** the same problem as `E-34`. An `aria-label` serves a screen reader and does nothing for a sighted user with low computer literacy, or anyone meeting an unfamiliar glyph. Both are required.
-Icon-only is acceptable for a small set of near-universal glyphs (close, search, menu) and in `operator`, where repetition builds recognition — and even there, on first-run surfaces the label stays.
+Icon-only is acceptable for a small set of near-universal glyphs and in `operator`, where repetition builds recognition — and even there, on first-run surfaces the label stays. Close, search and menu are examples, not the whole list: the test is whether most readers would name the glyph the same way without the label. A sun and moon for the theme, or a service's own widely known mark linking to it, usually pass; a funnel, a sparkle or a lightning bolt does not. An icon-only control still carries its name in text a screen reader reads (`E-34`).
 
 ### E-52 Unconventional controls
 ❌ A bespoke form field, checkbox or select that looks and behaves unlike every other one the user has met
@@ -712,6 +713,11 @@ A second copy of the positioning is a second thing to keep in step by hand, whic
 ❌ A sitemap that renders with no entries because a content read failed, asserting the site has nothing
 ✅ Concatenate the static routes unconditionally, and let a failed read yield the stale list rather than an empty one. When a list is genuinely empty, prove it before shipping.
 An empty sitemap is not a missing sitemap. It is a positive claim, and the crawler believes it.
+
+### J-164 An indexable page a link preview cannot read
+❌ A link pasted into a message or a post that shows a bare address, or the site's name over a line of its navigation
+✅ Every indexable page states its own preview: `og:title` and `og:description`, beside its `<title>` and meta description, and `og:type` for what it is (`article` for a post). An image and `og:url` take the page's full address: add them once the site has one, never as a relative path.
+The card is met before the page, often by someone who never opens it. Without these tags each service builds the card from whatever it finds, and they find different things. A preview is copy, like the title and description: the change that rewrites the page rewrites its card (`J-120`), and a value the page already holds is read, not typed again (`J-126`).
 
 ---
 

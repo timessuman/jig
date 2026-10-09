@@ -27,13 +27,13 @@ later.
 Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
 They are two halves of the same thing, and the split is not arbitrary:
 
-- Of the 159 rules, **39 can be decided by a machine** — a hard-coded colour, a
+- Of the 160 rules, **40 can be decided by a machine** — a hard-coded colour, a
   contrast ratio below the floor, a removed focus ring. The CLI decides those.
 - The other **120 are judgment** — whether an empty state says anything useful,
   whether a label reads as an instruction, whether motion earns its place. No
   regex settles those. An agent reads the rules and applies them.
 
-Running only the CLI gets you the 39. Running only the agent gets you the 120 with
+Running only the CLI gets you the 40. Running only the agent gets you the 120 with
 no verification. **A clean `jig check` is not a clean review**, and the skill
 says so to every agent that reads it.
 
@@ -406,7 +406,7 @@ overwrites a config or brand file you have edited.
 | --- | --- |
 | `install --agent <name> [--scope project\|global] [--hook]` | Puts the skill and its rules where your agent will find them. At project scope, also keeps Jig's block in `AGENTS.md` (and `CLAUDE.md` for Claude Code); with `--hook`, adds the Stop hook. |
 | `init [--yes]` | Sets the project up: CSS system, brand colour, token files, `jig.config.json`, wired imports, baseline check. |
-| `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id. |
+| `check [--all] [--ci] [--json]` | Runs the rules a machine can decide. Reports findings by rule id, and exits non-zero on any mechanical error. |
 | `update` | Refreshes an install to a newer version, leaving alone any file you have edited. |
 | `seo [--json]` | Audits what a search engine and a link preview read, across the whole project: a route whose metadata says `noindex` sitting in the sitemap, two pages claiming one title, a sitemap that lists nothing or lists paths a crawler drops. Whether a sitemap and a robots file exist is counted, not reported: no rule asks for either, and a site with no domain yet cannot write an honest sitemap. Needs no config, no decisions and no spec. |
 | `checksum <spec>` | Prints a spec's checksum, the value its `.checked.json` records as `spec`, so the spec's reader never computes it by hand. |
@@ -422,7 +422,7 @@ Flags worth knowing:
 | --- | --- |
 | `check --all` | Scan the whole repo instead of just changed files. Use on a first run. |
 | `explain --list` | Every rule id and title. Add a section letter (`explain G --list`) for one section. |
-| `check --ci` | Mechanical bucket only — deterministic, and exits non-zero on any error. |
+| `check --ci` | Mechanical bucket only, so the run is deterministic. |
 | `check --json` | Machine-readable findings, for tooling or for reading every finding when the terminal output elides repeats. |
 | `init --yes` | Non-interactive; accept every derived default. |
 | `install --scope global` | Install once for every project. |
@@ -435,9 +435,12 @@ mean it could never move.
 
 ### As slash commands
 
-Every command is also a slash command in your agent, installed alongside the
-skill. `/jig check --all` does what `npx jig-ui check --all` does, and then acts
-on the result — the CLI reports, the agent applies the judgment half.
+Every command but `gate`, which only the Stop hook runs, is also a slash command
+in your agent, installed alongside the skill. `/jig check --all` does what
+`npx jig-ui check --all` does, and then acts on the result — the CLI reports, the
+agent applies the judgment half. Six slash commands are agent procedures with no
+command of their own in the CLI: `decide`, `spec`, `mockup`, `make`, `critique` and
+`tweak` (`critique` runs `verdicts` and `probe` along the way).
 
 | Slash command | Equivalent |
 | --- | --- |
@@ -642,7 +645,8 @@ metadata in the same change as the headline, and `check` holds the budgets.
 
 **Which pages are meant to be found is decided by mode, not by taste.**
 `editorial` is first-visit content, so it is indexable and needs its own title
-and description. `product` and `operator` are what somebody reaches after signing
+and description, and its own link preview (`og:title` and `og:description`) for
+the card a pasted link shows. `product` and `operator` are what somebody reaches after signing
 in, so they must carry `noindex` — an admin screen in a search result is an
 invitation, and a sign-in page in one invites credential stuffing. A spec
 overrides the default per page, with a reason: a CV shared by link, a
@@ -697,7 +701,7 @@ No agent required. `check` is a linter with a design system behind it.
 ```bash
 npx jig-ui@latest check --all      # everything
 npx jig-ui@latest check            # just what changed
-npx jig-ui@latest check --ci       # for CI: deterministic, non-zero on error
+npx jig-ui@latest check --ci       # for CI: mechanical rules only, deterministic
 npx jig-ui@latest check --json     # for tooling
 ```
 
@@ -793,7 +797,7 @@ treatment.
 
 | File | Contents |
 | --- | --- |
-| `rules/00-anti-patterns.md` | 128 universal rules with corrections |
+| `rules/00-anti-patterns.md` | 129 universal rules with corrections |
 | `rules/01-modes.md` | `editorial` / `product` / `operator` profiles |
 | `rules/02-tokens.md` | Token contract, naming, consumption |
 | `rules/03-patterns.md` | Component anatomy and behaviour |

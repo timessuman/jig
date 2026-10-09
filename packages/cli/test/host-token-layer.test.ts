@@ -133,3 +133,42 @@ describe('project participation does not depend on what is being checked', () =>
     expect(result.findings.map((f) => f.ruleId)).toContain('H-47');
   });
 });
+
+describe('a file styled only with utility classes was examined', () => {
+  // H-47 reads class attributes from the raw markup, outside any style region.
+  // The styled-file count looked at style regions alone, so a commit changing
+  // only `class="text-[#ff0000] p-[13px]"` reported the H-47 errors and then,
+  // below them, that no file carried a style region and the detectors examined
+  // nothing. The count and the findings must describe the same run.
+  it('counts it as styled on a changed-files run, and does not say nothing was examined', () => {
+    write('src/pages/index.astro', '<main class="p-4">hello</main>\n');
+    const git = (...args: string[]) =>
+      execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=T', ...args], { cwd: project });
+    git('init', '-q');
+    git('add', '-A');
+    git('commit', '-qm', 'base');
+
+    write('src/pages/index.astro', '<main class="p-4">hello</main>\n<p class="text-[#ff0000] p-[13px]">x</p>\n');
+    expect(selectFiles(project, false).files).toEqual(['src/pages/index.astro']);
+
+    const result = check({ projectRoot: project, homeDir: project, version: '0.4.0', all: false, ci: false });
+    expect(result.findings.map((f) => f.ruleId)).toContain('H-47');
+    expect(result.report).not.toContain('examined nothing');
+    expect(result.report).toMatch(/styled=1\b/);
+  });
+
+  it('counts markup whose classes are all on the scale, since the detectors read them', () => {
+    write('src/Fine.tsx', 'export const F = () => <div className="p-4 text-sm rounded-lg flex">x</div>;\n');
+    rmSync(join(project, 'src', 'app.css'));
+    const result = run();
+    expect(result.findings).toEqual([]);
+    expect(result.report).toMatch(/styled=1\b/);
+    expect(result.report).not.toContain('Nothing inspected.');
+  });
+
+  it('does not count a pure script file that only holds a className string', () => {
+    write('src/data.ts', 'export const cls = "text-[#ff0000]";\n');
+    rmSync(join(project, 'src', 'app.css'));
+    expect(run().report).toMatch(/styled=0\b/);
+  });
+});

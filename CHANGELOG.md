@@ -1,5 +1,107 @@
 # Changelog
 
+## 0.25.0 (2026-10-09)
+
+Link previews, code and tables that reflow on an `editorial` phone, and the
+gate's rules stated before a session stops.
+
+### Added
+
+- **The render probe measures a box that scrolls sideways.** `editorial`
+  allows no scrolling region on a phone (`M-01`), and the probe only measured
+  a page wider than the screen. In a control run on this release's reflow
+  text, a spec said the code would wrap and the built page scrolled it in a
+  box, and nothing caught it. The probe now records each box that scrolls
+  sideways, and on an `editorial` surface at phone width each is a measured
+  failure: a critique reports it, `ship` counts it, and the gate holds make and
+  tweak until the page reflows.
+- **J-164: an indexable page a link preview cannot read.** A page pasted into a
+  message or a post is met as a card before anyone opens it, and the card is
+  built from `og:title` and `og:description`. Section J said it covered the link
+  preview, and no rule asked for one, so `seo` and `check` passed a site with no
+  preview on any page. `check` reports it in a file that writes its own
+  `<head>`, and in a head fragment (`<svelte:head>`, Astro, `next/head`) that
+  writes the page's own description and no `og:description`, which no layout
+  can supply; elsewhere a layout may write it, and the render decides: the probe
+  now reads `og:description`, and a served page missing either tag is a
+  finding on the page. An image and `og:url` need the page's full address, so
+  the rule asks for them once a site has one. 160 rules, 40 of them decided by
+  a machine.
+
+### Changed
+
+- **`editorial` on a phone says what replaces a scrolling box.** `L-01` sent a
+  wide code block or table to scroll inside itself, and the same sentence said
+  `editorial` allows no scrolling region on mobile, naming nothing in its
+  place. `L-01`, `D-115` and `M-01` now say it: a code block keeps its line
+  breaks and indents and wraps its long lines, a table too wide for the screen
+  stacks its rows with each cell's column name in front and stays a `<table>`,
+  and a long identifier breaks where it must.
+- **`E-51`'s near-universal glyphs are a test, not a list.** Close, search and
+  menu were read as the only icon-only controls allowed. The rule now asks
+  whether most readers would name the glyph the same way without its label,
+  with examples that pass (a theme's sun and moon, a well-known service's mark)
+  and that do not.
+- **`E-28` says what a browser's own tab stop on an `<iframe>` gets.** One that
+  only shows something is taken out of the tab order rather than given states;
+  one the reader uses keeps its stop and shows focus.
+- **spec, mockup and tweak each end with what the gate holds them to.** A short
+  "Before you stop" list names the checks the Stop hook makes on what that
+  command records, beyond the shape its steps already teach: where it may write, whose words a quotation is, the check record's
+  format, what counts as the owner's confirmation or approval, and what
+  `tweak.json` holds. Sessions learned these from refusals, and each refusal
+  cost a round of fixing, re-checking and committing. A test pairs each check
+  with its line in the list, so a check added without one fails.
+- **`jig check` exits non-zero on a mechanical error, with or without `--ci`.**
+  It used to exit 0 whatever it found, so a pre-commit hook, a CI step or a
+  script running it as a linter read a run full of errors as a pass. Judgment
+  findings are still reported without failing the run. `--ci` now only limits
+  the run to the mechanical rules.
+
+### Fixed
+
+- **The skill and `spec` say `L-01` has six steps, and `spec` names the sixth.**
+  `L-01` gained step 6, how a screen collapses, and both kept telling the agent
+  to run "its five steps", so it stopped before the one that gives the phone
+  composition. In a control run on this release's reflow text, a spec chose a
+  sideways-scrolling code block for an `editorial` phone. A test now ties the
+  count to `L-01`'s own step headings.
+- **`I-118` exempts quoted output in the rule and in `check`, as the probe
+  already did.** The rule exempted a quotation in `<blockquote>` or `<q>`; the
+  render probe also leaves `<pre>`, `<code>`, `<samp>` and `<kbd>` alone, and
+  `check` exempted none of them. A page quoting a tool's real output was told
+  by `check` to rewrite it, and by the rule to keep the quotation's own
+  punctuation. All three now agree.
+- **A critique is no longer held on what the page fails.** An em dash on the
+  rendered page, a missing or overlong title or description, unresolved tokens
+  or the browser's default font are failures of the page, not of the review.
+  `verdicts` reported them as a critique left incomplete, so the gate held the
+  critique session until they were gone, and the session could clear them only
+  by editing the page, which a critique never does. They are now listed apart,
+  under `!`, as `measured=` on the `JIG_VERDICTS` line, and once each rather than
+  at every width. A critique reports them and finishes; `ship` counts them as
+  findings, and the gate holds make and tweak until the page is fixed. A verdict
+  the probe contradicts still means the review re-runs.
+- **A quoted `mockup:` value reads as the value it holds.** A spec that wrote
+  `mockup: "skipped — the owner: \"…\""`, valid YAML, read to the gate as the
+  word `"skipped`, so every tweak of the page was refused for having no approved
+  drawing, and the check that the owner's words are quoted was silently skipped.
+- **An em dash inside tool output no longer counts as the page's own.** The
+  probe leaves quotations and `<pre>`, `<code>`, `<samp>` and `<kbd>` out of the
+  dash scan, but it cut them out of the page's text one string at a time. An
+  inline `<code>` earlier in the prose, such as a rule id, removed those
+  characters from the output block below it, the block no longer matched, and
+  its dash was reported. Quotations are now left out of the text as it is read.
+- **The README no longer says every command is also a slash command.** `gate`
+  has no slash form (only the Stop hook runs it), and six slash commands are
+  agent procedures with no command of their own in the CLI. The table under it
+  was right; the sentence above it now says what the table does.
+- **`check` no longer says it examined nothing while reporting findings.** A
+  file styled only with utility classes, such as `class="p-[13px]"`, is read by
+  H-47 but was left out of the styled-file count. A change to such a file
+  reported H-47 errors and, below them, that no file carried a style region. The
+  count now includes markup whose class attributes hold classes.
+
 ## 0.24.0 (2026-09-30)
 
 The owner's word held to one rule, Jig's instructions in your project's AGENTS.md,

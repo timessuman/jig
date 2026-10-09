@@ -7,11 +7,12 @@ import { formatReport } from '../check/report.js';
 import { participatesInTokenLayer } from '../check/token-layer.js';
 import { loadSpecs } from '../rules/specs.js';
 import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
+import { classAttributeValues } from '../check/tailwind.js';
 import { runChecks } from '../check/run.js';
 import { loadTokenMap } from '../check/tokens.js';
 import { applyExemptions, readExemptions, suggestPaths } from '../check/exempt.js';
 import { applyWaivers, type Waived } from '../check/waiver.js';
-import { maskNonStyleRegions } from '../check/styles.js';
+import { isMarkupHost, maskNonStyleRegions } from '../check/styles.js';
 import { maskComments } from '../check/css.js';
 import { isResponsive } from '../check/responsive.js';
 import { hasMenuToggle } from '../check/menu-toggle.js';
@@ -30,7 +31,8 @@ export interface CheckOptions {
   version: string;
   /** Whole-repo instead of just changed files (the first-run case). */
   all: boolean;
-  /** Mechanical bucket only; the caller should exit non-zero on `hasError`. */
+  /** Mechanical bucket only. The exit code is the same either way: see
+   *  `checkExitCode`. */
   ci: boolean;
 }
 
@@ -39,12 +41,27 @@ export interface CheckResult {
   /** Rendered report — plain text unless the caller wants JSON, which it
    *  can build itself from `findings`. */
   report: string;
-  /** True when any mechanical-bucket finding is `error` severity — what
-   *  `--ci` should exit non-zero on. */
+  /** True when any mechanical-bucket finding is `error` severity — what the
+   *  CLI exits non-zero on, with or without `--ci`. */
   hasError: boolean;
   /** Warnings a `jig-allow <ID>: <why>` comment waived on their own line. Not
    *  in `findings`, and printed in the report on every run. See check/waiver.ts. */
   waived: Waived[];
+}
+
+/**
+ * The exit code `jig check` ends with: 1 when a mechanical error was found,
+ * whatever the flags.
+ *
+ * Plain `check` used to exit 0 on errors, and only `--ci` failed. Every caller
+ * that ran it as a linter — a pre-commit hook, a CI step, a script — read a run
+ * that printed errors as a pass. Only mechanical errors count: they are
+ * deterministic, while a hybrid finding needs judgment, so it is reported and
+ * never fails the run. `--ci` keeps its own job, limiting the run to the
+ * mechanical bucket.
+ */
+export function checkExitCode(result: Pick<CheckResult, 'hasError'>): number {
+  return result.hasError ? 1 : 0;
 }
 
 /** Pre-0.4.0 projects had `install` vendor `rules.index.json` straight into
@@ -235,12 +252,17 @@ export function check(opts: CheckOptions): CheckResult {
   // reader checking whether the run covered their codebase needs the number
   // that had something to inspect — and a run where that number is zero is not
   // a pass, however clean it looks. See `ReportMeta.withStyles`.
+  //
+  // Class attributes count. H-47 reads utility classes (`p-[13px]`) straight
+  // from the markup, outside any style region. Counting style regions alone
+  // made a file styled only with classes read as unexamined, so one run
+  // reported H-47 errors and, below them, that the detectors examined nothing.
   const withStyles = files.filter((f) => {
     try {
       const src = readFileSync(join(opts.projectRoot, f), 'utf8');
-      return hasExtension(f, CSS_EXTENSIONS)
-        ? src.trim().length > 0
-        : maskNonStyleRegions(src, f).trim().length > 0;
+      if (hasExtension(f, CSS_EXTENSIONS)) return src.trim().length > 0;
+      if (maskNonStyleRegions(src, f).trim().length > 0) return true;
+      return isMarkupHost(f) && classAttributeValues(src).some((a) => a.classes.trim().length > 0);
     } catch {
       return false;
     }

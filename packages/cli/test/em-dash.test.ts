@@ -19,6 +19,16 @@ describe('em-dash (I-118)', () => {
     expect(run('<input placeholder="Search — by name">')).toHaveLength(1);
   });
 
+  // The rule's exemption: a quotation, and a program's own output or code
+  // shown as it is, keep their punctuation. The page's own copy does not.
+  it('leaves a quotation and quoted output alone, and still reads the copy around it', () => {
+    for (const tag of ['blockquote', 'q', 'pre', 'code', 'samp', 'kbd']) {
+      expect(run(`<${tag}>warning — is this deliberate?</${tag}>`), tag).toHaveLength(0);
+    }
+    expect(run('<pre><code>A-01 Violet hue — is this a brand choice?\n</code></pre>')).toHaveLength(0);
+    expect(run('<p>It warns — see below</p>\n<pre>a — b</pre>')).toHaveLength(1);
+  });
+
   it('leaves the en dash alone: a range is not a pause', () => {
     expect(run('<p>2–10 seats, Mon–Fri</p>')).toHaveLength(0);
   });

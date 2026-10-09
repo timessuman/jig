@@ -6,9 +6,10 @@ import { join } from 'node:path';
 import { gate, probesLeftBehind } from '../src/commands/gate.js';
 import { registeredCommands } from './helpers/registered-commands.js';
 import { PAGE_STATES, pageChecksum, ship } from '../src/commands/ship.js';
-import { specChecksum } from '../src/check/spec-checked.js';
+import { mockupField, specChecksum } from '../src/check/spec-checked.js';
 import { newFieldProblems, SPEC_FIELDS, specProblems } from '../src/check/spec-shape.js';
 import { checksum } from '../src/install/manifest.js';
+import { saveProbe } from '../src/probe/save.js';
 import { repoRoot } from './helpers/registered-commands.js';
 
 /**
@@ -142,6 +143,53 @@ describe('jig ship', () => {
   });
 });
 
+/**
+ * A critique judges and does not edit. Held on an em dash as an unfinished
+ * review, a critique session edited the page to clear it, reverted the edit as
+ * no critique's to make, and spent its whole budget doing both.
+ */
+describe('what the render probe measured the page failing', () => {
+  const probed = (emDashes: string[]) => {
+    critiqued('pricing');
+    const page = join(root, 'pricing.html');
+    writeFileSync(page, '<html><body><a href="/">home</a></body></html>');
+    writeFileSync(join(dir('pricing'), '360.png'), 'png');
+    const screen = JSON.parse(readFileSync(join(dir('pricing'), 'screen.json'), 'utf8'));
+    writeFileSync(join(dir('pricing'), 'screen.json'), JSON.stringify({ ...screen, rendered: true, artefacts: ['.jig/critique/pricing/360.png'] }));
+    const base = {
+      jigProbe: 9, sidewaysScroll: false, defaultFont: false, unresolvedTokens: [], junkText: [], brokenImages: 0, emDashes,
+      url: `file://${page}`,
+    };
+    saveProbe({ projectRoot: root, surface: 'pricing', json: JSON.stringify({ ...base, width: 360, scrollWidth: 360, clientWidth: 360, navLinksVisible: 0,
+      menu: { opened: true, labelChanged: true, escapeCloses: true, focusReturned: true, expandedBefore: 'false', expandedAfter: 'true', linksBefore: 0, linksAfter: 5 } }) });
+    for (const width of [768, 1280, 1600]) {
+      saveProbe({ projectRoot: root, surface: 'pricing', json: JSON.stringify({ ...base, width, scrollWidth: width, clientWidth: width, navLinksVisible: 5, menu: null }) });
+    }
+  };
+
+  it('is a finding at ship, not a critique left unfinished', () => {
+    probed(['Team — $49 a month']);
+    const r = state();
+    expect(r.ready).toBe(false);
+    expect(r.report).toMatch(/✗ pricing: the page fails 1 check the render probe measured \(`jig verdicts pricing` lists them\)/);
+    expect(r.report).not.toMatch(/not complete/);
+  });
+
+  it('does not hold the critique that reports it, and holds the session that builds the page', () => {
+    probed(['Team — $49 a month']);
+    expect(session('critique').reason ?? '').not.toMatch(/the page fails what the render probe measured|not complete/);
+    const make = session('make');
+    expect(make.block).toBe(true);
+    expect(make.reason).toMatch(/the page fails what the render probe measured\. Fix the page/);
+    expect(make.reason).toMatch(/I-118/);
+  });
+
+  it('reads a page the probe measured clean as judged', () => {
+    probed([]);
+    expect(state().report).toMatch(/✓ pricing: judged as it stands/);
+  });
+});
+
 describe('the lock records the page it judged', () => {
   it('writes the page the probes name, with its checksum', () => {
     critiqued('pricing');
@@ -167,6 +215,20 @@ describe('a tweak whose re-judge waits', () => {
     deferredTweak('leave the critique for later');
     expect(session('tweak', 'Tighten the plan names. Leave the critique for later.').reason ?? '').not.toMatch(/defers its re-judge/);
     expect(state().report).toMatch(/✗ pricing: a tweak deferred its re-judge/);
+  });
+
+  // jig-site: three specs held their mockup word as a quoted YAML value, and
+  // the gate refused every tweak of them as having no approved drawing.
+  it('reads a quoted mockup value as the value YAML gives', () => {
+    writeFileSync(join(root, '.jig', 'specs', 'pricing.spec.md'), spec().replace(
+      'mockup: skipped — the owner: "a small page"',
+      'mockup: "skipped — the owner: \\"a small page\\""',
+    ));
+    deferredTweak('leave the critique for later');
+    expect(session('tweak', 'Tighten the plan names. Leave the critique for later.').reason ?? '').not.toMatch(/`mockup:` is/);
+    expect(mockupField('---\nmockup: "skipped — the owner: \\"a small page\\""\n---')).toBe('skipped — the owner: "a small page"');
+    expect(mockupField("---\nmockup: 'approved — the owner''s \"yes\"'\n---")).toBe('approved — the owner\'s "yes"');
+    expect(mockupField('---\nmockup: pending\n---')).toBe('pending');
   });
 
   it('is refused when nobody said to wait', () => {

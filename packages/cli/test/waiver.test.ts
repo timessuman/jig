@@ -60,7 +60,7 @@ describe('check reports what it waived', () => {
     const root = mkdtempSync(join(tmpdir(), 'jig-waived-'));
     execFileSync('git', ['init', '-q'], { cwd: root });
     writeFileSync(join(root, 'a.html'),
-      '<!doctype html><html><head><title>t</title><meta name="description" content="d"></head><body><main>\n' +
+      '<!doctype html><html><head><title>t</title><meta name="description" content="d"><meta property="og:title" content="t"><meta property="og:description" content="d"></head><body><main>\n' +
       '<!-- jig-allow I-118: a quoted book title keeps its dash -->\n<p>One — two</p>\n</main></body></html>');
     const r = check({ projectRoot: root, homeDir: '', version: 't', all: true, ci: false });
     expect(r.waived.map((w) => w.ruleId)).toEqual(['I-118']);

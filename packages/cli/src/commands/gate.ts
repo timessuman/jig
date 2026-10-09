@@ -11,7 +11,7 @@ import { selectFiles } from '../check/files.js';
 import { isReaderText, isStyleBearing } from '../check/ext.js';
 import { decisionsFile, quoteHeld, quotesNotFrom, unsourcedReasons } from '../check/decisions.js';
 import { critiqueAtShip, pageChecksum, ship } from './ship.js';
-import { mockupPending, mockupWordProblems, specCheckProblems } from '../check/spec-checked.js';
+import { mockupField, mockupPending, mockupWordProblems, specCheckProblems } from '../check/spec-checked.js';
 import { ownerWordProblem } from '../check/owner-word.js';
 import { checksum } from '../install/manifest.js';
 import { recordedPage } from '../probe/save.js';
@@ -412,7 +412,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
 
   if (command === 'mockup' && spec) {
     const front = spec.body.split(/^---\s*$/m)[1] ?? '';
-    const mockup = /^\s*mockup\s*:\s*(.+)$/im.exec(front)?.[1]?.trim() ?? '';
+    const mockup = mockupField(spec.body);
     if (/^pending/i.test(mockup) || !mockup) problems.push(`${spec.path}: \`mockup:\` is still pending. It records the user's own word — approved, or skipped with their reason.`);
     const at = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '') ?? '';
     if (/^approved/i.test(mockup)) {
@@ -428,7 +428,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
   // A spec that changed after its drawing was approved no longer has one.
   if ((command === 'spec' || command === 'make') && spec) {
     const front = spec.body.split(/^---\s*$/m)[1] ?? '';
-    const mockup = /^\s*mockup\s*:\s*(\S+)/im.exec(front)?.[1] ?? '';
+    const mockup = mockupField(spec.body);
     const at = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '') ?? '';
     if (/^approved/i.test(mockup) && /\.html?$/i.test(at) && !/^https?:/i.test(at)) {
       const drift = approvedDrawingProblems(root, spec.body, at);
@@ -463,7 +463,7 @@ function commandProblems(root: string, command: string, surface?: string, start?
   // still said approved.
   if (command === 'mockup' && spec) {
     const front = spec.body.split(/^---\s*$/m)[1] ?? '';
-    const mockup = /^\s*mockup\s*:\s*(\S+)/im.exec(front)?.[1] ?? '';
+    const mockup = mockupField(spec.body);
     const at = /^\s*mockup_at\s*:\s*(.+)$/im.exec(front)?.[1]?.trim().replace(/^["']|["']$/g, '') ?? '';
     if (/^approved/i.test(mockup) && at && !/^https?:/i.test(at) && existsSync(join(root, at))) {
       const changedAfter = drawingChangedAfterApproval(root, spec.path, at);
@@ -630,8 +630,8 @@ function tweakProblems(root: string, spec: { path: string; slug: string; body: s
   const problems: string[] = [];
   const front = spec.body.split(/^---\s*$/m)[1] ?? '';
   if (!/^\s*confirmed\s*:\s*true\b/im.test(front)) problems.push(`${spec.path} is not confirmed. A tweak changes a page the owner has confirmed; an unconfirmed spec goes through \`spec\`.`);
-  const mockup = /^\s*mockup\s*:\s*(\S+)/im.exec(front)?.[1] ?? '';
-  if (!/^(approved|skipped)/i.test(mockup)) problems.push(`${spec.path}: \`mockup:\` is ${mockup || 'empty'}. A tweak changes a page whose drawing the owner has approved (or skipped); take a new page through \`mockup\` and \`make\`.`);
+  const mockup = mockupField(spec.body);
+  if (!/^(approved|skipped)/i.test(mockup)) problems.push(`${spec.path}: \`mockup:\` is ${mockup.split(/\s/)[0] || 'empty'}. A tweak changes a page whose drawing the owner has approved (or skipped); take a new page through \`mockup\` and \`make\`.`);
   else problems.push(...structureSinceApproval(root, spec, front));
 
   const surface = spec.slug;
@@ -859,6 +859,14 @@ export function gate(opts: { projectRoot: string; version: string; input: GateIn
         problems.push(
           `jig verdicts ${surface}: the critique is not complete. Re-run the arm it names — do not edit the verdict files to pass.\n` +
             shown.join('\n') + (v.errors.length > shown.length ? `\n  … and ${v.errors.length - shown.length} more` : ''),
+        );
+      } else if (v.measured.length && command !== 'critique') {
+        // A critique reports these and leaves the page alone; the session
+        // that builds the page is the one that fixes them.
+        const shown = v.measured.slice(0, 6).map((e) => `  ${e}`);
+        problems.push(
+          `jig verdicts ${surface}: the page fails what the render probe measured. Fix the page, then re-take the probes (\`jig verdicts ${surface} --reprobe\`).\n` +
+            shown.join('\n') + (v.measured.length > shown.length ? `\n  … and ${v.measured.length - shown.length} more` : ''),
         );
       }
     }

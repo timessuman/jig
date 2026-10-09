@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PROBE_SCRIPT } from '../src/probe/script.js';
-import { probeContradictions, readProbes, type ProbeResult } from '../src/probe/check.js';
+import { probeCheck, probeContradictions, readProbes, type ProbeResult } from '../src/probe/check.js';
 import { saveProbe } from '../src/probe/save.js';
 import { verifyVerdicts } from '../src/commands/verdicts.js';
 import { repoRoot } from './helpers/registered-commands.js';
@@ -86,6 +86,17 @@ describe('probeContradictions', () => {
     expect(errors[0]).toMatch(/the rendered page shows an em dash in "Team — \$49 a month" \(I-118\)/);
   });
 
+  it('keeps what the page fails apart from what the review got wrong', () => {
+    const head = { title: 'Pricing', description: 'd'.repeat(200), canonical: '', robots: '', ogTitle: '', ogImage: '' };
+    const page = probe({ width: 768, sidewaysScroll: true, scrollWidth: 900, clientWidth: 768, emDashes: ['a — b'], head, junkText: ['${price}'] });
+    const { contradictions, failures } = probeCheck([page], verdicts({ 'D-115': 'ok' }));
+    expect(contradictions).toHaveLength(1);
+    expect(contradictions[0]).toMatch(/D-115 is "ok"/);
+    expect(failures.join('\n')).toMatch(/I-118/);
+    expect(failures.join('\n')).toMatch(/J-122/);
+    expect(failures.join('\n')).toMatch(/template code or a failed value/);
+  });
+
   // H-119: a screen reader and a keyboard user take the page in markup order.
   // A column moved with CSS is not an inversion; a block lifted above the one
   // that precedes it in the markup is.
@@ -113,6 +124,18 @@ describe('probeContradictions', () => {
 
   it('refuses D-115 ok when the page scrolls sideways', () => {
     expect(probeContradictions([probe({ width: 768, sidewaysScroll: true, scrollWidth: 900, clientWidth: 768 })], verdicts({ 'D-115': 'ok' }))[0]).toMatch(/900px wide in a 768px viewport/);
+  });
+
+  // M-01 and L-01 step 6: in a control run a spec said the code would wrap,
+  // the build scrolled it in a box, and the page itself still fit the screen.
+  it('fails a box that scrolls sideways on an editorial phone, and only there', () => {
+    const box = { box: 'pre', text: 'const reading = await client.next(', scrollWidth: 612, clientWidth: 328 };
+    const failures = (over: Partial<ProbeResult>, mode?: string) => probeCheck([probe({ sidewaysBoxes: [box], ...over })], verdicts({}), true, mode).failures;
+    expect(failures({}, 'editorial').join('\n')).toMatch(/a box scrolls sideways on a phone: pre \("const reading.*612px in 328px.*M-01.*wraps its long lines/);
+    expect(failures({}, 'product')).toEqual([]);
+    expect(failures({}, undefined)).toEqual([]);
+    expect(failures({ width: 768 }, 'editorial')).toEqual([]);
+    expect(probeCheck([probe()], verdicts({}), true, 'editorial').failures).toEqual([]);
   });
 
   it('fails an unstyled page, undefined tokens and leaked template text whatever the verdicts say', () => {
@@ -156,6 +179,23 @@ describe('jig verdicts reads the probes', () => {
     expect(run().errors).toEqual([]);
     record({ width: 768, menu: null, navLinksVisible: 5, sidewaysScroll: true, scrollWidth: 800, clientWidth: 768 });
     expect(run().errors.join('\n')).toMatch(/D-115 is "ok"/);
+  });
+
+  // A critique judges and does not edit. Held on an em dash as an unfinished
+  // review, a critique session edited the page, reverted the edit, and spent
+  // its whole budget doing both.
+  it('leaves the critique complete when the page fails what the probe measured, and names the failure', () => {
+    const page = join(project, 'pricing.html');
+    writeFileSync(page, '<html><body><a href="/">home</a></body></html>');
+    const record = (over: Partial<ProbeResult>) =>
+      saveProbe({ projectRoot: project, surface: 'pricing', json: JSON.stringify({ ...probe(), url: `file://${page}`, ...over }) });
+    record({ emDashes: ['Team — $49 a month'] });
+    for (const width of [768, 1280, 1600]) record({ width, menu: null, navLinksVisible: 5 });
+    const r = run();
+    expect(r.ok).toBe(true);
+    expect(r.errors).toEqual([]);
+    expect(r.measured.join('\n')).toMatch(/em dash in "Team — \$49 a month" \(I-118\)/);
+    expect(r.line).toMatch(/ measured=1$/);
   });
 
   it('counts a screen pass with no render as skipped, not run', () => {
@@ -272,6 +312,7 @@ describe('the CLI can run the probe itself', () => {
       '<html><head><title>t</title></head><body><main>' +
       '<blockquote><p>Frame one — the quoted rule keeps its dash</p></blockquote>' +
       '<p>As the spec says, <q>free — forever</q>.</p>' +
+      '<p>Its rule, <code>A-01</code>, is hybrid.</p>' +
       '<pre><samp>⚠ A-01  Violet hue — a deliberate choice?</samp></pre><p>Run <code>jig check — all</code>.</p>' +
       '<p>Our own label — wrongly dashed</p>' +
       '</main></body></html>');
@@ -280,6 +321,24 @@ describe('the CLI can run the probe itself', () => {
     const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'pricing', 'probe-360.json'), 'utf8'));
     expect(probe.emDashes.join(' | ')).toMatch(/Our own label — wrongly dashed/);
     expect(probe.emDashes.join(' | ')).not.toMatch(/quoted rule|forever|deliberate choice|jig check/);
+  }, 120_000);
+
+  it('measures a code block or table that scrolls in its own box, and not one that wraps', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-boxes-'));
+    const long = 'const reading = await client.readings.next({ harbour: "tidewell-north-pier", units: "metric" });';
+    writeFileSync(join(root, 'page.html'),
+      '<html><head><title>t</title><meta name="viewport" content="width=device-width"></head><body><main>' +
+      `<pre class="scrolls" style="overflow-x:auto">${long}</pre>` +
+      `<pre class="wraps" style="white-space:pre-wrap;overflow-wrap:anywhere">${long}</pre>` +
+      '</main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'docs'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'docs', page: 'page.html' });
+    const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'docs', 'probe-360.json'), 'utf8'));
+    expect(probe.sidewaysScroll).toBe(false);
+    expect(probe.sidewaysBoxes.map((b: { box: string }) => b.box)).toEqual(['pre.scrolls']);
   }, 120_000);
 
   // jig-site: a heading asked for a weight the site never loaded, the browser

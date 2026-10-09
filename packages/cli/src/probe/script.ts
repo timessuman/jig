@@ -36,12 +36,18 @@ export const PROBE_SCRIPT = `(async () => {
   // the page's own copy around it still counts. So is a tool's output or a
   // command shown in <pre>, <code>, <samp> or <kbd>: jig-site's home page
   // quotes \`jig check\`'s real output, whose own wording has an em dash, and
-  // the probe blocked a page for words it had rightly not rewritten.
-  let ownText = text;
-  for (const q of document.querySelectorAll('blockquote, q, pre, code, samp, kbd')) {
-    const quoted = (q.innerText || '').trim();
-    if (quoted) ownText = ownText.split(quoted).join('\\n');
-  }
+  // the probe blocked a page for words it had rightly not rewritten. The
+  // quotations are hidden while the text is read, not cut out of it by string:
+  // an inline <code>A-01</code> earlier in the prose removed "A-01" from the
+  // output block below it, so the block no longer matched and its dash counted.
+  const quotedEls = [...document.querySelectorAll('blockquote, q, pre, code, samp, kbd')];
+  const hide = document.createElement('style');
+  hide.textContent = '[data-jig-quoted] { display: none !important; }';
+  for (const q of quotedEls) q.setAttribute('data-jig-quoted', '');
+  document.head.appendChild(hide);
+  const ownText = document.body.innerText || '';
+  hide.remove();
+  for (const q of quotedEls) q.removeAttribute('data-jig-quoted');
   const junk = [...new Set(text.match(/\\$\\{|\\{\\{|\\bundefined\\b|\\bNaN\\b|\\[object Object\\]/g) || [])];
   const unresolved = new Set();
   for (const sheet of document.styleSheets) {
@@ -211,6 +217,17 @@ export const PROBE_SCRIPT = `(async () => {
     fauxSeen.add(key);
     fauxFaces.push({ family: first.trim().replace(/^["']|["']$/g, ''), weight, style: italic ? 'italic' : 'normal', text: (el.innerText || '').trim().slice(0, 40) });
   }
+  // M-01: \`editorial\` allows no box that scrolls sideways on a phone; a code
+  // block wraps and a wide table stacks (L-01, step 6). In a control run a
+  // spec said the code would wrap and the built page scrolled it, and nothing
+  // measured the box: the page itself was not wider than the screen.
+  const sidewaysBoxes = [];
+  for (const el of [...document.body.querySelectorAll('*')].slice(0, 4000)) {
+    if (sidewaysBoxes.length >= 5) break;
+    const ox = getComputedStyle(el).overflowX;
+    if ((ox !== 'auto' && ox !== 'scroll') || el.scrollWidth <= el.clientWidth + 1 || !vis(el)) continue;
+    sidewaysBoxes.push({ box: el.tagName.toLowerCase() + (el.classList[0] ? '.' + el.classList[0] : ''), text: (el.innerText || '').trim().replace(/\\s+/g, ' ').slice(0, 40), scrollWidth: el.scrollWidth, clientWidth: el.clientWidth });
+  }
   return JSON.stringify({
     jigProbe: ${PROBE_VERSION},
     url: location.href,
@@ -218,6 +235,7 @@ export const PROBE_SCRIPT = `(async () => {
     scrollWidth: doc.scrollWidth,
     clientWidth: doc.clientWidth,
     sidewaysScroll: doc.scrollWidth > doc.clientWidth,
+    sidewaysBoxes,
     bodyFont: getComputedStyle(document.body).fontFamily,
     defaultFont: getComputedStyle(document.body).fontFamily === defaultFont,
     unresolvedTokens: [...unresolved],
@@ -234,6 +252,7 @@ export const PROBE_SCRIPT = `(async () => {
       canonical: (document.querySelector('link[rel=canonical]') || {}).href || '',
       robots: (document.querySelector('meta[name=robots]') || {}).content || '',
       ogTitle: (document.querySelector('meta[property="og:title"]') || {}).content || '',
+      ogDescription: (document.querySelector('meta[property="og:description"]') || {}).content || '',
       ogImage: (document.querySelector('meta[property="og:image"]') || {}).content || '',
     },
     contentWidth: Math.round(region.getBoundingClientRect().width),

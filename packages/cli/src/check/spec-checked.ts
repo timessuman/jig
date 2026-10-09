@@ -30,7 +30,21 @@ export function specChecksum(body: string): string {
   return createHash('sha256').update(body.replace(/\r\n/g, '\n').replace(/^\s*(confirmed|mockup)\s*:.*$/gim, '')).digest('hex');
 }
 
-const mockupLine = (body: string) => /^\s*mockup\s*:\s*(.*)$/im.exec(body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim() ?? '';
+/**
+ * A spec's `mockup:` value, as YAML reads it. A quoted value is the same value:
+ * on jig-site three specs held `mockup: "skipped — the owner: \"…\""`, the
+ * gate read the opening quote as the word, refused every tweak, and each
+ * tweak session unquoted the spec to get past it.
+ */
+export function mockupField(body: string): string {
+  const raw = /^\s*mockup\s*:\s*(.*)$/im.exec(body.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim() ?? '';
+  const double = /^"((?:[^"\\]|\\.)*)"\s*(?:#.*)?$/.exec(raw);
+  if (double) return double[1]!.replace(/\\(.)/g, '$1').trim();
+  const single = /^'((?:[^']|'')*)'\s*(?:#.*)?$/.exec(raw);
+  if (single) return single[1]!.replace(/''/g, "'").trim();
+  return raw;
+}
+const mockupLine = mockupField;
 
 /**
  * A mockup approved or skipped is recorded in the owner's words, and a session

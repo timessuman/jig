@@ -45,7 +45,7 @@ describe('spec refuses a value that names nobody', () => {
   it('turns a deferral into a lookup, not a quoted phrase', () => {
     expect(spec).toMatch(/"The design system decides" is not a value/);
     expect(spec).toMatch(/pattern for the component/);
-    expect(spec).toMatch(/`L-01`'s five\s+steps/);
+    expect(spec).toMatch(/`L-01`'s six\s+steps/);
   });
 
   it('reads every field back before confirmation', () => {

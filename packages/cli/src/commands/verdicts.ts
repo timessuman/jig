@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { citableIds } from '../rules/citations.js';
-import { probeContradictions, readProbes } from '../probe/check.js';
+import { probeCheck, readProbes } from '../probe/check.js';
 import { PROBE_WIDTHS } from '../probe/save.js';
 import { decisionHeadings, decisionNames, decisionsFile } from '../check/decisions.js';
 import { specIndexableField } from '../check/spec-shape.js';
@@ -45,6 +45,12 @@ export interface VerdictsResult {
   /** The project's own decisions, judged against the page. */
   decisions: ArmResult;
   rendered: boolean;
+  /**
+   * What the render probe measured the page failing, whatever the verdicts say:
+   * findings on the page for make or tweak to fix. They leave the critique
+   * complete; `ok` speaks only for the review.
+   */
+  measured: string[];
   line: string;
   /** Each earlier finding, set against this critique: fixed, still open, or new. */
   previous?: PreviousFindings;
@@ -415,6 +421,7 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
     const v = screenVerdicts.find((x) => typeof x.id === 'string' && x.id.trim().toUpperCase() === id);
     return typeof v?.verdict === 'string' ? v.verdict : undefined;
   };
+  const measured: string[] = [];
   let specFront = '';
   try {
     specFront = readText(join(opts.projectRoot, '.jig', 'specs', `${opts.surface}.spec.md`)).split(/^---\s*$/m)[1] ?? '';
@@ -422,7 +429,15 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   if (specIndexableField(specFront) === 'unreadable') {
     errors.push(`.jig/specs/${opts.surface}.spec.md: \`indexable:\` is neither true nor false, so this review cannot tell whether the page is meant to be found and does not guess. Write \`indexable: true\` or \`indexable: false\`, and put the reason in the spec's body.`);
   } else {
-    errors.push(...probeContradictions(probes, verdictOf, specIndexable(opts.projectRoot, opts.surface)));
+    const mode = /^\s*mode\s*:\s*["']?(\w+)/im.exec(specFront)?.[1]?.toLowerCase();
+    const probed = probeCheck(probes, verdictOf, specIndexable(opts.projectRoot, opts.surface), mode);
+    errors.push(...probed.contradictions);
+    // Text on the page is the same at every width: one failure, not four.
+    const seen = new Set<string>();
+    for (const failure of probed.failures) {
+      const what = failure.replace(/^probe-\d+\.json: /, '');
+      if (!seen.has(what)) { seen.add(what); measured.push(failure); }
+    }
   }
 
   // The screen pass is defined as judged on a render. Three live critiques
@@ -441,9 +456,10 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
     `JIG_VERDICTS: surface=${opts.surface} screen=${field(screen)} code=${field(code)} ` +
     `decisions=${field(decisions)} rendered=${rendered ? 'yes' : 'no'} ` +
     `findings=${screen.findings + code.findings + decisions.findings}` +
-    `${(screen.ruled ?? 0) + (code.ruled ?? 0) ? ` ruled=${(screen.ruled ?? 0) + (code.ruled ?? 0)}` : ''}`;
+    `${(screen.ruled ?? 0) + (code.ruled ?? 0) ? ` ruled=${(screen.ruled ?? 0) + (code.ruled ?? 0)}` : ''}` +
+    `${measured.length ? ` measured=${measured.length}` : ''}`;
   const previous = previousFindings(opts.projectRoot, dir);
-  return { ok: errors.length === 0, errors, screen, code, decisions, rendered, line, ...(previous ? { previous } : {}) };
+  return { ok: errors.length === 0, errors, screen, code, decisions, rendered, measured, line, ...(previous ? { previous } : {}) };
 }
 
 /**

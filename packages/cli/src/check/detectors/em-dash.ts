@@ -44,6 +44,9 @@ function maskNonProse(source: string): string {
     .replace(/^---\n[\s\S]*?\n---/, blank)
     .replace(/<script\b[\s\S]*?<\/script\s*>/gi, blank)
     .replace(/<style\b[\s\S]*?<\/style\s*>/gi, blank)
+    // A quotation, and a program's own output or code shown as it is, keep
+    // their punctuation (the rule's own exemption; the probe hides the same).
+    .replace(/<(blockquote|q|pre|code|samp|kbd)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, blank)
     .replace(/<!--[\s\S]*?-->/g, blank)
     .replace(/\/\*[\s\S]*?\*\//g, blank)
     .replace(/(^|[^:])\/\/[^\n]*/g, (m, p1: string) => p1 + ' '.repeat(m.length - p1.length));
