@@ -131,8 +131,16 @@ export function probeCheck(probes: ProbeResult[], verdictOf: VerdictOf, indexabl
   const at = (p: ProbeResult) => `probe-${p.width}.json`;
 
   for (const p of probes) {
-    if (p.sidewaysScroll && clean('D-115')) {
-      errors.push(`D-115 is "${verdictOf('D-115')}", but ${at(p)} measured the page ${p.scrollWidth}px wide in a ${p.clientWidth}px viewport — it scrolls sideways.`);
+    // D-115, in every mode: the page itself scrolls sideways. A measured
+    // failure whether or not a review ran; a review that called D-115 clean is
+    // wrong as well. Three help articles built without Jig were 424 to 478px
+    // wide on a 360px phone, and with no critique nothing reported it.
+    if (p.sidewaysScroll) {
+      if (clean('D-115')) {
+        errors.push(`D-115 is "${verdictOf('D-115')}", but ${at(p)} measured the page ${p.scrollWidth}px wide in a ${p.clientWidth}px viewport — it scrolls sideways.`);
+      } else {
+        failures.push(`${at(p)}: the page is ${p.scrollWidth}px wide in a ${p.clientWidth}px viewport, so the whole page scrolls sideways (D-115). Find what is wider than the screen and let it wrap, stack, or scroll inside its own box (L-01, step 6).`);
+      }
     }
     // M-01: on a phone, `editorial` reflows what is wider than the screen
     // instead of scrolling it in a box (L-01, step 6).

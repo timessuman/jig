@@ -126,6 +126,17 @@ describe('probeContradictions', () => {
     expect(probeContradictions([probe({ width: 768, sidewaysScroll: true, scrollWidth: 900, clientWidth: 768 })], verdicts({ 'D-115': 'ok' }))[0]).toMatch(/900px wide in a 768px viewport/);
   });
 
+  // Three help articles built without Jig scrolled sideways on a phone, and
+  // with no critique to contradict, the measurement was dropped.
+  it('fails a page that scrolls sideways whatever the verdicts say, in every mode', () => {
+    const wide = probe({ width: 360, sidewaysScroll: true, scrollWidth: 478, clientWidth: 360 });
+    for (const mode of ['editorial', 'product', 'operator', undefined]) {
+      expect(probeCheck([wide], verdicts({}), true, mode).failures.join('\n')).toMatch(/478px wide in a 360px viewport, so the whole page scrolls sideways \(D-115\)/);
+    }
+    expect(probeCheck([wide], verdicts({ 'D-115': 'finding' })).failures).toHaveLength(1);
+    expect(probeCheck([probe()], verdicts({})).failures).toEqual([]);
+  });
+
   // M-01 and L-01 step 6: in a control run a spec said the code would wrap,
   // the build scrolled it in a box, and the page itself still fit the screen.
   it('fails a box that scrolls sideways on an editorial phone, and only there', () => {
