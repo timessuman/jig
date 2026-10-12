@@ -117,9 +117,13 @@
   --focus-ring-offset: 2px;
 
   /* ================= TYPE ================= */
-  --font-text:    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Each platform's own interface face, named one by one: San Francisco,
+     Segoe UI, Roboto, then Noto Sans and Helvetica/Arial for the rest.
+     `system-ui` is left out on purpose: on Linux it resolves to the desktop's
+     own font, often DejaVu Sans, before any face below it is tried. */
+  --font-text:    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
   --font-display: var(--font-text);
-  --font-mono:    ui-monospace, "SF Mono", "Cascadia Code", monospace;
+  --font-mono:    ui-monospace, "SF Mono", Menlo, Consolas, "Cascadia Code", "Liberation Mono", monospace;
   --font-numeric-features: "tnum" 1, "lnum" 1;
 
   /* ================= RADIUS — four, by element size ================= */

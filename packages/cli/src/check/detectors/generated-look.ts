@@ -316,7 +316,7 @@ const SERIF = /font-family\s*:\s*([^;}]+)/i;
 
 function serifFamily(value: string): boolean {
   const first = value.split(',')[0]!.trim().toLowerCase();
-  if (/sans|mono|system-ui|ui-sans|inter\b|helvetica|arial/.test(first)) return false;
+  if (/sans|mono|system-ui|ui-sans|-apple-system|blinkmacsystemfont|segoe|roboto|inter\b|helvetica|arial/.test(first)) return false;
   return /serif|georgia|garamond|playfair|fraunces|lora|merriweather|instrument serif|dm serif|cormorant|newsreader|times|baskerville|bodoni|caslon|libre caslon|source serif|pt serif|crimson/.test(value.toLowerCase());
 }
 

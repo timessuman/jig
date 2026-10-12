@@ -572,10 +572,14 @@ everything else follows from.
    - **A code block** keeps its line breaks and indents and wraps a long line
      (`white-space: pre-wrap`, `overflow-wrap: anywhere`). What is copied is
      the source as written, not the wrapped lines.
-   - **A table too wide to fit** stacks its rows: each row a block, each cell a
-     line with its column's name in front. It stays a `<table>` with its header
-     row, so a screen reader still reads it as one. Where it fits, it stays a
-     table: the switch is the width at which its columns stop fitting.
+   - **A table too wide to fit** stacks its rows: each row a block, led by the
+     cell that names the row (a person, an invoice, a rule) as the block's own
+     heading, with no label in front of it. The other cells follow beneath it,
+     and a cell carries its column's name only where its value does not say
+     what it is: "Yes", "3", a date. An email address or a status needs no
+     "Email:" or "Status:". It stays a `<table>` with its header row, so a
+     screen reader still reads it as one. Where it fits, it stays a table: the
+     switch is the width at which its columns stop fitting.
    - **A long identifier** (a URL, a hash, a file path) breaks where it must
      (`overflow-wrap: anywhere`).
 6. **Each transition happens where the content needs it.** The width at which
