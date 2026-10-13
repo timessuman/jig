@@ -285,6 +285,7 @@ Primarily an `operator` pattern; the rules apply wherever a table appears.
 **Rules**
 - Row identity is stable across refresh, sort and filter. A row that moves under a click causes the wrong record to be acted on — the most damaging bug this pattern has.
 - Numeric columns are right-aligned and use tabular figures (`--font-numeric`). Text columns are start-aligned. Never centre either.
+- A cell stays a table cell. To line up what is inside it (a name and a tag, an icon and a label), put `display: flex` on a wrapper inside the cell, never on the `<td>` or `<th>` itself: a cell given its own display stops taking its row's height, so its text and its border drift from the rest of the row. A table stacked on a phone, the whole table set to `block`, is the exception (`L-01`, step 6). The render probe reports a cell that has left its table.
 - Column headers state units. "Weight" is ambiguous; "Weight (kg)" is not.
 - Truncation is resolvable by click or expand, never by hover alone (`E-31`, `01-modes.md`).
 - Sort state is visible in the header and reflected in the URL, so a view can be shared.
@@ -572,10 +573,17 @@ everything else follows from.
    - **A code block** keeps its line breaks and indents and wraps a long line
      (`white-space: pre-wrap`, `overflow-wrap: anywhere`). What is copied is
      the source as written, not the wrapped lines.
-   - **A table too wide to fit** stacks its rows: each row a block, each cell a
-     line with its column's name in front. It stays a `<table>` with its header
-     row, so a screen reader still reads it as one. Where it fits, it stays a
-     table: the switch is the width at which its columns stop fitting.
+   - **A table too wide to fit** stacks its rows: each row a block, led by the
+     cell that names the row (a person, an invoice, a rule) as the block's own
+     heading, with no label in front of it. The other cells follow beneath it,
+     and a cell carries its column's name only where its value does not say
+     what it is: a bare "Yes", a number, a date. An email address, a role, a
+     status badge or a price says what it is, so it gets no "Email:", "Role:"
+     or "Status:". The row's actions sit together at the block's end, side by
+     side where they fit, with no "Actions" label. It stays a `<table>` with
+     its header row, so a screen reader still reads it as one. Where it fits,
+     it stays a table: the switch is the width at which its columns stop
+     fitting.
    - **A long identifier** (a URL, a hash, a file path) breaks where it must
      (`overflow-wrap: anywhere`).
 6. **Each transition happens where the content needs it.** The width at which

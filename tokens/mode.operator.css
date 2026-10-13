@@ -102,3 +102,12 @@
 @media (prefers-reduced-motion: reduce) {
   :root { --duration-fast: 1ms; --duration-base: 1ms; --duration-slow: 1ms; }
 }
+
+/* On a touch screen a table row is a finger's target. A dense row (36px, 32px
+   compact) is above WCAG 2.2's 24px minimum for a mouse, and below the 48px a
+   finger needs, so under a coarse pointer every row rises to the floor. A
+   control inside a row never sets its own height to reach it: every row in a
+   table is one height, and here the tokens make that height the right one. */
+@media (pointer: coarse) {
+  :root { --size-row: var(--size-touch-target); --size-row-compact: var(--size-touch-target); }
+}

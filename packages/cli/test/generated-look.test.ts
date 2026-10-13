@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { repoRoot } from './helpers/registered-commands.js';
 import {
   sideTabBorder, roundedAccentBorder, decorativeGridBackground, glowAccent, creamPalette,
   pulsingDot, italicSerifDisplay, headingKicker, eyebrowChip, numberedSectionLabels,
@@ -104,6 +107,10 @@ describe('italic-serif-display (A-138)', () => {
   it('leaves an upright serif headline and an italic sans one alone', () => {
     expect(run(italicSerifDisplay, 'a.html', html('<h1 class="font-serif text-6xl">Search your logs</h1>'))).toEqual([]);
     expect(run(italicSerifDisplay, 'a.css', 'h1 {\n  font-family: Inter, sans-serif;\n  font-style: italic;\n}')).toEqual([]);
+  });
+  it("leaves Jig's own default stack alone: it ends in sans-serif, not a serif", () => {
+    const stack = readFileSync(join(repoRoot, 'tokens/brand.default.css'), 'utf8').match(/--font-text:\s*([^;]+);/)![1]!;
+    expect(run(italicSerifDisplay, 'a.css', `h1 {\n  font-family: ${stack};\n  font-style: italic;\n}`)).toEqual([]);
   });
 });
 

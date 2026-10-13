@@ -105,3 +105,10 @@
 @media (prefers-reduced-motion: reduce) {
   :root { --duration-fast: 1ms; --duration-base: 1ms; --duration-slow: 1ms; }
 }
+
+/* On a touch screen a table row is a finger's target: a compact row (40px)
+   rises to the 48px floor under a coarse pointer, as `operator`'s rows do. A
+   control inside a row never sets its own height to reach it. */
+@media (pointer: coarse) {
+  :root { --size-row-compact: var(--size-touch-target); }
+}

@@ -228,6 +228,19 @@ export const PROBE_SCRIPT = `(async () => {
     if ((ox !== 'auto' && ox !== 'scroll') || el.scrollWidth <= el.clientWidth + 1 || !vis(el)) continue;
     sidewaysBoxes.push({ box: el.tagName.toLowerCase() + (el.classList[0] ? '.' + el.classList[0] : ''), text: (el.innerText || '').trim().replace(/\\s+/g, ' ').slice(0, 40), scrollWidth: el.scrollWidth, clientWidth: el.clientWidth });
   }
+  // A table cell given its own display (flex, grid, block) while its table is
+  // still drawn as a table stops being a cell: it no longer takes its row's
+  // height, and its border no longer meets the row's. A team table set its
+  // name cells to flex, to line up a name and a tag, and every name drifted
+  // above its row. A stacked table (the table itself set to block) is left out.
+  const brokenCells = [];
+  for (const cell of [...document.querySelectorAll('td, th')].slice(0, 2000)) {
+    if (brokenCells.length >= 5) break;
+    const table = cell.closest('table');
+    const display = getComputedStyle(cell).display;
+    if (!table || getComputedStyle(table).display !== 'table' || display === 'table-cell' || display === 'none' || !vis(cell)) continue;
+    brokenCells.push({ cell: cell.tagName.toLowerCase() + (cell.classList[0] ? '.' + cell.classList[0] : ''), text: (cell.innerText || '').trim().replace(/\\s+/g, ' ').slice(0, 40), display });
+  }
   return JSON.stringify({
     jigProbe: ${PROBE_VERSION},
     url: location.href,
@@ -236,6 +249,7 @@ export const PROBE_SCRIPT = `(async () => {
     clientWidth: doc.clientWidth,
     sidewaysScroll: doc.scrollWidth > doc.clientWidth,
     sidewaysBoxes,
+    brokenCells,
     bodyFont: getComputedStyle(document.body).fontFamily,
     defaultFont: getComputedStyle(document.body).fontFamily === defaultFont,
     unresolvedTokens: [...unresolved],

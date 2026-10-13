@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.26.0 (2026-10-13)
+
+An unbranded page that looks designed, tables that hold together on a phone and
+on a touch screen, and two layout faults the render probe now measures.
+
+### Fixed
+
+- **An unbranded page no longer reads as unstyled.** The default font stack put
+  `system-ui` first, and on Linux that resolves to the desktop's own font,
+  often DejaVu Sans, before any better face is tried. It now names each
+  platform's interface face in turn: San Francisco, Segoe UI, Roboto, then
+  Noto Sans, Helvetica and Arial. The `A-138` serif check knows these names,
+  so the stack is not read as a serif for ending in `sans-serif`.
+- **A table stacked on a phone leads with what each row is.** `L-01`, step 6,
+  told an agent to put each column's name in front of every cell, and a member
+  list on a phone read like a form: "Member:", "Email:", "Role:", "Status:".
+  The row's own name now leads its block with no label, a value that says what
+  it is (an email, a role, a status) gets none, and the row's actions sit
+  together on one line where they fit, with no "Actions" label. In three runs,
+  every row kept its actions on one line at 390px.
+- **A table's rows stay one height.** `operator`'s 36px row is below the 48px
+  touch target, and an agent met the floor with a control's own minimum
+  height, so rows with an action stood taller than rows without one. A control
+  in a row now takes the row's height. For a mouse a dense row is above WCAG
+  2.2's 24px minimum; for a finger it is not, so under a coarse pointer
+  `operator` and `product` raise their row tokens to the touch target, and
+  every row grows together.
+
+### Added
+
+- **The render probe reports a page that scrolls sideways, with or without a
+  review.** A page wider than the screen was reported only when a critique had
+  called it clean; with no critique the measurement was dropped. Help articles
+  built without Jig ran 424 to 478px wide on a 360px phone, with nothing
+  reported. It is now a measured failure in every mode (`D-115`).
+- **The render probe reports a table cell that has left its table.** An agent
+  set a cell to `display: flex` to line up a name and a tag; the cell stopped
+  taking its row's height, and every name drifted above its row's divider. Any
+  `td` or `th` that is not a table cell while its table is drawn as a table is
+  now a measured failure (`P-06`), which also says to put the flex on a wrapper
+  inside the cell. A table stacked on a phone is left out.
+
 ## 0.25.0 (2026-10-09)
 
 Link previews, code and tables that reflow on an `editorial` phone, and the
@@ -339,8 +381,7 @@ and `jig ship` is where nothing is optional.
 
 ## 0.21.0 (2026-09-28)
 
-Dev builds, so a fix is tried on a real project before it ships, and the gate
-fixes that trial on jig-site turned up.
+Dev builds, so a fix is tried on a real project before it ships, and gate fixes that trial turned up.
 
 ### Added
 
@@ -622,7 +663,7 @@ The gate holds an HTML mockup that does not draw the page at every size.
 
 ## 0.18.4 (2026-09-25)
 
-Every release summary is one or two lines, for jig-site's Versions page.
+Every release summary is one or two lines.
 
 ### Changed
 
@@ -654,8 +695,7 @@ older probe file says it is older rather than forged.
 
 ## 0.18.2 (2026-09-25)
 
-Every release in this changelog now carries its date and a one-line summary,
-for jig-site's Versions page.
+Every release in this changelog now carries its date and a one-line summary.
 
 ### Changed
 
@@ -669,8 +709,7 @@ for jig-site's Versions page.
 
 ## 0.18.1 (2026-09-25)
 
-Two fixes found by jig-site's fourth round: the probe misread a `<details>`
-menu, and the emoji rule missed an arrow that renders as an emoji.
+Two fixes: the probe misread a `<details>` menu, and the emoji rule missed an arrow that renders as an emoji.
 
 ### Fixed
 
@@ -739,7 +778,7 @@ keyboard access a rule requires fits every script budget.
 
 ## 0.17.3 (2026-09-25)
 
-Three defects found building jig-site's header with the full loop.
+Three defects found building a site header with the full loop.
 
 ### Fixed
 
