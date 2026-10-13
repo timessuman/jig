@@ -149,6 +149,13 @@ describe('probeContradictions', () => {
     expect(probeCheck([probe()], verdicts({}), true, 'editorial').failures).toEqual([]);
   });
 
+  it('fails rows made uneven by a control, in every mode', () => {
+    const uneven = [{ table: 'table.invoices', short: 41, tall: 65, control: 'button.mark-paid', controlHeight: 48 }];
+    for (const mode of ['editorial', 'product', 'operator', undefined]) {
+      expect(probeCheck([probe({ unevenRows: uneven })], verdicts({}), true, mode).failures.join('\n')).toMatch(/table\.invoices's rows are not one height: those holding button\.mark-paid \(48px tall\) stand 65px, the rest 41px.*\(P-02, P-06\)/);
+    }
+  });
+
   it('fails a table cell that left its table, in every mode', () => {
     const cells = [{ cell: 'td.name-cell', text: 'Jordan Lee You', display: 'flex' }];
     for (const mode of ['editorial', 'product', 'operator', undefined]) {
@@ -378,6 +385,26 @@ describe('the CLI can run the probe itself', () => {
     await runAndSaveProbes({ projectRoot: root, surface: 'team', page: 'page.html' });
     const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'team', 'probe-1280.json'), 'utf8'));
     expect(probe.brokenCells.map((c: { cell: string; display: string }) => [c.cell, c.display])).toEqual([['td.name-cell', 'flex']]);
+  }, 120_000);
+
+  // An invoices table gave its "Mark as paid" button the touch-target floor as
+  // a minimum height, and only the rows holding it grew.
+  it('measures rows made uneven by a control, and not rows of one height', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-rows-'));
+    const rows = (btn: string) => ['INV-1042', 'INV-1043', 'INV-1044'].map((id, i) => `<tr><td>${id}</td><td>$380.00</td><td>${i ? `<button class="${btn}">Mark as paid</button>` : ''}</td></tr>`).join('');
+    writeFileSync(join(root, 'page.html'),
+      '<html><head><title>t</title><meta name="viewport" content="width=device-width">' +
+      '<style>tr{height:40px} td{padding:0 8px} .tall{min-height:48px} .fits{height:28px}</style></head><body><main>' +
+      `<table class="uneven"><tbody>${rows('tall')}</tbody></table>` +
+      `<table class="even"><tbody>${rows('fits')}</tbody></table>` +
+      '</main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'billing'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'billing', page: 'page.html' });
+    const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'billing', 'probe-1280.json'), 'utf8'));
+    expect(probe.unevenRows.map((u: { table: string; control: string }) => [u.table, u.control])).toEqual([['table.uneven', 'button.tall']]);
   }, 120_000);
 
   // jig-site: a heading asked for a weight the site never loaded, the browser

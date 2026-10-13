@@ -53,7 +53,16 @@ Four numbers, and most button designs in the wild fail at least one:
 | Button **shape** — fill or border — against its background | **3:1** |
 | Button **text** against the button | **4.5:1** |
 | Two buttons sharing a style, distinguished only by contrast | **3:1 between them** |
-| Hit area | `--size-touch-target` — **48×48px** floor |
+| Hit area | `--size-touch-target` — **48×48px** floor, except inside a table row (below) |
+
+**Inside a table row, a button takes the row's height.** A dense row is shorter
+than the floor, and a button given `min-height: var(--size-touch-target)` there
+stretches the rows that hold it and not the rest: an invoices table had its
+"Mark as paid" rows at 65px among 41px ones, twice. Size it to `--size-control`
+and never give it a minimum height of its own. On a touch screen the row itself
+rises to `--size-touch-target` (the mode files do it under a coarse pointer), so
+a finger still gets the floor. The render probe reports rows made uneven this
+way.
 
 A secondary button's fill or border is **not decorative**. It is the only thing identifying the element as a button, so it carries the 3:1 non-text requirement (`02-tokens.md`). Strip it and you have coloured text.
 
@@ -285,6 +294,7 @@ Primarily an `operator` pattern; the rules apply wherever a table appears.
 **Rules**
 - Row identity is stable across refresh, sort and filter. A row that moves under a click causes the wrong record to be acted on — the most damaging bug this pattern has.
 - Numeric columns are right-aligned and use tabular figures (`--font-numeric`). Text columns are start-aligned. Never centre either.
+- Every row is one height. A button or link in a row takes the row's height and has no minimum height of its own (see the Button pattern, Hit area).
 - A cell stays a table cell. To line up what is inside it (a name and a tag, an icon and a label), put `display: flex` on a wrapper inside the cell, never on the `<td>` or `<th>` itself: a cell given its own display stops taking its row's height, so its text and its border drift from the rest of the row. A table stacked on a phone, the whole table set to `block`, is the exception (`L-01`, step 6). The render probe reports a cell that has left its table.
 - Column headers state units. "Weight" is ambiguous; "Weight (kg)" is not.
 - Truncation is resolvable by click or expand, never by hover alone (`E-31`, `01-modes.md`).
