@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.26.1 (2026-10-13)
+
+The colour and typeface you decide in `/jig decide` now reach the pages, and
+`check` says when they have not.
+
+### Fixed
+
+- **`/jig decide` puts the decided colour and typeface into the brand file.** It
+  asked for the type and the colour and wrote the answers to `DECISIONS.md`, and
+  no step said to apply them; `init`'s "do not author token values yourself"
+  read as "never change one". In four of six runs whose owner named a colour and
+  a typeface, the brand file stayed at Jig's unbranded default and every page
+  shipped near-black in the system face. `decide` now ends by changing the
+  brand file to match, and `init` says the brand file is the project's own. In
+  a run on this release, the decided teal and Manrope reached the page.
+
+### Added
+
+- **`check` warns when the decisions and the brand file disagree.** When
+  `DECISIONS.md` decides a brand colour or a typeface the brand file does not
+  carry, `check` reports it under `A-01`, naming the value decided and the one
+  the brand file still sets.
+
 ## 0.26.0 (2026-10-13)
 
 An unbranded page that looks designed, tables that hold together on a phone and
