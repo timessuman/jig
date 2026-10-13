@@ -5,6 +5,7 @@ import { validateIndex, type IndexEntry } from '../rules/schema.js';
 import { selectFiles } from '../check/files.js';
 import { formatReport } from '../check/report.js';
 import { participatesInTokenLayer } from '../check/token-layer.js';
+import { brandDecidedGaps } from '../check/brand-decided.js';
 import { loadSpecs } from '../rules/specs.js';
 import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { classAttributeValues } from '../check/tailwind.js';
@@ -298,6 +299,15 @@ export function check(opts: CheckOptions): CheckResult {
       line: problem.line,
       message: problem.message,
     });
+  }
+
+  // A colour or typeface DECISIONS.md records that the brand file never got:
+  // the pages read the brand file, so they ship Jig's unbranded default while
+  // the decisions say otherwise. Cited as A-01, whose own fix is "use
+  // --color-brand from the brand file"; a warning, because the decisions are
+  // prose and this reads them.
+  for (const gap of brandDecidedGaps(opts.projectRoot)) {
+    detected.push({ ruleId: 'A-01', detector: 'brand-decided', bucket: 'mechanical', severity: 'warning', file: gap.file, line: gap.line, message: gap.message });
   }
 
   const { findings, waived } = applyWaivers(opts.projectRoot, detected);

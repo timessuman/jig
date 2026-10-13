@@ -78,12 +78,13 @@ came from, and the surfaces it used — the output says whether they came from
 `jig.config.json` or from the default.
 
 If the token layer does not exist yet, this is the command that creates it. **Do
-not author token values yourself.** `init` derives the brand colour, checks it
+not write the token files by hand.** `init` derives the brand colour, checks it
 against the contrast floor in both light and dark, and records a checksum for
 each file it writes; a file you write by hand is untracked, so `jig update` can
-never refresh it again. `jig check` now reads the token layer back and holds it
-to those floors either way, so a hand-written value will be caught — but caught
-late, and unmaintainable, is worse than derived.
+never refresh it again. The brand file it writes is the project's own, though:
+once `DECISIONS.md` records a colour, a typeface or corners, change those values
+in it to match (see `decide`). `jig check` reads the token layer back and holds it
+to those floors, so a value that fails one is caught however it got there.
 
 ## check
 
@@ -1972,6 +1973,18 @@ the user as left out on purpose, with the reason. Then go the other way: every
 `Why:` in the file must trace to something the user said; delete any that does not,
 and ask. A `Why (inferred):` traces to what it was inferred from; say what that was.
 Include this mapping in your message, below the file.
+
+**Then put the answers into the brand file.** The type, the colour and the
+corners each name the token they become, and the brand file `init` wrote is the
+project's own: `jig update` refreshes the mode files and never touches it. Change
+its values to match what the user decided: the brand hue, saturation and lightness
+for the colour, `--font-text` and `--font-display` for the type (and load the face
+wherever the pages load their styles, if it is a web font), and the `--radius-*`
+scale for the corners. A value the user did not decide stays as `init` wrote it.
+Then run `{{scripts_path}} check`: it holds the brand file to the contrast floors
+in light and dark, and says if a decided colour or typeface never reached it. Of
+six runs whose owner named a colour and a typeface, four recorded both in this file
+and built every page in Jig's unbranded default, because no step said to apply them.
 
 Show it and ask the user to confirm it is right before you stop. Leave no
 `[TODO]` markers — the gate treats them as an unwritten file, correctly, because
