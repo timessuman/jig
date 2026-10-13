@@ -17,6 +17,8 @@ export interface ProbeResult {
   sidewaysBoxes?: Array<{ box: string; text: string; scrollWidth: number; clientWidth: number }>;
   /** Table cells given their own display while their table is drawn as a table (P-06). */
   brokenCells?: Array<{ cell: string; text: string; display: string }>;
+  /** Tables whose rows holding a control stand taller than the rest (P-02, P-06). */
+  unevenRows?: Array<{ table: string; short: number; tall: number; control: string; controlHeight: number }>;
   scrollWidth: number;
   clientWidth: number;
   defaultFont: boolean;
@@ -155,6 +157,11 @@ export function probeCheck(probes: ProbeResult[], verdictOf: VerdictOf, indexabl
     if (p.brokenCells?.length) {
       const shown = p.brokenCells.map((c) => `${c.cell}${c.text ? ` ("${c.text}")` : ''} is display: ${c.display}`).join('; ');
       failures.push(`${at(p)}: ${p.brokenCells.length === 1 ? 'a table cell has' : `${p.brokenCells.length} table cells have`} left the table: ${shown}. A cell given its own display stops taking its row's height, so its border and its text drift from the row's. Keep the cell a cell and put the flex on a wrapper inside it (P-06).`);
+    }
+    // P-02 and P-06: a control in a row with its own minimum height stretches
+    // the rows that hold it, in any mode.
+    for (const u of p.unevenRows ?? []) {
+      failures.push(`${at(p)}: ${u.table}'s rows are not one height: those holding ${u.control} (${u.controlHeight}px tall) stand ${u.tall}px, the rest ${u.short}px. A button in a row takes the row's height and has no minimum height of its own; on a touch screen the row rises to the touch target instead (P-02, P-06).`);
     }
     if (p.defaultFont) {
       failures.push(`${at(p)}: the page renders in the browser's default font (${p.bodyFont ?? 'unknown'}) — its styles are not applying. No review of this page can pass until they do.`);

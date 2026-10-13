@@ -241,6 +241,25 @@ export const PROBE_SCRIPT = `(async () => {
     if (!table || getComputedStyle(table).display !== 'table' || display === 'table-cell' || display === 'none' || !vis(cell)) continue;
     brokenCells.push({ cell: cell.tagName.toLowerCase() + (cell.classList[0] ? '.' + cell.classList[0] : ''), text: (cell.innerText || '').trim().replace(/\\s+/g, ' ').slice(0, 40), display });
   }
+  // Rows of one table at different heights, where the taller rows are the
+  // ones holding a control taller than the short rows: a button given the
+  // touch-target floor as its own minimum height. An invoices table had its
+  // "Mark as paid" rows at 65px among 41px ones. Rows that differ because a
+  // cell's text wraps are left alone: only a control can be the cause here.
+  const unevenRows = [];
+  for (const table of [...document.querySelectorAll('table')].slice(0, 20)) {
+    if (unevenRows.length >= 3 || getComputedStyle(table).display !== 'table' || !vis(table)) continue;
+    const rows = [...table.querySelectorAll('tbody tr')].filter((r) => vis(r));
+    if (rows.length < 2) continue;
+    const heights = rows.map((r) => Math.round(r.getBoundingClientRect().height));
+    const short = Math.min(...heights);
+    const control = rows
+      .filter((r, i) => heights[i] > short + 2)
+      .map((r) => [...r.querySelectorAll('button, a[href], input, select')].find((c) => vis(c) && c.getBoundingClientRect().height > short))
+      .find(Boolean);
+    if (!control) continue;
+    unevenRows.push({ table: 'table' + (table.classList[0] ? '.' + table.classList[0] : ''), short, tall: Math.max(...heights), control: control.tagName.toLowerCase() + (control.classList[0] ? '.' + control.classList[0] : ''), controlHeight: Math.round(control.getBoundingClientRect().height) });
+  }
   return JSON.stringify({
     jigProbe: ${PROBE_VERSION},
     url: location.href,
@@ -250,6 +269,7 @@ export const PROBE_SCRIPT = `(async () => {
     sidewaysScroll: doc.scrollWidth > doc.clientWidth,
     sidewaysBoxes,
     brokenCells,
+    unevenRows,
     bodyFont: getComputedStyle(document.body).fontFamily,
     defaultFont: getComputedStyle(document.body).fontFamily === defaultFont,
     unresolvedTokens: [...unresolved],
