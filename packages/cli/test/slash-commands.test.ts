@@ -265,7 +265,12 @@ describe('the command file tells the agent to settle mode before init runs', () 
     }
   });
 
-  it('still forbids authoring token values by hand', () => {
-    expect(initSection().toLowerCase()).toMatch(/not author|never author/);
+  it('forbids writing the token files by hand, and leaves the brand file to the project', () => {
+    const init = initSection().toLowerCase();
+    expect(init).toMatch(/not write the token files by hand/);
+    // Read as "never change a token value", the old wording kept four of six
+    // agents from putting the owner's decided colour and typeface in.
+    expect(init).toMatch(/brand file it writes is the project's own/);
+    expect(init).not.toMatch(/not author token values/);
   });
 });
