@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.26.2 (2026-10-13)
+
+A button in a table row keeps the row's height, and the render probe reports
+rows it stretches.
+
+### Fixed
+
+- **A button in a table row takes the row's height.** 0.26.0 said so in the
+  tokens chapter, but the Button pattern, which an agent reads to build a
+  button, still gave its hit area a 48px floor with no exception, and an
+  invoices table on 0.26.1 had its "Mark as paid" rows at 65px among 41px ones.
+  The Button and Data table patterns now say it where buttons are built: a
+  button in a row is sized to the control height with no minimum of its own,
+  and on a touch screen the whole row rises to the touch target instead. On a
+  run of this release, every row stood 36px with a mouse and 48px on touch.
+
+### Added
+
+- **The render probe reports a table whose rows are not one height because of
+  a control.** When the rows holding a button or link stand taller than the
+  rest, and the control is taller than the short rows, it is a measured
+  failure (`P-02`, `P-06`). Rows that differ only because text wraps are left
+  alone.
+
 ## 0.26.1 (2026-10-13)
 
 The colour and typeface you decide in `/jig decide` now reach the pages, and
