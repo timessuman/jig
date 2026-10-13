@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.26.0 (2026-10-13)
 
 An unbranded page that looks designed, tables that hold together on a phone and
 on a touch screen, and two layout faults the render probe now measures.
