@@ -15,6 +15,8 @@ export interface ProbeResult {
   sidewaysScroll: boolean;
   /** Boxes inside the page that scroll sideways (M-01 in `editorial` at phone width). */
   sidewaysBoxes?: Array<{ box: string; text: string; scrollWidth: number; clientWidth: number }>;
+  /** Table cells given their own display while their table is drawn as a table (P-06). */
+  brokenCells?: Array<{ cell: string; text: string; display: string }>;
   scrollWidth: number;
   clientWidth: number;
   defaultFont: boolean;
@@ -147,6 +149,12 @@ export function probeCheck(probes: ProbeResult[], verdictOf: VerdictOf, indexabl
     if (mode === 'editorial' && p.width <= 480 && p.sidewaysBoxes?.length) {
       const shown = p.sidewaysBoxes.map((b) => `${b.box}${b.text ? ` ("${b.text}")` : ''}, ${b.scrollWidth}px in ${b.clientWidth}px`).join('; ');
       failures.push(`${at(p)}: ${p.sidewaysBoxes.length === 1 ? 'a box scrolls' : `${p.sidewaysBoxes.length} boxes scroll`} sideways on a phone: ${shown}. \`editorial\` allows no scrolling region on mobile (M-01): a code block wraps its long lines, keeping its line breaks and indents, and a wide table stacks its rows (L-01, step 6).`);
+    }
+    // P-06: a cell set to flex or grid leaves its row. Its height and its
+    // border no longer match the other cells', in any mode.
+    if (p.brokenCells?.length) {
+      const shown = p.brokenCells.map((c) => `${c.cell}${c.text ? ` ("${c.text}")` : ''} is display: ${c.display}`).join('; ');
+      failures.push(`${at(p)}: ${p.brokenCells.length === 1 ? 'a table cell has' : `${p.brokenCells.length} table cells have`} left the table: ${shown}. A cell given its own display stops taking its row's height, so its border and its text drift from the row's. Keep the cell a cell and put the flex on a wrapper inside it (P-06).`);
     }
     if (p.defaultFont) {
       failures.push(`${at(p)}: the page renders in the browser's default font (${p.bodyFont ?? 'unknown'}) — its styles are not applying. No review of this page can pass until they do.`);

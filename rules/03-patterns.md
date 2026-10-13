@@ -285,6 +285,7 @@ Primarily an `operator` pattern; the rules apply wherever a table appears.
 **Rules**
 - Row identity is stable across refresh, sort and filter. A row that moves under a click causes the wrong record to be acted on — the most damaging bug this pattern has.
 - Numeric columns are right-aligned and use tabular figures (`--font-numeric`). Text columns are start-aligned. Never centre either.
+- A cell stays a table cell. To line up what is inside it (a name and a tag, an icon and a label), put `display: flex` on a wrapper inside the cell, never on the `<td>` or `<th>` itself: a cell given its own display stops taking its row's height, so its text and its border drift from the rest of the row. A table stacked on a phone, the whole table set to `block`, is the exception (`L-01`, step 6). The render probe reports a cell that has left its table.
 - Column headers state units. "Weight" is ambiguous; "Weight (kg)" is not.
 - Truncation is resolvable by click or expand, never by hover alone (`E-31`, `01-modes.md`).
 - Sort state is visible in the header and reflected in the URL, so a view can be shared.

@@ -149,6 +149,13 @@ describe('probeContradictions', () => {
     expect(probeCheck([probe()], verdicts({}), true, 'editorial').failures).toEqual([]);
   });
 
+  it('fails a table cell that left its table, in every mode', () => {
+    const cells = [{ cell: 'td.name-cell', text: 'Jordan Lee You', display: 'flex' }];
+    for (const mode of ['editorial', 'product', 'operator', undefined]) {
+      expect(probeCheck([probe({ brokenCells: cells })], verdicts({}), true, mode).failures.join('\n')).toMatch(/a table cell has left the table: td\.name-cell \("Jordan Lee You"\) is display: flex.*wrapper inside it \(P-06\)/);
+    }
+  });
+
   it('fails an unstyled page, undefined tokens and leaked template text whatever the verdicts say', () => {
     const errors = probeContradictions([probe({ defaultFont: true, bodyFont: '"Times New Roman"', unresolvedTokens: ['--font-body'], junkText: ['${'] })], verdicts({}));
     expect(errors.join('\n')).toMatch(/default font/);
@@ -350,6 +357,27 @@ describe('the CLI can run the probe itself', () => {
     const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'docs', 'probe-360.json'), 'utf8'));
     expect(probe.sidewaysScroll).toBe(false);
     expect(probe.sidewaysBoxes.map((b: { box: string }) => b.box)).toEqual(['pre.scrolls']);
+  }, 120_000);
+
+  // A team table set its name cells to flex to line up a name and a tag, and
+  // every name drifted above its row. A table stacked on a phone is left out.
+  it('measures a table cell that left its table, and not a stacked table', async () => {
+    const { findChrome } = await import('../src/probe/browser.js');
+    if (!findChrome()) return;
+    const { runAndSaveProbes } = await import('../src/probe/save.js');
+    const root = mkdtempSync(join(tmpdir(), 'jig-cells-'));
+    const row = (cls: string) => `<tr><td class="${cls}"><span>Jordan Lee</span><span>You</span></td><td>jordan.lee@example.com</td><td><button style="min-height:48px">Edit</button></td></tr>`;
+    writeFileSync(join(root, 'page.html'),
+      '<html><head><title>t</title><meta name="viewport" content="width=device-width">' +
+      '<style>.name-cell{display:flex;gap:8px} .inner{display:block} .stacked,.stacked tr,.stacked td{display:block}</style></head><body><main>' +
+      `<table class="broken"><tbody>${row('name-cell')}</tbody></table>` +
+      `<table><tbody>${row('fine')}</tbody></table>` +
+      `<table class="stacked"><tbody>${row('inner')}</tbody></table>` +
+      '</main></body></html>');
+    mkdirSync(join(root, '.jig', 'critique', 'team'), { recursive: true });
+    await runAndSaveProbes({ projectRoot: root, surface: 'team', page: 'page.html' });
+    const probe = JSON.parse(readFileSync(join(root, '.jig', 'critique', 'team', 'probe-1280.json'), 'utf8'));
+    expect(probe.brokenCells.map((c: { cell: string; display: string }) => [c.cell, c.display])).toEqual([['td.name-cell', 'flex']]);
   }, 120_000);
 
   // jig-site: a heading asked for a weight the site never loaded, the browser
