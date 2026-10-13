@@ -262,6 +262,16 @@ It is an accessibility floor, so it is excluded from the table above — there i
 nothing per-mode about it to resolve. The same is true of `--focus-ring-width`
 and `--focus-ring-offset`, which live in the brand file for that reason.
 
+**Inside a table row, the row is the target, and every row is one height.** A
+dense row is shorter than the floor (`operator`'s 36px), and a control that
+sets its own `min-height` to the floor stretches the rows that hold it and not
+the rest: in a run, an invoices table whose "Mark paid" rows stood 48px tall
+among 36px ones. So a control in a row takes the row's height and never its
+own. For a mouse, a dense row is above WCAG 2.2's 24px minimum; for a finger it
+is not, so under `@media (pointer: coarse)` the mode files raise `--size-row`
+(and `--size-row-compact`) to `--size-touch-target`, and every row grows
+together.
+
 **Layout sizes.** Three tokens size a page's frame, where the others size what
 is inside it. A real site found none of them and made up its own three:
 
