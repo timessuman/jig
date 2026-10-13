@@ -339,8 +339,7 @@ and `jig ship` is where nothing is optional.
 
 ## 0.21.0 (2026-09-28)
 
-Dev builds, so a fix is tried on a real project before it ships, and the gate
-fixes that trial on jig-site turned up.
+Dev builds, so a fix is tried on a real project before it ships, and gate fixes that trial turned up.
 
 ### Added
 
@@ -622,7 +621,7 @@ The gate holds an HTML mockup that does not draw the page at every size.
 
 ## 0.18.4 (2026-09-25)
 
-Every release summary is one or two lines, for jig-site's Versions page.
+Every release summary is one or two lines.
 
 ### Changed
 
@@ -654,8 +653,7 @@ older probe file says it is older rather than forged.
 
 ## 0.18.2 (2026-09-25)
 
-Every release in this changelog now carries its date and a one-line summary,
-for jig-site's Versions page.
+Every release in this changelog now carries its date and a one-line summary.
 
 ### Changed
 
@@ -669,8 +667,7 @@ for jig-site's Versions page.
 
 ## 0.18.1 (2026-09-25)
 
-Two fixes found by jig-site's fourth round: the probe misread a `<details>`
-menu, and the emoji rule missed an arrow that renders as an emoji.
+Two fixes: the probe misread a `<details>` menu, and the emoji rule missed an arrow that renders as an emoji.
 
 ### Fixed
 
@@ -739,7 +736,7 @@ keyboard access a rule requires fits every script budget.
 
 ## 0.17.3 (2026-09-25)
 
-Three defects found building jig-site's header with the full loop.
+Three defects found building a site header with the full loop.
 
 ### Fixed
 
