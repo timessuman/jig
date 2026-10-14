@@ -80,6 +80,12 @@ describe('cream-palette (A-137)', () => {
     expect(run(creamPalette, 'a.css', 'body {\n  background: #fafafa;\n}')).toEqual([]);
     expect(run(creamPalette, 'a.css', '.badge {\n  background: #f5f0e8;\n}')).toEqual([]);
   });
+  // An invoices page's Overdue badge: a pale red, named for its status.
+  it('leaves a pale red, and a tint named for a state, alone', () => {
+    expect(run(creamPalette, 'a.css', 'body {\n  background: #fdecec;\n}')).toEqual([]);
+    expect(run(creamPalette, 'a.css', ':root {\n  --overdue-bg: #fdecec;\n  --warning-bg: #fef9e7;\n  --stage-bg: #fff;\n}')).toEqual([]);
+    expect(run(creamPalette, 'a.css', ':root {\n  --stage-bg: #faf7f2;\n}')).toHaveLength(1);
+  });
 });
 
 describe('pulsing-dot (G-145)', () => {

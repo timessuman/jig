@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.26.3 (2026-10-14)
+
+Form text in `operator` stops making phones zoom, and `check` catches three
+things it missed or got wrong.
+
+### Fixed
+
+- **`operator` body text is 16px on touch screens.** At 14px, any input set in
+  the body size, or inheriting it, made iOS zoom the page when it took focus.
+  Under a coarse pointer the body token now rises to 16px, beside the rows
+  that already rose to the touch target. A mouse keeps the dense 14px.
+- **`check` reads form text that inherits its size.** An input that wrote
+  `font: inherit` under a 14px body went unreported, and so did any page with
+  a touch-screen query, whatever that query changed. A touch query now counts
+  only when it raises form text.
+- **Low contrast in small inline text is reported.** Text sized no larger than
+  the text around it (`0.9em`, `85%`, `smaller`) was read as possibly large and
+  held to 3:1, so an inline code span at 4.03:1 passed. It is held to 4.5:1.
+- **A pale red is not cream.** The cream-palette warning fired on a red status
+  tint behind an "Overdue" badge. It now needs a tint that leans toward yellow,
+  and leaves alone a token named for a state or a component.
+- **A signed-in page without a spec is not asked for search metadata.** A
+  review took every page without a spec as public. It now takes the project's
+  mode when `jig.config.json` declares one, so an `operator` or `product`
+  page is asked for `noindex` instead of a description and a link preview.
+- **A table's scroll box holds what is hidden inside it.** The layout method
+  now says the box a wide table scrolls in is `position: relative`. Without
+  it, a label hidden for screen readers in each row was placed against the
+  page, and an invoices page scrolled sideways by 200px on a phone.
+
 ## 0.26.2 (2026-10-13)
 
 A button in a table row keeps the row's height, and the render probe reports

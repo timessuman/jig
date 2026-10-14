@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { viewportHeight } from '../src/check/detectors/viewport-height.js';
-import { inputZoom } from '../src/check/detectors/input-zoom.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { inputZoom, touchFormText } from '../src/check/detectors/input-zoom.js';
+import { repoRoot } from './helpers/registered-commands.js';
 import { safeArea } from '../src/check/detectors/safe-area.js';
 import type { DetectorContext } from '../src/check/types.js';
 
@@ -61,6 +64,38 @@ describe('input-zoom (F-113)', () => {
   it('does not fire when the file raises form text for touch screens', () => {
     const css = 'input { font-size: 14px; }\n@media (pointer: coarse) { input { font-size: 16px; } }';
     expect(inputZoom.run(css, 'a.css', ctx('F-113'))).toHaveLength(0);
+  });
+
+  // An operator invoices page: the search field wrote `font: inherit` under a
+  // body of `var(--text-body)`, and the file's only touch query raised the
+  // rows. Both let 14px form text through.
+  it('reads `font: inherit` through to the body, and a touch query that raises only rows is not a fix', () => {
+    const page = [
+      'body { font-size: var(--text-body); }',
+      '.search input[type="search"] {',
+      '  font: inherit;',
+      '}',
+      '@media (pointer: coarse) { :root { --size-row: var(--size-touch-target); } }',
+    ].join('\n');
+    const f = inputZoom.run(page, 'a.css', ctx('F-113', { mode: 'operator' }));
+    expect(f).toHaveLength(1);
+    expect(f[0].line).toBe(3);
+    expect(f[0].message).toMatch(/inherits the body's 14px/);
+    expect(inputZoom.run('input { font: 600 14px/1.5 Inter, sans-serif; }', 'a.css', ctx('F-113'))).toHaveLength(1);
+  });
+
+  it("is satisfied by the body token once a touch query raises it, in the file or in the project's tokens", () => {
+    const css = 'input { font-size: var(--text-body); }';
+    const raised = '@media (pointer: coarse) { :root { --size-row: 48px; --text-body: 16px; } }';
+    expect(inputZoom.run(`${css}\n${raised}`, 'a.css', ctx('F-113', { mode: 'operator' }))).toHaveLength(0);
+    expect(inputZoom.run(css, 'a.css', ctx('F-113', { mode: 'operator', touchFormText: touchFormText(raised) }))).toHaveLength(0);
+    // Raising the body does nothing for a control that names its own small size.
+    expect(inputZoom.run('input { font-size: var(--text-caption); }', 'a.css', ctx('F-113', { mode: 'operator', touchFormText: touchFormText(raised) }))).toHaveLength(1);
+  });
+
+  it("finds that raise in Jig's own operator tokens", () => {
+    const operator = readFileSync(join(repoRoot, 'tokens', 'mode.operator.css'), 'utf8');
+    expect(touchFormText(operator)).toEqual({ body: true, control: false });
   });
 
   it('does not fire on a small label or button, which never zoom', () => {

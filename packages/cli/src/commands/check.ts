@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assetRoot } from '../paths.js';
 import { validateIndex, type IndexEntry } from '../rules/schema.js';
@@ -19,6 +19,7 @@ import { isResponsive } from '../check/responsive.js';
 import { hasMenuToggle } from '../check/menu-toggle.js';
 import { modeWiringProblems } from '../check/mode-wiring.js';
 import { collectDeclaredProperties } from '../check/declared-properties.js';
+import { touchFormText as readTouchFormText } from '../check/detectors/input-zoom.js';
 import { auditTokenLayer } from '../check/token-audit.js';
 import type { Finding } from '../check/types.js';
 import { agentFileProblems } from '../install/agent-files.js';
@@ -246,6 +247,22 @@ export function check(opts: CheckOptions): CheckResult {
   // layer is almost never in the change set. See `H-117`.
   const declaredProperties = collectDeclaredProperties(opts.projectRoot, stylesheets, Object.keys(tokens));
 
+  // What a touch-screen query raises anywhere in the project. Operator's
+  // tokens raise the body size in their own file, and the input reading it
+  // lives in another. See `F-113`.
+  const touchFormText = { body: false, control: false };
+  const vendoredTokens = existsSync(join(opts.projectRoot, '.jig', 'tokens'))
+    ? readdirSync(join(opts.projectRoot, '.jig', 'tokens')).filter((f) => f.endsWith('.css')).map((f) => join('.jig', 'tokens', f))
+    : [];
+  for (const f of [...stylesheets, ...vendoredTokens]) {
+    if (!isStyleBearing(f)) continue;
+    try {
+      const found = readTouchFormText(maskComments(maskNonStyleRegions(readFileSync(join(opts.projectRoot, f), 'utf8'), f)));
+      touchFormText.body ||= found.body;
+      touchFormText.control ||= found.control;
+    } catch { /* deleted between selection and read */ }
+  }
+
   // How many of the selected files actually carried a style region.
   //
   // `.ts`, `.tsx` and friends are style-bearing by EXTENSION, so `files.length`
@@ -272,7 +289,7 @@ export function check(opts: CheckOptions): CheckResult {
   // Resolved once and shared: the report names it, and A-09 gates on it.
   const resolvedMode = resolveMode(opts.projectRoot);
 
-  const detected = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive, viewportFitCover, projectMenuToggle, declaredProperties);
+  const detected = runChecks(opts.projectRoot, files, index, tokens, bucketFilter, projectParticipates, resolvedMode, projectResponsive, viewportFitCover, projectMenuToggle, declaredProperties, touchFormText);
 
   // The token layer's OWN declarations, which no detector reads: `.jig/tokens/`
   // is not in the scanned set, so until this ran, a brand file edited after

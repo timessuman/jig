@@ -223,6 +223,22 @@ describe('jig verdicts reads the probes', () => {
     expect(r.line).toMatch(/ measured=1$/);
   });
 
+  // An operator invoices page reviewed without a spec was asked for a search
+  // description and a link preview, as if it were public.
+  it("takes the project's one mode when there is no spec: a signed-in page is asked for noindex, not search metadata", () => {
+    writeFileSync(join(project, 'jig.config.json'), JSON.stringify({ surfaces: [{ match: '/', mode: 'operator' }] }));
+    const page = join(project, 'pricing.html');
+    writeFileSync(page, '<html><body><a href="/">home</a></body></html>');
+    const head = { title: 'Invoices', description: '', canonical: '', robots: '', ogTitle: '', ogDescription: '', ogImage: '' };
+    const record = (over: Partial<ProbeResult>) =>
+      saveProbe({ projectRoot: project, surface: 'pricing', json: JSON.stringify({ ...probe(), url: `file://${page}`, head, ...over }) });
+    record({});
+    for (const width of [768, 1280, 1600]) record({ width, menu: null, navLinksVisible: 5 });
+    const measured = run().measured.join('\n');
+    expect(measured).toMatch(/served no noindex \(J-123\)/);
+    expect(measured).not.toMatch(/J-121|J-164/);
+  });
+
   it('counts a screen pass with no render as skipped, not run', () => {
     writeFileSync(join(dir(), 'screen.json'), JSON.stringify({ rendered: false, verdicts: ids('screen') }));
     const r = run();

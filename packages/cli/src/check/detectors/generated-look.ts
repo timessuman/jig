@@ -236,6 +236,9 @@ export const glowAccent: Detector = {
 // ---------------------------------------------------------------------------
 
 const PAGE_SELECTOR = /(?:^|[\s,>])(?:html|body|:root|main)\b|--[\w-]*(?:bg|background|surface|page|canvas)[\w-]*/i;
+// A token named for a state or a component is not the page: `--overdue-bg` is
+// the tint behind a badge, whatever its colour.
+const NOT_PAGE_TOKEN = /-(?:success|error|danger|warn|warning|info|notice|overdue|due|paid|draft|pending|status|badge|tag|chip|pill|alert|toast|hover|active|selected|highlight|mark|code|kbd|tooltip|input|button|btn)(?=-|$)/i;
 const TW_CREAM = /^bg-(?:amber|orange|yellow)-(?:50|100)$|^bg-stone-(?:100|200)$/;
 
 /**
@@ -248,7 +251,9 @@ function cream(value: string, tokens: Record<string, string>): boolean {
   const c = extractColorComponents(value.trim(), tokens);
   if (!c || c.alpha < 0.9) return false;
   const { r, g, b } = c.rgb;
-  return Math.min(r, g, b) >= 215 && r >= g && g >= b && r - b >= 6;
+  // Warm toward yellow, not pink: green sits well above blue. A red tint
+  // (253, 236, 236) is near-white with red over blue too, and is not cream.
+  return Math.min(r, g, b) >= 215 && r >= g && g >= b && r - b >= 6 && g - b >= (r - b) * 0.35;
 }
 
 export const creamPalette: Detector = {
@@ -259,7 +264,7 @@ export const creamPalette: Detector = {
     for (const block of leafBlocks(source)) {
       for (const m of block.body.matchAll(/(?:^|[;{\s])((?:--[\w-]+|background(?:-color)?))\s*:\s*([^;}]+)/g)) {
         const prop = m[1]!;
-        const onPage = prop.startsWith('--') ? PAGE_SELECTOR.test(prop) : PAGE_SELECTOR.test(block.selector);
+        const onPage = prop.startsWith('--') ? PAGE_SELECTOR.test(prop) && !NOT_PAGE_TOKEN.test(prop) : PAGE_SELECTOR.test(block.selector);
         if (!onPage || !cream(m[2]!, ctx.tokens)) continue;
         hits.push({ line: lineOfOffset(block, m.index!), message: `a cream page surface (${m[2]!.trim()}): the palette a model reaches for when asked to look tasteful` });
       }

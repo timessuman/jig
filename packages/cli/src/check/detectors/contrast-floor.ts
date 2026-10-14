@@ -38,6 +38,11 @@ const REM_TO_PX = 16;
 const FONT_SIZE_DECL_RE = /(?<![-\w])font-size\s*:\s*([^;]+?)(?:;|$)/i;
 const FONT_SIZE_PX_RE = /^(-?\d*\.?\d+)px$/i;
 const FONT_SIZE_REM_RE = /^(-?\d*\.?\d+)rem$/i;
+// A size no larger than its context: `0.9em`, `85%`, `smaller`, `small`. The
+// context is unknown, but it is body text far more often than a headline, so
+// text set relative to it is normal-size text. Reading it as "unknown, so
+// large" let an inline `<code>` at 0.9em pass at 4.03:1.
+const NOT_LARGER_RE = /^(?:0*\.\d+em|1(?:\.0+)?em|(?:\d{1,2}(?:\.\d+)?|100)%|smaller|small|x-small|xx-small)$/i;
 const BOLD_RE = /(?<![-\w])font-weight\s*:\s*(bold|[6-9]\d\d)/i;
 
 /**
@@ -58,6 +63,7 @@ function resolveFloor(body: string): number {
   let px: number;
   if (pxMatch) px = parseFloat(pxMatch[1]);
   else if (remMatch) px = parseFloat(remMatch[1]) * REM_TO_PX;
+  else if (NOT_LARGER_RE.test(raw)) return FLOOR; // no larger than the text around it
   else return LARGE_FLOOR; // unresolvable unit — do not guess at the strict floor
 
   const large = BOLD_RE.test(body) ? px >= 18.66 : px >= 24;

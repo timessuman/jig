@@ -366,7 +366,7 @@ Without `viewport-fit=cover`, the browser keeps the page inside the safe area on
 ### D-115 The page scrolls sideways on a phone
 ❌ At phone width the whole page is wider than the screen — a data table, a long URL, an image, a `width: 100vw` element or a fixed-width block pushes it out, and the reader can drag the page left and right
 ✅ At every width, nothing makes the page wider than the screen. Content that is genuinely wider — a data table, a code block — scrolls inside its own container with a visible edge (`E-62`), and the page itself never does. `editorial` goes further and allows no scrolling regions on mobile at all (`M-01`): there a code block wraps its long lines and a wide table stacks its rows (`L-01`, step 6).
-Judge it on a render, not in the source: at 360px, `document.documentElement.scrollWidth` must not be greater than `document.documentElement.clientWidth`. The usual causes are each one line to fix — `overflow-wrap: anywhere` on text the author does not control, `max-width: 100%` on media, `width: 100%` instead of `100vw` (which includes the scrollbar), and a wrapper with `overflow-x: auto` around anything tabular.
+Judge it on a render, not in the source: at 360px, `document.documentElement.scrollWidth` must not be greater than `document.documentElement.clientWidth`. The usual causes are each one line to fix — `overflow-wrap: anywhere` on text the author does not control, `max-width: 100%` on media, `width: 100%` instead of `100vw` (which includes the scrollbar), and a wrapper with `overflow-x: auto` around anything tabular. That wrapper also takes `position: relative`, or a visually hidden label inside it, positioned absolutely, lays itself out against the page and widens it.
 A page that scrolls sideways is not merely untidy. The reader's vertical swipes drift, the page slides half off the screen, and every line of text needs re-centring before it can be read.
 
 ## E. States and interaction
@@ -556,8 +556,8 @@ Where people must *browse* to decide, split the list into two dependent fields �
 ---
 
 ### F-113 Form text small enough to make the phone zoom
-❌ An input, select or textarea whose text is below 16px — including `operator`'s 14px `--text-body`, and `--text-caption` in every mode
-✅ At least 16px on touch screens. To keep a denser size on desktop, raise it only where it matters: `@media (pointer: coarse) { input, select, textarea { font-size: max(16px, var(--text-body)); } }`
+❌ An input, select or textarea whose text is below 16px — including `--text-caption` in every mode, a size written as `font: inherit` under a 14px body, and `operator`'s 14px `--text-body` where the tokens do not raise it on touch screens
+✅ At least 16px on touch screens. `operator`'s tokens raise `--text-body` to 16px under a coarse pointer, so a control set in the body size, or inheriting it, is safe there. To keep any other denser size on desktop, raise it only where it matters: `@media (pointer: coarse) { input, select, textarea { font-size: max(16px, var(--text-body)); } }`
 iOS Safari zooms the whole page when a field whose text is below 16px takes focus, and it does not zoom back out when the field loses it. The reader is left with a form wider than the screen, scrolling sideways to find the next field (`D-115`).
 Setting `maximum-scale=1` on the viewport to stop it is not the fix. That disables pinch zoom for everyone, which is an accessibility failure in its own right.
 

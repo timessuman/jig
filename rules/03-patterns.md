@@ -578,7 +578,11 @@ everything else follows from.
 5. **Content that is genuinely wider scrolls inside itself, except in
    `editorial` on a phone.** A code block, a wide table, a long identifier: its
    own container scrolls with a visible edge (`E-62`), keeps its type size, and
-   the page never scrolls sideways (`D-115`). `editorial` allows no scrolling
+   the page never scrolls sideways (`D-115`). The container is
+   `position: relative` as well as `overflow-x: auto`: text hidden for screen
+   readers in a cell is positioned absolutely, against the nearest positioned
+   ancestor, and without one it escapes the container and widens the page,
+   though nothing shows. `editorial` allows no scrolling
    region on mobile (`M-01`), so there each one reflows instead:
    - **A code block** keeps its line breaks and indents and wraps a long line
      (`white-space: pre-wrap`, `overflow-wrap: anywhere`). What is copied is
