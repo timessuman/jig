@@ -489,6 +489,12 @@ On multi-step forms put **"Back" as a tertiary button at the top left** — away
 A Menu button that does nothing looks finished in every screenshot. On a phone it is the only way to the rest of the site, so the reader who taps it and sees nothing change has nowhere to go. A button that opens the menu without `aria-expanded` is the same failure for a screen reader: it announces "Menu, button" before and after, and the reader never learns anything happened.
 `jig check` catches the hidden navigation with no recorded open state anywhere in the project. It cannot tell whether the button actually opens the menu — `critique` operates it on a render at 360px: tap it, and the links appear, `aria-expanded` changes, and the label or icon reads as close.
 
+### E-165 A link that opens a new tab for no reason
+❌ `target="_blank"` on an ordinary link (another site, an article, a source) because it leads away from the site
+✅ The same tab. Open a new tab only when leaving would lose something: the reader is in the middle of a task (a half-filled form, an unsaved edit, a checkout, a signed-in session), something is playing or running, or the link is a file read alongside the page, such as a PDF. When a link does open a new tab, say so: "(opens in a new tab)" in its accessible name, and an icon for sighted readers. Open it safely too (`K-128`).
+The reader can already open any link in a new tab, with Cmd or Ctrl-click or a long-press. Forcing it takes that choice away and breaks Back: the new tab has no history, and on a phone the page they came from is hidden among their other tabs. A tab that opens unannounced is also a change of context nobody asked for, and a screen reader user may not know they have left.
+`jig check` warns on a link that opens a new tab and never says so. Whether the reason is good, a task the reader would lose, is a judgment a `critique` makes on the page.
+
 ---
 
 ## F. Forms

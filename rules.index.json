@@ -788,6 +788,14 @@
     "detector": "menu-state"
   },
   {
+    "id": "E-165",
+    "bucket": "hybrid",
+    "severity": "warning",
+    "since": "0.27.0",
+    "detector": "new-tab-link",
+    "pass": "code"
+  },
+  {
     "id": "H-117",
     "bucket": "mechanical",
     "severity": "error",
