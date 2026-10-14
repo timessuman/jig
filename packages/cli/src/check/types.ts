@@ -89,6 +89,14 @@ export interface DetectorContext {
    * is then silent.
    */
   declaredProperties?: import('./declared-properties.js').DeclaredProperties;
+  /**
+   * What a touch-screen query anywhere in the project raises: the body token,
+   * or a form control's own size. A project fact: Jig's operator tokens raise
+   * `--text-body` in their own file, and the input reading it lives in
+   * another. `undefined` when never computed; `F-113` then reads each file
+   * alone.
+   */
+  touchFormText?: import('./detectors/input-zoom.js').TouchFormText;
 }
 
 export interface Detector {

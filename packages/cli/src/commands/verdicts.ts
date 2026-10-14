@@ -155,8 +155,24 @@ function specIndexable(projectRoot: string, surface: string): boolean {
   } catch { /* no spec: fall through to the mode */ }
   const declared = specIndexableField(front);
   if (declared === true || declared === false) return declared;
-  const mode = /^\s*mode\s*:\s*(\w+)/im.exec(front)?.[1]?.toLowerCase();
+  const mode = /^\s*mode\s*:\s*(\w+)/im.exec(front)?.[1]?.toLowerCase() ?? projectMode(projectRoot);
   return mode !== 'product' && mode !== 'operator';
+}
+
+/**
+ * The project's mode when `jig.config.json` declares exactly one. A page
+ * reviewed without a spec has no `mode:` of its own; an operator invoices page
+ * was then asked for a search description and a link preview, as if it were
+ * public. Several modes give no answer: which one a page has is the spec's.
+ */
+function projectMode(projectRoot: string): string | undefined {
+  try {
+    const config = JSON.parse(readText(join(projectRoot, 'jig.config.json'))) as { surfaces?: { mode?: unknown }[] };
+    const modes = [...new Set((config.surfaces ?? []).map((s) => s?.mode).filter((m): m is string => typeof m === 'string'))];
+    return modes.length === 1 ? modes[0]!.toLowerCase() : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** A navigation region in any size of the spec requires a verdict on P-14. */
@@ -429,7 +445,7 @@ export function verifyVerdicts(opts: { projectRoot: string; surface: string; pac
   if (specIndexableField(specFront) === 'unreadable') {
     errors.push(`.jig/specs/${opts.surface}.spec.md: \`indexable:\` is neither true nor false, so this review cannot tell whether the page is meant to be found and does not guess. Write \`indexable: true\` or \`indexable: false\`, and put the reason in the spec's body.`);
   } else {
-    const mode = /^\s*mode\s*:\s*["']?(\w+)/im.exec(specFront)?.[1]?.toLowerCase();
+    const mode = /^\s*mode\s*:\s*["']?(\w+)/im.exec(specFront)?.[1]?.toLowerCase() ?? projectMode(opts.projectRoot);
     const probed = probeCheck(probes, verdictOf, specIndexable(opts.projectRoot, opts.surface), mode);
     errors.push(...probed.contradictions);
     // Text on the page is the same at every width: one failure, not four.

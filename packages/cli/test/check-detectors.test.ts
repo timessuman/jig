@@ -299,6 +299,18 @@ describe('contrast-floor applies the large-text floor', () => {
     const src = '.h { font-size: 1.5em; background: #ffffff; color: #949494; }\n'; // ~3.54:1
     expect(contrastFloor.run(src, 'a.css', c)).toHaveLength(0);
   });
+
+  // A help article's inline `<code>`: blue on pale blue at 0.9em, 4.03:1. Text
+  // set no larger than the text around it is normal-size text; reading it as
+  // "unknown, so large" let it pass.
+  it('keeps the strict floor for a size no larger than its context', () => {
+    const tokens = { accent: '#2f6feb', 'accent-soft': '#eaf1fd' };
+    const code = 'code {\n  background: var(--accent-soft);\n  color: var(--accent);\n  font-size: 0.9em;\n}\n';
+    expect(contrastFloor.run(code, 'a.css', { ...c, tokens })).toHaveLength(1);
+    for (const size of ['85%', 'smaller', '1em']) {
+      expect(contrastFloor.run(`.h { font-size: ${size}; background: #ffffff; color: #949494; }\n`, 'a.css', c)).toHaveLength(1);
+    }
+  });
 });
 
 /**

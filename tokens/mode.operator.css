@@ -107,7 +107,13 @@
    compact) is above WCAG 2.2's 24px minimum for a mouse, and below the 48px a
    finger needs, so under a coarse pointer every row rises to the floor. A
    control inside a row never sets its own height to reach it: every row in a
-   table is one height, and here the tokens make that height the right one. */
+   table is one height, and here the tokens make that height the right one.
+   Body text rises to 16px with it: an input, select or textarea set in 14px
+   makes iOS zoom the page on focus (`F-113`), and a form control's text is
+   body text, set by this token or inherited from it. */
 @media (pointer: coarse) {
-  :root { --size-row: var(--size-touch-target); --size-row-compact: var(--size-touch-target); }
+  :root {
+    --size-row: var(--size-touch-target); --size-row-compact: var(--size-touch-target);
+    --text-body: 16px;
+  }
 }

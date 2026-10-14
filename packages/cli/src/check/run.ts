@@ -6,6 +6,7 @@ import { maskNonStyleRegions } from './styles.js';
 import { getDetector } from './registry.js';
 import type { Bucket, Finding } from './types.js';
 import type { DeclaredProperties } from './declared-properties.js';
+import type { TouchFormText } from './detectors/input-zoom.js';
 
 /**
  * Runs every detector whose rule is BOTH present in the consumer's
@@ -29,6 +30,7 @@ export function runChecks(
   viewportFitCover?: boolean,
   projectMenuToggle?: boolean,
   declaredProperties?: DeclaredProperties,
+  touchFormText?: TouchFormText,
 ): Finding[] {
   const findings: Finding[] = [];
 
@@ -66,7 +68,7 @@ export function runChecks(
     const source = maskComments(maskNonStyleRegions(raw, file));
 
     for (const { entry, detector } of applicable) {
-      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw, mode, projectResponsive, viewportFitCover, projectMenuToggle, declaredProperties };
+      const ctx = { ruleId: entry.id, bucket: entry.bucket, severity: entry.severity, tokens, projectParticipates, raw, mode, projectResponsive, viewportFitCover, projectMenuToggle, declaredProperties, touchFormText };
       findings.push(...detector.run(source, file, ctx));
     }
   }

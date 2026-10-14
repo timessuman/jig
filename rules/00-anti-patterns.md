@@ -556,8 +556,8 @@ Where people must *browse* to decide, split the list into two dependent fields �
 ---
 
 ### F-113 Form text small enough to make the phone zoom
-❌ An input, select or textarea whose text is below 16px — including `operator`'s 14px `--text-body`, and `--text-caption` in every mode
-✅ At least 16px on touch screens. To keep a denser size on desktop, raise it only where it matters: `@media (pointer: coarse) { input, select, textarea { font-size: max(16px, var(--text-body)); } }`
+❌ An input, select or textarea whose text is below 16px — including `--text-caption` in every mode, a size written as `font: inherit` under a 14px body, and `operator`'s 14px `--text-body` where the tokens do not raise it on touch screens
+✅ At least 16px on touch screens. `operator`'s tokens raise `--text-body` to 16px under a coarse pointer, so a control set in the body size, or inheriting it, is safe there. To keep any other denser size on desktop, raise it only where it matters: `@media (pointer: coarse) { input, select, textarea { font-size: max(16px, var(--text-body)); } }`
 iOS Safari zooms the whole page when a field whose text is below 16px takes focus, and it does not zoom back out when the field loses it. The reader is left with a form wider than the screen, scrolling sideways to find the next field (`D-115`).
 Setting `maximum-scale=1` on the viewport to stop it is not the fix. That disables pinch zoom for everyone, which is an accessibility failure in its own right.
 
