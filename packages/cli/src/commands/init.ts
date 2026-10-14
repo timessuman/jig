@@ -17,7 +17,7 @@ import { renderBrandFile, brandFileName } from '../init/brand-file.js';
 import { relativeImportPath } from '../init/import-path.js';
 import { deriveProjectSlug } from '../init/project-name.js';
 import { readInitManifest, writeInitManifest, isInitFileModified, checksum } from '../init/state.js';
-import { declaredTokenNames, tailwindNamespaced, utilitiesBody } from '../init/utilities.js';
+import { compiledAliases, declaredTokenNames, listedAliases, utilitiesBody } from '../init/utilities.js';
 import { vendorHeader } from '../install/vendor.js';
 import { relKey } from './install.js';
 import { check } from './check.js';
@@ -946,7 +946,9 @@ export async function init(opts: InitOptions): Promise<InitResult> {
         })
         .join('\n'),
     );
-    const aliasable = tailwindNamespaced(declared);
+    // Asked of the project's own Tailwind; the list in utilities.ts only when
+    // it cannot be asked, as before Tailwind is installed.
+    const aliasable = compiledAliases(opts.projectRoot, declared) ?? listedAliases(declared);
     const rel = relKey(...tokensRelDir, 'utilities.css');
 
     if (aliasable.length === 0) {

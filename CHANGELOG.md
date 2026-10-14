@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.27.0 (2026-10-14)
+
+`check` finds Tailwind classes that do nothing, by asking your own Tailwind,
+and a new rule says when a link should open a new tab.
+
+### Added
+
+- **`check` reports a Tailwind class that generates no CSS.** Tailwind v4
+  writes nothing for a class whose value no token declares, and says nothing,
+  so `min-h-touch` with no `--spacing-touch` left a button at 22px and passed
+  every check. `check` now asks the project's own Tailwind which classes in the
+  markup are utilities that generate nothing, and reports them as a missing
+  token. A class the project names and styles itself is left alone. When the
+  project uses Tailwind v4 and it cannot be asked, the report says so.
+- **A link that opens a new tab for no reason (`E-165`).** Same tab by
+  default; a new tab only where leaving would lose the reader's work, and then
+  the link says "(opens in a new tab)". `check` warns on a new-tab link that
+  never says so.
+
+### Fixed
+
+- **`duration-fast` works as a Tailwind class.** Tailwind reads durations from
+  `--transition-duration-*`, and the alias file `init` writes said durations
+  had no utility at all. It now aliases them under that name. `init` asks the
+  project's own Tailwind which aliases generate a utility, and keeps its own
+  list only for a project where Tailwind is not installed yet. That list was
+  also wrong about opacity, which has a utility, and `--shadow-none`, which
+  does not.
+
 ## 0.26.3 (2026-10-14)
 
 Form text in `operator` stops making phones zoom, and `check` catches three

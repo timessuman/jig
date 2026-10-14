@@ -21,6 +21,7 @@ import { layoutMotion } from './detectors/layout-motion.js';
 import { semanticElement } from './detectors/semantic-element.js';
 import { metadata } from './detectors/metadata.js';
 import { interfaceSafety } from './detectors/interface-safety.js';
+import { newTabLink } from './detectors/new-tab.js';
 import { generatedLookDetectors } from './detectors/generated-look.js';
 
 /**
@@ -53,6 +54,7 @@ const DETECTORS: Detector[] = [
   semanticElement,
   metadata,
   interfaceSafety,
+  newTabLink,
   ...generatedLookDetectors,
 ];
 

@@ -1,3 +1,5 @@
+import { askTailwind, tailwindNode } from '../tailwind/ask.js';
+
 /**
  * The optional `@theme inline` block that exposes Jig's tokens to Tailwind v4
  * as utility classes.
@@ -37,6 +39,8 @@
  * masquerade as proof that four other namespaces work.
  */
 const TAILWIND_NAMESPACES = [
+  '--opacity-',
+  '--transition-duration-',
   '--color-',
   '--font-',
   '--text-',
@@ -59,6 +63,81 @@ const TAILWIND_NAMESPACES = [
   '--border-width-',
 ];
 
+/**
+ * Names inside a namespace that still generate nothing, because Tailwind's own
+ * static utility of the same name wins: `shadow-none` is Tailwind's.
+ */
+const NOT_UTILITIES = new Set(['--shadow-none']);
+
+/**
+ * A token Tailwind reads under another name. Durations are `--duration-*` in
+ * Jig and `--transition-duration-*` to Tailwind, so `duration-fast` needs the
+ * alias `--transition-duration-fast: var(--duration-fast)`.
+ */
+const RENAMES: Array<[from: string, to: string]> = [['--duration-', '--transition-duration-']];
+
+/** One line of the block: the name Tailwind reads, and the token it reads. */
+export interface Alias {
+  alias: string;
+  token: string;
+}
+
+/** Every alias a token could take: its own name, and any name Tailwind reads it under. */
+export function aliasCandidates(names: string[]): Alias[] {
+  const out = new Map<string, Alias>();
+  for (const token of new Set(names)) {
+    out.set(token, { alias: token, token });
+    for (const [from, to] of RENAMES) if (token.startsWith(from)) {
+      const alias = to + token.slice(from.length);
+      out.set(alias, { alias, token });
+    }
+  }
+  return [...out.values()].sort((a, b) => a.alias.localeCompare(b.alias));
+}
+
+/** The aliases the namespace list above says generate a utility. Used when Tailwind cannot be asked. */
+export function listedAliases(names: string[]): Alias[] {
+  return aliasCandidates(names).filter((a) => TAILWIND_NAMESPACES.some((ns) => a.alias.startsWith(ns)) && !NOT_UTILITIES.has(a.alias));
+}
+
+// Runs in the child. Each alias gets a marker value, so the CSS a utility
+// generates says which alias it read: under `@theme inline` the CSS carries the
+// value, not the alias's name. The class list Tailwind offers leaves out some
+// theme values (`duration-fast` is missing from it and compiles), so an alias
+// it does not cover is tried as every utility root Tailwind registers, with
+// every ending of the alias's name.
+const ALIASES_QUERY = `
+const ds = await loadDesignSystem('@import "tailwindcss";\\n@theme inline {\\n' + input.aliases.map((a, i) => '  ' + a + ': var(--jig-alias-' + i + ');').join('\\n') + '\\n}', { base: input.base });
+const used = new Set();
+const note = (list) => { for (const css of list) if (css) for (const m of css.matchAll(/var\\(--jig-alias-(\\d+)/g)) used.add(Number(m[1])); };
+note(ds.candidatesToCss(ds.getClassList().map(([c]) => c)));
+const roots = ds.utilities.keys('functional');
+const tries = [];
+input.aliases.forEach((a, i) => {
+  if (used.has(i)) return;
+  const parts = a.slice(2).split('-');
+  for (let k = 1; k < parts.length; k++) for (const r of roots) tries.push(r + '-' + parts.slice(k).join('-'));
+});
+note(ds.candidatesToCss(tries));
+answer(input.aliases.filter((_, i) => used.has(i)));
+`;
+
+/**
+ * The aliases the project's own Tailwind generates a utility for, or
+ * undefined when it cannot be asked (not installed, or it failed).
+ */
+export function compiledAliases(projectRoot: string, names: string[]): Alias[] | undefined {
+  const module = tailwindNode(projectRoot);
+  if (!module) return undefined;
+  const candidates = aliasCandidates(names);
+  try {
+    const kept = new Set(askTailwind<string[]>(projectRoot, module, ALIASES_QUERY, { base: projectRoot, aliases: candidates.map((a) => a.alias) }));
+    return candidates.filter((a) => kept.has(a.alias));
+  } catch {
+    return undefined;
+  }
+}
+
 /** The subset of `names` Tailwind can turn into utilities, deduplicated and
  *  sorted so the generated file is byte-stable across runs — a block that
  *  reorders itself produces a diff on every `init` and trains people to skip
@@ -75,15 +154,16 @@ export function declaredTokenNames(css: string): string[] {
   return [...css.matchAll(/(^|[;{\s])(--[\w-]+)\s*:/g)].map((m) => m[2]);
 }
 
-export function utilitiesBody(names: string[], version: string): string {
-  if (names.length === 0) {
+export function utilitiesBody(entries: Array<string | Alias>, version: string): string {
+  const aliases = entries.map((e) => (typeof e === 'string' ? { alias: e, token: e } : e));
+  if (aliases.length === 0) {
     throw new Error(
       'Refusing to write an empty @theme block: it generates no utilities while ' +
         'looking like it should. No token in this layer matches a Tailwind namespace.',
     );
   }
-  const width = Math.max(...names.map((n) => n.length));
-  const lines = names.map((n) => `  ${n}:${' '.repeat(width - n.length)} var(${n});`);
+  const width = Math.max(...aliases.map((a) => a.alias.length));
+  const lines = aliases.map((a) => `  ${a.alias}:${' '.repeat(width - a.alias.length)} var(${a.token});`);
 
   return `/* utilities.css — vendored from Jig v${version}.
    Licensed Apache-2.0. LICENSE and NOTICE ship beside the jig skill.
@@ -108,10 +188,11 @@ export function utilitiesBody(names: string[], version: string): string {
    order, so Jig's value always wins. Do not "fix" it — deleting the alias
    removes the utility, deleting Jig's removes the value.
 
-   Only tokens in a Tailwind namespace are listed. \`--measure-*\`, \`--focus-ring-*\`
-   and \`--duration-*\` have none, so they stay \`var()\`-only — read them from a class
-   with Tailwind's custom-property form instead: \`max-w-(--measure-prose)\`,
-   \`duration-(--duration-fast)\`.
+   Only tokens a Tailwind utility reads are listed. Durations are listed under the
+   name Tailwind reads them by, \`--transition-duration-fast: var(--duration-fast)\`,
+   so \`duration-fast\` works. \`--measure-*\` and \`--focus-ring-*\` have no utility,
+   so they stay \`var()\`-only — read them from a class with Tailwind's
+   custom-property form instead: \`max-w-(--measure-prose)\`.
 
    Regenerate with \`jig init\` after the token layer changes; a token missing here
    is a class that renders and matches nothing. */

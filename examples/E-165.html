@@ -1,0 +1,15 @@
+<!-- E-165 · A link that opens a new tab for no reason -->
+<figure data-example="dont">
+  <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.45;color:#1f1f1f;background:#f5f5f4;padding:16px;min-height:176px;box-sizing:border-box;"><pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.5;background:#ffffff;border:1px solid #d6d6d6;border-radius:6px;padding:10px;margin:0;white-space:pre-wrap;">&lt;a href="https://acme.example"
+   target="_blank"
+   rel="noopener"&gt;GitHub&lt;/a&gt;</pre><div style="font-size:11px;color:#5c5c5c;margin-top:8px">A tab the reader did not ask for, and nothing says it opened. Back no longer returns.</div></div>
+</figure>
+<figure data-example="do">
+  <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.45;color:#1f1f1f;background:#f5f5f4;padding:16px;min-height:176px;box-sizing:border-box;"><pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.5;background:#ffffff;border:1px solid #d6d6d6;border-radius:6px;padding:10px;margin:0;white-space:pre-wrap;">&lt;a href="https://acme.example"&gt;
+  GitHub&lt;/a&gt;
+
+&lt;!-- in a half-filled form --&gt;
+&lt;a href="/terms.pdf"
+   target="_blank" rel="noopener"&gt;
+  Terms (opens in a new tab)&lt;/a&gt;</pre></div>
+</figure>
