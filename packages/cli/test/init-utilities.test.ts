@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { declaredTokenNames, tailwindNamespaced, utilitiesBody } from '../src/init/utilities.js';
+import { compiledAliases, declaredTokenNames, listedAliases, tailwindNamespaced, utilitiesBody } from '../src/init/utilities.js';
 
 /**
  * The alias block that turns Jig's tokens into Tailwind utilities.
@@ -41,6 +41,30 @@ describe('which tokens can become utilities', () => {
     expect(tailwindNamespaced(['--color-b', '--color-a', '--color-b']))
       .toEqual(['--color-a', '--color-b']);
   });
+});
+
+// A portfolio's nav wrote `duration-fast` and got nothing: Tailwind reads
+// durations from `--transition-duration-*`, and the list here said durations
+// had no utility at all. It was wrong about opacity and `--shadow-none` too.
+describe("the aliases, as the project's own Tailwind answers", () => {
+  const jigTokens = () =>
+    declaredTokenNames(['brand.default.css', 'mode.product.css', 'mode.operator.css', 'mode.editorial.css']
+      .map((f) => readFileSync(join(repoRoot, 'tokens', f), 'utf8')).join('\n'));
+
+  it('gives a duration the name Tailwind reads it by', () => {
+    expect(listedAliases(['--duration-fast'])).toEqual([{ alias: '--transition-duration-fast', token: '--duration-fast' }]);
+    expect(utilitiesBody(listedAliases(['--duration-fast']), '0.8.0')).toMatch(/--transition-duration-fast:\s+var\(--duration-fast\);/);
+  });
+
+  // The list is only the fallback for a project where Tailwind cannot be
+  // asked. When it disagrees with Tailwind, this fails, and the list is fixed.
+  it("agrees with Tailwind 4.3.3 on every token Jig declares", () => {
+    const asked = compiledAliases(repoRoot, jigTokens());
+    expect(asked, 'Tailwind could not be asked').toBeDefined();
+    expect(listedAliases(jigTokens())).toEqual(asked);
+    expect(asked!.map((a) => a.alias)).toEqual(expect.arrayContaining(['--transition-duration-fast', '--opacity-disabled']));
+    expect(asked!.map((a) => a.alias)).not.toContain('--shadow-none');
+  }, 60_000);
 });
 
 describe('the generated block', () => {
@@ -127,6 +151,7 @@ describe('init and the Tailwind alias block', () => {
     const css = readFileSync(abs, 'utf8');
     expect(css).toContain('@theme inline {');
     expect(css).toMatch(/--color-text-strong:\s+var\(--color-text-strong\);/);
+    expect(css).toMatch(/--transition-duration-fast:\s+var\(--duration-fast\);/);
   });
 
   it('does NOT write it when the user declines', async () => {
@@ -177,10 +202,13 @@ describe('init and the Tailwind alias block', () => {
  * other namespaces. That mistake was made while verifying this very fix.
  */
 describe('the Tailwind namespace allowlist matches what Tailwind generates', () => {
+  // `--opacity-disabled` sat in `doesNot` until Tailwind itself was asked:
+  // `opacity-disabled` compiles. `--duration-fast` stays: under its own name it
+  // generates nothing, and it is aliased as `--transition-duration-fast`.
   const generates = ['--size-control', '--border-width-hairline', '--color-text-strong',
-                     '--spacing-card', '--radius-surface', '--ease-out'];
+                     '--spacing-card', '--radius-surface', '--ease-out', '--opacity-disabled'];
   const doesNot = ['--measure-prose', '--focus-ring-width', '--duration-fast',
-                   '--grid-gutter', '--opacity-disabled'];
+                   '--grid-gutter'];
 
   it('keeps every namespace that produces a utility', () => {
     expect(tailwindNamespaced(generates).sort()).toEqual([...generates].sort());

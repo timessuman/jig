@@ -6,6 +6,7 @@ import { selectFiles } from '../check/files.js';
 import { formatReport } from '../check/report.js';
 import { participatesInTokenLayer } from '../check/token-layer.js';
 import { brandDecidedGaps } from '../check/brand-decided.js';
+import { deadTailwindClasses } from '../check/tailwind-dead.js';
 import { loadSpecs } from '../rules/specs.js';
 import { CSS_EXTENSIONS, hasExtension, isStyleBearing } from '../check/ext.js';
 import { classAttributeValues } from '../check/tailwind.js';
@@ -327,6 +328,24 @@ export function check(opts: CheckOptions): CheckResult {
     detected.push({ ruleId: 'A-01', detector: 'brand-decided', bucket: 'mechanical', severity: 'warning', file: gap.file, line: gap.line, message: gap.message });
   }
 
+  // A Tailwind class that generates no CSS: H-117's missing token, arriving
+  // as a class instead of a var(). Asked of the project's own Tailwind, over
+  // the selected files; the stylesheets that define the theme are the
+  // project's, whatever the diff touched.
+  const tailwind = deadTailwindClasses(opts.projectRoot, files, stylesheets);
+  const h117 = index.find((e) => e.id === 'H-117');
+  for (const d of tailwind.dead) {
+    detected.push({
+      ruleId: 'H-117',
+      detector: 'tailwind-dead-class',
+      bucket: h117?.bucket ?? 'mechanical',
+      severity: h117?.severity ?? 'error',
+      file: d.file,
+      line: d.line,
+      message: `\`${d.className}\` generates no CSS: Tailwind reads it as a utility, and nothing in this project's theme gives it a value, so the element gets nothing. Declare the token it needs in @theme, or use a class that exists`,
+    });
+  }
+
   const { findings, waived } = applyWaivers(opts.projectRoot, detected);
 
   const hasError = findings.some((f) => f.bucket === 'mechanical' && f.severity === 'error');
@@ -363,6 +382,7 @@ export function check(opts: CheckOptions): CheckResult {
     exemptIgnored,
     scope: selection.mode,
     modeUnwired: modeWiringProblems(opts.projectRoot),
+    tailwindSkipped: tailwind.skipped,
     agentFiles: agentFileProblems(opts.projectRoot, opts.homeDir || undefined),
     waived,
   });

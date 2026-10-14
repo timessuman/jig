@@ -394,7 +394,7 @@ const LIGHT_BACKGROUNDS = {
  * no error message anywhere. This has bitten three times: --color-danger,
  * --color-surface, and --leading-heading, each found by hand.
  *
- * Two names are cited deliberately and must NOT be defined: they are
+ * Three names are cited deliberately and must NOT be defined: they are
  * counter-examples, naming the thing the rule tells you not to write. An
  * allowlist is the honest way to express that — the alternative is a rule
  * that fires on correct prose, which teaches people to ignore it.
@@ -402,7 +402,8 @@ const LIGHT_BACKGROUNDS = {
 {
   // Named as things NOT to consume. If either is ever added to a token file,
   // the rule citing it becomes wrong and this list must be revisited.
-  const COUNTER_EXAMPLES = new Set(['--color-neutral-900', '--button-bg']);
+  // `--spacing-touch` is H-117's: the token a Tailwind class needed and nothing declared.
+  const COUNTER_EXAMPLES = new Set(['--color-neutral-900', '--button-bg', '--spacing-touch']);
 
   const defined = new Set();
   for (const file of list('tokens').filter((f) => f.endsWith('.css'))) {

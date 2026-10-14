@@ -355,7 +355,7 @@ Resist per-component tokens (`--button-bg`). They multiply fast and rarely earn 
 
 Names align to Tailwind v4's theme namespaces. This is free for other frameworks — they are ordinary custom properties — and means most of them can be exposed as Tailwind utilities through an alias block, without any framework taking a dependency on Tailwind.
 
-**Most, not all.** Three of the namespaces below are Jig's own and have no utility behind them in Tailwind v4 — the **Utility** column says which. Aliasing one is accepted silently, emits the custom property, and generates no rule, so the class lands on the element and does nothing. That is the same silent failure this file warns about under [Optional: Tailwind utility classes](#optional-tailwind-utility-classes), reached from the other direction: there the alias is missing, here the alias is present and the utility does not exist.
+**Most, not all.** Two of the namespaces below are Jig's own and have no utility behind them in Tailwind v4 — the **Utility** column says which. One more has a utility under another name. Aliasing one is accepted silently, emits the custom property, and generates no rule, so the class lands on the element and does nothing. That is the same silent failure this file warns about under [Optional: Tailwind utility classes](#optional-tailwind-utility-classes), reached from the other direction: there the alias is missing, here the alias is present and the utility does not exist.
 
 | Namespace | Holds | Layer | Utility |
 | --- | --- | --- | --- |
@@ -370,13 +370,14 @@ Names align to Tailwind v4's theme namespaces. This is free for other frameworks
 | `--focus-ring-*` | Focus indicator geometry | brand — an accessibility floor, so not mode-negotiable | **no** |
 | `--shadow-*` | Elevation | brand | yes |
 | `--ease-*` | Motion easing | mode | yes |
-| `--duration-*` | Motion duration | mode | **no** |
+| `--duration-*` | Motion duration | mode | yes, as `--transition-duration-*`: `duration-fast` |
+| `--opacity-*` | Opacity of a disabled control | brand | yes |
 | `--size-*` | Control and row heights | mode | yes |
 | `--measure-*` | Line length caps | mode | **no** |
 
-`--duration-*` and `--ease-*` had one row between them and only one half of it works, which is why they are separated here.
+`--duration-*` and `--ease-*` had one row between them and work differently, which is why they are separated here. Tailwind reads a duration from `--transition-duration-*`, so the alias block names it that way, `--transition-duration-fast: var(--duration-fast)`; an alias under Jig's own name generates nothing. `jig init` asks the project's own Tailwind which aliases generate a utility, and `jig check` asks it which classes in the markup generate nothing (`H-117`).
 
-**Reading a `no` token from a class.** Use Tailwind's custom-property value form, which needs no alias and keeps the semantic name: `max-w-(--measure-prose)`, `duration-(--duration-fast)`, `outline-(--focus-ring-width)`. That satisfies `H-47` — the value is still the token — it simply does not route through `@theme`. The same form covers any token a mode file adds that has no namespace at all, such as the `--grid-*` values.
+**Reading a `no` token from a class.** Use Tailwind's custom-property value form, which needs no alias and keeps the semantic name: `max-w-(--measure-prose)`, `outline-(--focus-ring-width)`. That satisfies `H-47` — the value is still the token — it simply does not route through `@theme`. The same form covers any token a mode file adds that has no namespace at all, such as the `--grid-*` values.
 
 Verified by compiling one alias per namespace against `tailwindcss@4.3.3` and reading the output. Probe each namespace with a *distinct* token name if you re-check this: `text-*`, `border-*`, `outline-*` and `max-w-*` each read more than one namespace, so a shared suffix makes a colour alias look like proof that four other namespaces work.
 

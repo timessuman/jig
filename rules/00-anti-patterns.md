@@ -646,10 +646,11 @@ Deletion is a real answer and the easy one to miss, because the correction point
 Related: `E-33` (an interactive `div`), `B-17` (heading levels), `H-48` (native elements over scripted ones), `P-14` (navigation).
 
 ### H-117 A token name nothing declares
-❌ `font-family: var(--font-body)`, `padding: var(--space-lg)` — in a project whose token layer declares neither
+❌ `font-family: var(--font-body)`, `padding: var(--space-lg)` — in a project whose token layer declares neither. The same in a Tailwind class: `min-h-touch` with no `--spacing-touch` in the theme
 ✅ Use the names the token layer declares — `02-tokens.md` lists them, and the token files in the project are the source. If the value you need has no token, that is a finding to report or a value to delete (`H-47`), never a name to make up.
 The browser does not warn. A `var()` that cannot resolve makes its whole declaration invalid, so the property falls back to its initial value: the font becomes the browser default serif, padding becomes 0, the border disappears. The page still renders, the source still looks tokenised, and every file-based review passes it. In a live run three of four pages invented their token names this way and shipped mostly unstyled.
 `jig check` reads every custom property the project declares — the token layer, its own stylesheets, a Tailwind `@theme`, `style` attributes — and reports each reference to one that is not there. A reference with a fallback, `var(--x, 1rem)`, resolves, and is not reported.
+A Tailwind v4 class whose value nothing declares fails the same way with less trace: Tailwind generates no CSS for it, and says nothing, so no `var()` is ever written. `jig check` asks the project's own Tailwind which of the classes in its markup are utilities that generate nothing, and reports those. A class the project names and styles itself is left alone. Tailwind reads some values from a name that is not the token's own: a duration from `--transition-duration-*`, so `duration-fast` needs that name in the theme, not `--duration-fast`.
 
 ---
 

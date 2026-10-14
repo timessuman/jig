@@ -69,6 +69,8 @@ export interface ReportMeta {
   /** Modes `jig.config.json` declares that the token layer does not import.
    *  See `check/mode-wiring.ts`. */
   modeUnwired?: Array<{ mode: string; barrel: string; message: string }>;
+  /** Why Tailwind classes were not checked for generating no CSS, when the project uses Tailwind v4. */
+  tailwindSkipped?: string;
   /** Warnings waived in the source with `jig-allow <ID>: <why>`. Listed on
    *  every run, like exemptions, because a waiver is only safe while it can be
    *  read. They are not counted in `warnings=`. See `check/waiver.ts`. */
@@ -244,6 +246,7 @@ export function formatReport(findings: Finding[], meta: ReportMeta): string {
 
   // Printed on every run, findings or not: the mode is wrong for every page,
   // so no finding points at it, and a clean report would hide it entirely.
+  if (meta.tailwindSkipped) lines.push(`  Tailwind classes not checked: ${meta.tailwindSkipped}.`);
   if (meta.modeUnwired && meta.modeUnwired.length > 0) {
     lines.push('');
     for (const p of meta.modeUnwired) lines.push(`  ⚠ ${p.message}.`);
