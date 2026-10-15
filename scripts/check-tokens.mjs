@@ -632,7 +632,7 @@ const LIGHT_BACKGROUNDS = {
   // that paragraph is now claimed individually, by the words it actually uses.
   const detected = index.filter((r) => r.detector).length;
   const judgment = index.filter((r) => r.bucket === 'judgment').length;
-  claim('README machine-decidable count', readme, /\*\*(\d+) can be decided by a machine\*\*/, detected);
+  claim('README machine-decidable count', readme, /\*\*(\d+) can be checked automatically\*\*/, detected);
   claim('README judgment count in the split', readme, /\*\*(\d+) are judgment\*\*/, judgment);
   claim('README "only the CLI" count', readme, /only the CLI gets you the (\d+)\b/, detected);
   claim('README "only the agent" count', readme, /only the agent gets you the (\d+)\b/, judgment);
