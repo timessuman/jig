@@ -27,11 +27,11 @@ later.
 Jig is **a skill your coding agent reads**, and **a CLI you can run yourself**.
 They are two halves of the same thing, and the split is not arbitrary:
 
-- Of the 161 rules, **41 can be decided by a machine** — a hard-coded colour, a
-  contrast ratio below the floor, a removed focus ring. The CLI decides those.
+- Of the 161 rules, **41 can be checked automatically** — a hard-coded colour, a
+  contrast ratio below the floor, a removed focus ring. `jig check` checks those.
 - The other **120 are judgment** — whether an empty state says anything useful,
   whether a label reads as an instruction, whether motion earns its place. No
-  regex settles those. An agent reads the rules and applies them.
+  automatic check can settle those. An agent reads the rules and applies them.
 
 Running only the CLI gets you the 41. Running only the agent gets you the 120 with
 no verification. **A clean `jig check` is not a clean review**, and the skill

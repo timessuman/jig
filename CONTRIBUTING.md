@@ -1,8 +1,9 @@
 # Contributing to Jig
 
 Thanks for helping. Jig is a set of UI rules a coding agent reads, and a CLI,
-`jig check`, that settles the rules a program can. Both get better the same way:
-someone runs Jig on a real project and says where it was wrong.
+`jig check`, that checks your code against every rule that can be checked
+automatically. Both get better the same way: someone runs Jig on a real
+project and says where it was wrong.
 
 ## The most useful thing you can do
 
@@ -83,9 +84,9 @@ settle there than in review. Once it's agreed:
   highest number in use across all sections.
 - **Text.** A `❌` line, a `✅` line, then the reason. Write it so an agent can
   act on it: name the thing to do, not a quality to aim for.
-- **Index.** Add the rule to `rules.index.json`. `bucket` is `mechanical` when a
-  program can settle it, `judgment` when only a person or the agent can, and
-  `hybrid` when a program settles part. Give `since` as the next version; the
+- **Index.** Add the rule to `rules.index.json`. `bucket` is `mechanical` when
+  `check` can settle it from the code, `judgment` when only a person or the
+  agent can, and `hybrid` when `check` settles part. Give `since` as the next version; the
   maintainer will correct it at release.
 - **Example.** Add `examples/<ID>.html`.
 - **Counts.** Rule counts appear in the README and a few other places. `npm test`
