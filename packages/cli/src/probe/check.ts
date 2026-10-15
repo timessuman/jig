@@ -217,6 +217,16 @@ export function probeCheck(probes: ProbeResult[], verdictOf: VerdictOf, indexabl
           const missing = [!head.ogTitle && 'og:title', !head.ogDescription && 'og:description'].filter(Boolean).join(' and ');
           failures.push(`${at(p)}: the page served no ${missing} (J-164) — a link to it, pasted into a message or a post, shows a card built from whatever the page happens to carry.`);
         }
+        // The card's image. A path is wrong wherever it is served; a missing
+        // one only once the page states its own full address, since before
+        // the site has one the rule leaves the image for later. The probe
+        // reads the canonical as the browser resolves it, so a relative one
+        // arrives as the local address the probe served, which is not one.
+        if (head.ogImage && !/^https?:\/\//i.test(head.ogImage)) {
+          failures.push(`${at(p)}: og:image is "${head.ogImage}", a path, not a full address (J-164) — a service fetching the card cannot resolve it, and shows no picture.`);
+        } else if (!head.ogImage && /^https?:\/\//i.test(head.canonical) && !/^https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?\//i.test(head.canonical)) {
+          failures.push(`${at(p)}: the page served no og:image (J-164) — Facebook, LinkedIn and WhatsApp show a link to it as a small card with no picture.`);
+        }
       }
       if (!indexable && !noindex) {
         failures.push(`${at(p)}: this page is not indexable, and the page served no noindex (J-123). robots.txt is public and advisory, and is not this.`);

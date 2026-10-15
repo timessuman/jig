@@ -64,6 +64,11 @@ export const metadata: Detector = {
           ? `this page has no ${missing} — a link to it, pasted into a message or a post, shows a card with that part guessed`
           : 'this page has no link preview (og:title and og:description) — a link to it, pasted into a message or a post, shows a card built from whatever the page happens to carry');
       }
+      // The image, once the page states its own full address: before the site
+      // has one, the rule leaves the image and og:url for later.
+      if (indexable && found.hasAddress && !found.hasPreviewImage) {
+        at('J-164', 0, 'this page has no og:image — Facebook, LinkedIn and WhatsApp show a link to it as a small card with no picture, and Facebook\'s debugger warns');
+      }
       if (!indexable && !found.noindex) {
         at('J-123', 0, `this surface is ${ctx.mode}, which is what somebody reaches after signing in, and the page carries no noindex — robots.txt is public and advisory, and is not this`);
       }
@@ -80,6 +85,12 @@ export const metadata: Detector = {
       if (indexable && own && found.description && !found.hasPreviewDescription) {
         at('J-164', own.index, `this file writes the page's description but no og:description${found.hasPreviewTitle ? '' : ' or og:title'} — a link to it, pasted into a message or a post, shows a card without the description written here`);
       }
+    }
+
+    // A relative card image is wrong wherever it is written: the service that
+    // fetches the card has no page to resolve it against.
+    if (found.relativePreviewImage) {
+      at('J-164', found.relativePreviewImage.index, `og:image is "${found.relativePreviewImage.value}", a path, not a full address — a service fetching the card cannot resolve it, and shows no picture`);
     }
 
     // Five rules name this detector, so the runner calls it once per rule.

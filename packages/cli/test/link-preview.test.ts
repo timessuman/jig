@@ -29,10 +29,24 @@ describe('J-164 in a file that writes its own head', () => {
     expect(run('export default function Page() { return <main>x</main>; }', 'editorial', 'page.tsx')).toEqual([]);
   });
 
+  it('reports a page that states its own address and no image, and an image given as a path', () => {
+    const preview = '<meta property="og:title" content="Pricing"><meta property="og:description" content="Three plans.">';
+    const address = '<link rel="canonical" href="https://tidewell.io/pricing">';
+    expect(run(doc(preview + address))[0]?.message).toMatch(/no og:image/);
+    expect(run(doc(preview + address + '<meta property="og:image" content="https://tidewell.io/og.png">'))).toEqual([]);
+    // Before the site has its address, the rule leaves the image for later.
+    expect(run(doc(preview))).toEqual([]);
+    expect(run(doc(preview + '<meta property="og:image" content="/og.png">'))[0]?.message).toMatch(/a path, not a full address/);
+    expect(run('<svelte:head><meta property="og:image" content="og.png" /></svelte:head>', 'editorial', '+page.svelte')[0]?.message).toMatch(/a path/);
+    expect(run('<svelte:head><meta property="og:image" content={image} /></svelte:head>', 'editorial', '+page.svelte')).toEqual([]);
+  });
+
   it('reads previews declared the way frameworks declare them', () => {
     expect(readMetadata('export const metadata = { openGraph: { title: "Pricing", description: "Three plans." } };').hasPreview).toBe(true);
     expect(readMetadata('useSeoMeta({ ogTitle: "Pricing", ogDescription: "Three plans." })').hasPreview).toBe(true);
     expect(readMetadata('<meta property="og:title" content="Pricing">').hasPreview).toBe(false);
+    expect(readMetadata('export const metadata = { openGraph: { images: ["https://tidewell.io/og.png"] } };').hasPreviewImage).toBe(true);
+    expect(readMetadata('useSeoMeta({ ogImage: "https://tidewell.io/og.png" })').hasPreviewImage).toBe(true);
   });
 });
 
@@ -78,6 +92,15 @@ describe('J-164 on the rendered page', () => {
   it('passes a page that serves both, and one that must not be indexed', () => {
     expect(probeCheck([probe({ ogTitle: 'Pricing', ogDescription: 'Three plans.' })], none).failures).toEqual([]);
     expect(probeCheck([probe({ ogDescription: '' })], none, false).failures.join('\n')).not.toMatch(/J-164/);
+  });
+
+  it('fails a served image given as a path, and a missing one once the page states its address', () => {
+    const both = { ogTitle: 'Pricing', ogDescription: 'Three plans.' };
+    expect(probeCheck([probe({ ...both, ogImage: '/og.png' })], none).failures.join('\n')).toMatch(/a path, not a full address/);
+    expect(probeCheck([probe({ ...both, canonical: 'https://tidewell.io/pricing' })], none).failures.join('\n')).toMatch(/no og:image/);
+    expect(probeCheck([probe({ ...both, canonical: 'https://tidewell.io/pricing', ogImage: 'https://tidewell.io/og.png' })], none).failures).toEqual([]);
+    // A relative canonical, resolved against the address the probe served.
+    expect(probeCheck([probe({ ...both, canonical: 'http://localhost:4321/pricing' })], none).failures).toEqual([]);
   });
 
   // A probe taken before the probe read og:description cannot say it is missing.

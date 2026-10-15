@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **A link preview has an image (`J-164`).** Without `og:image`, Facebook,
+  LinkedIn and WhatsApp draw a small card with no picture, and Facebook's
+  debugger warns. The rule now asks for one image for the whole site, 1200 by
+  630, with its width, height and alt, at the page's full address. `check`
+  warns on a page that states its own address and has no image, and on an
+  image given as a path; the render check reports both on the page as served.
+  The rule also says `fb:app_id` is not part of a preview, so an agent does
+  not invent one to quiet the debugger.
+
 ## 0.27.0 (2026-10-14)
 
 `check` finds Tailwind classes that do nothing, by asking your own Tailwind,
