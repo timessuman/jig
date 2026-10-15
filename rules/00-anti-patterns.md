@@ -723,8 +723,8 @@ An empty sitemap is not a missing sitemap. It is a positive claim, and the crawl
 
 ### J-164 An indexable page a link preview cannot read
 ❌ A link pasted into a message or a post that shows a bare address, or the site's name over a line of its navigation
-✅ Every indexable page states its own preview: `og:title` and `og:description`, beside its `<title>` and meta description, and `og:type` for what it is (`article` for a post). An image and `og:url` take the page's full address: add them once the site has one, never as a relative path.
-The card is met before the page, often by someone who never opens it. Without these tags each service builds the card from whatever it finds, and they find different things. A preview is copy, like the title and description: the change that rewrites the page rewrites its card (`J-120`), and a value the page already holds is read, not typed again (`J-126`).
+✅ Every indexable page states its own preview: `og:title` and `og:description`, beside its `<title>` and meta description, `og:type` for what it is (`article` for a post), and `og:image`. One image serves the whole site until a page needs its own: 1200 by 630 pixels, made from the site's own name, type and colours, with `og:image:width`, `og:image:height` and `og:image:alt`. The image and `og:url` take the page's full address, never a relative path: add them once the site has one.
+The card is met before the page, often by someone who never opens it. Without these tags each service builds the card from whatever it finds, and they find different things. Without an image, Facebook, LinkedIn and WhatsApp draw a small card with no picture beside the posts that have one, and Facebook's debugger warns. The same debugger also asks for `fb:app_id`: that ties the domain to a Facebook app for Facebook's own share statistics, changes nothing on the card, and is not part of a preview. A preview is copy, like the title and description: the change that rewrites the page rewrites its card (`J-120`), and a value the page already holds is read, not typed again (`J-126`).
 
 ---
 

@@ -26,6 +26,14 @@ export interface MetadataStrings {
   hasPreviewTitle: boolean;
   hasPreviewDescription: boolean;
   hasPreview: boolean;
+  /** The card's image (J-164), however the framework declares it. */
+  hasPreviewImage: boolean;
+  /** An `og:image` written as a literal path rather than a full address. A
+   *  service fetching the card has no page to resolve it against. */
+  relativePreviewImage?: { value: string; index: number };
+  /** The page states its own full address (an absolute canonical or
+   *  `og:url`), so the site has one, and its card image can take one too. */
+  hasAddress: boolean;
   /** Any construct that declares metadata at all, framework included. */
   declares: boolean;
   /** A title built from a value rather than written: `title: post.title`. The
@@ -76,6 +84,10 @@ function firstGroup(match: RegExpMatchArray | null): { value: string; index: num
 const PREVIEW_TITLE = /property\s*=\s*["']og:title["']|(?:^|[\s{,])["']?(?:ogTitle|og:title)["']?\s*:|openGraph\s*:\s*\{[^}]*?\btitle\s*:/;
 const PREVIEW_DESCRIPTION = /property\s*=\s*["']og:description["']|(?:^|[\s{,])["']?(?:ogDescription|og:description)["']?\s*:|openGraph\s*:\s*\{[^}]*?\bdescription\s*:/;
 
+const PREVIEW_IMAGE = /property\s*=\s*["']og:image["']|(?:^|[\s{,])["']?(?:ogImage|og:image)["']?\s*:|openGraph\s*:\s*\{[^}]*?\bimages?\s*:/;
+const OG_IMAGE_LITERAL = /<meta[^>]+property\s*=\s*["']og:image["'][^>]*content\s*=\s*["']([^"']*)["']|<meta[^>]+content\s*=\s*["']([^"']*)["'][^>]*property\s*=\s*["']og:image["']/i;
+const ABSOLUTE_ADDRESS = /<link[^>]+rel\s*=\s*["']canonical["'][^>]*href\s*=\s*["']https?:\/\/|<link[^>]+href\s*=\s*["']https?:\/\/[^"']*["'][^>]*rel\s*=\s*["']canonical["']|<meta[^>]+property\s*=\s*["']og:url["'][^>]*content\s*=\s*["']https?:\/\/|<meta[^>]+content\s*=\s*["']https?:\/\/[^"']*["'][^>]*property\s*=\s*["']og:url["']/i;
+
 export function readMetadata(source: string): MetadataStrings {
   const htmlTitle = firstGroup(HTML_TITLE.exec(source));
   const title = htmlTitle ?? firstGroup(KEYED_TITLE.exec(source));
@@ -90,6 +102,7 @@ export function readMetadata(source: string): MetadataStrings {
       if (found && !/^\{|\$\{/.test(found.value)) titles.push(found);
     }
   }
+  const image = firstGroup(OG_IMAGE_LITERAL.exec(source));
   return {
     titles,
     title: title && !/^\{|\$\{/.test(title.value) ? title : undefined,
@@ -99,6 +112,9 @@ export function readMetadata(source: string): MetadataStrings {
     hasPreviewTitle: PREVIEW_TITLE.test(source),
     hasPreviewDescription: PREVIEW_DESCRIPTION.test(source),
     hasPreview: PREVIEW_TITLE.test(source) && PREVIEW_DESCRIPTION.test(source),
+    hasPreviewImage: PREVIEW_IMAGE.test(source),
+    relativePreviewImage: image && !/^(?:https?:)?\/\//i.test(image.value) && !/^\{|\$\{/.test(image.value) ? image : undefined,
+    hasAddress: ABSOLUTE_ADDRESS.test(source),
     declares: DECLARES.test(source),
     computedTitle: COMPUTED_TITLE.test(source),
     noindex: NOINDEX.some((re) => re.test(source)),
