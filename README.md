@@ -917,5 +917,7 @@ correct and must not be "fixed": `rules/02-tokens.md`.
 
 ---
 
+Contributing, from a bug report to a new rule: `CONTRIBUTING.md`.
+
 Working on Jig itself rather than with it: `AGENTS.md` for how an agent should
 change the rules, `RECONCILE.md` for where each numeric default came from.
