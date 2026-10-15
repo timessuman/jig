@@ -1,0 +1,40 @@
+name: A check was wrong
+description: jig check flagged something that was fine, or passed something that was broken.
+labels: [bug]
+body:
+  - type: input
+    id: rule
+    attributes:
+      label: Rule
+      description: The rule id in the report, such as H-117.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What went wrong
+      options:
+        - It flagged something that was fine
+        - It passed something that was broken
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: The code
+      description: The smallest markup or CSS that shows it.
+      render: html
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: What check printed
+      render: text
+  - type: input
+    id: setup
+    attributes:
+      label: Jig version, framework, and agent
+      placeholder: 0.27.0, Next.js 15 with Tailwind v4, Claude Code
+    validations:
+      required: true
