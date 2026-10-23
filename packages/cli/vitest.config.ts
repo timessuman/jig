@@ -2,12 +2,12 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // Windows starts processes slowly, and many tests start git several times.
-    // On a 4-core Windows CI runner those tests take 10–20× as long as on
-    // Linux, and up to 8.5s when other files launch Chrome at the same moment:
-    // a different test went past vitest's default 5s on each run. Elsewhere
-    // the default stays, so a test that gets slower still fails there.
-    // The browser tests set their own limit.
-    testTimeout: process.platform === 'win32' ? 20_000 : 5_000,
+    // Many tests start git several times, and process start-up is what a busy
+    // machine slows down first. Measured: up to 3.5s on a loaded Linux laptop,
+    // where one test went past vitest's default 5s, and up to 8.5s on a 4-core
+    // Windows CI runner while other files launched Chrome. The limits leave
+    // about twice that, so a slow test still fails, and one that hangs fails
+    // well before CI gives up. The browser tests set their own limit.
+    testTimeout: process.platform === 'win32' ? 20_000 : 10_000,
   },
 });
